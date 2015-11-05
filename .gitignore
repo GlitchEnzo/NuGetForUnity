@@ -62,3 +62,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Ignore the NuGet Packages folder
+Packages/
+Packages.meta
