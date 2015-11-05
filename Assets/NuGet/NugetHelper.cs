@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
+using System.Xml.Linq;
+using UnityEditor;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
@@ -9,7 +12,7 @@ using Debug = UnityEngine.Debug;
 /// </summary>
 public class NugetHelper 
 {
-    private static readonly string NugetPath = UnityEngine.Application.dataPath + "//NuGet";
+    private static readonly string NugetPath = Application.dataPath + "//NuGet";
 
     private const string ConfigFilePath = "NuGet.config";
 
@@ -22,7 +25,7 @@ public class NugetHelper
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
+        process.StartInfo.Arguments = String.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
@@ -31,7 +34,7 @@ public class NugetHelper
         List<NugetPackage> packages = new List<NugetPackage>();
 
         string error = process.StandardError.ReadToEnd();
-        if (error != string.Empty)
+        if (error != String.Empty)
         {
             Debug.LogError(error);
         }
@@ -53,7 +56,7 @@ public class NugetHelper
                     package.Description += lines[i++];
 
                 package.Description = package.Description.Trim();
-                package.LicenseURL = lines[i++].Replace(" License url: ", string.Empty);
+                package.LicenseURL = lines[i++].Replace(" License url: ", String.Empty);
 
                 packages.Add(package);
                 //Debug.LogFormat("Created {0}", package.ID);
@@ -70,39 +73,42 @@ public class NugetHelper
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
+        process.StartInfo.Arguments = String.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
         process.WaitForExit();
 
         string error = process.StandardError.ReadToEnd();
-        if (error != string.Empty)
+        if (error != String.Empty)
         {
             Debug.LogError(error);
         }
         else
         {
             string output = process.StandardOutput.ReadToEnd();
-            Debug.Log(output);
+            if (!string.IsNullOrEmpty(output))
+                Debug.Log(output);
         }
+
+        AssetDatabase.Refresh();
     }
 
-    public static void Install(string packageIdOrConfig)
+    public static void Install(NugetPackage package)
     {
         Process process = new Process();
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = string.Format("install {0} -configfile {1}", packageIdOrConfig, ConfigFilePath);
+        process.StartInfo.Arguments = String.Format("install {0} -configfile {1}", package.ID, ConfigFilePath);
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
         process.WaitForExit();
 
         string error = process.StandardError.ReadToEnd();
-        if (error != string.Empty)
+        if (error != String.Empty)
         {
             Debug.LogError(error);
         }
@@ -111,7 +117,91 @@ public class NugetHelper
             string output = process.StandardOutput.ReadToEnd();
             Debug.Log(output);
 
-            // TODO: Update the packages.config file
+            // Update the packages.config file
+            AddInstalledPackage(package);
         }
+
+        AssetDatabase.Refresh();
+    }
+
+    /// <summary>
+    /// Recursively deletes the folder at the given path.
+    /// NOTE: Directory.Delete() doesn't delete Read-Only files, whereas this does.
+    /// </summary>
+    /// <param name="directoryPath">The path of the folder to delete.</param>
+    private static void DeleteDirectory(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+            return;
+
+        var directoryInfo = new DirectoryInfo(directoryPath) { Attributes = FileAttributes.Normal };
+        foreach (var childInfo in directoryInfo.GetFileSystemInfos())
+        {
+            DeleteDirectory(childInfo.FullName);
+        }
+
+        directoryInfo.Attributes = FileAttributes.Normal;
+        directoryInfo.Delete(true);
+    }
+
+    public static void Uninstall(NugetPackage package)
+    {
+        // TODO: Get the install directory from the NuGet.config file
+        string packageInstallDirectory = Application.dataPath + "//Packages";
+        packageInstallDirectory += "//" + package.ID + "." + package.Version;
+        DeleteDirectory(packageInstallDirectory);
+
+        RemoveInstalledPackage(package);
+
+        AssetDatabase.Refresh();
+    }
+
+    public static List<NugetPackage> LoadInstalledPackages()
+    {
+        List<NugetPackage> packages = new List<NugetPackage>();
+        
+        string packagesFilePath = Path.Combine(NugetPath, PackagesFilePath);
+
+        XDocument packagesFile = XDocument.Load(packagesFilePath);
+        foreach (var packageElement in packagesFile.Root.Elements())
+        {
+            NugetPackage package = new NugetPackage();
+            package.ID = packageElement.Attribute("id").Value;
+            package.Version = packageElement.Attribute("version").Value;
+            //Debug.LogFormat("Installed: {0}", package.ID);
+            packages.Add(package);
+        }
+
+        return packages;
+    }
+
+    private static void AddInstalledPackage(NugetPackage package)
+    {
+        List<NugetPackage> packages = LoadInstalledPackages();
+        packages.Add(package);
+        SaveInstalledPackages(packages);
+    }
+
+    private static void RemoveInstalledPackage(NugetPackage package)
+    {
+        List<NugetPackage> packages = LoadInstalledPackages();
+        packages.Remove(package);
+        SaveInstalledPackages(packages);
+    }
+
+    private static void SaveInstalledPackages(List<NugetPackage> packages)
+    {
+        string packagesFilePath = Path.Combine(NugetPath, PackagesFilePath);
+        XDocument packagesFile = new XDocument();
+        packagesFile.Add(new XElement("packages"));
+        foreach (var package in packages)
+        {
+            XElement packageElement = new XElement("package");
+            packageElement.Add(new XAttribute("id", package.ID));
+            packageElement.Add(new XAttribute("version", package.Version));
+            packagesFile.Root.Add(packageElement);
+        }
+
+        packagesFile.Save(packagesFilePath);
     }
 }

@@ -1,10 +1,17 @@
-﻿/// <summary>
+﻿using System;
+
+/// <summary>
 /// Represents a package available from NuGet.
 /// </summary>
-public class NugetPackage 
+public class NugetPackage : IEquatable<NugetPackage>
 {
     public string ID { get; set; }
     public string Version { get; set; }
     public string Description { get; set; }
     public string LicenseURL { get; set; }
+
+    public bool Equals(NugetPackage other)
+    {
+        return other.ID == ID && other.Version == Version;
+    }
 }
