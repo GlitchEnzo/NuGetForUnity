@@ -138,10 +138,8 @@ namespace NugetForUnity
                 string searchTermTemp = EditorGUILayout.TextField(searchTerm);
                 if (searchTermTemp != searchTerm)
                 {
-                    //Debug.Log("Searching for " + searchTerm);
                     searchTerm = searchTermTemp;
                     filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
-                    //Debug.Log(filteredPackages.Count);
                 }
             }
             EditorGUILayout.EndVertical();

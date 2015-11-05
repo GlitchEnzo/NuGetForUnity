@@ -10,13 +10,20 @@ using Debug = UnityEngine.Debug;
 /// <summary>
 /// A set of helper methods that act as a wrapper around nuget.exe
 /// </summary>
-public class NugetHelper 
+[InitializeOnLoad]
+public static class NugetHelper 
 {
     private static readonly string NugetPath = Application.dataPath + "//NuGet";
 
     private const string ConfigFilePath = "NuGet.config";
 
     private const string PackagesFilePath = "..//packages.config";
+
+    static NugetHelper()
+    {
+        //Debug.Log("Restoring packages...");
+        Restore();
+    }
 
     public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
     {
@@ -178,7 +185,6 @@ public class NugetHelper
             NugetPackage package = new NugetPackage();
             package.ID = packageElement.Attribute("id").Value;
             package.Version = packageElement.Attribute("version").Value;
-            //Debug.LogFormat("Installed: {0}", package.ID);
             packages.Add(package);
         }
 
