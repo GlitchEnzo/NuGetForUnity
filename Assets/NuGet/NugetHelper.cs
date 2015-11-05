@@ -18,7 +18,7 @@ public class NugetHelper
 
     private const string PackagesFilePath = "..//packages.config";
 
-    public static List<NugetPackage> List(string search = "")
+    public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
     {
         Process process = new Process();
         process.StartInfo.UseShellExecute = false;
@@ -26,6 +26,10 @@ public class NugetHelper
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
         process.StartInfo.Arguments = String.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
+        if (showAllVersions)
+            process.StartInfo.Arguments += " -AllVersions";
+        if (showPrerelease)
+            process.StartInfo.Arguments += " -Prerelease";
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
@@ -101,7 +105,7 @@ public class NugetHelper
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("install {0} -configfile {1}", package.ID, ConfigFilePath);
+        process.StartInfo.Arguments = String.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
@@ -154,6 +158,12 @@ public class NugetHelper
         RemoveInstalledPackage(package);
 
         AssetDatabase.Refresh();
+    }
+
+    public static void Update(NugetPackage currentVersion, NugetPackage newVersion)
+    {
+        Uninstall(currentVersion);
+        Install(newVersion);
     }
 
     public static List<NugetPackage> LoadInstalledPackages()

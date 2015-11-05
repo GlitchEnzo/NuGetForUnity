@@ -1,4 +1,7 @@
-﻿namespace NugetForUnity
+﻿using System;
+using UnityEngine.Networking;
+
+namespace NugetForUnity
 {
     using System.Collections.Generic;
     using System.IO;
@@ -28,6 +31,21 @@
         private List<NugetPackage> installedPackages;
 
         /// <summary>
+        /// True to show all old package versions.  False to only show the latest version.
+        /// </summary>
+        private bool showAllVersions;
+
+        /// <summary>
+        /// True to show beta and alpha package versions.  False to only show stable versions.
+        /// </summary>
+        private bool showPrerelease;
+
+        /// <summary>
+        /// The width to use for the install/uninstall/update/downgrade button
+        /// </summary>
+        private readonly GUILayoutOption installButtonWidth = GUILayout.Width(160);
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages")]
@@ -51,7 +69,7 @@
         private void OnEnable()
         {
             titleContent = new GUIContent("NuGet");
-            packages = NugetHelper.List();
+            packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
             installedPackages = NugetHelper.LoadInstalledPackages();
         }
 
@@ -81,10 +99,26 @@
         /// </summary>
         protected void OnGUI()
         {
-            //if (GUILayout.Button("Restore packages"))
-            //{
-            //    NugetHelper.Restore();
-            //}
+            GUIStyle headerStyle = new GUIStyle();
+            headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+
+            EditorGUILayout.BeginVertical(headerStyle);
+            {
+                bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
+                if (showAllVersionsTemp != showAllVersions)
+                {
+                    showAllVersions = showAllVersionsTemp;
+                    packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                }
+
+                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
+                if (showPrereleaseTemp != showPrerelease)
+                {
+                    showPrerelease = showPrereleaseTemp;
+                    packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                }
+            }
+            EditorGUILayout.EndVertical();
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
@@ -106,14 +140,10 @@
                         EditorStyles.label.fontStyle = FontStyle.Bold;
                         EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].ID));
 
-                        //if (GUILayout.Button("Update", GUILayout.Width(130)))
-                        //{
-
-                        //}
-
                         if (installedPackages.Contains(packages[i]))
                         {
-                            if (GUILayout.Button("Uninstall", GUILayout.Width(130)))
+                            // This specific version is installed
+                            if (GUILayout.Button("Uninstall", installButtonWidth))
                             {
                                 installedPackages.Remove(packages[i]);
                                 NugetHelper.Uninstall(packages[i]);
@@ -121,26 +151,50 @@
                         }
                         else
                         {
-                            if (GUILayout.Button("Install", GUILayout.Width(130)))
+                            var installed = installedPackages.FirstOrDefault(p => p.ID == packages[i].ID);
+                            if (installed != null)
                             {
-                                installedPackages.Add(packages[i]);
-                                NugetHelper.Install(packages[i]);
+                                if (CompareVersions(installed.Version, packages[i].Version) < 0)
+                                {
+                                    // An older version is installed
+                                    if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
+                                    {
+                                        NugetHelper.Update(installed, packages[i]);
+                                    }
+                                }
+                                else if (CompareVersions(installed.Version, packages[i].Version) > 0)
+                                {
+                                    // A newer version is installed
+                                    if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
+                                    {
+                                        NugetHelper.Update(installed, packages[i]);
+                                    }
+                                }
                             }
+                            else
+                            {
+                                if (GUILayout.Button("Install", installButtonWidth))
+                                {
+                                    installedPackages.Add(packages[i]);
+                                    NugetHelper.Install(packages[i]);
+                                }
+                            }
+                            
                         }
                         
                     }
                     EditorGUILayout.EndHorizontal();
 
+                    // Show the package description
                     EditorStyles.label.wordWrap = true;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorGUILayout.LabelField(string.Format("{0}", packages[i].Description));
 
+                    // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
                     {
                         Application.OpenURL(packages[i].LicenseURL);
                     }
-
-                    //GUILayout.Space(40);
 
                     EditorGUILayout.EndVertical();
                 }
@@ -148,6 +202,59 @@
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
+        }
+
+        /// <summary>
+        /// Compares two version numbers in the form "1.2.1". Returns:
+        /// -1 if versionA is less than versionB
+        ///  0 if versionA is equal to versionB
+        /// +1 if versionA is greater than versionB
+        /// </summary>
+        /// <param name="versionA">The first version number to compare.</param>
+        /// <param name="versionB">The second version number to compare.</param>
+        /// <returns>-1 if versionA is less than versionB. 0 if versionA is equal to versionB. +1 if versionA is greater than versionB</returns>
+        private int CompareVersions(string versionA, string versionB)
+        {
+            try
+            {
+                // TODO: Compare the prerelease beta/alpha tag
+                versionA = versionA.Split('-')[0];
+                string[] splitA = versionA.Split('.');
+                int majorA = int.Parse(splitA[0]);
+                int minorA = int.Parse(splitA[1]);
+                int patchA = int.Parse(splitA[2]);
+
+                versionB = versionB.Split('-')[0];
+                string[] splitB = versionB.Split('.');
+                int majorB = int.Parse(splitB[0]);
+                int minorB = int.Parse(splitB[1]);
+                int patchB = int.Parse(splitB[2]);
+
+                int major = majorA < majorB ? -1 : majorA > majorB ? 1 : 0;
+                int minor = minorA < minorB ? -1 : minorA > minorB ? 1 : 0;
+                int build = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
+
+                if (major == 0)
+                {
+                    // if major versions are equal, compare minor versions
+                    if (minor == 0)
+                    {
+                        // if minor versions are equal, just use the build version
+                        return build;
+                    }
+
+                    // the minor versions are different, so use them
+                    return minor;
+                }
+
+                // the major versions are different, so use them
+                return major;
+            }
+            catch (Exception)
+            {
+                Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
+                return 0;
+            }
         }
     }
 }
