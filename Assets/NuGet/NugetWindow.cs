@@ -31,6 +31,11 @@ namespace NugetForUnity
         private List<NugetPackage> installedPackages;
 
         /// <summary>
+        /// The list of NugetPackages available to install, after they have been filtered by the search term.
+        /// </summary>
+        private List<NugetPackage> filteredPackages;
+
+        /// <summary>
         /// True to show all old package versions.  False to only show the latest version.
         /// </summary>
         private bool showAllVersions;
@@ -44,6 +49,11 @@ namespace NugetForUnity
         /// The width to use for the install/uninstall/update/downgrade button
         /// </summary>
         private readonly GUILayoutOption installButtonWidth = GUILayout.Width(160);
+
+        /// <summary>
+        /// The search term to search the packages for.
+        /// </summary>
+        private string searchTerm = "Search";
 
         /// <summary>
         /// Opens the NuGet Package Manager Window.
@@ -70,6 +80,7 @@ namespace NugetForUnity
         {
             titleContent = new GUIContent("NuGet");
             packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+            filteredPackages = new List<NugetPackage>(packages);
             installedPackages = NugetHelper.LoadInstalledPackages();
         }
 
@@ -109,6 +120,9 @@ namespace NugetForUnity
                 {
                     showAllVersions = showAllVersionsTemp;
                     packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                    filteredPackages = new List<NugetPackage>(packages);
+                    if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
+                        filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
                 }
 
                 bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
@@ -116,6 +130,18 @@ namespace NugetForUnity
                 {
                     showPrerelease = showPrereleaseTemp;
                     packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                    filteredPackages = new List<NugetPackage>(packages);
+                    if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
+                        filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                }
+
+                string searchTermTemp = EditorGUILayout.TextField(searchTerm);
+                if (searchTermTemp != searchTerm)
+                {
+                    //Debug.Log("Searching for " + searchTerm);
+                    searchTerm = searchTermTemp;
+                    filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                    //Debug.Log(filteredPackages.Count);
                 }
             }
             EditorGUILayout.EndVertical();
@@ -126,9 +152,9 @@ namespace NugetForUnity
             GUIStyle style = new GUIStyle();
             style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
 
-            if (packages != null)
+            if (filteredPackages != null)
             {
-                for (int i = 0; i < packages.Count; i++)
+                for (int i = 0; i < filteredPackages.Count; i++)
                 {
                     if (i%2 == 0)
                         EditorGUILayout.BeginVertical();
@@ -138,36 +164,36 @@ namespace NugetForUnity
                     EditorGUILayout.BeginHorizontal();
                     {
                         EditorStyles.label.fontStyle = FontStyle.Bold;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].ID));
+                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID));
 
-                        if (installedPackages.Contains(packages[i]))
+                        if (installedPackages.Contains(filteredPackages[i]))
                         {
                             // This specific version is installed
                             if (GUILayout.Button("Uninstall", installButtonWidth))
                             {
-                                installedPackages.Remove(packages[i]);
-                                NugetHelper.Uninstall(packages[i]);
+                                installedPackages.Remove(filteredPackages[i]);
+                                NugetHelper.Uninstall(filteredPackages[i]);
                             }
                         }
                         else
                         {
-                            var installed = installedPackages.FirstOrDefault(p => p.ID == packages[i].ID);
+                            var installed = installedPackages.FirstOrDefault(p => p.ID == filteredPackages[i].ID);
                             if (installed != null)
                             {
-                                if (CompareVersions(installed.Version, packages[i].Version) < 0)
+                                if (CompareVersions(installed.Version, filteredPackages[i].Version) < 0)
                                 {
                                     // An older version is installed
                                     if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        NugetHelper.Update(installed, packages[i]);
+                                        NugetHelper.Update(installed, filteredPackages[i]);
                                     }
                                 }
-                                else if (CompareVersions(installed.Version, packages[i].Version) > 0)
+                                else if (CompareVersions(installed.Version, filteredPackages[i].Version) > 0)
                                 {
                                     // A newer version is installed
                                     if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        NugetHelper.Update(installed, packages[i]);
+                                        NugetHelper.Update(installed, filteredPackages[i]);
                                     }
                                 }
                             }
@@ -175,8 +201,8 @@ namespace NugetForUnity
                             {
                                 if (GUILayout.Button("Install", installButtonWidth))
                                 {
-                                    installedPackages.Add(packages[i]);
-                                    NugetHelper.Install(packages[i]);
+                                    installedPackages.Add(filteredPackages[i]);
+                                    NugetHelper.Install(filteredPackages[i]);
                                 }
                             }
                             
@@ -188,12 +214,12 @@ namespace NugetForUnity
                     // Show the package description
                     EditorStyles.label.wordWrap = true;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
-                    EditorGUILayout.LabelField(string.Format("{0}", packages[i].Description));
+                    EditorGUILayout.LabelField(string.Format("{0}", filteredPackages[i].Description));
 
                     // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
                     {
-                        Application.OpenURL(packages[i].LicenseURL);
+                        Application.OpenURL(filteredPackages[i].LicenseURL);
                     }
 
                     EditorGUILayout.EndVertical();
