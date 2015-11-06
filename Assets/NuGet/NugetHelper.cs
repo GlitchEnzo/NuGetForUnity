@@ -13,11 +13,13 @@ using Debug = UnityEngine.Debug;
 [InitializeOnLoad]
 public static class NugetHelper 
 {
-    private static readonly string NugetPath = Application.dataPath + "//NuGet";
+    private static readonly string NugetPath = Application.dataPath + "/NuGet";
 
     private const string ConfigFilePath = "NuGet.config";
 
     private const string PackagesFilePath = "..//packages.config";
+
+    private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
 
     static NugetHelper()
     {
@@ -126,13 +128,85 @@ public static class NugetHelper
         else
         {
             string output = process.StandardOutput.ReadToEnd();
-            Debug.Log(output);
+            if (!string.IsNullOrEmpty(output))
+                Debug.Log(output);
 
             // Update the packages.config file
             AddInstalledPackage(package);
         }
 
         AssetDatabase.Refresh();
+    }
+
+    public static void Pack(string nuspecFilePath)
+    {
+        if (!Directory.Exists(PackOutputDirectory))
+        {
+            Directory.CreateDirectory(PackOutputDirectory);
+        }
+
+        Process process = new Process();
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.FileName = NugetPath + "//nuget.exe";
+        process.StartInfo.Arguments = String.Format("pack {0} -OutputDirectory {1}", nuspecFilePath, PackOutputDirectory);
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.WorkingDirectory = NugetPath;
+        process.Start();
+        process.WaitForExit();
+
+        string error = process.StandardError.ReadToEnd();
+        if (error != String.Empty)
+        {
+            Debug.LogError(error);
+        }
+        else
+        {
+            string output = process.StandardOutput.ReadToEnd();
+            if (!string.IsNullOrEmpty(output))
+                Debug.Log(output);
+        }
+    }
+
+    public static void Push(NuspecFile nuspec, string nuspecFilePath)
+    {
+        string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
+        if (!File.Exists(packagePath))
+        {
+            //Debug.LogErrorFormat("NuGet package not found: {0}", packagePath);
+            //Debug.Log("Attempting to Pack.");
+            Pack(nuspecFilePath);
+
+            if (!File.Exists(packagePath))
+            {
+                Debug.LogErrorFormat("NuGet package not found: {0}", packagePath);
+                return;
+            }
+        }
+
+        Process process = new Process();
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.FileName = NugetPath + "//nuget.exe";
+        process.StartInfo.Arguments = String.Format("push {0} -configfile {1}", packagePath, ConfigFilePath);
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.WorkingDirectory = NugetPath;
+        process.Start();
+        process.WaitForExit();
+
+        string error = process.StandardError.ReadToEnd();
+        if (error != String.Empty)
+        {
+            Debug.LogError(error);
+        }
+        else
+        {
+            string output = process.StandardOutput.ReadToEnd();
+            if (!string.IsNullOrEmpty(output))
+                Debug.Log(output);
+        }
     }
 
     /// <summary>
