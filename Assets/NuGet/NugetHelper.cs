@@ -91,9 +91,17 @@ public static class NugetHelper
 
     public static void Restore()
     {
-        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
+        //string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
 
-        RunNugetProcess(arguments);
+        //RunNugetProcess(arguments);
+
+        // http://stackoverflow.com/questions/12930868/nuget-exe-install-not-updating-packages-config-or-csproj
+        // http://stackoverflow.com/questions/17187725/using-nuget-exe-commandline-to-install-dependency
+        var packages = LoadInstalledPackages();
+        foreach (var package in packages)
+        {
+            Install(package);
+        }
 
         AssetDatabase.Refresh();
     }
@@ -103,6 +111,8 @@ public static class NugetHelper
         string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
 
         RunNugetProcess(arguments);
+
+        // TODO: Check the output for any installed dependencies
 
         // Update the packages.config file
         AddInstalledPackage(package);
@@ -203,8 +213,12 @@ public static class NugetHelper
     private static void AddInstalledPackage(NugetPackage package)
     {
         List<NugetPackage> packages = LoadInstalledPackages();
-        packages.Add(package);
-        SaveInstalledPackages(packages);
+
+        if (!packages.Contains(package))
+        {
+            packages.Add(package);
+            SaveInstalledPackages(packages);
+        }
     }
 
     private static void RemoveInstalledPackage(NugetPackage package)
