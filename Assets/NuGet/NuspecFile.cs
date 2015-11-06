@@ -1,6 +1,6 @@
-﻿using System.Xml.Linq;
-using UnityEngine;
-using System.Collections;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Xml.Linq;
 
 public class NuspecFile
 {
@@ -12,6 +12,7 @@ public class NuspecFile
     public string ProjectUrl { get; set; }
     public string IconUrl { get; set; }
     public bool RequireLicenseAcceptance { get; set; }
+    public List<NugetPackage> Dependencies { get; set; }
     public string Description { get; set; }
     public string ReleaseNotes { get; set; }
     public string Copyright { get; set; }
@@ -37,6 +38,19 @@ public class NuspecFile
         nuspec.Copyright = (string)metadata.Element("copyright");
         nuspec.Tags = (string)metadata.Element("tags") ?? string.Empty;
 
+        nuspec.Dependencies = new List<NugetPackage>();
+        var dependenciesElement = metadata.Element("dependencies");
+        if (dependenciesElement != null)
+        {
+            foreach (var dependencyElement in dependenciesElement.Elements("dependency"))
+            {
+                NugetPackage dependency = new NugetPackage();
+                dependency.ID = (string)dependencyElement.Attribute("id") ?? string.Empty;
+                dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+                nuspec.Dependencies.Add(dependency);
+            }
+        }
+
         return nuspec;
     }
 
@@ -58,6 +72,20 @@ public class NuspecFile
         metadata.Add(new XElement("releaseNotes", ReleaseNotes));
         metadata.Add(new XElement("copyright", Copyright));
         metadata.Add(new XElement("tags", Tags));
+
+        if (Dependencies != null && Dependencies.Count > 0)
+        {
+            //UnityEngine.Debug.Log("Saving dependencies!");
+            var dependenciesElement = new XElement("dependencies");
+            foreach (var dependency in Dependencies)
+            {
+                var dependencyElement = new XElement("dependency");
+                dependencyElement.Add(new XAttribute("id", dependency.ID));
+                dependencyElement.Add(new XAttribute("version", dependency.Version));
+                dependenciesElement.Add(dependencyElement);
+            }
+            metadata.Add(dependenciesElement);
+        }
 
         file.Root.Add(metadata);
 

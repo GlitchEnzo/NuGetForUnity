@@ -1,12 +1,8 @@
-﻿using System;
-using UnityEngine.Networking;
-
-namespace NugetForUnity
+﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
-    using System.Text;
     using UnityEditor;
     using UnityEngine;
 

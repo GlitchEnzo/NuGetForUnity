@@ -5,11 +5,25 @@ using UnityEngine;
 [CustomEditor(typeof(DefaultAsset))]
 public class NuspecEditor : Editor
 {
+    /// <summary>
+    /// True if the selected file is a .nuspec file.
+    /// </summary>
     private bool isNuspec;
 
+    /// <summary>
+    /// The full filepath to the .nuspec file that is being edited.
+    /// </summary>
+    private string filepath;
+
+    /// <summary>
+    /// The NuspecFile that was loaded from the .nuspec file.
+    /// </summary>
     private NuspecFile nuspec;
 
-    private string filepath;
+    /// <summary>
+    /// True if the dependencies list is expanded in the GUI.  False if it is collapsed.
+    /// </summary>
+    private bool dependenciesExpanded = true;
 
     public void OnEnable()
     {
@@ -45,6 +59,48 @@ public class NuspecEditor : Editor
             nuspec.ReleaseNotes = EditorGUILayout.TextField(new GUIContent("Release Notes", "The release notes for this specific version of the package."), nuspec.ReleaseNotes);
             nuspec.Copyright = EditorGUILayout.TextField(new GUIContent("Copyright", "The copyright of the package."), nuspec.Copyright);
             nuspec.Tags = EditorGUILayout.TextField(new GUIContent("Tags", "The tags of the package."), nuspec.Tags);
+
+            dependenciesExpanded = EditorGUILayout.Foldout(dependenciesExpanded, "Dependencies");
+
+            if (dependenciesExpanded)
+            {
+                EditorGUI.indentLevel++;
+
+                // display the dependencies
+                NugetPackage toDelete = null;
+                foreach (var dependency in nuspec.Dependencies)
+                {
+                    dependency.ID = EditorGUILayout.TextField(new GUIContent("ID", "The ID of the dependency package."), dependency.ID);
+
+                    //int oldSeletedIndex = IndexOf(ref existingComponents, dependency.ID);
+                    //int newSelectIndex = EditorGUILayout.Popup("Name", oldSeletedIndex, existingComponents);
+                    //if (oldSeletedIndex != newSelectIndex)
+                    //{
+                    //    dependency.Name = existingComponents[newSelectIndex];
+                    //}
+
+                    dependency.Version = EditorGUILayout.TextField(new GUIContent("Version", "The version number of the dependency package. (specify ranges with =><)"), dependency.Version);
+
+                    if (GUILayout.Button("Remove " + dependency.ID))
+                    {
+                        toDelete = dependency;
+                    }
+
+                    EditorGUILayout.Separator();
+                }
+
+                if (toDelete != null)
+                {
+                    nuspec.Dependencies.Remove(toDelete);
+                }
+
+                if (GUILayout.Button("Add Dependency"))
+                {
+                    nuspec.Dependencies.Add(new NugetPackage());
+                }
+
+                EditorGUI.indentLevel--;
+            }
 
             if (GUILayout.Button(string.Format("Save {0}", Path.GetFileName(filepath))))
             {
