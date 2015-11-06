@@ -27,113 +27,85 @@ public static class NugetHelper
         Restore();
     }
 
-    public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
+    private static string RunNugetProcess(string arguments, bool logOuput = true)
     {
         Process process = new Process();
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
-        if (showAllVersions)
-            process.StartInfo.Arguments += " -AllVersions";
-        if (showPrerelease)
-            process.StartInfo.Arguments += " -Prerelease";
+        process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
         process.Start();
         process.WaitForExit();
 
-        List<NugetPackage> packages = new List<NugetPackage>();
-
         string error = process.StandardError.ReadToEnd();
-        if (error != String.Empty)
+        if (!string.IsNullOrEmpty(error))
         {
             Debug.LogError(error);
         }
-        else
+
+        string output = process.StandardOutput.ReadToEnd();
+        if (logOuput && !string.IsNullOrEmpty(output))
         {
-            string output = process.StandardOutput.ReadToEnd();
-            //Debug.Log(output);
-
-            string[] lines = output.Split('\n');
-            //Debug.Log(lines.Count() + " lines");
-            for (int i = 0; i < lines.Length - 4; i++)
-            {
-                NugetPackage package = new NugetPackage();
-                package.ID = lines[i++].Trim();
-                package.Version = lines[i++].Trim();
-                package.Description = lines[i++];
-
-                while (!lines[i].Contains("License"))
-                    package.Description += lines[i++];
-
-                package.Description = package.Description.Trim();
-                package.LicenseURL = lines[i++].Replace(" License url: ", String.Empty);
-
-                packages.Add(package);
-                //Debug.LogFormat("Created {0}", package.ID);
-            } 
+            Debug.Log(output);
         }
+
+        return output;
+    }
+
+    public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
+    {
+        string arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
+        if (showAllVersions)
+            arguments += " -AllVersions";
+        if (showPrerelease)
+            arguments += " -Prerelease";
+
+        string output = RunNugetProcess(arguments, false);
+
+        List<NugetPackage> packages = new List<NugetPackage>();
+
+        string[] lines = output.Split('\n');
+        //Debug.Log(lines.Count() + " lines");
+        for (int i = 0; i < lines.Length - 4; i++)
+        {
+            NugetPackage package = new NugetPackage();
+            package.ID = lines[i++].Trim();
+            package.Version = lines[i++].Trim();
+            package.Description = lines[i++];
+
+            while (!lines[i].Contains("License"))
+                package.Description += lines[i++];
+
+            package.Description = package.Description.Trim();
+            package.LicenseURL = lines[i++].Replace(" License url: ", String.Empty);
+
+            packages.Add(package);
+            //Debug.LogFormat("Created {0}", package.ID);
+        } 
 
         return packages;
     }
 
     public static void Restore()
     {
-        Process process = new Process();
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.WorkingDirectory = NugetPath;
-        process.Start();
-        process.WaitForExit();
+        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
 
-        string error = process.StandardError.ReadToEnd();
-        if (error != String.Empty)
-        {
-            Debug.LogError(error);
-        }
-        else
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            if (!string.IsNullOrEmpty(output))
-                Debug.Log(output);
-        }
+        RunNugetProcess(arguments);
 
         AssetDatabase.Refresh();
     }
 
     public static void Install(NugetPackage package)
     {
-        Process process = new Process();
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.WorkingDirectory = NugetPath;
-        process.Start();
-        process.WaitForExit();
+        string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
 
-        string error = process.StandardError.ReadToEnd();
-        if (error != String.Empty)
-        {
-            Debug.LogError(error);
-        }
-        else
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            if (!string.IsNullOrEmpty(output))
-                Debug.Log(output);
+        RunNugetProcess(arguments);
 
-            // Update the packages.config file
-            AddInstalledPackage(package);
-        }
+        // Update the packages.config file
+        AddInstalledPackage(package);
 
         AssetDatabase.Refresh();
     }
@@ -145,28 +117,9 @@ public static class NugetHelper
             Directory.CreateDirectory(PackOutputDirectory);
         }
 
-        Process process = new Process();
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("pack {0} -OutputDirectory {1}", nuspecFilePath, PackOutputDirectory);
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.WorkingDirectory = NugetPath;
-        process.Start();
-        process.WaitForExit();
+        string arguments = string.Format("pack {0} -OutputDirectory {1}", nuspecFilePath, PackOutputDirectory);
 
-        string error = process.StandardError.ReadToEnd();
-        if (error != String.Empty)
-        {
-            Debug.LogError(error);
-        }
-        else
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            if (!string.IsNullOrEmpty(output))
-                Debug.Log(output);
-        }
+        RunNugetProcess(arguments);
     }
 
     public static void Push(NuspecFile nuspec, string nuspecFilePath)
@@ -185,28 +138,9 @@ public static class NugetHelper
             }
         }
 
-        Process process = new Process();
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "//nuget.exe";
-        process.StartInfo.Arguments = String.Format("push {0} -configfile {1}", packagePath, ConfigFilePath);
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.WorkingDirectory = NugetPath;
-        process.Start();
-        process.WaitForExit();
+        string arguments = string.Format("push {0} -configfile {1}", packagePath, ConfigFilePath);
 
-        string error = process.StandardError.ReadToEnd();
-        if (error != String.Empty)
-        {
-            Debug.LogError(error);
-        }
-        else
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            if (!string.IsNullOrEmpty(output))
-                Debug.Log(output);
-        }
+        RunNugetProcess(arguments);
     }
 
     /// <summary>
