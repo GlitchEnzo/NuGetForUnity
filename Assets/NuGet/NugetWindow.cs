@@ -109,6 +109,7 @@
             GUIStyle headerStyle = new GUIStyle();
             headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
 
+            // dislay the header
             EditorGUILayout.BeginVertical(headerStyle);
             {
                 bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
@@ -140,6 +141,7 @@
             }
             EditorGUILayout.EndVertical();
 
+            // display all of the packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
@@ -158,7 +160,9 @@
                     EditorGUILayout.BeginHorizontal();
                     {
                         EditorStyles.label.fontStyle = FontStyle.Bold;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID));
+                        EditorStyles.label.fontSize = 14;
+                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID), GUILayout.Height(25));
+                        EditorStyles.label.fontSize = 10;
 
                         if (installedPackages.Contains(filteredPackages[i]))
                         {
@@ -213,6 +217,8 @@
                     EditorStyles.label.wordWrap = true;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorGUILayout.LabelField(string.Format("{0}", filteredPackages[i].Description));
+
+                    EditorGUILayout.Separator();
 
                     // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
