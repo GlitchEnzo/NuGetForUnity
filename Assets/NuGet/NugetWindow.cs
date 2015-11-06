@@ -183,6 +183,8 @@ namespace NugetForUnity
                                     // An older version is installed
                                     if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                                     {
+                                        installedPackages.Remove(installed);
+                                        installedPackages.Add(filteredPackages[i]);
                                         NugetHelper.Update(installed, filteredPackages[i]);
                                     }
                                 }
@@ -191,6 +193,8 @@ namespace NugetForUnity
                                     // A newer version is installed
                                     if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                                     {
+                                        installedPackages.Remove(installed);
+                                        installedPackages.Add(filteredPackages[i]);
                                         NugetHelper.Update(installed, filteredPackages[i]);
                                     }
                                 }

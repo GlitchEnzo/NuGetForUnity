@@ -155,7 +155,7 @@ public static class NugetHelper
         directoryInfo.Delete(true);
     }
 
-    public static void Uninstall(NugetPackage package)
+    public static void Uninstall(NugetPackage package, bool refreshAssets = true)
     {
         // TODO: Get the install directory from the NuGet.config file
         string packageInstallDirectory = Application.dataPath + "//Packages";
@@ -164,12 +164,13 @@ public static class NugetHelper
 
         RemoveInstalledPackage(package);
 
-        AssetDatabase.Refresh();
+        if (refreshAssets)
+            AssetDatabase.Refresh();
     }
 
     public static void Update(NugetPackage currentVersion, NugetPackage newVersion)
     {
-        Uninstall(currentVersion);
+        Uninstall(currentVersion, false);
         Install(newVersion);
     }
 
