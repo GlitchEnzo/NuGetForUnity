@@ -161,7 +161,7 @@
                     {
                         EditorStyles.label.fontStyle = FontStyle.Bold;
                         EditorStyles.label.fontSize = 14;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID), GUILayout.Height(25));
+                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID), GUILayout.Height(20));
                         EditorStyles.label.fontSize = 10;
 
                         if (installedPackages.Contains(filteredPackages[i]))
@@ -218,13 +218,14 @@
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorGUILayout.LabelField(string.Format("{0}", filteredPackages[i].Description));
 
-                    EditorGUILayout.Separator();
-
                     // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
                     {
                         Application.OpenURL(filteredPackages[i].LicenseURL);
                     }
+
+                    EditorGUILayout.Separator();
+                    EditorGUILayout.Separator();
 
                     EditorGUILayout.EndVertical();
                 }

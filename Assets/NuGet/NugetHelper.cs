@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -91,17 +92,17 @@ public static class NugetHelper
 
     public static void Restore()
     {
-        //string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
+        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
 
-        //RunNugetProcess(arguments);
+        RunNugetProcess(arguments);
 
         // http://stackoverflow.com/questions/12930868/nuget-exe-install-not-updating-packages-config-or-csproj
         // http://stackoverflow.com/questions/17187725/using-nuget-exe-commandline-to-install-dependency
-        var packages = LoadInstalledPackages();
-        foreach (var package in packages)
-        {
-            Install(package);
-        }
+        //var packages = LoadInstalledPackages();
+        //foreach (var package in packages)
+        //{
+        //    Install(package);
+        //}
 
         AssetDatabase.Refresh();
     }
@@ -110,9 +111,28 @@ public static class NugetHelper
     {
         string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
 
-        RunNugetProcess(arguments);
+        string output = RunNugetProcess(arguments);
 
         // TODO: Check the output for any installed dependencies
+        // https://msdn.microsoft.com/en-us/library/bs2twtah(v=vs.110).aspx
+        // Example: "Attempting to resolve dependency 'Newtonsoft.Json (� 6.0.8)'"
+        string pattern = @"Attempting to resolve dependency '(?<package>.+)'";
+        Regex dependencyRegex = new Regex(pattern);
+
+        var matches = dependencyRegex.Matches(output);
+        foreach (Match match in matches)
+        {
+            //Debug.Log(match.ToString());
+            //Debug.Log(match.Groups["package"].Value);
+            string[] split = match.Groups["package"].Value.Split('(');
+
+            NugetPackage dependencyPackage = new NugetPackage();
+            dependencyPackage.ID = split[0].Trim();
+            dependencyPackage.Version = split[1].Substring(2, split[1].Length - 3);
+            //Debug.Log(id + ":" + version);
+
+            AddInstalledPackage(dependencyPackage);
+        }
 
         // Update the packages.config file
         AddInstalledPackage(package);
