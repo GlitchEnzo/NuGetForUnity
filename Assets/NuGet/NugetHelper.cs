@@ -193,17 +193,16 @@ public static class NugetHelper
         string packageInstallDirectory = Application.dataPath + "/Packages";
         packageInstallDirectory += "/" + package.ID + "." + package.Version;
 
-        //DeleteDirectory(packageInstallDirectory + "/lib/net40");
-        //DeleteDirectory(packageInstallDirectory + "/lib/net45");
-        //DeleteDirectory(packageInstallDirectory + "/lib/netcore45");
+        // Unity has no use for the tools or build directories
         DeleteDirectory(packageInstallDirectory + "/tools");
+        DeleteDirectory(packageInstallDirectory + "/build");
 
+        // Unity can only use .NET 3.5 or lower, so delete everything else
         if (Directory.Exists(packageInstallDirectory + "/lib"))
         {
             string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
             foreach (var directory in libDirectories)
             {
-                //Debug.Log(directory);
                 if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45"))
                 {
                     DeleteDirectory(directory);
