@@ -10,6 +10,10 @@ using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// A set of helper methods that act as a wrapper around nuget.exe
+/// 
+/// TIP: It's incredibly useful to associate .nupkg files as compressed folder in Windows (View like .zip files).  To do this:
+///      1) Open a command prompt as admin (Press Windows key. Type "cmd".  Right click on the icon and choose "Run as Administrator"
+///      2) Enter this command: cmd /c assoc .nupkg=CompressedFolder 
 /// </summary>
 [InitializeOnLoad]
 public static class NugetHelper 
@@ -24,8 +28,8 @@ public static class NugetHelper
 
     static NugetHelper()
     {
-        //Debug.Log("Restoring packages...");
-        Restore();
+        // restore packages silently since this would be output EVERY time the project is loaded or a code-file changes
+        Restore(false);
     }
 
     private static string RunNugetProcess(string arguments, bool logOuput = true)
@@ -68,6 +72,7 @@ public static class NugetHelper
 
         List<NugetPackage> packages = new List<NugetPackage>();
 
+        // parse the command line output to build a list of available packages
         string[] lines = output.Split('\n');
         //Debug.Log(lines.Count() + " lines");
         for (int i = 0; i < lines.Length - 4; i++)
@@ -90,11 +95,11 @@ public static class NugetHelper
         return packages;
     }
 
-    public static void Restore()
+    public static void Restore(bool logOutput = true)
     {
         string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
 
-        RunNugetProcess(arguments);
+        RunNugetProcess(arguments, logOutput);
 
         // http://stackoverflow.com/questions/12930868/nuget-exe-install-not-updating-packages-config-or-csproj
         // http://stackoverflow.com/questions/17187725/using-nuget-exe-commandline-to-install-dependency
@@ -113,7 +118,7 @@ public static class NugetHelper
 
         string output = RunNugetProcess(arguments);
 
-        // TODO: Check the output for any installed dependencies
+        // Check the output for any installed dependencies
         // https://msdn.microsoft.com/en-us/library/bs2twtah(v=vs.110).aspx
         // Example: "Attempting to resolve dependency 'Newtonsoft.Json (� 6.0.8)'"
         string pattern = @"Attempting to resolve dependency '(?<package>.+)'";
@@ -132,12 +137,50 @@ public static class NugetHelper
             //Debug.Log(id + ":" + version);
 
             AddInstalledPackage(dependencyPackage);
+
+            Clean(dependencyPackage);
         }
 
         // Update the packages.config file
         AddInstalledPackage(package);
 
+        Clean(package);
+
         AssetDatabase.Refresh();
+    }
+
+    /// <summary>
+    /// Cleans up a package after it has been installed.
+    /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
+    /// </summary>
+    /// <param name="package"></param>
+    private static void Clean(NugetPackage package)
+    {
+        // TODO: Get the install directory from the NuGet.config file
+        string packageInstallDirectory = Application.dataPath + "/Packages";
+        packageInstallDirectory += "/" + package.ID + "." + package.Version;
+
+        //DeleteDirectory(packageInstallDirectory + "/lib/net40");
+        //DeleteDirectory(packageInstallDirectory + "/lib/net45");
+        //DeleteDirectory(packageInstallDirectory + "/lib/netcore45");
+        DeleteDirectory(packageInstallDirectory + "/tools");
+
+        string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
+        foreach (var directory in libDirectories)
+        {
+            //Debug.Log(directory);
+            if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45"))
+            {
+                DeleteDirectory(directory);
+            }
+            else if (directory.Contains("net20"))
+            {
+                if (Directory.Exists(packageInstallDirectory + "/lib/net35"))
+                {
+                    DeleteDirectory(directory);
+                }
+            }
+        }
     }
 
     public static void Pack(string nuspecFilePath)
@@ -196,8 +239,8 @@ public static class NugetHelper
     public static void Uninstall(NugetPackage package, bool refreshAssets = true)
     {
         // TODO: Get the install directory from the NuGet.config file
-        string packageInstallDirectory = Application.dataPath + "//Packages";
-        packageInstallDirectory += "//" + package.ID + "." + package.Version;
+        string packageInstallDirectory = Application.dataPath + "/Packages";
+        packageInstallDirectory += "/" + package.ID + "." + package.Version;
         DeleteDirectory(packageInstallDirectory);
 
         RemoveInstalledPackage(package);
