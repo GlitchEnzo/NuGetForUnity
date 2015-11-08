@@ -183,9 +183,8 @@
                                     // An older version is installed
                                     if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        installedPackages.Remove(installed);
-                                        installedPackages.Add(filteredPackages[i]);
                                         NugetHelper.Update(installed, filteredPackages[i]);
+                                        installedPackages = NugetHelper.LoadInstalledPackages();
                                     }
                                 }
                                 else if (CompareVersions(installed.Version, filteredPackages[i].Version) > 0)
@@ -193,9 +192,8 @@
                                     // A newer version is installed
                                     if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        installedPackages.Remove(installed);
-                                        installedPackages.Add(filteredPackages[i]);
                                         NugetHelper.Update(installed, filteredPackages[i]);
+                                        installedPackages = NugetHelper.LoadInstalledPackages();
                                     }
                                 }
                             }
@@ -203,8 +201,8 @@
                             {
                                 if (GUILayout.Button("Install", installButtonWidth))
                                 {
-                                    installedPackages.Add(filteredPackages[i]);
                                     NugetHelper.Install(filteredPackages[i]);
+                                    installedPackages = NugetHelper.LoadInstalledPackages();
                                 }
                             }
                             
