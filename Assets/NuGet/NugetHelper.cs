@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using UnityEditor;
@@ -42,8 +43,13 @@ public static class NugetHelper
         process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
+        process.StartInfo.StandardOutputEncoding = Encoding.UTF7; // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!
         process.Start();
-        process.WaitForExit();
+
+        if (!process.WaitForExit(5000))
+        {
+            Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
+        }
 
         string error = process.StandardError.ReadToEnd();
         if (!string.IsNullOrEmpty(error))
@@ -109,6 +115,8 @@ public static class NugetHelper
         //    Install(package);
         //}
 
+        Clean();
+
         AssetDatabase.Refresh();
     }
 
@@ -120,20 +128,32 @@ public static class NugetHelper
 
         // Check the output for any installed dependencies
         // https://msdn.microsoft.com/en-us/library/bs2twtah(v=vs.110).aspx
-        // Example: "Attempting to resolve dependency 'Newtonsoft.Json (� 6.0.8)'"
-        string pattern = @"Attempting to resolve dependency '(?<package>.+)'";
-        Regex dependencyRegex = new Regex(pattern);
+        // Example: "Attempting to resolve dependency 'StyleCop.MSBuild (ò 4.7.49.0)'.
+        //           Installing 'StyleCop.MSBuild 4.7.49.1'."
+        //string pattern = @"Attempting to resolve dependency '(?<package>.+)'";
+        string pattern = @"Attempting to resolve dependency.+\nInstalling '(?<package>.+)'";
+        Regex dependencyRegex = new Regex(pattern, RegexOptions.Multiline);
 
         var matches = dependencyRegex.Matches(output);
         foreach (Match match in matches)
         {
             //Debug.Log(match.ToString());
             //Debug.Log(match.Groups["package"].Value);
-            string[] split = match.Groups["package"].Value.Split('(');
+            string[] split = match.Groups["package"].Value.Split(' ');
 
             NugetPackage dependencyPackage = new NugetPackage();
             dependencyPackage.ID = split[0].Trim();
-            dependencyPackage.Version = split[1].Substring(2, split[1].Length - 3);
+
+            //char compare = split[1][0];
+            //Debug.Log((int)compare);
+            //char greaterThanEqual = '\xF2';
+            //if (compare == greaterThanEqual)
+            //{
+            //    Debug.Log("Greater than or equals...");
+            //}
+
+            //dependencyPackage.Version = split[1].Substring(2, split[1].Length - 3);
+            dependencyPackage.Version = split[1];
             //Debug.Log(id + ":" + version);
 
             AddInstalledPackage(dependencyPackage);
@@ -150,10 +170,23 @@ public static class NugetHelper
     }
 
     /// <summary>
+    /// Clean all currently installed packages.
+    /// </summary>
+    private static void Clean()
+    {
+        var installedPackages = LoadInstalledPackages();
+
+        foreach (var package in installedPackages)
+        {
+            Clean(package);
+        }
+    }
+
+    /// <summary>
     /// Cleans up a package after it has been installed.
     /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
     /// </summary>
-    /// <param name="package"></param>
+    /// <param name="package">The NugetPackage to clean.</param>
     private static void Clean(NugetPackage package)
     {
         // TODO: Get the install directory from the NuGet.config file
@@ -165,19 +198,23 @@ public static class NugetHelper
         //DeleteDirectory(packageInstallDirectory + "/lib/netcore45");
         DeleteDirectory(packageInstallDirectory + "/tools");
 
-        string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
-        foreach (var directory in libDirectories)
+        if (Directory.Exists(packageInstallDirectory + "/lib"))
         {
-            //Debug.Log(directory);
-            if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45"))
+            string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
+            foreach (var directory in libDirectories)
             {
-                DeleteDirectory(directory);
-            }
-            else if (directory.Contains("net20"))
-            {
-                if (Directory.Exists(packageInstallDirectory + "/lib/net35"))
+                //Debug.Log(directory);
+                if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45"))
                 {
                     DeleteDirectory(directory);
+                }
+                else if (directory.Contains("net20"))
+                {
+                    // if .NET 2.0 exists, keep it, unless there is also a .NET 3.5 (highest allowed in Unity) version as well
+                    if (Directory.Exists(packageInstallDirectory + "/lib/net35"))
+                    {
+                        DeleteDirectory(directory);
+                    }
                 }
             }
         }
