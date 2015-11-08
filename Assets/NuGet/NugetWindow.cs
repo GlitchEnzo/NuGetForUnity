@@ -254,24 +254,41 @@
                 int majorA = int.Parse(splitA[0]);
                 int minorA = int.Parse(splitA[1]);
                 int patchA = int.Parse(splitA[2]);
+                int buildA = 0;
+                if (splitA.Length == 4)
+                {
+                    buildA = int.Parse(splitA[3]);
+                }
 
                 versionB = versionB.Split('-')[0];
                 string[] splitB = versionB.Split('.');
                 int majorB = int.Parse(splitB[0]);
                 int minorB = int.Parse(splitB[1]);
                 int patchB = int.Parse(splitB[2]);
+                int buildB= 0;
+                if (splitB.Length == 4)
+                {
+                    buildB = int.Parse(splitB[3]);
+                }
 
                 int major = majorA < majorB ? -1 : majorA > majorB ? 1 : 0;
                 int minor = minorA < minorB ? -1 : minorA > minorB ? 1 : 0;
-                int build = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
+                int patch = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
+                int build = buildA < buildB ? -1 : buildA > buildB ? 1 : 0;
 
                 if (major == 0)
                 {
                     // if major versions are equal, compare minor versions
                     if (minor == 0)
                     {
-                        // if minor versions are equal, just use the build version
-                        return build;
+                        if (patch == 0)
+                        {
+                            // if patch versions are equal, just use the build version
+                            return build;
+                        }
+
+                        // the patch versions are different, so use them
+                        return patch;
                     }
 
                     // the minor versions are different, so use them
