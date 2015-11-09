@@ -78,6 +78,9 @@
             packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
             filteredPackages = new List<NugetPackage>(packages);
             installedPackages = NugetHelper.LoadInstalledPackages();
+
+            //Debug.Log("≥");
+            //Debug.Log((int)'≥');
         }
 
         /// <summary>
@@ -112,15 +115,24 @@
             // dislay the header
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
-                if (showAllVersionsTemp != showAllVersions)
+                EditorGUILayout.BeginHorizontal();
                 {
-                    showAllVersions = showAllVersionsTemp;
-                    packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
-                    filteredPackages = new List<NugetPackage>(packages);
-                    if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
-                        filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
+                    if (showAllVersionsTemp != showAllVersions)
+                    {
+                        showAllVersions = showAllVersionsTemp;
+                        packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                        filteredPackages = new List<NugetPackage>(packages);
+                        if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
+                            filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                    }
+
+                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+                    {
+                        OnEnable();
+                    }
                 }
+                EditorGUILayout.EndHorizontal();
 
                 bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
                 if (showPrereleaseTemp != showPrerelease)

@@ -43,7 +43,10 @@ public static class NugetHelper
         process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
-        process.StartInfo.StandardOutputEncoding = Encoding.UTF7; // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!
+
+        // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
+        // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
+        process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850); 
         process.Start();
 
         if (!process.WaitForExit(5000))
@@ -79,6 +82,11 @@ public static class NugetHelper
         List<NugetPackage> packages = new List<NugetPackage>();
 
         // parse the command line output to build a list of available packages
+        // In the form:
+        // angular-webstorage
+        //  0.14.0
+        //  WebStorage Service for AngularJS
+        //  License url: http://opensource.org/licenses/MIT
         string[] lines = output.Split('\n');
         //Debug.Log(lines.Count() + " lines");
         for (int i = 0; i < lines.Length - 4; i++)
