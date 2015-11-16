@@ -52,6 +52,7 @@ public static class NugetHelper
         if (!process.WaitForExit(5000))
         {
             Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
+            process.Kill();
         }
 
         string error = process.StandardError.ReadToEnd();
@@ -200,6 +201,14 @@ public static class NugetHelper
         // TODO: Get the install directory from the NuGet.config file
         string packageInstallDirectory = Application.dataPath + "/Packages";
         packageInstallDirectory += "/" + package.ID + "." + package.Version;
+
+        Debug.Log("Cleaning " + packageInstallDirectory);
+
+        string metaFile = packageInstallDirectory + "/" + package.ID + ".nuspec.meta";
+        if (File.Exists(metaFile))
+        {
+            File.Delete(metaFile);
+        }
 
         // Unity has no use for the tools or build directories
         DeleteDirectory(packageInstallDirectory + "/tools");
