@@ -19,14 +19,29 @@ using Debug = UnityEngine.Debug;
 [InitializeOnLoad]
 public static class NugetHelper 
 {
+    /// <summary>
+    /// The path to the NuGet "component".
+    /// </summary>
     private static readonly string NugetPath = Application.dataPath + "/NuGet";
 
-    private const string ConfigFilePath = "NuGet.config";
+    /// <summary>
+    /// The path to the nuget.config file.
+    /// </summary>
+    private const string NugetConfigFilePath = "NuGet.config";
 
-    private const string PackagesFilePath = "..//packages.config";
+    /// <summary>
+    /// The path to the packages.config file.
+    /// </summary>
+    private const string PackagesFilePath = "../packages.config";
 
+    /// <summary>
+    /// The path where to put created (packed) .nupkg files.
+    /// </summary>
     private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
 
+    /// <summary>
+    /// Static contructor used to restore packages definied in packages.config.
+    /// </summary>
     static NugetHelper()
     {
         // restore packages silently since this would be output EVERY time the project is loaded or a code-file changes
@@ -39,7 +54,7 @@ public static class NugetHelper
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "//nuget.exe";
+        process.StartInfo.FileName = NugetPath + "/nuget.exe";
         process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
@@ -72,7 +87,7 @@ public static class NugetHelper
 
     public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
     {
-        string arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, ConfigFilePath);
+        string arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, NugetConfigFilePath);
         if (showAllVersions)
             arguments += " -AllVersions";
         if (showPrerelease)
@@ -112,7 +127,7 @@ public static class NugetHelper
 
     public static void Restore(bool logOutput = true)
     {
-        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, ConfigFilePath);
+        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, NugetConfigFilePath);
 
         RunNugetProcess(arguments, logOutput);
 
@@ -131,7 +146,7 @@ public static class NugetHelper
 
     public static void Install(NugetPackage package)
     {
-        string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, ConfigFilePath);
+        string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, NugetConfigFilePath);
 
         string output = RunNugetProcess(arguments);
 
@@ -202,7 +217,7 @@ public static class NugetHelper
         string packageInstallDirectory = Application.dataPath + "/Packages";
         packageInstallDirectory += "/" + package.ID + "." + package.Version;
 
-        Debug.Log("Cleaning " + packageInstallDirectory);
+        ////Debug.Log("Cleaning " + packageInstallDirectory);
 
         string metaFile = packageInstallDirectory + "/" + package.ID + ".nuspec.meta";
         if (File.Exists(metaFile))
@@ -264,7 +279,7 @@ public static class NugetHelper
             }
         }
 
-        string arguments = string.Format("push {0} -configfile {1}", packagePath, ConfigFilePath);
+        string arguments = string.Format("push {0} -configfile {1}", packagePath, NugetConfigFilePath);
 
         RunNugetProcess(arguments);
     }
