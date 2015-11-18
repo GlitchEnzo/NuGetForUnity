@@ -20,19 +20,24 @@ using Debug = UnityEngine.Debug;
 public static class NugetHelper 
 {
     /// <summary>
-    /// The path to the NuGet "component".
+    /// The path to the directory that contains nuget.exe and nuget.config.
     /// </summary>
-    private static readonly string NugetPath = Application.dataPath + "/NuGet";
+    private static readonly string NugetPath = Path.Combine(Application.dataPath, "./NuGet");
 
     /// <summary>
     /// The path to the nuget.config file.
     /// </summary>
-    private const string NugetConfigFilePath = "NuGet.config";
+    private static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "./NuGet.config");
+
+    /// <summary>
+    /// The path to the nuget.exe file.
+    /// </summary>
+    private static readonly string NugetExeFilePath = Path.Combine(NugetPath, "./nuget.exe");
 
     /// <summary>
     /// The path to the packages.config file.
     /// </summary>
-    private const string PackagesFilePath = "../packages.config";
+    private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
 
     /// <summary>
     /// The path where to put created (packed) .nupkg files.
@@ -40,7 +45,7 @@ public static class NugetHelper
     private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
 
     /// <summary>
-    /// Static contructor used to restore packages definied in packages.config.
+    /// Static constructor used by Unity to restore packages defined in packages.config.
     /// </summary>
     static NugetHelper()
     {
@@ -48,13 +53,19 @@ public static class NugetHelper
         Restore(false);
     }
 
+    /// <summary>
+    /// Runs nuget.exe using the given arguments.
+    /// </summary>
+    /// <param name="arguments">The arguments to run nuget.exe with.</param>
+    /// <param name="logOuput">True to output debug information to the Unity console.  Defaults to true.</param>
+    /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
     private static string RunNugetProcess(string arguments, bool logOuput = true)
     {
         Process process = new Process();
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.FileName = NugetPath + "/nuget.exe";
+        process.StartInfo.FileName = NugetExeFilePath;
         process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
         process.StartInfo.WorkingDirectory = NugetPath;
@@ -85,6 +96,13 @@ public static class NugetHelper
         return output;
     }
 
+    /// <summary>
+    /// Calls "nuget.exe list" and returns of a list of NugetPackages that were returned as a result.
+    /// </summary>
+    /// <param name="search">The search term to use to filter the list results.  Defaults to string.Empty.</param>
+    /// <param name="showAllVersions">True to include old versions of packages.  False to only display the latest.  Defaults to false.</param>
+    /// <param name="showPrerelease">True to show prerelease packages (alpha, beta, etc).  False to only display stable versions.  Defaults to false.</param>
+    /// <returns></returns>
     public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
     {
         string arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, NugetConfigFilePath);
@@ -125,9 +143,13 @@ public static class NugetHelper
         return packages;
     }
 
+    /// <summary>
+    /// Calls "nuget.exe restore" to restore all packages defined in packages.config.
+    /// </summary>
+    /// <param name="logOutput">True to output debug info to the Unity console.  False to restore silently.  Defaults to true.</param>
     public static void Restore(bool logOutput = true)
     {
-        string arguments = string.Format("restore {0} -configfile {1}", PackagesFilePath, NugetConfigFilePath);
+        string arguments = string.Format("restore {0} -configfile {1}", PackagesConfigFilePath, NugetConfigFilePath);
 
         RunNugetProcess(arguments, logOutput);
 
@@ -144,6 +166,10 @@ public static class NugetHelper
         AssetDatabase.Refresh();
     }
 
+    /// <summary>
+    /// Calls "nuget.exe install" to install the given package.
+    /// </summary>
+    /// <param name="package">The NugetPackage to install.  Only the ID and Version are used for the installation.</param>
     public static void Install(NugetPackage package)
     {
         string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, NugetConfigFilePath);
@@ -251,6 +277,10 @@ public static class NugetHelper
         }
     }
 
+    /// <summary>
+    /// Calls "nuget.exe pack" to create a .nupkg file based on the given .nuspec file.
+    /// </summary>
+    /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.</param>
     public static void Pack(string nuspecFilePath)
     {
         if (!Directory.Exists(PackOutputDirectory))
@@ -263,13 +293,18 @@ public static class NugetHelper
         RunNugetProcess(arguments);
     }
 
+    /// <summary>
+    /// Calls "nuget.exe push" to push a .nupkf file to the the server location defined in the NuGet.config file.
+    /// Note: This differs slightly from NuGet's Push command by automatically calling Pack if the .nupkg doesn't already exist.
+    /// </summary>
+    /// <param name="nuspec">The NuspecFile which defines the package to push.  Only the ID and Version are used.</param>
+    /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.  This is required by NuGet's Push command.</param>
     public static void Push(NuspecFile nuspec, string nuspecFilePath)
     {
         string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
         if (!File.Exists(packagePath))
         {
-            //Debug.LogErrorFormat("NuGet package not found: {0}", packagePath);
-            //Debug.Log("Attempting to Pack.");
+            ////Debug.Log("Attempting to Pack.");
             Pack(nuspecFilePath);
 
             if (!File.Exists(packagePath))
@@ -304,6 +339,11 @@ public static class NugetHelper
         directoryInfo.Delete(true);
     }
 
+    /// <summary>
+    /// "Uninstalls" the given package by simply deleting its folder.
+    /// </summary>
+    /// <param name="package">The NugetPackage to uninstall.</param>
+    /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
     public static void Uninstall(NugetPackage package, bool refreshAssets = true)
     {
         // TODO: Get the install directory from the NuGet.config file
@@ -317,19 +357,26 @@ public static class NugetHelper
             AssetDatabase.Refresh();
     }
 
+    /// <summary>
+    /// Updates a package by uninstalling the currently installed version and installing the "new" version.
+    /// </summary>
+    /// <param name="currentVersion">The current package to uninstall.</param>
+    /// <param name="newVersion">The package to install.</param>
     public static void Update(NugetPackage currentVersion, NugetPackage newVersion)
     {
         Uninstall(currentVersion, false);
         Install(newVersion);
     }
 
+    /// <summary>
+    /// Loads a list of all currently installed packages by reading the packages.config file.
+    /// </summary>
+    /// <returns>A list of installed NugetPackages.</returns>
     public static List<NugetPackage> LoadInstalledPackages()
     {
         List<NugetPackage> packages = new List<NugetPackage>();
-        
-        string packagesFilePath = Path.Combine(NugetPath, PackagesFilePath);
 
-        XDocument packagesFile = XDocument.Load(packagesFilePath);
+        XDocument packagesFile = XDocument.Load(PackagesConfigFilePath);
         foreach (var packageElement in packagesFile.Root.Elements())
         {
             NugetPackage package = new NugetPackage();
@@ -341,6 +388,10 @@ public static class NugetHelper
         return packages;
     }
 
+    /// <summary>
+    /// Adds a package to the packages.config file.
+    /// </summary>
+    /// <param name="package">The NugetPackage to add to the packages.config file.</param>
     private static void AddInstalledPackage(NugetPackage package)
     {
         List<NugetPackage> packages = LoadInstalledPackages();
@@ -352,6 +403,10 @@ public static class NugetHelper
         }
     }
 
+    /// <summary>
+    /// Removes a package from the packages.config file.
+    /// </summary>
+    /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
     private static void RemoveInstalledPackage(NugetPackage package)
     {
         List<NugetPackage> packages = LoadInstalledPackages();
@@ -359,9 +414,12 @@ public static class NugetHelper
         SaveInstalledPackages(packages);
     }
 
+    /// <summary>
+    /// Saves the packages.config file and populates it with given installed NugetPackages.
+    /// </summary>
+    /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
     private static void SaveInstalledPackages(List<NugetPackage> packages)
     {
-        string packagesFilePath = Path.Combine(NugetPath, PackagesFilePath);
         XDocument packagesFile = new XDocument();
         packagesFile.Add(new XElement("packages"));
         foreach (var package in packages)
@@ -372,6 +430,6 @@ public static class NugetHelper
             packagesFile.Root.Add(packageElement);
         }
 
-        packagesFile.Save(packagesFilePath);
+        packagesFile.Save(PackagesConfigFilePath);
     }
 }
