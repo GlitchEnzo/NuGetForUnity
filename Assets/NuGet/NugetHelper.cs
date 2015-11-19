@@ -14,7 +14,7 @@ using Debug = UnityEngine.Debug;
 /// 
 /// TIP: It's incredibly useful to associate .nupkg files as compressed folder in Windows (View like .zip files).  To do this:
 ///      1) Open a command prompt as admin (Press Windows key. Type "cmd".  Right click on the icon and choose "Run as Administrator"
-///      2) Enter this command: cmd /c assoc .nupkg=CompressedFolder 
+///      2) Enter this command: cmd /c assoc .nupkg=CompressedFolder
 /// </summary>
 [InitializeOnLoad]
 public static class NugetHelper 
@@ -45,6 +45,11 @@ public static class NugetHelper
     private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
 
     /// <summary>
+    /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
+    /// </summary>
+    private const int TimeOut = 60000;
+
+    /// <summary>
     /// Static constructor used by Unity to restore packages defined in packages.config.
     /// </summary>
     static NugetHelper()
@@ -61,6 +66,8 @@ public static class NugetHelper
     /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
     private static string RunNugetProcess(string arguments, bool logOuput = true)
     {
+        ////Debug.Log("Args = " + arguments);
+
         Process process = new Process();
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
@@ -75,7 +82,7 @@ public static class NugetHelper
         process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850); 
         process.Start();
 
-        if (!process.WaitForExit(5000))
+        if (!process.WaitForExit(TimeOut))
         {
             Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
             process.Kill();
@@ -105,7 +112,7 @@ public static class NugetHelper
     /// <returns></returns>
     public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
     {
-        string arguments = string.Format("list {0} -verbosity detailed -configfile {1}", search, NugetConfigFilePath);
+        string arguments = string.Format("list {0} -verbosity detailed -configfile \"{1}\"", search, NugetConfigFilePath);
         if (showAllVersions)
             arguments += " -AllVersions";
         if (showPrerelease)
@@ -125,6 +132,10 @@ public static class NugetHelper
         //Debug.Log(lines.Count() + " lines");
         for (int i = 0; i < lines.Length - 4; i++)
         {
+            // using NuGet.Server or NuGet Gallery causes the HTTP GET command used to be output to the console
+            if (lines[i].StartsWith("GET "))
+                continue;
+
             NugetPackage package = new NugetPackage();
             package.ID = lines[i++].Trim();
             package.Version = lines[i++].Trim();
@@ -149,7 +160,7 @@ public static class NugetHelper
     /// <param name="logOutput">True to output debug info to the Unity console.  False to restore silently.  Defaults to true.</param>
     public static void Restore(bool logOutput = true)
     {
-        string arguments = string.Format("restore {0} -configfile {1}", PackagesConfigFilePath, NugetConfigFilePath);
+        string arguments = string.Format("restore \"{0}\" -configfile \"{1}\"", PackagesConfigFilePath, NugetConfigFilePath);
 
         RunNugetProcess(arguments, logOutput);
 
@@ -172,7 +183,7 @@ public static class NugetHelper
     /// <param name="package">The NugetPackage to install.  Only the ID and Version are used for the installation.</param>
     public static void Install(NugetPackage package)
     {
-        string arguments = string.Format("install {0} -Version {1} -configfile {2}", package.ID, package.Version, NugetConfigFilePath);
+        string arguments = string.Format("install {0} -Version {1} -configfile \"{2}\"", package.ID, package.Version, NugetConfigFilePath);
 
         string output = RunNugetProcess(arguments);
 
@@ -288,7 +299,7 @@ public static class NugetHelper
             Directory.CreateDirectory(PackOutputDirectory);
         }
 
-        string arguments = string.Format("pack {0} -OutputDirectory {1}", nuspecFilePath, PackOutputDirectory);
+        string arguments = string.Format("pack \"{0}\" -OutputDirectory \"{1}\"", nuspecFilePath, PackOutputDirectory);
 
         RunNugetProcess(arguments);
     }
@@ -314,7 +325,7 @@ public static class NugetHelper
             }
         }
 
-        string arguments = string.Format("push {0} -configfile {1}", packagePath, NugetConfigFilePath);
+        string arguments = string.Format("push \"{0}\" -configfile \"{1}\"", packagePath, NugetConfigFilePath);
 
         RunNugetProcess(arguments);
     }
