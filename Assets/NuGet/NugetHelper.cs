@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.ServiceModel.Syndication;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -442,5 +446,118 @@ public static class NugetHelper
         }
 
         packagesFile.Save(PackagesConfigFilePath);
+    }
+
+    public enum OrderBy
+    {
+        Id,
+        LastUpdated
+    }
+
+    public static List<NugetPackage> ListHttp(string search = "", bool showAllVersions = false, bool showPrerelease = false, int numberToShow = 15, int numberToSkip = 0)
+    {
+        string sURL = "http://www.nuget.org/api/v2/";
+
+        // call the search method
+        sURL += "Search()?";
+
+        // filter results
+        if (!showAllVersions && !showPrerelease)
+        {
+            sURL += "$filter=IsLatestVersion&";
+        }
+        else if (!showAllVersions && showPrerelease)
+        {
+            sURL += "$filter=IsAbsoluteLatestVersion&";
+        }
+        else if (showAllVersions && !showPrerelease)
+        {
+            // do nothing
+        }
+        else if (showAllVersions && showPrerelease)
+        {
+            // do nothing
+        }
+
+        // order results
+        sURL += "$orderby=Id&";
+        //sURL += "$orderby=LastUpdated";
+
+        // skip a certain number of entries
+        sURL += string.Format("$skip={0}&", numberToSkip);
+
+        // show a certain number of entries
+        sURL += string.Format("$top={0}&", numberToShow);
+
+        // apply the search term
+        sURL += string.Format("&searchTerm='{0}'&", search);
+
+        // apply the target framework filters
+        sURL += "targetFramework=''&";
+
+        // should we include prerelease packages?
+        sURL += string.Format("includePrerelease={0}", showPrerelease.ToString().ToLower());
+
+        //string.Format(
+        //        "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip={0}&$top={1}&searchTerm='{2}'&targetFramework=''&includePrerelease={3}",
+        //        numberToSkip, numberToShow, search, showPrerelease.ToString().ToLower());
+        //string sURL = "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
+
+        Debug.Log(sURL);
+
+        WebRequest wrGETURL;
+        wrGETURL = WebRequest.Create(sURL);
+
+        //WebProxy myProxy = new WebProxy("myproxy", 80);
+        //myProxy.BypassProxyOnLocal = true;
+        //wrGETURL.Proxy = WebProxy.GetDefaultProxy();
+
+        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
+
+        StreamReader objReader = new StreamReader(objStream);
+
+        //string response = objReader.ReadToEnd();
+        //Debug.Log(response);
+
+        SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
+
+        List<NugetPackage> packages = new List<NugetPackage>();
+
+        foreach (var item in atomFeed.Items)
+        {
+            var propertiesExtension = item.ElementExtensions.First();
+            var reader = propertiesExtension.GetReader();
+            var properties = (XElement)XDocument.ReadFrom(reader);
+
+            NugetPackage package = new NugetPackage();
+            package.ID = item.Title.Text;
+            package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            package.LicenseURL = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+
+            // TODO: Get dependencies
+            package.Dependencies = new List<NugetPackage>();
+            string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            if (!string.IsNullOrEmpty(rawDependencies))
+            {
+                string[] dependencies = rawDependencies.Split('|');
+                foreach (var dependencyString in dependencies)
+                {
+                    string[] details = dependencyString.Split(':');
+
+                    NugetPackage dependency = new NugetPackage();
+                    dependency.ID = details[0];
+                    dependency.Version = details[1];
+
+                    package.Dependencies.Add(dependency);
+                }
+            }
+
+            packages.Add(package);
+        }
+
+        Debug.LogFormat("Retreived {0} packages", packages.Count);
+
+        return packages;
     }
 }
