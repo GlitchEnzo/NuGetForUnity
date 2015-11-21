@@ -54,6 +54,12 @@ public static class NugetHelper
     private const int TimeOut = 60000;
 
     /// <summary>
+    /// The URL of the NuGet server.      
+    /// TODO: This should be retreived from the NuGet.config file.
+    /// </summary>
+    private static string NugetServerURL = "http://www.nuget.org/api/v2/";
+
+    /// <summary>
     /// Static constructor used by Unity to restore packages defined in packages.config.
     /// </summary>
     static NugetHelper()
@@ -456,32 +462,29 @@ public static class NugetHelper
 
     public static List<NugetPackage> ListHttp(string search = "", bool showAllVersions = false, bool showPrerelease = false, int numberToShow = 15, int numberToSkip = 0)
     {
-        string sURL = "http://www.nuget.org/api/v2/";
+        //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
+
+        string sURL = NugetServerURL;
 
         // call the search method
         sURL += "Search()?";
 
         // filter results
-        if (!showAllVersions && !showPrerelease)
+        if (!showAllVersions)
         {
-            sURL += "$filter=IsLatestVersion&";
-        }
-        else if (!showAllVersions && showPrerelease)
-        {
-            sURL += "$filter=IsAbsoluteLatestVersion&";
-        }
-        else if (showAllVersions && !showPrerelease)
-        {
-            // do nothing
-        }
-        else if (showAllVersions && showPrerelease)
-        {
-            // do nothing
+            if (!showPrerelease)
+            {
+                sURL += "$filter=IsLatestVersion&";
+            }
+            else
+            {
+                sURL += "$filter=IsAbsoluteLatestVersion&";
+            }
         }
 
         // order results
         sURL += "$orderby=Id&";
-        //sURL += "$orderby=LastUpdated";
+        //sURL += "$orderby=LastUpdated&";
 
         // skip a certain number of entries
         sURL += string.Format("$skip={0}&", numberToSkip);
@@ -498,27 +501,11 @@ public static class NugetHelper
         // should we include prerelease packages?
         sURL += string.Format("includePrerelease={0}", showPrerelease.ToString().ToLower());
 
-        //string.Format(
-        //        "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip={0}&$top={1}&searchTerm='{2}'&targetFramework=''&includePrerelease={3}",
-        //        numberToSkip, numberToShow, search, showPrerelease.ToString().ToLower());
-        //string sURL = "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
-
         Debug.Log(sURL);
 
-        WebRequest wrGETURL;
-        wrGETURL = WebRequest.Create(sURL);
-
-        //WebProxy myProxy = new WebProxy("myproxy", 80);
-        //myProxy.BypassProxyOnLocal = true;
-        //wrGETURL.Proxy = WebProxy.GetDefaultProxy();
-
+        WebRequest wrGETURL = WebRequest.Create(sURL);
         Stream objStream = wrGETURL.GetResponse().GetResponseStream();
-
         StreamReader objReader = new StreamReader(objStream);
-
-        //string response = objReader.ReadToEnd();
-        //Debug.Log(response);
-
         SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
 
         List<NugetPackage> packages = new List<NugetPackage>();
@@ -559,5 +546,37 @@ public static class NugetHelper
         Debug.LogFormat("Retreived {0} packages", packages.Count);
 
         return packages;
+    }
+
+    /// <summary>
+    /// Copies the contents of input to output. Doesn't close either stream.
+    /// </summary>
+    public static void CopyStream(Stream input, Stream output)
+    {
+        byte[] buffer = new byte[8 * 1024];
+        int len;
+        while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            output.Write(buffer, 0, len);
+        }
+    }
+
+    public static void InstallHttp(NugetPackage package)
+    {
+        // Mono doesn't have a Certificate Authority, so you have to provide all validation manually.  Currently just accept anything.
+        // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+        ServicePointManager.ServerCertificateValidationCallback += new System.Net.Security.RemoteCertificateValidationCallback((sender, certificate, chain, policyErrors) => { return true; });
+
+        HttpWebRequest wrGETURL = (HttpWebRequest)WebRequest.Create("https://www.nuget.org/api/v2/package/Newtonsoft.Json/8.0.1-beta2");
+        //Debug.LogFormat("Allow redirect: {0}", wrGETURL.AllowAutoRedirect);
+
+        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
+
+        using (Stream file = File.Create("testresponse.nupkg"))
+        {
+            CopyStream(objStream, file);
+        }
+
+        //StreamReader objReader = new StreamReader(objStream);
     }
 }
