@@ -460,7 +460,19 @@ public static class NugetHelper
         LastUpdated
     }
 
-    public static List<NugetPackage> ListHttp(string search = "", bool showAllVersions = false, bool showPrerelease = false, int numberToShow = 15, int numberToSkip = 0)
+    /// <summary>
+    /// Gets a list of NuGetPackages via the HTTP Search() function defined by NuGet.Server and NuGet Gallery.
+    /// This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
+    /// 
+    /// NOTE: See the functions and parameters defined here: https://www.nuget.org/api/v2/$metadata
+    /// </summary>
+    /// <param name="searchTerm"></param>
+    /// <param name="includeAllVersions"></param>
+    /// <param name="includePrerelease"></param>
+    /// <param name="numberToGet"></param>
+    /// <param name="numberToSkip"></param>
+    /// <returns></returns>
+    public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
     {
         //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
@@ -470,9 +482,9 @@ public static class NugetHelper
         sURL += "Search()?";
 
         // filter results
-        if (!showAllVersions)
+        if (!includeAllVersions)
         {
-            if (!showPrerelease)
+            if (!includePrerelease)
             {
                 sURL += "$filter=IsLatestVersion&";
             }
@@ -490,16 +502,16 @@ public static class NugetHelper
         sURL += string.Format("$skip={0}&", numberToSkip);
 
         // show a certain number of entries
-        sURL += string.Format("$top={0}&", numberToShow);
+        sURL += string.Format("$top={0}&", numberToGet);
 
         // apply the search term
-        sURL += string.Format("&searchTerm='{0}'&", search);
+        sURL += string.Format("searchTerm='{0}'&", searchTerm);
 
         // apply the target framework filters
         sURL += "targetFramework=''&";
 
         // should we include prerelease packages?
-        sURL += string.Format("includePrerelease={0}", showPrerelease.ToString().ToLower());
+        sURL += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
         Debug.Log(sURL);
 
@@ -522,7 +534,91 @@ public static class NugetHelper
             package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
             package.LicenseURL = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
 
-            // TODO: Get dependencies
+            // Get dependencies
+            package.Dependencies = new List<NugetPackage>();
+            string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            if (!string.IsNullOrEmpty(rawDependencies))
+            {
+                string[] dependencies = rawDependencies.Split('|');
+                foreach (var dependencyString in dependencies)
+                {
+                    string[] details = dependencyString.Split(':');
+
+                    NugetPackage dependency = new NugetPackage();
+                    dependency.ID = details[0];
+                    dependency.Version = details[1];
+
+                    package.Dependencies.Add(dependency);
+                }
+            }
+
+            packages.Add(package);
+        }
+
+        Debug.LogFormat("Retreived {0} packages", packages.Count);
+
+        return packages;
+    }
+
+    /// <summary>
+    /// Gets a list of NuGetPackages via the HTTP FindPackagesById() function defined by NuGet.Server and NuGet Gallery.
+    /// The package ID passed in MUST be an actual, full ID of a package otherwise it will return an empty list.
+    /// The list will always be sorted in a descending order by Version #.  This means the first entry will be the latest version.
+    /// 
+    /// NOTE: See the functions and parameters defined here: https://www.nuget.org/api/v2/$metadata
+    /// </summary>
+    /// <param name="packageId"></param>
+    /// <param name="includeAllVersions"></param>
+    /// <param name="includePrerelease"></param>
+    /// <returns></returns>
+    public static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
+    {
+        string sURL = NugetServerURL;
+
+        // call the search method
+        sURL += "FindPackagesById()?";
+
+        // filter results
+        if (!includeAllVersions)
+        {
+            if (!includePrerelease)
+            {
+                sURL += "$filter=IsLatestVersion&";
+            }
+            else
+            {
+                sURL += "$filter=IsAbsoluteLatestVersion&";
+            }
+        }
+
+        // order results by version number, in descending order
+        sURL += "$orderby=Version desc&";
+
+        // set the package ID to retreive
+        sURL += string.Format("id='{0}'", packageId);
+
+        Debug.Log(sURL);
+
+        WebRequest wrGETURL = WebRequest.Create(sURL);
+        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
+        StreamReader objReader = new StreamReader(objStream);
+        SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
+
+        List<NugetPackage> packages = new List<NugetPackage>();
+
+        foreach (var item in atomFeed.Items)
+        {
+            var propertiesExtension = item.ElementExtensions.First();
+            var reader = propertiesExtension.GetReader();
+            var properties = (XElement)XDocument.ReadFrom(reader);
+
+            NugetPackage package = new NugetPackage();
+            package.ID = item.Title.Text;
+            package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+            package.LicenseURL = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+
+            // Get dependencies
             package.Dependencies = new List<NugetPackage>();
             string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
             if (!string.IsNullOrEmpty(rawDependencies))
