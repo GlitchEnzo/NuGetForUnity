@@ -497,44 +497,45 @@ public static class NugetHelper
     {
         //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
-        string sURL = NugetServerURL;
+        string url = NugetServerURL;
 
         // call the search method
-        sURL += "Search()?";
+        url += "Search()?";
 
         // filter results
         if (!includeAllVersions)
         {
             if (!includePrerelease)
             {
-                sURL += "$filter=IsLatestVersion&";
+                url += "$filter=IsLatestVersion&";
             }
             else
             {
-                sURL += "$filter=IsAbsoluteLatestVersion&";
+                url += "$filter=IsAbsoluteLatestVersion&";
             }
         }
 
         // order results
-        sURL += "$orderby=Id&";
+        //url += "$orderby=Id&";
         //url += "$orderby=LastUpdated&";
+        url += "$orderby=DownloadCount&";
 
         // skip a certain number of entries
-        sURL += string.Format("$skip={0}&", numberToSkip);
+        url += string.Format("$skip={0}&", numberToSkip);
 
         // show a certain number of entries
-        sURL += string.Format("$top={0}&", numberToGet);
+        url += string.Format("$top={0}&", numberToGet);
 
         // apply the search term
-        sURL += string.Format("searchTerm='{0}'&", searchTerm);
+        url += string.Format("searchTerm='{0}'&", searchTerm);
 
         // apply the target framework filters
-        sURL += "targetFramework=''&";
+        url += "targetFramework=''&";
 
         // should we include prerelease packages?
-        sURL += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
+        url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-        return GetPackagesFromUrl(sURL);
+        return GetPackagesFromUrl(url);
     }
 
     /// <summary>
@@ -726,8 +727,11 @@ public static class NugetHelper
         var packages = LoadInstalledPackages();
         foreach (var package in packages)
         {
-            // TODO: Check to see if the package already exists
-            InstallHttp(package);
+            if (package != null)
+            {
+                // TODO: Check to see if the package already exists
+                InstallHttp(package);
+            }
         }
     }
 }

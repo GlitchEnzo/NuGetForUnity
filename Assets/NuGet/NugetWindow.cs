@@ -47,6 +47,16 @@
         private string searchTerm = "Search";
 
         /// <summary>
+        /// The number of packages to get from the request to the server.
+        /// </summary>
+        private int numberToGet = 15;
+
+        /// <summary>
+        /// The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
+        /// </summary>
+        private int numberToSkip = 0;
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages")]
@@ -69,12 +79,22 @@
         /// </summary>
         private void OnEnable()
         {
+            // set the window title
             titleContent = new GUIContent("NuGet");
-            packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
-            installedPackages = NugetHelper.LoadInstalledPackages();
 
-            //Debug.Log("≥");
-            //Debug.Log((int)'≥');
+            // reset the number to skip
+            numberToSkip = 0;
+
+            // update the packages list
+            UpdatePackages();
+
+            // load a list of install packages
+            installedPackages = NugetHelper.LoadInstalledPackages();
+        }
+
+        private void UpdatePackages()
+        {
+            packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
         }
 
         /// <summary>
@@ -115,7 +135,7 @@
                     if (showAllVersionsTemp != showAllVersions)
                     {
                         showAllVersions = showAllVersionsTemp;
-                        packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
+                        UpdatePackages();
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -129,7 +149,7 @@
                 if (showPrereleaseTemp != showPrerelease)
                 {
                     showPrerelease = showPrereleaseTemp;
-                    packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
+                    UpdatePackages();
                 }
 
                 // search if the search term was changed
@@ -137,7 +157,10 @@
                 if (searchTermTemp != searchTerm)
                 {
                     searchTerm = searchTermTemp;
-                    packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
+
+                    // reset the number to skip
+                    numberToSkip = 0;
+                    UpdatePackages();
                 }
             }
             EditorGUILayout.EndVertical();
@@ -233,6 +256,13 @@
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
+
+            // allow the user to dislay more results
+            if (GUILayout.Button("Show More", GUILayout.Width(120)))
+            {
+                numberToSkip += numberToGet;
+                packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
+            }
         }
 
         /// <summary>
