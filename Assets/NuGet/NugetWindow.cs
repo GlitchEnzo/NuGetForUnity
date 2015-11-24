@@ -66,7 +66,7 @@
         [MenuItem("NuGet/Restore Packages")]
         protected static void RestorePackages()
         {
-            NugetHelper.Restore();
+            NugetHelper.RestoreHttp();
         }
 
         /// <summary>
@@ -75,7 +75,7 @@
         private void OnEnable()
         {
             titleContent = new GUIContent("NuGet");
-            packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+            packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
             filteredPackages = new List<NugetPackage>(packages);
             installedPackages = NugetHelper.LoadInstalledPackages();
 
@@ -121,7 +121,7 @@
                     if (showAllVersionsTemp != showAllVersions)
                     {
                         showAllVersions = showAllVersionsTemp;
-                        packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                        packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
                         filteredPackages = new List<NugetPackage>(packages);
                         if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
                             filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
@@ -138,7 +138,7 @@
                 if (showPrereleaseTemp != showPrerelease)
                 {
                     showPrerelease = showPrereleaseTemp;
-                    packages = NugetHelper.List(string.Empty, showAllVersions, showPrerelease);
+                    packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
                     filteredPackages = new List<NugetPackage>(packages);
                     if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
                         filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
@@ -213,7 +213,8 @@
                             {
                                 if (GUILayout.Button("Install", installButtonWidth))
                                 {
-                                    NugetHelper.Install(filteredPackages[i]);
+                                    NugetHelper.InstallHttp(filteredPackages[i]);
+                                    AssetDatabase.Refresh();
                                     installedPackages = NugetHelper.LoadInstalledPackages();
                                 }
                             }

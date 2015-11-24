@@ -10,6 +10,7 @@ public class NugetPackage : IEquatable<NugetPackage>
     public string Version { get; set; }
     public string Description { get; set; }
     public string LicenseURL { get; set; }
+    public string DownloadURL { get; set; }
     public List<NugetPackage> Dependencies { get; set; } 
 
     public bool Equals(NugetPackage other)

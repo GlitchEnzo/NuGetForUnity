@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Ionic.Zip;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -21,7 +22,7 @@ using Debug = UnityEngine.Debug;
 ///      2) Enter this command: cmd /c assoc .nupkg=CompressedFolder
 /// </summary>
 [InitializeOnLoad]
-public static class NugetHelper 
+public static class NugetHelper
 {
     /// <summary>
     /// The path to the directory that contains nuget.exe and nuget.config.
@@ -44,7 +45,7 @@ public static class NugetHelper
     private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
 
     /// <summary>
-    /// The path where to put created (packed) .nupkg files.
+    /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
     /// </summary>
     private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
 
@@ -60,12 +61,20 @@ public static class NugetHelper
     private static string NugetServerURL = "http://www.nuget.org/api/v2/";
 
     /// <summary>
+    /// The path to the directory where packages are installed.
+    /// TODO: This should be retreived from the NuGet.config file.
+    /// </summary>
+    private static readonly string InstalledPackagesDirectory = Path.Combine(Application.dataPath, "./Packages");
+
+    /// <summary>
     /// Static constructor used by Unity to restore packages defined in packages.config.
     /// </summary>
     static NugetHelper()
     {
         // restore packages silently since this would be output EVERY time the project is loaded or a code-file changes
-        Restore(false);
+        RestoreHttp(false);
+
+        // TODO: Load the NuGet.config file
     }
 
     /// <summary>
@@ -89,7 +98,7 @@ public static class NugetHelper
 
         // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
         // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-        process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850); 
+        process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
         process.Start();
 
         if (!process.WaitForExit(TimeOut))
@@ -159,7 +168,7 @@ public static class NugetHelper
 
             packages.Add(package);
             //Debug.LogFormat("Created {0}", package.ID);
-        } 
+        }
 
         return packages;
     }
@@ -261,20 +270,25 @@ public static class NugetHelper
     private static void Clean(NugetPackage package)
     {
         // TODO: Get the install directory from the NuGet.config file
-        string packageInstallDirectory = Application.dataPath + "/Packages";
-        packageInstallDirectory += "/" + package.ID + "." + package.Version;
+        string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.ID, package.Version));
 
         ////Debug.Log("Cleaning " + packageInstallDirectory);
 
-        string metaFile = packageInstallDirectory + "/" + package.ID + ".nuspec.meta";
-        if (File.Exists(metaFile))
-        {
-            File.Delete(metaFile);
-        }
+        // delete a remnant .meta file that may exist from packages created by Unity
+        DeleteFile(packageInstallDirectory + "/" + package.ID + ".nuspec.meta");
+
+        // delete directories & files that NuGet normally deletes, but since we are installing "manually" they exist
+        DeleteDirectory(packageInstallDirectory + "/_rels");
+        DeleteDirectory(packageInstallDirectory + "/package");
+        DeleteFile(packageInstallDirectory + "/" + package.ID + ".nuspec");
+        DeleteFile(packageInstallDirectory + "/[Content_Types].xml");
 
         // Unity has no use for the tools or build directories
         DeleteDirectory(packageInstallDirectory + "/tools");
         DeleteDirectory(packageInstallDirectory + "/build");
+
+        // For now, delete Content.  We may use it later...
+        DeleteDirectory(packageInstallDirectory + "/Content");
 
         // Unity can only use .NET 3.5 or lower, so delete everything else
         if (Directory.Exists(packageInstallDirectory + "/lib"))
@@ -360,6 +374,14 @@ public static class NugetHelper
         directoryInfo.Delete(true);
     }
 
+    private static void DeleteFile(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
     /// <summary>
     /// "Uninstalls" the given package by simply deleting its folder.
     /// </summary>
@@ -368,8 +390,7 @@ public static class NugetHelper
     public static void Uninstall(NugetPackage package, bool refreshAssets = true)
     {
         // TODO: Get the install directory from the NuGet.config file
-        string packageInstallDirectory = Application.dataPath + "/Packages";
-        packageInstallDirectory += "/" + package.ID + "." + package.Version;
+        string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.ID, package.Version));
         DeleteDirectory(packageInstallDirectory);
 
         RemoveInstalledPackage(package);
@@ -496,7 +517,7 @@ public static class NugetHelper
 
         // order results
         sURL += "$orderby=Id&";
-        //sURL += "$orderby=LastUpdated&";
+        //url += "$orderby=LastUpdated&";
 
         // skip a certain number of entries
         sURL += string.Format("$skip={0}&", numberToSkip);
@@ -513,51 +534,7 @@ public static class NugetHelper
         // should we include prerelease packages?
         sURL += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-        Debug.Log(sURL);
-
-        WebRequest wrGETURL = WebRequest.Create(sURL);
-        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
-        StreamReader objReader = new StreamReader(objStream);
-        SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
-
-        List<NugetPackage> packages = new List<NugetPackage>();
-
-        foreach (var item in atomFeed.Items)
-        {
-            var propertiesExtension = item.ElementExtensions.First();
-            var reader = propertiesExtension.GetReader();
-            var properties = (XElement)XDocument.ReadFrom(reader);
-
-            NugetPackage package = new NugetPackage();
-            package.ID = item.Title.Text;
-            package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-            package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-            package.LicenseURL = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-
-            // Get dependencies
-            package.Dependencies = new List<NugetPackage>();
-            string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-            if (!string.IsNullOrEmpty(rawDependencies))
-            {
-                string[] dependencies = rawDependencies.Split('|');
-                foreach (var dependencyString in dependencies)
-                {
-                    string[] details = dependencyString.Split(':');
-
-                    NugetPackage dependency = new NugetPackage();
-                    dependency.ID = details[0];
-                    dependency.Version = details[1];
-
-                    package.Dependencies.Add(dependency);
-                }
-            }
-
-            packages.Add(package);
-        }
-
-        Debug.LogFormat("Retreived {0} packages", packages.Count);
-
-        return packages;
+        return GetPackagesFromUrl(sURL);
     }
 
     /// <summary>
@@ -571,7 +548,7 @@ public static class NugetHelper
     /// <param name="includeAllVersions"></param>
     /// <param name="includePrerelease"></param>
     /// <returns></returns>
-    public static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
+    private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
     {
         string sURL = NugetServerURL;
 
@@ -597,11 +574,46 @@ public static class NugetHelper
         // set the package ID to retreive
         sURL += string.Format("id='{0}'", packageId);
 
-        Debug.Log(sURL);
+        return GetPackagesFromUrl(sURL);
+    }
 
-        WebRequest wrGETURL = WebRequest.Create(sURL);
-        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
-        StreamReader objReader = new StreamReader(objStream);
+    /// <summary>
+    /// Gets a NugetPackage from the NuGet server with the exact ID and Version given.
+    /// </summary>
+    /// <param name="packageId">The ID of the package to get.</param>
+    /// <param name="packageVersion">The version number of the package to get.</param>
+    /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
+    private static NugetPackage GetSpecificPackage(string packageId, string packageVersion)
+    {
+        string sURL = NugetServerURL;
+
+        // call the search method
+        sURL += "FindPackagesById()?";
+
+        // filter results
+        sURL += string.Format("$filter=Version eq '{0}'&", packageVersion);
+
+        // order results by version number, in descending order
+        sURL += "$orderby=Version desc&";
+
+        // set the package ID to retreive
+        sURL += string.Format("id='{0}'", packageId);
+
+        return GetPackagesFromUrl(sURL).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Builds a list of NugetPackages from the XML returned from the HTTP GET request issued at the given URL.
+    /// </summary>
+    /// <param name="url"></param>
+    /// <returns></returns>
+    private static List<NugetPackage> GetPackagesFromUrl(string url)
+    {
+        ////Debug.Log(url);
+
+        WebRequest getRequest = WebRequest.Create(url);
+        Stream responseStream = getRequest.GetResponse().GetResponseStream();
+        StreamReader objReader = new StreamReader(responseStream);
         SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
 
         List<NugetPackage> packages = new List<NugetPackage>();
@@ -613,6 +625,7 @@ public static class NugetHelper
             var properties = (XElement)XDocument.ReadFrom(reader);
 
             NugetPackage package = new NugetPackage();
+            package.DownloadURL = ((UrlSyndicationContent)item.Content).Url.ToString();
             package.ID = item.Title.Text;
             package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
             package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
@@ -639,7 +652,7 @@ public static class NugetHelper
             packages.Add(package);
         }
 
-        Debug.LogFormat("Retreived {0} packages", packages.Count);
+        ////Debug.LogFormat("Retreived {0} packages", packages.Count);
 
         return packages;
     }
@@ -647,7 +660,7 @@ public static class NugetHelper
     /// <summary>
     /// Copies the contents of input to output. Doesn't close either stream.
     /// </summary>
-    public static void CopyStream(Stream input, Stream output)
+    private static void CopyStream(Stream input, Stream output)
     {
         byte[] buffer = new byte[8 * 1024];
         int len;
@@ -657,22 +670,64 @@ public static class NugetHelper
         }
     }
 
-    public static void InstallHttp(NugetPackage package)
+    public static void InstallHttp(NugetPackage package, bool refreshAssets = true)
     {
         // Mono doesn't have a Certificate Authority, so you have to provide all validation manually.  Currently just accept anything.
         // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-        ServicePointManager.ServerCertificateValidationCallback += new System.Net.Security.RemoteCertificateValidationCallback((sender, certificate, chain, policyErrors) => { return true; });
+        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-        HttpWebRequest wrGETURL = (HttpWebRequest)WebRequest.Create("https://www.nuget.org/api/v2/package/Newtonsoft.Json/8.0.1-beta2");
-        //Debug.LogFormat("Allow redirect: {0}", wrGETURL.AllowAutoRedirect);
+        if (string.IsNullOrEmpty(package.DownloadURL))
+        {
+            // some packages don't have a DownloadURL attached (package.config, dependencies), so we have to query the server to get the full information
+            package = GetSpecificPackage(package.ID, package.Version);
+        }
 
-        Stream objStream = wrGETURL.GetResponse().GetResponseStream();
+        foreach (var dependency in package.Dependencies)
+        {
+            // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
+            InstallHttp(dependency, false);
+        }
 
-        using (Stream file = File.Create("testresponse.nupkg"))
+        HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadURL);
+
+        // TODO: Get the local packages location from the config file
+        Stream objStream = getRequest.GetResponse().GetResponseStream();
+        string localPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.ID, package.Version));
+        using (Stream file = File.Create(localPackagePath))
         {
             CopyStream(objStream, file);
         }
 
-        //StreamReader objReader = new StreamReader(objStream);
+        // unzip the package
+        using (ZipFile zip = ZipFile.Read(localPackagePath))
+        {
+            foreach (ZipEntry entry in zip)
+            {
+                entry.Extract(Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.ID, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+            }
+        }
+
+        // clean
+        Clean(package);
+
+        // update packages.config
+        AddInstalledPackage(package);
+
+        if (refreshAssets)
+            AssetDatabase.Refresh();
+    }
+
+    /// <summary>
+    /// Restores all packages defined in packages.config.
+    /// </summary>
+    /// <param name="logOutput">True to output debug info to the Unity console.  False to restore silently.  Defaults to true.</param>
+    public static void RestoreHttp(bool logOutput = true)
+    {
+        var packages = LoadInstalledPackages();
+        foreach (var package in packages)
+        {
+            // TODO: Check to see if the package already exists
+            InstallHttp(package);
+        }
     }
 }
