@@ -27,11 +27,6 @@
         private List<NugetPackage> installedPackages;
 
         /// <summary>
-        /// The list of NugetPackages available to install, after they have been filtered by the search term.
-        /// </summary>
-        private List<NugetPackage> filteredPackages;
-
-        /// <summary>
         /// True to show all old package versions.  False to only show the latest version.
         /// </summary>
         private bool showAllVersions;
@@ -75,8 +70,7 @@
         private void OnEnable()
         {
             titleContent = new GUIContent("NuGet");
-            packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
-            filteredPackages = new List<NugetPackage>(packages);
+            packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
             installedPackages = NugetHelper.LoadInstalledPackages();
 
             //Debug.Log("≥");
@@ -121,10 +115,7 @@
                     if (showAllVersionsTemp != showAllVersions)
                     {
                         showAllVersions = showAllVersionsTemp;
-                        packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
-                        filteredPackages = new List<NugetPackage>(packages);
-                        if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
-                            filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                        packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -138,17 +129,15 @@
                 if (showPrereleaseTemp != showPrerelease)
                 {
                     showPrerelease = showPrereleaseTemp;
-                    packages = NugetHelper.Search(string.Empty, showAllVersions, showPrerelease);
-                    filteredPackages = new List<NugetPackage>(packages);
-                    if (!string.IsNullOrEmpty(searchTerm) && searchTerm != "Search")
-                        filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                    packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
                 }
 
+                // search if the search term was changed
                 string searchTermTemp = EditorGUILayout.TextField(searchTerm);
                 if (searchTermTemp != searchTerm)
                 {
                     searchTerm = searchTermTemp;
-                    filteredPackages = packages.Where(p => p.ID.ToLower().Contains(searchTerm)).ToList();
+                    packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease);
                 }
             }
             EditorGUILayout.EndVertical();
@@ -160,9 +149,9 @@
             GUIStyle style = new GUIStyle();
             style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
 
-            if (filteredPackages != null)
+            if (packages != null)
             {
-                for (int i = 0; i < filteredPackages.Count; i++)
+                for (int i = 0; i < packages.Count; i++)
                 {
                     if (i%2 == 0)
                         EditorGUILayout.BeginVertical();
@@ -173,38 +162,38 @@
                     {
                         EditorStyles.label.fontStyle = FontStyle.Bold;
                         EditorStyles.label.fontSize = 14;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", filteredPackages[i].Version, filteredPackages[i].ID), GUILayout.Height(20));
+                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].ID), GUILayout.Height(20));
                         EditorStyles.label.fontSize = 10;
 
-                        if (installedPackages.Contains(filteredPackages[i]))
+                        if (installedPackages.Contains(packages[i]))
                         {
                             // This specific version is installed
                             if (GUILayout.Button("Uninstall", installButtonWidth))
                             {
-                                installedPackages.Remove(filteredPackages[i]);
-                                NugetHelper.Uninstall(filteredPackages[i]);
+                                installedPackages.Remove(packages[i]);
+                                NugetHelper.Uninstall(packages[i]);
                             }
                         }
                         else
                         {
-                            var installed = installedPackages.FirstOrDefault(p => p.ID == filteredPackages[i].ID);
+                            var installed = installedPackages.FirstOrDefault(p => p.ID == packages[i].ID);
                             if (installed != null)
                             {
-                                if (CompareVersions(installed.Version, filteredPackages[i].Version) < 0)
+                                if (CompareVersions(installed.Version, packages[i].Version) < 0)
                                 {
                                     // An older version is installed
                                     if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        NugetHelper.Update(installed, filteredPackages[i]);
+                                        NugetHelper.Update(installed, packages[i]);
                                         installedPackages = NugetHelper.LoadInstalledPackages();
                                     }
                                 }
-                                else if (CompareVersions(installed.Version, filteredPackages[i].Version) > 0)
+                                else if (CompareVersions(installed.Version, packages[i].Version) > 0)
                                 {
                                     // A newer version is installed
                                     if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                                     {
-                                        NugetHelper.Update(installed, filteredPackages[i]);
+                                        NugetHelper.Update(installed, packages[i]);
                                         installedPackages = NugetHelper.LoadInstalledPackages();
                                     }
                                 }
@@ -213,7 +202,7 @@
                             {
                                 if (GUILayout.Button("Install", installButtonWidth))
                                 {
-                                    NugetHelper.InstallHttp(filteredPackages[i]);
+                                    NugetHelper.InstallHttp(packages[i]);
                                     AssetDatabase.Refresh();
                                     installedPackages = NugetHelper.LoadInstalledPackages();
                                 }
@@ -227,12 +216,12 @@
                     // Show the package description
                     EditorStyles.label.wordWrap = true;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
-                    EditorGUILayout.LabelField(string.Format("{0}", filteredPackages[i].Description));
+                    EditorGUILayout.LabelField(string.Format("{0}", packages[i].Description));
 
                     // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
                     {
-                        Application.OpenURL(filteredPackages[i].LicenseURL);
+                        Application.OpenURL(packages[i].LicenseURL);
                     }
 
                     EditorGUILayout.Separator();
