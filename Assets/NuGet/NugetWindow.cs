@@ -54,7 +54,7 @@
         /// <summary>
         /// The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
         /// </summary>
-        private int numberToSkip = 0;
+        private int numberToSkip;
 
         /// <summary>
         /// Opens the NuGet Package Manager Window.
@@ -92,6 +92,9 @@
             installedPackages = NugetHelper.LoadInstalledPackages();
         }
 
+        /// <summary>
+        /// Updates the list of available packages by running a search with the server using the currently set parameters (# get, # skip, etc).
+        /// </summary>
         private void UpdatePackages()
         {
             packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
@@ -185,7 +188,7 @@
                     {
                         EditorStyles.label.fontStyle = FontStyle.Bold;
                         EditorStyles.label.fontSize = 14;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].ID), GUILayout.Height(20));
+                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].Id), GUILayout.Height(20));
                         EditorStyles.label.fontSize = 10;
 
                         if (installedPackages.Contains(packages[i]))
@@ -199,7 +202,7 @@
                         }
                         else
                         {
-                            var installed = installedPackages.FirstOrDefault(p => p.ID == packages[i].ID);
+                            var installed = installedPackages.FirstOrDefault(p => p.Id == packages[i].Id);
                             if (installed != null)
                             {
                                 if (CompareVersions(installed.Version, packages[i].Version) < 0)
@@ -244,7 +247,7 @@
                     // Show the license button
                     if (GUILayout.Button("View License", GUILayout.Width(120)))
                     {
-                        Application.OpenURL(packages[i].LicenseURL);
+                        Application.OpenURL(packages[i].LicenseUrl);
                     }
 
                     EditorGUILayout.Separator();
