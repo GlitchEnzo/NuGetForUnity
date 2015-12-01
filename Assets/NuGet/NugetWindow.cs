@@ -57,6 +57,16 @@
         private int numberToSkip;
 
         /// <summary>
+        /// The currently selected tab in the window.
+        /// </summary>
+        private int currentTab;
+
+        /// <summary>
+        /// The titles of the tabs in the window.
+        /// </summary>
+        private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages")]
@@ -126,10 +136,26 @@
         /// </summary>
         protected void OnGUI()
         {
+            int newTab = GUILayout.Toolbar(currentTab, tabTitles);
+            if (newTab != currentTab)
+            {
+                currentTab = newTab;
+
+                switch (currentTab)
+                {
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                        break;
+                }
+            }
+
             GUIStyle headerStyle = new GUIStyle();
             headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
 
-            // dislay the header
+            // display the header
             EditorGUILayout.BeginVertical(headerStyle);
             {
                 EditorGUILayout.BeginHorizontal();
@@ -179,79 +205,13 @@
             {
                 for (int i = 0; i < packages.Count; i++)
                 {
+                    // alternate the background color for each package
                     if (i%2 == 0)
                         EditorGUILayout.BeginVertical();
                     else
                         EditorGUILayout.BeginVertical(style);
 
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        EditorStyles.label.fontStyle = FontStyle.Bold;
-                        EditorStyles.label.fontSize = 14;
-                        EditorGUILayout.LabelField(string.Format("{1} [{0}]", packages[i].Version, packages[i].Id), GUILayout.Height(20));
-                        EditorStyles.label.fontSize = 10;
-
-                        if (installedPackages.Contains(packages[i]))
-                        {
-                            // This specific version is installed
-                            if (GUILayout.Button("Uninstall", installButtonWidth))
-                            {
-                                installedPackages.Remove(packages[i]);
-                                NugetHelper.Uninstall(packages[i]);
-                            }
-                        }
-                        else
-                        {
-                            var installed = installedPackages.FirstOrDefault(p => p.Id == packages[i].Id);
-                            if (installed != null)
-                            {
-                                if (CompareVersions(installed.Version, packages[i].Version) < 0)
-                                {
-                                    // An older version is installed
-                                    if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
-                                    {
-                                        NugetHelper.Update(installed, packages[i]);
-                                        installedPackages = NugetHelper.LoadInstalledPackages();
-                                    }
-                                }
-                                else if (CompareVersions(installed.Version, packages[i].Version) > 0)
-                                {
-                                    // A newer version is installed
-                                    if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
-                                    {
-                                        NugetHelper.Update(installed, packages[i]);
-                                        installedPackages = NugetHelper.LoadInstalledPackages();
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (GUILayout.Button("Install", installButtonWidth))
-                                {
-                                    NugetHelper.InstallHttp(packages[i]);
-                                    AssetDatabase.Refresh();
-                                    installedPackages = NugetHelper.LoadInstalledPackages();
-                                }
-                            }
-                            
-                        }
-                        
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    // Show the package description
-                    EditorStyles.label.wordWrap = true;
-                    EditorStyles.label.fontStyle = FontStyle.Normal;
-                    EditorGUILayout.LabelField(string.Format("{0}", packages[i].Description));
-
-                    // Show the license button
-                    if (GUILayout.Button("View License", GUILayout.Width(120)))
-                    {
-                        Application.OpenURL(packages[i].LicenseUrl);
-                    }
-
-                    EditorGUILayout.Separator();
-                    EditorGUILayout.Separator();
+                    DrawPackage(packages[i]);
 
                     EditorGUILayout.EndVertical();
                 }
@@ -266,6 +226,80 @@
                 numberToSkip += numberToGet;
                 packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
             }
+        }
+
+        /// <summary>
+        /// Draws the given <see cref="NugetPackage"/>.
+        /// </summary>
+        /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
+        private void DrawPackage(NugetPackage package)
+        {
+            EditorGUILayout.BeginHorizontal();
+            {
+                EditorStyles.label.fontStyle = FontStyle.Bold;
+                EditorStyles.label.fontSize = 14;
+                EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20));
+                EditorStyles.label.fontSize = 10;
+
+                if (installedPackages.Contains(package))
+                {
+                    // This specific version is installed
+                    if (GUILayout.Button("Uninstall", installButtonWidth))
+                    {
+                        installedPackages.Remove(package);
+                        NugetHelper.Uninstall(package);
+                    }
+                }
+                else
+                {
+                    var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+                    if (installed != null)
+                    {
+                        if (CompareVersions(installed.Version, package.Version) < 0)
+                        {
+                            // An older version is installed
+                            if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
+                            {
+                                NugetHelper.Update(installed, package);
+                                installedPackages = NugetHelper.LoadInstalledPackages();
+                            }
+                        }
+                        else if (CompareVersions(installed.Version, package.Version) > 0)
+                        {
+                            // A newer version is installed
+                            if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
+                            {
+                                NugetHelper.Update(installed, package);
+                                installedPackages = NugetHelper.LoadInstalledPackages();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (GUILayout.Button("Install", installButtonWidth))
+                        {
+                            NugetHelper.InstallHttp(package);
+                            AssetDatabase.Refresh();
+                            installedPackages = NugetHelper.LoadInstalledPackages();
+                        }
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // Show the package description
+            EditorStyles.label.wordWrap = true;
+            EditorStyles.label.fontStyle = FontStyle.Normal;
+            EditorGUILayout.LabelField(string.Format("{0}", package.Description));
+
+            // Show the license button
+            if (GUILayout.Button("View License", GUILayout.Width(120)))
+            {
+                Application.OpenURL(package.LicenseUrl);
+            }
+
+            EditorGUILayout.Separator();
+            EditorGUILayout.Separator();
         }
 
         /// <summary>

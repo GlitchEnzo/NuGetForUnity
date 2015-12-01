@@ -92,8 +92,7 @@
             nuspec.LicenseUrl = (string) metadata.Element("licenseUrl") ?? string.Empty;
             nuspec.ProjectUrl = (string) metadata.Element("projectUrl") ?? string.Empty;
             nuspec.IconUrl = (string) metadata.Element("iconUrl") ?? string.Empty;
-            nuspec.RequireLicenseAcceptance =
-                bool.Parse((string) metadata.Element("requireLicenseAcceptance") ?? "False");
+            nuspec.RequireLicenseAcceptance = bool.Parse((string) metadata.Element("requireLicenseAcceptance") ?? "False");
             nuspec.Description = (string) metadata.Element("description") ?? string.Empty;
             nuspec.ReleaseNotes = (string) metadata.Element("releaseNotes") ?? string.Empty;
             nuspec.Copyright = (string) metadata.Element("copyright");

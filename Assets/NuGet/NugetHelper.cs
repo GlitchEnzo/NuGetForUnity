@@ -373,7 +373,7 @@
             if (!Directory.Exists(directoryPath))
                 return;
 
-            var directoryInfo = new DirectoryInfo(directoryPath) {Attributes = FileAttributes.Normal};
+            var directoryInfo = new DirectoryInfo(directoryPath) { Attributes = FileAttributes.Normal };
             foreach (var childInfo in directoryInfo.GetFileSystemInfos())
             {
                 DeleteDirectory(childInfo.FullName);
@@ -485,12 +485,6 @@
             packagesFile.Save(PackagesConfigFilePath);
         }
 
-        public enum OrderBy
-        {
-            Id,
-            LastUpdated
-        }
-
         /// <summary>
         /// Gets a list of NuGetPackages via the HTTP Search() function defined by NuGet.Server and NuGet Gallery.
         /// This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
@@ -503,8 +497,7 @@
         /// <param name="numberToGet"></param>
         /// <param name="numberToSkip"></param>
         /// <returns></returns>
-        public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false,
-            bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
+        public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
             //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
@@ -560,8 +553,7 @@
         /// <param name="includeAllVersions"></param>
         /// <param name="includePrerelease"></param>
         /// <returns></returns>
-        private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false,
-            bool includePrerelease = false)
+        private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
         {
             string sURL = NugetServerURL;
 
@@ -635,30 +627,18 @@
             {
                 var propertiesExtension = item.ElementExtensions.First();
                 var reader = propertiesExtension.GetReader();
-                var properties = (XElement) XDocument.ReadFrom(reader);
+                var properties = (XElement)XDocument.ReadFrom(reader);
 
                 NugetPackage package = new NugetPackage();
-                package.DownloadUrl = ((UrlSyndicationContent) item.Content).Url.ToString();
+                package.DownloadUrl = ((UrlSyndicationContent)item.Content).Url.ToString();
                 package.Id = item.Title.Text;
-                package.Version =
-                    (string)
-                        properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ??
-                    string.Empty;
-                package.Description =
-                    (string)
-                        properties.Element(XName.Get("Description",
-                            "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                package.LicenseUrl =
-                    (string)
-                        properties.Element(XName.Get("LicenseUrl",
-                            "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+                package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+                package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+                package.LicenseUrl = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
 
                 // Get dependencies
                 package.Dependencies = new List<NugetPackage>();
-                string rawDependencies =
-                    (string)
-                        properties.Element(XName.Get("Dependencies",
-                            "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+                string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 if (!string.IsNullOrEmpty(rawDependencies))
                 {
                     string[] dependencies = rawDependencies.Split('|');
@@ -687,7 +667,7 @@
         /// </summary>
         private static void CopyStream(Stream input, Stream output)
         {
-            byte[] buffer = new byte[8*1024];
+            byte[] buffer = new byte[8 * 1024];
             int len;
             while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
             {
@@ -699,8 +679,7 @@
         {
             // Mono doesn't have a Certificate Authority, so you have to provide all validation manually.  Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-            ServicePointManager.ServerCertificateValidationCallback +=
-                (sender, certificate, chain, policyErrors) => true;
+            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
             if (string.IsNullOrEmpty(package.DownloadUrl))
             {
@@ -714,7 +693,7 @@
                 InstallHttp(dependency, false);
             }
 
-            HttpWebRequest getRequest = (HttpWebRequest) WebRequest.Create(package.DownloadUrl);
+            HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
 
             // TODO: Get the local packages location from the config file
             Stream objStream = getRequest.GetResponse().GetResponseStream();
@@ -730,9 +709,7 @@
             {
                 foreach (ZipEntry entry in zip)
                 {
-                    entry.Extract(
-                        Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version)),
-                        ExtractExistingFileAction.OverwriteSilently);
+                    entry.Extract(Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
                 }
             }
 
