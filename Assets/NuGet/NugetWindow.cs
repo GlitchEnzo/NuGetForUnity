@@ -67,6 +67,11 @@
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
 
         /// <summary>
+        /// The list of package updates available, based on the already installed packages.
+        /// </summary>
+        private List<NugetPackage> updates;
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages")]
@@ -100,6 +105,8 @@
 
             // load a list of install packages
             installedPackages = NugetHelper.GetFullInstalledPackages();
+
+            updates = NugetHelper.GetUpdates(installedPackages);
         }
 
         /// <summary>
@@ -147,8 +154,48 @@
                     DrawInstalled();
                     break;
                 case 2:
+                    DrawUpdates();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Draws the list of installed packages that have updates available.
+        /// </summary>
+        private void DrawUpdates()
+        {
+            // display all of the installed packages
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            EditorGUILayout.BeginVertical();
+
+            GUIStyle style = new GUIStyle();
+            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+
+            if (updates != null && updates.Count > 0)
+            {
+                for (int i = 0; i < updates.Count; i++)
+                {
+                    // alternate the background color for each package
+                    if (i % 2 == 0)
+                        EditorGUILayout.BeginVertical();
+                    else
+                        EditorGUILayout.BeginVertical(style);
+
+                    DrawPackage(updates[i]);
+
+                    EditorGUILayout.EndVertical();
+                }
+            }
+            else
+            {
+                EditorStyles.label.fontStyle = FontStyle.Bold;
+                EditorStyles.label.fontSize = 14;
+                EditorGUILayout.LabelField("There are updates available!", GUILayout.Height(20));
+                EditorStyles.label.fontSize = 10;
+            }
+
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndScrollView();
         }
 
         /// <summary>

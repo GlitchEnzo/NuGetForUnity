@@ -131,8 +131,7 @@
         /// <param name="showAllVersions">True to include old versions of packages.  False to only display the latest.  Defaults to false.</param>
         /// <param name="showPrerelease">True to show prerelease packages (alpha, beta, etc).  False to only display stable versions.  Defaults to false.</param>
         /// <returns></returns>
-        public static List<NugetPackage> List(string search = "", bool showAllVersions = false,
-            bool showPrerelease = false)
+        public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
         {
             string arguments = string.Format("list {0} -verbosity detailed -configfile \"{1}\"", search,
                 NugetConfigFilePath);
@@ -385,6 +384,10 @@
             directoryInfo.Delete(true);
         }
 
+        /// <summary>
+        /// Deletes a file at the given filepath.
+        /// </summary>
+        /// <param name="filePath">The filepath to the file to delete.</param>
         private static void DeleteFile(string filePath)
         {
             if (File.Exists(filePath))
@@ -401,8 +404,7 @@
         public static void Uninstall(NugetPackage package, bool refreshAssets = true)
         {
             // TODO: Get the install directory from the NuGet.config file
-            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory,
-                string.Format("{0}.{1}", package.Id, package.Version));
+            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
             DeleteDirectory(packageInstallDirectory);
 
             RemoveInstalledPackage(package);
@@ -573,31 +575,75 @@
         /// <returns></returns>
         private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
         {
-            string sURL = NugetServerURL;
+            string url = NugetServerURL;
 
             // call the search method
-            sURL += "FindPackagesById()?";
+            url += "FindPackagesById()?";
 
             // filter results
             if (!includeAllVersions)
             {
                 if (!includePrerelease)
                 {
-                    sURL += "$filter=IsLatestVersion&";
+                    url += "$filter=IsLatestVersion&";
                 }
                 else
                 {
-                    sURL += "$filter=IsAbsoluteLatestVersion&";
+                    url += "$filter=IsAbsoluteLatestVersion&";
                 }
             }
 
             // order results by version number, in descending order
-            sURL += "$orderby=Version desc&";
+            url += "$orderby=Version desc&";
 
             // set the package ID to retreive
-            sURL += string.Format("id='{0}'", packageId);
+            url += string.Format("id='{0}'", packageId);
 
-            return GetPackagesFromUrl(sURL);
+            return GetPackagesFromUrl(url);
+        }
+
+        /// <summary>
+        /// Queries the server with the given list of installed packages to get any updates that are available.
+        /// </summary>
+        /// <param name="installedPackages">The list of currently installed packages.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="targetFrameworks">The specific frameworks to target?</param>
+        /// <param name="versionContraints">The version constraints?</param>
+        /// <returns>A list of all updates available.</returns>
+        public static List<NugetPackage> GetUpdates(List<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        {
+            string packageIds = string.Empty;
+            string versions = string.Empty;
+
+            foreach (var package in installedPackages)
+            {
+                if (string.IsNullOrEmpty(packageIds))
+                {
+                    packageIds += package.Id;
+                }
+                else
+                {
+                    packageIds += "|" + package.Id;
+                }
+
+                if (string.IsNullOrEmpty(versions))
+                {
+                    versions += package.Version;
+                }
+                else
+                {
+                    versions += "|" + package.Version;
+                }
+            }
+
+            string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", NugetServerURL, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
+
+            var updates = GetPackagesFromUrl(url);
+
+            ////Debug.Log(updates.Count);
+
+            return updates;
         }
 
         /// <summary>
@@ -608,21 +654,9 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(string packageId, string packageVersion)
         {
-            string sURL = NugetServerURL;
+            string url = string.Format("{0}FindPackagesById()?$filter=Version eq '{1}'&id='{2}'", NugetServerURL, packageVersion, packageId);
 
-            // call the search method
-            sURL += "FindPackagesById()?";
-
-            // filter results
-            sURL += string.Format("$filter=Version eq '{0}'&", packageVersion);
-
-            // order results by version number, in descending order
-            sURL += "$orderby=Version desc&";
-
-            // set the package ID to retreive
-            sURL += string.Format("id='{0}'", packageId);
-
-            var package = GetPackagesFromUrl(sURL).FirstOrDefault();
+            var package = GetPackagesFromUrl(url).FirstOrDefault();
 
             if (package == null)
             {
@@ -706,6 +740,11 @@
             }
         }
 
+        /// <summary>
+        /// Installs the given package via the HTTP server API.
+        /// </summary>
+        /// <param name="package">The package to install.</param>
+        /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void InstallHttp(NugetPackage package, bool refreshAssets = true)
         {
             ////Debug.LogFormat("Installing: {0} - {1}", package.Id, package.Version);
@@ -723,7 +762,7 @@
             foreach (var dependency in package.Dependencies)
             {
                 ////Debug.LogFormat("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
-                
+
                 // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
                 InstallHttp(dependency, false);
             }
@@ -766,12 +805,24 @@
             var packages = LoadInstalledPackages();
             foreach (var package in packages)
             {
-                if (package != null)
+                if (package != null && !IsInstalled(package))
                 {
-                    // TODO: Check to see if the package already exists
                     InstallHttp(package);
                 }
             }
+        }
+
+        /// <summary>
+        /// Checks if a given package is installed.
+        /// </summary>
+        /// <param name="package">The package to check if is installed.</param>
+        /// <returns>True if the given package is installed.  False if it is not.</returns>
+        private static bool IsInstalled(NugetPackage package)
+        {
+            // TODO: Get the install directory from the NuGet.config file
+            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
+
+            return Directory.Exists(packageInstallDirectory);
         }
     }
 }
