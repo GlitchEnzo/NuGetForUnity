@@ -99,7 +99,7 @@
             UpdatePackages();
 
             // load a list of install packages
-            installedPackages = NugetHelper.LoadInstalledPackages();
+            installedPackages = NugetHelper.GetFullInstalledPackages();
         }
 
         /// <summary>
@@ -132,30 +132,106 @@
         }
 
         /// <summary>
-        /// Draws the GUI.
+        /// Automatically called by Unity to draw the GUI.
         /// </summary>
         protected void OnGUI()
         {
-            int newTab = GUILayout.Toolbar(currentTab, tabTitles);
-            if (newTab != currentTab)
-            {
-                currentTab = newTab;
+            currentTab = GUILayout.Toolbar(currentTab, tabTitles);
 
-                switch (currentTab)
+            switch (currentTab)
+            {
+                case 0:
+                    DrawOnline();
+                    break;
+                case 1:
+                    DrawInstalled();
+                    break;
+                case 2:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Draws the list of installed packages.
+        /// </summary>
+        private void DrawInstalled()
+        {
+            // display all of the installed packages
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            EditorGUILayout.BeginVertical();
+
+            GUIStyle style = new GUIStyle();
+            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+
+            if (installedPackages != null)
+            {
+                for (int i = 0; i < installedPackages.Count; i++)
                 {
-                    case 0:
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                        break;
+                    // alternate the background color for each package
+                    if (i % 2 == 0)
+                        EditorGUILayout.BeginVertical();
+                    else
+                        EditorGUILayout.BeginVertical(style);
+
+                    DrawPackage(installedPackages[i]);
+
+                    EditorGUILayout.EndVertical();
                 }
             }
 
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndScrollView();
+        }
+
+        /// <summary>
+        /// Draws the current list of available online packages.
+        /// </summary>
+        private void DrawOnline()
+        {
+            DrawHeader();
+
+            // display all of the packages
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            EditorGUILayout.BeginVertical();
+
+            GUIStyle style = new GUIStyle();
+            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+
+            if (packages != null)
+            {
+                for (int i = 0; i < packages.Count; i++)
+                {
+                    // alternate the background color for each package
+                    if (i%2 == 0)
+                        EditorGUILayout.BeginVertical();
+                    else
+                        EditorGUILayout.BeginVertical(style);
+
+                    DrawPackage(packages[i]);
+
+                    EditorGUILayout.EndVertical();
+                }
+            }
+
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndScrollView();
+
+            // allow the user to dislay more results
+            if (GUILayout.Button("Show More", GUILayout.Width(120)))
+            {
+                numberToSkip += numberToGet;
+                packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
+            }
+        }
+
+        /// <summary>
+        /// Draws the header which allows filtering the online list of packages.
+        /// </summary>
+        private void DrawHeader()
+        {
             GUIStyle headerStyle = new GUIStyle();
             headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
 
-            // display the header
             EditorGUILayout.BeginVertical(headerStyle);
             {
                 EditorGUILayout.BeginHorizontal();
@@ -193,39 +269,6 @@
                 }
             }
             EditorGUILayout.EndVertical();
-
-            // display all of the packages
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-            EditorGUILayout.BeginVertical();
-
-            GUIStyle style = new GUIStyle();
-            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
-
-            if (packages != null)
-            {
-                for (int i = 0; i < packages.Count; i++)
-                {
-                    // alternate the background color for each package
-                    if (i%2 == 0)
-                        EditorGUILayout.BeginVertical();
-                    else
-                        EditorGUILayout.BeginVertical(style);
-
-                    DrawPackage(packages[i]);
-
-                    EditorGUILayout.EndVertical();
-                }
-            }
-
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndScrollView();
-
-            // allow the user to dislay more results
-            if (GUILayout.Button("Show More", GUILayout.Width(120)))
-            {
-                numberToSkip += numberToGet;
-                packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
-            }
         }
 
         /// <summary>
@@ -261,7 +304,7 @@
                             if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                             {
                                 NugetHelper.Update(installed, package);
-                                installedPackages = NugetHelper.LoadInstalledPackages();
+                                installedPackages = NugetHelper.GetFullInstalledPackages();
                             }
                         }
                         else if (CompareVersions(installed.Version, package.Version) > 0)
@@ -270,7 +313,7 @@
                             if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                             {
                                 NugetHelper.Update(installed, package);
-                                installedPackages = NugetHelper.LoadInstalledPackages();
+                                installedPackages = NugetHelper.GetFullInstalledPackages();
                             }
                         }
                     }
@@ -280,7 +323,7 @@
                         {
                             NugetHelper.InstallHttp(package);
                             AssetDatabase.Refresh();
-                            installedPackages = NugetHelper.LoadInstalledPackages();
+                            installedPackages = NugetHelper.GetFullInstalledPackages();
                         }
                     }
                 }

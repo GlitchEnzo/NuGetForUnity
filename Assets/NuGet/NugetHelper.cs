@@ -421,10 +421,26 @@
         }
 
         /// <summary>
-        /// Loads a list of all currently installed packages by reading the packages.config file.
+        /// Gets a list of all currently installed packages by reading the packages.config file AND querying the server for the FULL details.
+        /// NOTE: This retrieves all of the data for the package by querying the server for info.
         /// </summary>
         /// <returns>A list of installed NugetPackages.</returns>
-        public static List<NugetPackage> LoadInstalledPackages()
+        public static List<NugetPackage> GetFullInstalledPackages()
+        {
+            List<NugetPackage> packages = LoadInstalledPackages();
+
+            List<NugetPackage> fullPackages = new List<NugetPackage>(packages.Count);
+            fullPackages.AddRange(packages.Select(package => GetSpecificPackage(package.Id, package.Version)));
+
+            return fullPackages;
+        }
+
+        /// <summary>
+        /// Loads a list of all currently installed packages by reading the packages.config file.
+        /// NOTE: This only retrieves the ID and Version for the package, nothing else.
+        /// </summary>
+        /// <returns>A list of installed NugetPackages.</returns>
+        private static List<NugetPackage> LoadInstalledPackages()
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
