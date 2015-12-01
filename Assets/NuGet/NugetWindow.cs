@@ -163,7 +163,7 @@
             GUIStyle style = new GUIStyle();
             style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
 
-            if (installedPackages != null)
+            if (installedPackages != null && installedPackages.Count > 0)
             {
                 for (int i = 0; i < installedPackages.Count; i++)
                 {
@@ -177,6 +177,13 @@
 
                     EditorGUILayout.EndVertical();
                 }
+            }
+            else
+            {
+                EditorStyles.label.fontStyle = FontStyle.Bold;
+                EditorStyles.label.fontSize = 14;
+                EditorGUILayout.LabelField("There are no packages installed!", GUILayout.Height(20));
+                EditorStyles.label.fontSize = 10;
             }
 
             EditorGUILayout.EndVertical();
