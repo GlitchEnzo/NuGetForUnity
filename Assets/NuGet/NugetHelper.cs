@@ -276,8 +276,7 @@
         private static void Clean(NugetPackage package)
         {
             // TODO: Get the install directory from the NuGet.config file
-            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory,
-                string.Format("{0}.{1}", package.Id, package.Version));
+            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
 
             ////Debug.Log("Cleaning " + packageInstallDirectory);
 
@@ -297,13 +296,16 @@
             // For now, delete Content.  We may use it later...
             DeleteDirectory(packageInstallDirectory + "/Content");
 
+            // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
+            DeleteDirectory(packageInstallDirectory + "/docs");
+
             // Unity can only use .NET 3.5 or lower, so delete everything else
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
                 string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
                 foreach (var directory in libDirectories)
                 {
-                    if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45"))
+                    if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45") || directory.Contains("net4"))
                     {
                         DeleteDirectory(directory);
                     }
@@ -620,7 +622,14 @@
             // set the package ID to retreive
             sURL += string.Format("id='{0}'", packageId);
 
-            return GetPackagesFromUrl(sURL).FirstOrDefault();
+            var package = GetPackagesFromUrl(sURL).FirstOrDefault();
+
+            if (package == null)
+            {
+                Debug.LogErrorFormat("Could not find specific package: {0} - {1}", packageId, packageVersion);
+            }
+
+            return package;
         }
 
         /// <summary>
@@ -662,11 +671,17 @@
                     {
                         string[] details = dependencyString.Split(':');
 
-                        NugetPackage dependency = new NugetPackage();
-                        dependency.Id = details[0];
-                        dependency.Version = details[1];
+                        // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
+                        // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
+                        // so we need to only add valid dependencies
+                        if (!string.IsNullOrEmpty(details[0]) && !string.IsNullOrEmpty(details[1]))
+                        {
+                            NugetPackage dependency = new NugetPackage();
+                            dependency.Id = details[0];
+                            dependency.Version = details[1];
 
-                        package.Dependencies.Add(dependency);
+                            package.Dependencies.Add(dependency);
+                        }
                     }
                 }
 
@@ -693,6 +708,8 @@
 
         public static void InstallHttp(NugetPackage package, bool refreshAssets = true)
         {
+            ////Debug.LogFormat("Installing: {0} - {1}", package.Id, package.Version);
+
             // Mono doesn't have a Certificate Authority, so you have to provide all validation manually.  Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
@@ -705,6 +722,8 @@
 
             foreach (var dependency in package.Dependencies)
             {
+                ////Debug.LogFormat("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
+                
                 // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
                 InstallHttp(dependency, false);
             }
@@ -713,8 +732,7 @@
 
             // TODO: Get the local packages location from the config file
             Stream objStream = getRequest.GetResponse().GetResponseStream();
-            string localPackagePath = Path.Combine(PackOutputDirectory,
-                string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+            string localPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
             using (Stream file = File.Create(localPackagePath))
             {
                 CopyStream(objStream, file);
