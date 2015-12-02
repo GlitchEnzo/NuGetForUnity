@@ -1,6 +1,5 @@
 ﻿namespace NugetForUnity
 {
-    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -8,7 +7,6 @@
     using System.Net;
     using System.ServiceModel.Syndication;
     using System.Text;
-    using System.Text.RegularExpressions;
     using System.Xml;
     using System.Xml.Linq;
     using Ionic.Zip;
@@ -85,7 +83,7 @@
         /// <param name="arguments">The arguments to run nuget.exe with.</param>
         /// <param name="logOuput">True to output debug information to the Unity console.  Defaults to true.</param>
         /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
-        private static string RunNugetProcess(string arguments, bool logOuput = true)
+        private static void RunNugetProcess(string arguments, bool logOuput = true)
         {
             ////Debug.Log("Args = " + arguments);
 
@@ -119,150 +117,6 @@
             if (logOuput && !string.IsNullOrEmpty(output))
             {
                 Debug.Log(output);
-            }
-
-            return output;
-        }
-
-        /// <summary>
-        /// Calls "nuget.exe list" and returns of a list of NugetPackages that were returned as a result.
-        /// </summary>
-        /// <param name="search">The search term to use to filter the list results.  Defaults to string.Empty.</param>
-        /// <param name="showAllVersions">True to include old versions of packages.  False to only display the latest.  Defaults to false.</param>
-        /// <param name="showPrerelease">True to show prerelease packages (alpha, beta, etc).  False to only display stable versions.  Defaults to false.</param>
-        /// <returns></returns>
-        public static List<NugetPackage> List(string search = "", bool showAllVersions = false, bool showPrerelease = false)
-        {
-            string arguments = string.Format("list {0} -verbosity detailed -configfile \"{1}\"", search,
-                NugetConfigFilePath);
-            if (showAllVersions)
-                arguments += " -AllVersions";
-            if (showPrerelease)
-                arguments += " -Prerelease";
-
-            string output = RunNugetProcess(arguments, false);
-
-            List<NugetPackage> packages = new List<NugetPackage>();
-
-            // parse the command line output to build a list of available packages
-            // In the form:
-            // angular-webstorage
-            //  0.14.0
-            //  WebStorage Service for AngularJS
-            //  License url: http://opensource.org/licenses/MIT
-            string[] lines = output.Split('\n');
-            //Debug.Log(lines.Count() + " lines");
-            for (int i = 0; i < lines.Length - 4; i++)
-            {
-                // using NuGet.Server or NuGet Gallery causes the HTTP GET command used to be output to the console
-                if (lines[i].StartsWith("GET "))
-                    continue;
-
-                NugetPackage package = new NugetPackage();
-                package.Id = lines[i++].Trim();
-                package.Version = lines[i++].Trim();
-                package.Description = lines[i++];
-
-                while (!lines[i].Contains("License"))
-                    package.Description += lines[i++];
-
-                package.Description = package.Description.Trim();
-                package.LicenseUrl = lines[i++].Replace(" License url: ", String.Empty);
-
-                packages.Add(package);
-                //Debug.LogFormat("Created {0}", package.Id);
-            }
-
-            return packages;
-        }
-
-        /// <summary>
-        /// Calls "nuget.exe restore" to restore all packages defined in packages.config.
-        /// </summary>
-        /// <param name="logOutput">True to output debug info to the Unity console.  False to restore silently.  Defaults to true.</param>
-        public static void Restore(bool logOutput = true)
-        {
-            string arguments = string.Format("restore \"{0}\" -configfile \"{1}\"", PackagesConfigFilePath,
-                NugetConfigFilePath);
-
-            RunNugetProcess(arguments, logOutput);
-
-            // http://stackoverflow.com/questions/12930868/nuget-exe-install-not-updating-packages-config-or-csproj
-            // http://stackoverflow.com/questions/17187725/using-nuget-exe-commandline-to-install-dependency
-            //var packages = LoadInstalledPackages();
-            //foreach (var package in packages)
-            //{
-            //    Install(package);
-            //}
-
-            Clean();
-
-            AssetDatabase.Refresh();
-        }
-
-        /// <summary>
-        /// Calls "nuget.exe install" to install the given package.
-        /// </summary>
-        /// <param name="package">The NugetPackage to install.  Only the ID and Version are used for the installation.</param>
-        public static void Install(NugetPackageIdentifier package)
-        {
-            string arguments = string.Format("install {0} -Version {1} -configfile \"{2}\"", package.Id, package.Version, NugetConfigFilePath);
-
-            string output = RunNugetProcess(arguments);
-
-            // Check the output for any installed dependencies
-            // https://msdn.microsoft.com/en-us/library/bs2twtah(v=vs.110).aspx
-            // Example: "Attempting to resolve dependency 'StyleCop.MSBuild (ò 4.7.49.0)'.
-            //           Installing 'StyleCop.MSBuild 4.7.49.1'."
-            //string pattern = @"Attempting to resolve dependency '(?<package>.+)'";
-            string pattern = @"Attempting to resolve dependency.+\nInstalling '(?<package>.+)'";
-            Regex dependencyRegex = new Regex(pattern, RegexOptions.Multiline);
-
-            var matches = dependencyRegex.Matches(output);
-            foreach (Match match in matches)
-            {
-                //Debug.Log(match.ToString());
-                //Debug.Log(match.Groups["package"].Value);
-                string[] split = match.Groups["package"].Value.Split(' ');
-
-                NugetPackage dependencyPackage = new NugetPackage();
-                dependencyPackage.Id = split[0].Trim();
-
-                //char compare = split[1][0];
-                //Debug.Log((int)compare);
-                //char greaterThanEqual = '\xF2';
-                //if (compare == greaterThanEqual)
-                //{
-                //    Debug.Log("Greater than or equals...");
-                //}
-
-                //dependencyPackage.Version = split[1].Substring(2, split[1].Length - 3);
-                dependencyPackage.Version = split[1];
-                //Debug.Log(id + ":" + version);
-
-                AddInstalledPackage(dependencyPackage);
-
-                Clean(dependencyPackage);
-            }
-
-            // Update the packages.config file
-            AddInstalledPackage(package);
-
-            Clean(package);
-
-            AssetDatabase.Refresh();
-        }
-
-        /// <summary>
-        /// Clean all currently installed packages.
-        /// </summary>
-        private static void Clean()
-        {
-            var installedPackages = LoadInstalledPackages();
-
-            foreach (var package in installedPackages)
-            {
-                Clean(package);
             }
         }
 
@@ -330,8 +184,7 @@
                 Directory.CreateDirectory(PackOutputDirectory);
             }
 
-            string arguments = string.Format("pack \"{0}\" -OutputDirectory \"{1}\"", nuspecFilePath,
-                PackOutputDirectory);
+            string arguments = string.Format("pack \"{0}\" -OutputDirectory \"{1}\"", nuspecFilePath, PackOutputDirectory);
 
             RunNugetProcess(arguments);
         }
@@ -344,8 +197,7 @@
         /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.  This is required by NuGet's Push command.</param>
         public static void Push(NuspecFile nuspec, string nuspecFilePath)
         {
-            string packagePath = Path.Combine(PackOutputDirectory,
-                string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
+            string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
             if (!File.Exists(packagePath))
             {
                 ////Debug.Log("Attempting to Pack.");
