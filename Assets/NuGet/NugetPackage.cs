@@ -6,18 +6,8 @@
     /// <summary>
     /// Represents a package available from NuGet.
     /// </summary>
-    public class NugetPackage : IEquatable<NugetPackage>
+    public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>
     {
-        /// <summary>
-        /// Gets or sets the ID of the NuGet package.
-        /// </summary>
-        public string Id { get; set; }
-
-        /// <summary>
-        /// Gets or sets the version number of the NuGet package.
-        /// </summary>
-        public string Version { get; set; }
-
         /// <summary>
         /// Gets or sets the description of the NuGet package.
         /// </summary>
@@ -36,7 +26,7 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackage> Dependencies { get; set; }
+        public List<NugetPackageIdentifier> Dependencies { get; set; }
 
         /// <summary>
         /// Checks to see if this <see cref="NugetPackage"/> is equal to the given one.

@@ -100,13 +100,11 @@
             // reset the number to skip
             numberToSkip = 0;
 
-            // update the packages list
+            // update the available packages list
             UpdatePackages();
 
-            // load a list of install packages
-            installedPackages = NugetHelper.GetFullInstalledPackages();
-
-            updates = NugetHelper.GetUpdates(installedPackages);
+            // update the list of installed packages
+            UpdateInstalledPackages();
         }
 
         /// <summary>
@@ -115,6 +113,18 @@
         private void UpdatePackages()
         {
             packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
+        }
+
+        /// <summary>
+        /// Updates the list of installed packages as well as the list of updates available.
+        /// </summary>
+        private void UpdateInstalledPackages()
+        {
+            // load a list of install packages
+            installedPackages = NugetHelper.GetFullInstalledPackages();
+
+            // get any available updates for the installed packages
+            updates = NugetHelper.GetUpdates(installedPackages);
         }
 
         /// <summary>
@@ -190,7 +200,7 @@
             {
                 EditorStyles.label.fontStyle = FontStyle.Bold;
                 EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField("There are updates available!", GUILayout.Height(20));
+                EditorGUILayout.LabelField("There are no updates available!", GUILayout.Height(20));
                 EditorStyles.label.fontSize = 10;
             }
 
@@ -343,8 +353,9 @@
                     // This specific version is installed
                     if (GUILayout.Button("Uninstall", installButtonWidth))
                     {
-                        installedPackages.Remove(package);
+                        ////installedPackages.Remove(package);
                         NugetHelper.Uninstall(package);
+                        UpdateInstalledPackages();
                     }
                 }
                 else
@@ -358,7 +369,7 @@
                             if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
                             {
                                 NugetHelper.Update(installed, package);
-                                installedPackages = NugetHelper.GetFullInstalledPackages();
+                                UpdateInstalledPackages();
                             }
                         }
                         else if (CompareVersions(installed.Version, package.Version) > 0)
@@ -367,7 +378,7 @@
                             if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
                             {
                                 NugetHelper.Update(installed, package);
-                                installedPackages = NugetHelper.GetFullInstalledPackages();
+                                UpdateInstalledPackages();
                             }
                         }
                     }
@@ -377,7 +388,7 @@
                         {
                             NugetHelper.InstallHttp(package);
                             AssetDatabase.Refresh();
-                            installedPackages = NugetHelper.GetFullInstalledPackages();
+                            UpdateInstalledPackages();
                         }
                     }
                 }

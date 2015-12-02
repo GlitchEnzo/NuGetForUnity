@@ -204,10 +204,9 @@
         /// Calls "nuget.exe install" to install the given package.
         /// </summary>
         /// <param name="package">The NugetPackage to install.  Only the ID and Version are used for the installation.</param>
-        public static void Install(NugetPackage package)
+        public static void Install(NugetPackageIdentifier package)
         {
-            string arguments = string.Format("install {0} -Version {1} -configfile \"{2}\"", package.Id, package.Version,
-                NugetConfigFilePath);
+            string arguments = string.Format("install {0} -Version {1} -configfile \"{2}\"", package.Id, package.Version, NugetConfigFilePath);
 
             string output = RunNugetProcess(arguments);
 
@@ -272,7 +271,7 @@
         /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
         /// <param name="package">The NugetPackage to clean.</param>
-        private static void Clean(NugetPackage package)
+        private static void Clean(NugetPackageIdentifier package)
         {
             // TODO: Get the install directory from the NuGet.config file
             string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
@@ -401,7 +400,7 @@
         /// </summary>
         /// <param name="package">The NugetPackage to uninstall.</param>
         /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
-        public static void Uninstall(NugetPackage package, bool refreshAssets = true)
+        public static void Uninstall(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             // TODO: Get the install directory from the NuGet.config file
             string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
@@ -421,7 +420,7 @@
         public static void Update(NugetPackage currentVersion, NugetPackage newVersion)
         {
             Uninstall(currentVersion, false);
-            Install(newVersion);
+            InstallHttp(newVersion);
         }
 
         /// <summary>
@@ -431,7 +430,7 @@
         /// <returns>A list of installed NugetPackages.</returns>
         public static List<NugetPackage> GetFullInstalledPackages()
         {
-            List<NugetPackage> packages = LoadInstalledPackages();
+            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
 
             List<NugetPackage> fullPackages = new List<NugetPackage>(packages.Count);
             fullPackages.AddRange(packages.Select(package => GetSpecificPackage(package.Id, package.Version)));
@@ -444,9 +443,9 @@
         /// NOTE: This only retrieves the ID and Version for the package, nothing else.
         /// </summary>
         /// <returns>A list of installed NugetPackages.</returns>
-        private static List<NugetPackage> LoadInstalledPackages()
+        private static List<NugetPackageIdentifier> LoadInstalledPackages()
         {
-            List<NugetPackage> packages = new List<NugetPackage>();
+            List<NugetPackageIdentifier> packages = new List<NugetPackageIdentifier>();
 
             XDocument packagesFile = XDocument.Load(PackagesConfigFilePath);
             foreach (var packageElement in packagesFile.Root.Elements())
@@ -464,9 +463,9 @@
         /// Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        private static void AddInstalledPackage(NugetPackage package)
+        private static void AddInstalledPackage(NugetPackageIdentifier package)
         {
-            List<NugetPackage> packages = LoadInstalledPackages();
+            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
 
             if (!packages.Contains(package))
             {
@@ -479,9 +478,9 @@
         /// Removes a package from the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        private static void RemoveInstalledPackage(NugetPackage package)
+        private static void RemoveInstalledPackage(NugetPackageIdentifier package)
         {
-            List<NugetPackage> packages = LoadInstalledPackages();
+            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
             packages.Remove(package);
             SaveInstalledPackages(packages);
         }
@@ -490,7 +489,7 @@
         /// Saves the packages.config file and populates it with given installed NugetPackages.
         /// </summary>
         /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
-        private static void SaveInstalledPackages(List<NugetPackage> packages)
+        private static void SaveInstalledPackages(IEnumerable<NugetPackageIdentifier> packages)
         {
             XDocument packagesFile = new XDocument();
             packagesFile.Add(new XElement("packages"));
@@ -611,7 +610,7 @@
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(List<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             string packageIds = string.Empty;
             string versions = string.Empty;
@@ -696,7 +695,7 @@
                 package.LicenseUrl = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
 
                 // Get dependencies
-                package.Dependencies = new List<NugetPackage>();
+                package.Dependencies = new List<NugetPackageIdentifier>();
                 string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 if (!string.IsNullOrEmpty(rawDependencies))
                 {
@@ -707,10 +706,10 @@
 
                         // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
                         // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
-                        // so we need to only add valid dependencies
+                        // so we need to only add valid dependencies and skip invalid ones
                         if (!string.IsNullOrEmpty(details[0]) && !string.IsNullOrEmpty(details[1]))
                         {
-                            NugetPackage dependency = new NugetPackage();
+                            NugetPackageIdentifier dependency = new NugetPackageIdentifier();
                             dependency.Id = details[0];
                             dependency.Version = details[1];
 
@@ -741,6 +740,16 @@
         }
 
         /// <summary>
+        /// Installs the package given by the identifer.  It fetches the appropriate full package from the server and installs it.
+        /// </summary>
+        /// <param name="package">The identifer of the package to install.</param>
+        /// <param name="refreshAssets">True to force Unity to refrehs the asset database.  False to temporarily ignore the change.</param>
+        private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        {
+            InstallHttp(GetSpecificPackage(package.Id, package.Version), refreshAssets);
+        }
+
+        /// <summary>
         /// Installs the given package via the HTTP server API.
         /// </summary>
         /// <param name="package">The package to install.</param>
@@ -749,22 +758,22 @@
         {
             ////Debug.LogFormat("Installing: {0} - {1}", package.Id, package.Version);
 
-            // Mono doesn't have a Certificate Authority, so you have to provide all validation manually.  Currently just accept anything.
+            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            if (string.IsNullOrEmpty(package.DownloadUrl))
-            {
-                // some packages don't have a DownloadURL attached (package.config, dependencies), so we have to query the server to get the full information
-                package = GetSpecificPackage(package.Id, package.Version);
-            }
+            //if (string.IsNullOrEmpty(package.DownloadUrl))
+            //{
+            //    // some packages don't have a DownloadURL attached (package.config, dependencies), so we have to query the server to get the full information
+            //    package = GetSpecificPackage(package.Id, package.Version);
+            //}
 
             foreach (var dependency in package.Dependencies)
             {
                 ////Debug.LogFormat("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
 
                 // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
-                InstallHttp(dependency, false);
+                InstallIdentifier(dependency, false);
             }
 
             HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
@@ -807,7 +816,7 @@
             {
                 if (package != null && !IsInstalled(package))
                 {
-                    InstallHttp(package);
+                    InstallIdentifier(package);
                 }
             }
         }
@@ -817,7 +826,7 @@
         /// </summary>
         /// <param name="package">The package to check if is installed.</param>
         /// <returns>True if the given package is installed.  False if it is not.</returns>
-        private static bool IsInstalled(NugetPackage package)
+        private static bool IsInstalled(NugetPackageIdentifier package)
         {
             // TODO: Get the install directory from the NuGet.config file
             string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
