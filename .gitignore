@@ -66,3 +66,6 @@ $RECYCLE.BIN/
 # Ignore the NuGet Packages folder
 Packages/
 Packages.meta
+
+# Ignore the generated (packed) NuGet packages folder
+nupkgs/
