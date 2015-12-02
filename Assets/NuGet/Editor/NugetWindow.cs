@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using UnityEditor;
     using UnityEngine;
@@ -87,6 +88,46 @@
         protected static void RestorePackages()
         {
             NugetHelper.RestoreHttp();
+        }
+
+        /// <summary>
+        /// Creates a new MyPackage.nuspec file.
+        /// </summary>
+        [MenuItem("Assets/Create/Nuspec File")]
+        protected static void CreateNuspecFile()
+        {
+            string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
+
+            // TODO: Use a better method than string.Replace, since that could remove subfolders
+            string filepath = selectedFile.Replace("Assets/", string.Empty);
+            filepath = Path.Combine(Application.dataPath, filepath);
+
+            if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
+            {
+                // if it was a file that was selected, replace the filename
+                filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
+                filepath += "MyPackage.nuspec";
+            }
+            else
+            {
+                // if it was a directory that was selected, simply add the filename
+                filepath += "/MyPackage.nuspec";
+            }
+
+            ////Debug.LogFormat("Created: {0}", filepath);
+
+            NuspecFile file = new NuspecFile();
+            file.Id = "MyPackage";
+            file.Version = "0.0.1";
+            file.Authors = "Your Name";
+            file.Owners = "Your Name";
+            file.LicenseUrl = "http://your_license_url_here";
+            file.ProjectUrl = "http://your_project_url_here";
+            file.Description = "A description of what this packages is and does.";
+            file.ReleaseNotes = "Notes for this specific release";
+            file.Save(filepath);
+
+            AssetDatabase.Refresh();
         }
 
         /// <summary>
