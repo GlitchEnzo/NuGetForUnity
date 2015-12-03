@@ -401,17 +401,25 @@
                 // We have to use GUILayoutUtility to get SOME rect properties, but then manually calculate others.
                 EditorGUILayout.BeginHorizontal();
                 {
-                    Rect rect = GUILayoutUtility.GetRect(32, 32);
+                    const int iconSize = 32;
+                    Rect rect = GUILayoutUtility.GetRect(iconSize, iconSize);
                     // only use GetRect's Y position.  It doesn't correctly set the width or X position.
                     rect.x = 0;
                     rect.y += 1;
-                    rect.width = 32;
-                    rect.height = 32;
+                    rect.width = iconSize;
+                    rect.height = iconSize;
 
-                    GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
+                    if (package.Icon != null)
+                    {
+                        GUI.DrawTexture(rect, package.Icon, ScaleMode.StretchToFill);
+                    }
+                    else
+                    {
+                        GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
+                    }
 
-                    rect = GUILayoutUtility.GetRect(position.width/2 - 32, 20);
-                    rect.x = 32;
+                    rect = GUILayoutUtility.GetRect(position.width / 2 - iconSize, 20);
+                    rect.x = iconSize;
                     rect.y += 10;
 
                     EditorStyles.label.fontStyle = FontStyle.Bold;

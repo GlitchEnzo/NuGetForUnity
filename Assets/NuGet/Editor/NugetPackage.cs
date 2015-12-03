@@ -24,6 +24,11 @@
         public string DownloadUrl { get; set; }
 
         /// <summary>
+        /// Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
+        /// </summary>
+        public UnityEngine.Texture2D Icon { get; set; }
+
+        /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
         public List<NugetPackageIdentifier> Dependencies { get; set; }

@@ -547,6 +547,12 @@
                 package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 package.LicenseUrl = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
 
+                string iconUrl = (string)properties.Element(XName.Get("IconUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
+                if (!string.IsNullOrEmpty(iconUrl))
+                {
+                    package.Icon = DownloadImage(iconUrl);
+                }
+
                 // Get dependencies
                 package.Dependencies = new List<NugetPackageIdentifier>();
                 string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
@@ -685,6 +691,21 @@
             string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
 
             return Directory.Exists(packageInstallDirectory);
+        }
+
+        /// <summary>
+        /// Downloads an image at the given URL and converts it to a Unity Texture2D.
+        /// </summary>
+        /// <param name="url">The URL of the image to download.</param>
+        /// <returns>The image as a Unity Texture2D object.</returns>
+        private static Texture2D DownloadImage(string url)
+        {
+            WWW request = new WWW(url);
+            while (!request.isDone)
+            {
+                // do nothing
+            }
+            return request.texture;
         }
     }
 }
