@@ -73,6 +73,11 @@
         private List<NugetPackage> updates;
 
         /// <summary>
+        /// The default icon to display for packages.
+        /// </summary>
+        private Texture2D defaultIcon;
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages")]
@@ -125,6 +130,8 @@
             file.ProjectUrl = "http://your_project_url_here";
             file.Description = "A description of what this packages is and does.";
             file.ReleaseNotes = "Notes for this specific release";
+            file.Copyright = "Copyright 2015";
+            file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
             file.Save(filepath);
 
             AssetDatabase.Refresh();
@@ -146,6 +153,9 @@
 
             // update the list of installed packages
             UpdateInstalledPackages();
+
+            // load the default icon from the Resources folder
+            defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
         }
 
         /// <summary>
@@ -384,10 +394,33 @@
         {
             EditorGUILayout.BeginHorizontal();
             {
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20));
-                EditorStyles.label.fontSize = 10;
+                // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
+                // Every time you use a Horizontal block, Unity appears to divide the space evenly.
+                // (i.e. 2 components have half of the window width, 3 components have a third of the window width, etc)
+                // GUILayoutUtility.GetRect is SUPPOSED to return a rect with the given height and width, but in the GUI layout.  It doesn't.
+                // We have to use GUILayoutUtility to get SOME rect properties, but then manually calculate others.
+                EditorGUILayout.BeginHorizontal();
+                {
+                    Rect rect = GUILayoutUtility.GetRect(32, 32);
+                    // only use GetRect's Y position.  It doesn't correctly set the width or X position.
+                    rect.x = 0;
+                    rect.y += 1;
+                    rect.width = 32;
+                    rect.height = 32;
+
+                    GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
+
+                    rect = GUILayoutUtility.GetRect(position.width/2 - 32, 20);
+                    rect.x = 32;
+                    rect.y += 10;
+
+                    EditorStyles.label.fontStyle = FontStyle.Bold;
+                    EditorStyles.label.fontSize = 14;
+                    ////EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20), GUILayout.Width(position.width / 2 - 32));
+                    GUI.Label(rect, string.Format("{1} [{0}]", package.Version, package.Id), EditorStyles.label);
+                    EditorStyles.label.fontSize = 10;
+                }
+                EditorGUILayout.EndHorizontal();
 
                 if (installedPackages.Contains(package))
                 {
