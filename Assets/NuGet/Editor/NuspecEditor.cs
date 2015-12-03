@@ -31,6 +31,11 @@
         private bool dependenciesExpanded = true;
 
         /// <summary>
+        /// The API key used to verify an acceptable package being pushed to the server.
+        /// </summary>
+        private string apiKey = string.Empty;
+
+        /// <summary>
         /// Automatically called by Unity when the Inspector is first opened (when a .nuspec file is clicked on in the Project view).
         /// </summary>
         public void OnEnable()
@@ -112,19 +117,27 @@
                     EditorGUI.indentLevel--;
                 }
 
+                EditorGUILayout.Separator();
+
                 if (GUILayout.Button(string.Format("Save {0}", Path.GetFileName(filepath))))
                 {
                     nuspec.Save(filepath);
                 }
+
+                EditorGUILayout.Separator();
 
                 if (GUILayout.Button(string.Format("Pack {0}.nupkg", Path.GetFileNameWithoutExtension(filepath))))
                 {
                     NugetHelper.Pack(filepath);
                 }
 
+                EditorGUILayout.Separator();
+
+                apiKey = EditorGUILayout.TextField(new GUIContent("API Key", "The API key to use when pushing the package to the server"), apiKey);
+
                 if (GUILayout.Button(string.Format("Push to Server")))
                 {
-                    NugetHelper.Push(nuspec, filepath);
+                    NugetHelper.Push(nuspec, filepath, apiKey);
                 }
             }
         }

@@ -195,7 +195,8 @@
         /// </summary>
         /// <param name="nuspec">The NuspecFile which defines the package to push.  Only the ID and Version are used.</param>
         /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.  This is required by NuGet's Push command.</param>
-        public static void Push(NuspecFile nuspec, string nuspecFilePath)
+        /// /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
+        public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
         {
             string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
             if (!File.Exists(packagePath))
@@ -210,7 +211,7 @@
                 }
             }
 
-            string arguments = string.Format("push \"{0}\" -configfile \"{1}\"", packagePath, NugetConfigFilePath);
+            string arguments = string.Format("push \"{0}\" {1} -configfile \"{2}\"", packagePath, apiKey, NugetConfigFilePath);
 
             RunNugetProcess(arguments);
         }
