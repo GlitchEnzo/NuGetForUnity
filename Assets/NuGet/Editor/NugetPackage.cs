@@ -9,6 +9,11 @@
     public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>
     {
         /// <summary>
+        /// Gets or sets the title (not ID) of the package.  This is the "friendly" name that only appears in GUIs and on webpages.
+        /// </summary>
+        public string Title { get; set; }
+
+        /// <summary>
         /// Gets or sets the description of the NuGet package.
         /// </summary>
         public string Description { get; set; }

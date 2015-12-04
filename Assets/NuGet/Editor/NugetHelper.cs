@@ -543,6 +543,7 @@
                 NugetPackage package = new NugetPackage();
                 package.DownloadUrl = ((UrlSyndicationContent)item.Content).Url.ToString();
                 package.Id = item.Title.Text;
+                package.Title = (string)properties.Element(XName.Get("Title", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 package.LicenseUrl = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
@@ -551,6 +552,12 @@
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
                     package.Icon = DownloadImage(iconUrl);
+                }
+
+                // if there is no title, just use the ID as the title
+                if (string.IsNullOrEmpty(package.Title))
+                {
+                    package.Title = package.Id;
                 }
 
                 // Get dependencies
@@ -700,12 +707,37 @@
         /// <returns>The image as a Unity Texture2D object.</returns>
         private static Texture2D DownloadImage(string url)
         {
+            bool timedout = false;
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             WWW request = new WWW(url);
             while (!request.isDone)
             {
-                // do nothing
+                if (stopwatch.ElapsedMilliseconds >= 750)
+                {
+                    ////Debug.LogWarning("Timed out!");
+
+                    request.Dispose();
+                    stopwatch.Stop();
+                    timedout = true;
+                    break;
+                }
             }
-            return request.texture;
+
+            ////if (!timedout && !string.IsNullOrEmpty(request.error))
+            ////{
+            ////    Debug.LogWarning(request.error);
+            ////}
+
+            Texture2D result = null;
+
+            if (!timedout && string.IsNullOrEmpty(request.error))
+            {
+                result = request.texture;
+            }
+
+            return result;
         }
     }
 }

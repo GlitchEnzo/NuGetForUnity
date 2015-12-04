@@ -328,15 +328,20 @@
                 }
             }
 
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndScrollView();
+            GUIStyle showMoreStyle = new GUIStyle();
+            showMoreStyle.normal.background = MakeTex(20, 20, new Color(0f, 0f, 0f));
 
+            EditorGUILayout.BeginVertical(showMoreStyle);
             // allow the user to dislay more results
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
                 packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
             }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndScrollView();
         }
 
         /// <summary>
@@ -402,10 +407,11 @@
                 EditorGUILayout.BeginHorizontal();
                 {
                     const int iconSize = 32;
+                    const int leftPadding = 5;
                     Rect rect = GUILayoutUtility.GetRect(iconSize, iconSize);
                     // only use GetRect's Y position.  It doesn't correctly set the width or X position.
-                    rect.x = 0;
-                    rect.y += 1;
+                    rect.x = leftPadding;
+                    rect.y += 3;
                     rect.width = iconSize;
                     rect.height = iconSize;
 
@@ -418,14 +424,14 @@
                         GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
                     }
 
-                    rect = GUILayoutUtility.GetRect(position.width / 2 - iconSize, 20);
-                    rect.x = iconSize;
+                    rect = GUILayoutUtility.GetRect(position.width / 2 - (iconSize + leftPadding), 20);
+                    rect.x = iconSize + leftPadding;
                     rect.y += 10;
 
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 14;
                     ////EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20), GUILayout.Width(position.width / 2 - 32));
-                    GUI.Label(rect, string.Format("{1} [{0}]", package.Version, package.Id), EditorStyles.label);
+                    GUI.Label(rect, string.Format("{1} [{0}]", package.Version, package.Title), EditorStyles.label);
                     EditorStyles.label.fontSize = 10;
                 }
                 EditorGUILayout.EndHorizontal();
