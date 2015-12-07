@@ -82,7 +82,7 @@
                     EditorGUI.indentLevel++;
 
                     // display the dependencies
-                    NugetPackage toDelete = null;
+                    NugetPackageIdentifier toDelete = null;
                     foreach (var dependency in nuspec.Dependencies)
                     {
                         dependency.Id = EditorGUILayout.TextField(new GUIContent("ID", "The ID of the dependency package."), dependency.Id);

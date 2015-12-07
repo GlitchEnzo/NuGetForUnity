@@ -51,7 +51,7 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackage> Dependencies { get; set; }
+        public List<NugetPackageIdentifier> Dependencies { get; set; }
 
         /// <summary>
         /// Gets or sets the description of the NuGet package.
@@ -98,7 +98,7 @@
             nuspec.Copyright = (string) metadata.Element("copyright");
             nuspec.Tags = (string) metadata.Element("tags") ?? string.Empty;
 
-            nuspec.Dependencies = new List<NugetPackage>();
+            nuspec.Dependencies = new List<NugetPackageIdentifier>();
             var dependenciesElement = metadata.Element("dependencies");
             if (dependenciesElement != null)
             {
