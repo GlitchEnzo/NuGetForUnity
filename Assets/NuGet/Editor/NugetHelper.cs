@@ -71,8 +71,8 @@
         /// </summary>
         static NugetHelper()
         {
-            // restore packages silently since this would be output EVERY time the project is loaded or a code-file changes
-            RestoreHttp(false);
+            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
+            Restore();
 
             // TODO: Load the NuGet.config file
         }
@@ -674,8 +674,7 @@
         /// <summary>
         /// Restores all packages defined in packages.config.
         /// </summary>
-        /// <param name="logOutput">True to output debug info to the Unity console.  False to restore silently.  Defaults to true.</param>
-        public static void RestoreHttp(bool logOutput = true)
+        public static void Restore()
         {
             var packages = LoadInstalledPackages();
             foreach (var package in packages)

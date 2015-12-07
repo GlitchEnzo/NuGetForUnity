@@ -92,7 +92,7 @@
         [MenuItem("NuGet/Restore Packages")]
         protected static void RestorePackages()
         {
-            NugetHelper.RestoreHttp();
+            NugetHelper.Restore();
         }
 
         /// <summary>
