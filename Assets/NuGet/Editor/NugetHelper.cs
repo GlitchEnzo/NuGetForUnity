@@ -32,7 +32,7 @@
         /// <summary>
         /// The path to the nuget.config file.
         /// </summary>
-        private static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "./NuGet.config");
+        private static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "../NuGet.config");
 
         /// <summary>
         /// The path to the nuget.exe file.
@@ -55,26 +55,30 @@
         private const int TimeOut = 60000;
 
         /// <summary>
-        /// The URL of the NuGet server.      
-        /// TODO: This should be retreived from the NuGet.config file.
+        /// The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
-        private static string NugetServerURL = "http://www.nuget.org/api/v2/";
-
-        /// <summary>
-        /// The path to the directory where packages are installed.
-        /// TODO: This should be retreived from the NuGet.config file.
-        /// </summary>
-        private static readonly string InstalledPackagesDirectory = Path.Combine(Application.dataPath, "./Packages");
+        private static readonly NugetConfigFile NugetConfigFile;
 
         /// <summary>
         /// Static constructor used by Unity to restore packages defined in packages.config.
         /// </summary>
         static NugetHelper()
         {
+            // Load the NuGet.config file
+            if (File.Exists(NugetConfigFilePath))
+            {
+                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+            }
+            else
+            {
+                Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
+
+                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
+                AssetDatabase.Refresh();
+            }
+
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
             Restore();
-
-            // TODO: Load the NuGet.config file
         }
 
         /// <summary>
@@ -127,8 +131,7 @@
         /// <param name="package">The NugetPackage to clean.</param>
         private static void Clean(NugetPackageIdentifier package)
         {
-            // TODO: Get the install directory from the NuGet.config file
-            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
+            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
             ////Debug.Log("Cleaning " + packageInstallDirectory);
 
@@ -255,8 +258,7 @@
         /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
         public static void Uninstall(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            // TODO: Get the install directory from the NuGet.config file
-            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
+            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
             DeleteDirectory(packageInstallDirectory);
 
             RemoveInstalledPackage(package);
@@ -373,7 +375,7 @@
         {
             //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
-            string url = NugetServerURL;
+            string url = NugetConfigFile.ActivePackageSource.Path;
 
             // call the search method
             url += "Search()?";
@@ -427,7 +429,7 @@
         /// <returns></returns>
         private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
         {
-            string url = NugetServerURL;
+            string url = NugetConfigFile.ActivePackageSource.Path;
 
             // call the search method
             url += "FindPackagesById()?";
@@ -489,7 +491,7 @@
                 }
             }
 
-            string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", NugetServerURL, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
+            string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", NugetConfigFile.ActivePackageSource.Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
             var updates = GetPackagesFromUrl(url);
 
@@ -506,7 +508,7 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(string packageId, string packageVersion)
         {
-            string url = string.Format("{0}FindPackagesById()?$filter=Version eq '{1}'&id='{2}'", NugetServerURL, packageVersion, packageId);
+            string url = string.Format("{0}FindPackagesById()?$filter=Version eq '{1}'&id='{2}'", NugetConfigFile.ActivePackageSource.Path, packageVersion, packageId);
 
             var package = GetPackagesFromUrl(url).FirstOrDefault();
 
@@ -657,7 +659,7 @@
             {
                 foreach (ZipEntry entry in zip)
                 {
-                    entry.Extract(Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                    entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
                 }
             }
 
@@ -693,8 +695,7 @@
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         private static bool IsInstalled(NugetPackageIdentifier package)
         {
-            // TODO: Get the install directory from the NuGet.config file
-            string packageInstallDirectory = Path.Combine(InstalledPackagesDirectory, string.Format("{0}.{1}", package.Id, package.Version));
+            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
             return Directory.Exists(packageInstallDirectory);
         }
