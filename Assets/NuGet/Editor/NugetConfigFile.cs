@@ -2,7 +2,6 @@
 {
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Text;
     using System.Xml.Linq;
 
@@ -62,7 +61,7 @@
         /// <summary>
         /// Gets the default package source to push NuGet packages to.
         /// </summary>
-        public PackageSource DefaultPushSource { get; private set; }
+        public string DefaultPushSource { get; private set; }
 
         /// <summary>
         /// Loads a NuGet.config file at the given filepath.
@@ -127,7 +126,7 @@
                     }
                     else if (configPair.Name == "DefaultPushSource")
                     {
-                        configFile.DefaultPushSource = configFile.PackageSources.FirstOrDefault(source => source.Path == configPair.Path);
+                        configFile.DefaultPushSource = configPair.Path;
                     }
                 }
             }
