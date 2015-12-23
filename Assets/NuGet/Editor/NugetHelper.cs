@@ -77,6 +77,12 @@
                 AssetDatabase.Refresh();
             }
 
+            // create the nupkgs directory, if it doesn't exist
+            if (!Directory.Exists(PackOutputDirectory))
+            {
+                Directory.CreateDirectory(PackOutputDirectory);
+            }
+
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
             Restore();
         }
@@ -300,6 +306,15 @@
         /// <returns>A list of installed NugetPackages.</returns>
         private static List<NugetPackageIdentifier> LoadInstalledPackages()
         {
+            // Create a package.config file, if there isn't already one in the project
+            if (!File.Exists(PackagesConfigFilePath))
+            {
+                Debug.LogFormat("No packages.config file found. Creating default at {0}", PackagesConfigFilePath);
+
+                SaveInstalledPackages(new List<NugetPackageIdentifier>());
+                AssetDatabase.Refresh();
+            }
+
             List<NugetPackageIdentifier> packages = new List<NugetPackageIdentifier>();
 
             XDocument packagesFile = XDocument.Load(PackagesConfigFilePath);
