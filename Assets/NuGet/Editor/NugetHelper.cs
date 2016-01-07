@@ -371,6 +371,18 @@
                 packagesFile.Root.Add(packageElement);
             }
 
+            // remove the read only flag on the file, if there is one.
+            if (File.Exists(PackagesConfigFilePath))
+            {
+                FileAttributes attributes = File.GetAttributes(PackagesConfigFilePath);
+
+                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    attributes &= ~FileAttributes.ReadOnly;
+                    File.SetAttributes(PackagesConfigFilePath, attributes);
+                } 
+            }
+
             packagesFile.Save(PackagesConfigFilePath);
         }
 
