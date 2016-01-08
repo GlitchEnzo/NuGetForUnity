@@ -25,6 +25,11 @@
     public static class NugetHelper
     {
         /// <summary>
+        /// True to output verbose log messages to the Unity console.  False to output the normal level of messages.
+        /// </summary>
+        public static bool Verbose;
+
+        /// <summary>
         /// The path to the directory that contains nuget.exe and nuget.config.
         /// </summary>
         private static readonly string NugetPath = Path.Combine(Application.dataPath, "./NuGet");
@@ -163,20 +168,41 @@
             // Unity can only use .NET 3.5 or lower, so delete everything else
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
+                //bool has20 = Directory.Exists(packageInstallDirectory + "/lib/net20");
+                bool has30 = Directory.Exists(packageInstallDirectory + "/lib/net30");
+                bool has35 = Directory.Exists(packageInstallDirectory + "/lib/net35");
+
+                List<string> directoriesToDelete = new List<string>
+                {
+                    "net40",
+                    "net45",
+                    "netcore45",
+                    "net4",
+                    "cf", // compact framework
+                    "wp", // windows phone
+                    "sl", // silverlight
+                    "windowsphone"
+                };
+
                 string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
                 foreach (var directory in libDirectories)
                 {
-                    if (directory.Contains("net40") || directory.Contains("net45") || directory.Contains("netcore45") || directory.Contains("net4"))
+                    if (directoriesToDelete.Any(s => directory.Contains(s)))
                     {
+                        //Debug.LogFormat("Deleting {0}", directory);
                         DeleteDirectory(directory);
                     }
-                    else if (directory.Contains("net20"))
+                    else if (directory.Contains("net20") && (has30 || has35))
                     {
-                        // if .NET 2.0 exists, keep it, unless there is also a .NET 3.5 (highest allowed in Unity) version as well
-                        if (Directory.Exists(packageInstallDirectory + "/lib/net35"))
-                        {
-                            DeleteDirectory(directory);
-                        }
+                        // if .NET 2.0 exists, keep it, unless there is also a .NET 3.0 or 3.5 version as well
+                        //Debug.LogFormat("Deleting {0}", directory);
+                        DeleteDirectory(directory);
+                    }
+                    else if (directory.Contains("net30") && has35)
+                    {
+                        // if .NET 3.0 exists, keep it, unless there is also a .NET 3.5 version as well
+                        //Debug.LogFormat("Deleting {0}", directory);
+                        DeleteDirectory(directory);
                     }
                 }
             }
@@ -235,13 +261,25 @@
             if (!Directory.Exists(directoryPath))
                 return;
 
-            var directoryInfo = new DirectoryInfo(directoryPath) { Attributes = FileAttributes.Normal };
+            var directoryInfo = new DirectoryInfo(directoryPath);
+
+            // delete any sub-folders first
             foreach (var childInfo in directoryInfo.GetFileSystemInfos())
             {
                 DeleteDirectory(childInfo.FullName);
             }
 
+            // remove the read-only flag on all files
+            var files = directoryInfo.GetFiles();
+            foreach (var file in files)
+            {
+                file.Attributes = FileAttributes.Normal;
+            }
+
+            // remove the read-only flag on the directory
             directoryInfo.Attributes = FileAttributes.Normal;
+
+            // recursively delete the directory
             directoryInfo.Delete(true);
         }
 
@@ -641,7 +679,25 @@
         /// <param name="refreshAssets">True to force Unity to refrehs the asset database.  False to temporarily ignore the change.</param>
         private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            InstallHttp(GetSpecificPackage(package.Id, package.Version), refreshAssets);
+            NugetPackage foundPackage = GetSpecificPackage(package.Id, package.Version);
+
+            // if the specific package wasn't found, use whatever the first version returned from the server is (usually the latest version)
+            if (foundPackage == null)
+            {
+                foundPackage = FindPackagesById(package.Id).FirstOrDefault();
+
+                if (foundPackage == null)
+                {
+                    Debug.LogErrorFormat("The package {0} was not found on the server!", package.Id);
+                    return;
+                }
+                else
+                {
+                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                }
+            }
+
+            InstallHttp(foundPackage, refreshAssets);
         }
 
         /// <summary>
