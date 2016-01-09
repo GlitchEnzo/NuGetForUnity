@@ -316,7 +316,7 @@
         /// </summary>
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
-        public static void Update(NugetPackage currentVersion, NugetPackage newVersion)
+        public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion)
         {
             Uninstall(currentVersion, false);
             InstallHttp(newVersion);
@@ -332,7 +332,7 @@
             List<NugetPackageIdentifier> packages = LoadInstalledPackages();
 
             List<NugetPackage> fullPackages = new List<NugetPackage>(packages.Count);
-            fullPackages.AddRange(packages.Select(package => GetSpecificPackage(package.Id, package.Version)));
+            fullPackages.AddRange(packages.Select(package => GetSpecificPackage(package)));
 
             return fullPackages;
         }
@@ -494,6 +494,8 @@
         /// <returns></returns>
         private static List<NugetPackage> FindPackagesById(string packageId, bool includeAllVersions = false, bool includePrerelease = false)
         {
+            //Example URL: "http://www.nuget.org/api/v2/FindPackagesById()?$filter=IsLatestVersion&$orderby=Version desc&id='Newtonsoft.Json'";
+
             string url = NugetConfigFile.ActivePackageSource.Path;
 
             // call the search method
@@ -567,26 +569,32 @@
 
         /// <summary>
         /// Gets a NugetPackage from the NuGet server with the exact ID and Version given.
+        /// If an exact match isn't found, it selects the next closest version available.
         /// </summary>
-        /// <param name="packageId">The ID of the package to get.</param>
-        /// <param name="packageVersion">The version number of the package to get.</param>
+        /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        private static NugetPackage GetSpecificPackage(string packageId, string packageVersion)
+        private static NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
-            string url = string.Format("{0}FindPackagesById()?$filter=Version eq '{1}'&id='{2}'", NugetConfigFile.ActivePackageSource.Path, packageVersion, packageId);
+            string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", NugetConfigFile.ActivePackageSource.Path, package.Version, package.Id);
 
-            var package = GetPackagesFromUrl(url).FirstOrDefault();
+            var foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
 
-            if (package == null)
+            if (foundPackage == null)
             {
-                Debug.LogErrorFormat("Could not find specific package: {0} - {1}", packageId, packageVersion);
+                Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+            }
+            else if (foundPackage.Version != package.Version)
+            {
+                Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
             }
 
-            return package;
+            return foundPackage;
         }
 
         /// <summary>
         /// Builds a list of NugetPackages from the XML returned from the HTTP GET request issued at the given URL.
+        /// Note that NuGet uses an Atom-feed (XML Syndicaton) superset called OData.
+        /// See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
@@ -679,25 +687,40 @@
         /// <param name="refreshAssets">True to force Unity to refrehs the asset database.  False to temporarily ignore the change.</param>
         private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            NugetPackage foundPackage = GetSpecificPackage(package.Id, package.Version);
+            // TODO: Look to see if the package, or a later version, is already installed and use it.
+            //       If an earlier version is installed, update it.
+            //       If not installed, look on the server for specific version
+            //       If specific version not found on server, use the next version up (not latest)
 
-            // if the specific package wasn't found, use whatever the first version returned from the server is (usually the latest version)
-            if (foundPackage == null)
+            var installedPackages = LoadInstalledPackages();
+            foreach (var installedPackage in installedPackages)
             {
-                foundPackage = FindPackagesById(package.Id).FirstOrDefault();
-
-                if (foundPackage == null)
+                if (installedPackage.Id == package.Id)
                 {
-                    Debug.LogErrorFormat("The package {0} was not found on the server!", package.Id);
-                    return;
-                }
-                else
-                {
-                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                    if (installedPackage < package)
+                    {
+                        // the installed version is older than the version to install, so update it
+                        //NugetPackage oldPackage = GetSpecificPackage(installedPackage);
+                        NugetPackage newPackage = GetSpecificPackage(package);
+                        Update(installedPackage, newPackage);
+                        return;
+                    }
+                    else
+                    {
+                        // Either case below is true
+                        // the installed version is newer than the version to install, so use it
+                        // the installed version is equal to the version to install, so use it
+                        return;
+                    }
                 }
             }
 
-            InstallHttp(foundPackage, refreshAssets);
+            NugetPackage foundPackage = GetSpecificPackage(package);
+            
+            if (foundPackage != null)
+            {
+                InstallHttp(foundPackage, refreshAssets);
+            }
         }
 
         /// <summary>
