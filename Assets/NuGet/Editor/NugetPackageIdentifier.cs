@@ -59,6 +59,13 @@
             return CompareVersions(first.Version, second.Version) > 0;
         }
 
+        /// <summary>
+        /// Checks to see if the first <see cref="NugetPackageIdentifier"/> is equal to the second.
+        /// They are equal if the Id and the Version match.
+        /// </summary>
+        /// <param name="first">The first to compare.</param>
+        /// <param name="second">The second to compare.</param>
+        /// <returns>True if the first is equal to the second.</returns>
         public static bool operator ==(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
             if (object.ReferenceEquals(first, null))
@@ -69,6 +76,13 @@
             return first.Equals(second);
         }
 
+        /// <summary>
+        /// Checks to see if the first <see cref="NugetPackageIdentifier"/> is not equal to the second.
+        /// They are not equal if the Id or the Version differ.
+        /// </summary>
+        /// <param name="first">The first to compare.</param>
+        /// <param name="second">The second to compare.</param>
+        /// <returns>True if the first is not equal to the second.</returns>
         public static bool operator !=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
             if (object.ReferenceEquals(first, null))
@@ -77,6 +91,39 @@
             }
 
             return !first.Equals(second);
+        }
+
+        /// <summary>
+        /// Determines if a given object is equal to this <see cref="NugetPackageIdentifier"/>.
+        /// </summary>
+        /// <param name="obj">The object to check.</param>
+        /// <returns>True if the given object is equal to this <see cref="NugetPackageIdentifier"/>, otherwise false.</returns>
+        public override bool Equals(object obj)
+        {
+            // If parameter is null return false.
+            if (obj == null)
+            {
+                return false;
+            }
+
+            // If parameter cannot be cast to NugetPackageIdentifier return false.
+            NugetPackageIdentifier p = obj as NugetPackageIdentifier;
+            if ((object)p == null)
+            {
+                return false;
+            }
+
+            // Return true if the fields match:
+            return (Id == p.Id) && (Version== p.Version);
+        }
+
+        /// <summary>
+        /// Gets the hashcode for this <see cref="NugetPackageIdentifier"/>.
+        /// </summary>
+        /// <returns>The hashcode for this instance.</returns>
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode() ^ Version.GetHashCode();
         }
 
         /// <summary>
