@@ -319,7 +319,7 @@
         public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion)
         {
             Uninstall(currentVersion, false);
-            InstallHttp(newVersion);
+            Install(newVersion);
         }
 
         /// <summary>
@@ -719,7 +719,7 @@
             
             if (foundPackage != null)
             {
-                InstallHttp(foundPackage, refreshAssets);
+                Install(foundPackage, refreshAssets);
             }
         }
 
@@ -728,7 +728,7 @@
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        public static void InstallHttp(NugetPackage package, bool refreshAssets = true)
+        public static void Install(NugetPackage package, bool refreshAssets = true)
         {
             ////Debug.LogFormat("Installing: {0} - {1}", package.Id, package.Version);
 

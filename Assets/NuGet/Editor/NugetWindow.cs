@@ -474,7 +474,7 @@
                     {
                         if (GUILayout.Button("Install", installButtonWidth))
                         {
-                            NugetHelper.InstallHttp(package);
+                            NugetHelper.Install(package);
                             AssetDatabase.Refresh();
                             UpdateInstalledPackages();
                         }
