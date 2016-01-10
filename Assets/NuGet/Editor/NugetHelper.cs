@@ -25,11 +25,6 @@
     public static class NugetHelper
     {
         /// <summary>
-        /// True to output verbose log messages to the Unity console.  False to output the normal level of messages.
-        /// </summary>
-        public static bool Verbose;
-
-        /// <summary>
         /// The path to the directory that contains nuget.exe and nuget.config.
         /// </summary>
         private static readonly string NugetPath = Path.Combine(Application.dataPath, "./NuGet");
@@ -100,7 +95,7 @@
         /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
         private static void RunNugetProcess(string arguments, bool logOuput = true)
         {
-            ////Debug.Log("Args = " + arguments);
+            LogVerbose("Running NuGet.exe with args = {0}", arguments);
 
             Process process = new Process();
             process.StartInfo.UseShellExecute = false;
@@ -144,7 +139,7 @@
         {
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
-            ////Debug.Log("Cleaning " + packageInstallDirectory);
+            LogVerbose("Cleaning {0}", packageInstallDirectory);
 
             // delete a remnant .meta file that may exist from packages created by Unity
             DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec.meta");
@@ -189,19 +184,19 @@
                 {
                     if (directoriesToDelete.Any(s => directory.Contains(s)))
                     {
-                        //Debug.LogFormat("Deleting {0}", directory);
+                        LogVerbose("Deleting {0}", directory);
                         DeleteDirectory(directory);
                     }
                     else if (directory.Contains("net20") && (has30 || has35))
                     {
                         // if .NET 2.0 exists, keep it, unless there is also a .NET 3.0 or 3.5 version as well
-                        //Debug.LogFormat("Deleting {0}", directory);
+                        LogVerbose("Deleting {0}", directory);
                         DeleteDirectory(directory);
                     }
                     else if (directory.Contains("net30") && has35)
                     {
                         // if .NET 3.0 exists, keep it, unless there is also a .NET 3.5 version as well
-                        //Debug.LogFormat("Deleting {0}", directory);
+                        LogVerbose("Deleting {0}", directory);
                         DeleteDirectory(directory);
                     }
                 }
@@ -236,7 +231,7 @@
             string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
             if (!File.Exists(packagePath))
             {
-                ////Debug.Log("Attempting to Pack.");
+                LogVerbose("Attempting to Pack.");
                 Pack(nuspecFilePath);
 
                 if (!File.Exists(packagePath))
@@ -562,7 +557,7 @@
 
             var updates = GetPackagesFromUrl(url);
 
-            ////Debug.Log(updates.Count);
+            LogVerbose("{0} updates found.", updates.Count);
 
             return updates;
         }
@@ -600,7 +595,7 @@
         /// <returns></returns>
         private static List<NugetPackage> GetPackagesFromUrl(string url)
         {
-            ////Debug.Log(url);
+            LogVerbose("Getting packages from: {0}", url);
 
             WebRequest getRequest = WebRequest.Create(url);
             Stream responseStream = getRequest.GetResponse().GetResponseStream();
@@ -662,7 +657,7 @@
                 packages.Add(package);
             }
 
-            ////Debug.LogFormat("Retreived {0} packages", packages.Count);
+            LogVerbose("Retreived {0} packages", packages.Count);
 
             return packages;
         }
@@ -702,6 +697,8 @@
                         // the installed version is older than the version to install, so update it
                         //NugetPackage oldPackage = GetSpecificPackage(installedPackage);
                         NugetPackage newPackage = GetSpecificPackage(package);
+
+                        LogVerbose("{0} {1} is installed, but need {2}.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
                         Update(installedPackage, newPackage);
                         return;
                     }
@@ -710,6 +707,7 @@
                         // Either case below is true
                         // the installed version is newer than the version to install, so use it
                         // the installed version is equal to the version to install, so use it
+                        LogVerbose("{0} {1} is installed. {2} is needed, so just using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
                         return;
                     }
                 }
@@ -724,13 +722,26 @@
         }
 
         /// <summary>
+        /// Outputs the given message to the log only if verbose mode is active.  Otherwise it does nothing.
+        /// </summary>
+        /// <param name="format">The formatted message string.</param>
+        /// <param name="args">The arguments for the formattted message string.</param>
+        private static void LogVerbose(string format, params object[] args)
+        {
+            if (NugetConfigFile.Verbose)
+            {
+                Debug.LogFormat(format, args);
+            }
+        }
+
+        /// <summary>
         /// Installs the given package via the HTTP server API.
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void Install(NugetPackage package, bool refreshAssets = true)
         {
-            ////Debug.LogFormat("Installing: {0} - {1}", package.Id, package.Version);
+            LogVerbose("Installing: {0} - {1}", package.Id, package.Version);
 
             // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
@@ -744,7 +755,7 @@
 
             foreach (var dependency in package.Dependencies)
             {
-                ////Debug.LogFormat("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
+                LogVerbose("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
 
                 // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
                 InstallIdentifier(dependency, false);
@@ -822,7 +833,7 @@
             {
                 if (stopwatch.ElapsedMilliseconds >= 750)
                 {
-                    ////Debug.LogWarning("Timed out!");
+                    LogVerbose("Timed out!");
 
                     request.Dispose();
                     stopwatch.Stop();
@@ -831,10 +842,10 @@
                 }
             }
 
-            ////if (!timedout && !string.IsNullOrEmpty(request.error))
-            ////{
-            ////    Debug.LogWarning(request.error);
-            ////}
+            if (!timedout && !string.IsNullOrEmpty(request.error))
+            {
+                LogVerbose(request.error);
+            }
 
             Texture2D result = null;
 

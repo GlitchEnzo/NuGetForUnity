@@ -64,6 +64,11 @@
         public string DefaultPushSource { get; private set; }
 
         /// <summary>
+        /// True to output verbose log messages to the console.  False to output the normal level of messages.
+        /// </summary>
+        public bool Verbose { get; private set; }
+
+        /// <summary>
         /// Loads a NuGet.config file at the given filepath.
         /// </summary>
         /// <param name="filePath">The full filepath to the NuGet.config file to load.</param>
@@ -127,6 +132,10 @@
                     else if (configPair.Name == "DefaultPushSource")
                     {
                         configFile.DefaultPushSource = configPair.Path;
+                    }
+                    else if (configPair.Name == "verbose")
+                    {
+                        configFile.Verbose = bool.Parse(configPair.Path);
                     }
                 }
             }
