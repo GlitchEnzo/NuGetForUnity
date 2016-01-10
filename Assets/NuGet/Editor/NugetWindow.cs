@@ -230,6 +230,25 @@
         }
 
         /// <summary>
+        /// Creates the alternating background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
+        /// </summary>
+        /// <returns>The GUI style with the appropriate background color set.</returns>
+        private GUIStyle CreateColoredBackground()
+        {
+            GUIStyle style = new GUIStyle();
+            if (Application.HasProLicense())
+            {
+                style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+            }
+            else
+            {
+                style.normal.background = MakeTex(20, 20, new Color(0.6f, 0.6f, 0.6f));
+            }
+
+            return style;
+        }
+
+        /// <summary>
         /// Draws the list of installed packages that have updates available.
         /// </summary>
         private void DrawUpdates()
@@ -238,8 +257,7 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = new GUIStyle();
-            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+            GUIStyle style = CreateColoredBackground();
 
             if (updates != null && updates.Count > 0)
             {
@@ -277,8 +295,7 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = new GUIStyle();
-            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+            GUIStyle style = CreateColoredBackground();
 
             if (installedPackages != null && installedPackages.Count > 0)
             {
@@ -318,15 +335,14 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = new GUIStyle();
-            style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
+            GUIStyle style = CreateColoredBackground();
 
             if (packages != null)
             {
                 for (int i = 0; i < packages.Count; i++)
                 {
                     // alternate the background color for each package
-                    if (i%2 == 0)
+                    if (i % 2 == 0)
                         EditorGUILayout.BeginVertical();
                     else
                         EditorGUILayout.BeginVertical(style);
@@ -338,7 +354,14 @@
             }
 
             GUIStyle showMoreStyle = new GUIStyle();
-            showMoreStyle.normal.background = MakeTex(20, 20, new Color(0f, 0f, 0f));
+            if (Application.HasProLicense())
+            {
+                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+            }
+            else
+            {
+                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
+            }
 
             EditorGUILayout.BeginVertical(showMoreStyle);
             // allow the user to dislay more results
@@ -359,7 +382,14 @@
         private void DrawHeader()
         {
             GUIStyle headerStyle = new GUIStyle();
-            headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+            if (Application.HasProLicense())
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+            }
+            else
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
+            }
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -537,7 +567,7 @@
                 int majorB = int.Parse(splitB[0]);
                 int minorB = int.Parse(splitB[1]);
                 int patchB = int.Parse(splitB[2]);
-                int buildB= 0;
+                int buildB = 0;
                 if (splitB.Length == 4)
                 {
                     buildB = int.Parse(splitB[3]);
