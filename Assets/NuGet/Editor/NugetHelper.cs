@@ -57,7 +57,7 @@
         /// <summary>
         /// The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
-        private static readonly NugetConfigFile NugetConfigFile;
+        private static NugetConfigFile NugetConfigFile;
 
         /// <summary>
         /// Static constructor used by Unity to restore packages defined in packages.config.
@@ -65,6 +65,23 @@
         static NugetHelper()
         {
             // Load the NuGet.config file
+            LoadNugetConfigFile();
+            
+            // create the nupkgs directory, if it doesn't exist
+            if (!Directory.Exists(PackOutputDirectory))
+            {
+                Directory.CreateDirectory(PackOutputDirectory);
+            }
+
+            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
+            Restore();
+        }
+
+        /// <summary>
+        /// Loads the NuGet.config file.
+        /// </summary>
+        public static void LoadNugetConfigFile()
+        {
             if (File.Exists(NugetConfigFilePath))
             {
                 NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
@@ -76,15 +93,6 @@
                 NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
                 AssetDatabase.Refresh();
             }
-
-            // create the nupkgs directory, if it doesn't exist
-            if (!Directory.Exists(PackOutputDirectory))
-            {
-                Directory.CreateDirectory(PackOutputDirectory);
-            }
-
-            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-            Restore();
         }
 
         /// <summary>

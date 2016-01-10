@@ -96,6 +96,15 @@
         }
 
         /// <summary>
+        /// Reloads the NuGet.config file to get any changes that have occurred.
+        /// </summary>
+        [MenuItem("NuGet/Reload NuGet.config")]
+        protected static void ReloadNugetConfigFile()
+        {
+            NugetHelper.LoadNugetConfigFile();
+        }
+
+        /// <summary>
         /// Creates a new MyPackage.nuspec file.
         /// </summary>
         [MenuItem("Assets/Create/Nuspec File")]
