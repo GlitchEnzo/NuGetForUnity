@@ -308,6 +308,9 @@
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
             DeleteDirectory(packageInstallDirectory);
 
+            string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
+            DeleteFile(metaFile);
+
             RemoveInstalledPackage(package);
 
             if (refreshAssets)
@@ -690,15 +693,15 @@
         /// <param name="refreshAssets">True to force Unity to refrehs the asset database.  False to temporarily ignore the change.</param>
         private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            // TODO: Look to see if the package, or a later version, is already installed and use it.
-            //       If an earlier version is installed, update it.
-            //       If not installed, look on the server for specific version
-            //       If specific version not found on server, use the next version up (not latest)
+            // If the package, or a later version, is already installed and use it.
+            // If an earlier version is installed, update it.
+            // If not installed, look on the server for specific version
+            // If specific version not found on server, use the next version up (not latest)
 
             var installedPackages = LoadInstalledPackages();
             foreach (var installedPackage in installedPackages)
             {
-                if (installedPackage.Id == package.Id)
+                if (installedPackage.Id == package.Id && IsInstalled(installedPackage))
                 {
                     if (installedPackage < package)
                     {
