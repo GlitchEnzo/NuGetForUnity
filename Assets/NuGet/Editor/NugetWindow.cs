@@ -184,7 +184,7 @@
             installedPackages = NugetHelper.GetFullInstalledPackages();
 
             // get any available updates for the installed packages
-            updates = NugetHelper.GetUpdates(installedPackages);
+            updates = NugetHelper.GetUpdates(installedPackages, showPrerelease, showAllVersions);
         }
 
         /// <summary>
@@ -253,6 +253,8 @@
         /// </summary>
         private void DrawUpdates()
         {
+            DrawUpdatesHeader();
+
             // display all of the installed packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
@@ -329,7 +331,7 @@
         /// </summary>
         private void DrawOnline()
         {
-            DrawHeader();
+            DrawOnlineHeader();
 
             // display all of the packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
@@ -379,7 +381,7 @@
         /// <summary>
         /// Draws the header which allows filtering the online list of packages.
         /// </summary>
-        private void DrawHeader()
+        private void DrawOnlineHeader()
         {
             GUIStyle headerStyle = new GUIStyle();
             if (Application.HasProLicense())
@@ -400,6 +402,7 @@
                     {
                         showAllVersions = showAllVersionsTemp;
                         UpdatePackages();
+                        UpdateInstalledPackages();
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -414,6 +417,7 @@
                 {
                     showPrerelease = showPrereleaseTemp;
                     UpdatePackages();
+                    UpdateInstalledPackages();
                 }
 
                 // search if the search term was changed
@@ -426,6 +430,62 @@
                     numberToSkip = 0;
                     UpdatePackages();
                 }
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Draws the header for the Updates tab.
+        /// </summary>
+        private void DrawUpdatesHeader()
+        {
+            GUIStyle headerStyle = new GUIStyle();
+            if (Application.HasProLicense())
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+            }
+            else
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
+            }
+
+            EditorGUILayout.BeginVertical(headerStyle);
+            {
+                EditorGUILayout.BeginHorizontal();
+                {
+                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
+                    if (showAllVersionsTemp != showAllVersions)
+                    {
+                        showAllVersions = showAllVersionsTemp;
+                        UpdatePackages();
+                        UpdateInstalledPackages();
+                    }
+
+                    //if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+                    //{
+                    //    OnEnable();
+                    //}
+                }
+                EditorGUILayout.EndHorizontal();
+
+                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
+                if (showPrereleaseTemp != showPrerelease)
+                {
+                    showPrerelease = showPrereleaseTemp;
+                    UpdatePackages();
+                    UpdateInstalledPackages();
+                }
+
+                // search if the search term was changed
+                //string searchTermTemp = EditorGUILayout.TextField(searchTerm);
+                //if (searchTermTemp != searchTerm)
+                //{
+                //    searchTerm = searchTermTemp;
+
+                //    // reset the number to skip
+                //    numberToSkip = 0;
+                //    UpdatePackages();
+                //}
             }
             EditorGUILayout.EndVertical();
         }
