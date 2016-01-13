@@ -48,7 +48,7 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        private static readonly string PackOutputDirectory = Path.Combine(Application.dataPath, "../nupkgs");
+        private static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\NuGet\\Cache";
 
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
@@ -822,38 +822,42 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void Install(NugetPackage package, bool refreshAssets = true)
         {
-            LogVerbose("Installing: {0} - {1}", package.Id, package.Version);
+            LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
             // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            //if (string.IsNullOrEmpty(package.DownloadUrl))
-            //{
-            //    // some packages don't have a DownloadURL attached (package.config, dependencies), so we have to query the server to get the full information
-            //    package = GetSpecificPackage(package.Id, package.Version);
-            //}
-
             foreach (var dependency in package.Dependencies)
             {
-                LogVerbose("Installing Dependency: {0} - {1}", dependency.Id, dependency.Version);
+                LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
 
                 // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
                 InstallIdentifier(dependency, false);
             }
 
-            HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
-
-            // TODO: Get the local packages location from the config file
-            Stream objStream = getRequest.GetResponse().GetResponseStream();
-            string localPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-            using (Stream file = File.Create(localPackagePath))
+            string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+            if (File.Exists(cachedPackagePath))
             {
-                CopyStream(objStream, file);
+                LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
+            }
+            else
+            {
+                LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
+
+                HttpWebRequest getRequest = (HttpWebRequest) WebRequest.Create(package.DownloadUrl);
+
+                // TODO: Get the cached packages location from the config file
+                Stream objStream = getRequest.GetResponse().GetResponseStream();
+
+                using (Stream file = File.Create(cachedPackagePath))
+                {
+                    CopyStream(objStream, file);
+                }
             }
 
             // unzip the package
-            using (ZipFile zip = ZipFile.Read(localPackagePath))
+            using (ZipFile zip = ZipFile.Read(cachedPackagePath))
             {
                 foreach (ZipEntry entry in zip)
                 {
