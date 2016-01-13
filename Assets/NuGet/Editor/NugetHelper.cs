@@ -459,8 +459,22 @@
         /// Saves the packages.config file and populates it with given installed NugetPackages.
         /// </summary>
         /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
-        private static void SaveInstalledPackages(IEnumerable<NugetPackageIdentifier> packages)
+        private static void SaveInstalledPackages(List<NugetPackageIdentifier> packages)
         {
+            packages.Sort(delegate (NugetPackageIdentifier x, NugetPackageIdentifier y)
+            {
+                if (x.Id == null && y.Id == null)
+                    return 0;
+                else if (x.Id == null)
+                    return -1;
+                else if (y.Id == null)
+                    return 1;
+                else if (x.Id == y.Id)
+                    return x.Version.CompareTo(y.Version);
+                else
+                    return x.Id.CompareTo(y.Id);
+            });
+
             XDocument packagesFile = new XDocument();
             packagesFile.Add(new XElement("packages"));
             foreach (var package in packages)
