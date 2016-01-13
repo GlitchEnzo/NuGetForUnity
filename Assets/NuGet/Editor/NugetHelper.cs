@@ -1,5 +1,6 @@
 ﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -208,6 +209,61 @@
                         DeleteDirectory(directory);
                     }
                 }
+            }
+
+            // if there are native DLLs, copy them to the Unity project root (1 up from Assets)
+            if (Directory.Exists(packageInstallDirectory + "/output"))
+            {
+                string[] files = Directory.GetFiles(packageInstallDirectory + "/output");
+                foreach (string file in files)
+                {
+                    string newFilePath = Directory.GetCurrentDirectory() + "/" + Path.GetFileName(file);
+                    LogVerbose("Moving {0} to {1}", file, newFilePath);
+                    if (File.Exists(newFilePath))
+                    {
+                        File.Delete(newFilePath);
+                    }
+                    File.Move(file, newFilePath);
+                }
+
+                LogVerbose("Deleting {0}", packageInstallDirectory + "/output");
+
+                DeleteDirectory(packageInstallDirectory + "/output");
+            }
+
+            // if there are Unity plugin DLLs, copy them to the Unity Plugins folder (Assets/Plugins)
+            if (Directory.Exists(packageInstallDirectory + "/unityplugin"))
+            {
+                string pluginsDirectory = Application.dataPath + "/Plugins/";
+
+                if (!Directory.Exists(pluginsDirectory))
+                {
+                    Directory.CreateDirectory(pluginsDirectory);
+                }
+
+                string[] files = Directory.GetFiles(packageInstallDirectory + "/unityplugin");
+                foreach (string file in files)
+                {
+                    string newFilePath = pluginsDirectory + Path.GetFileName(file);
+
+                    try
+                    {
+                        LogVerbose("Moving {0} to {1}", file, newFilePath);
+                        if (File.Exists(newFilePath))
+                        {
+                            File.Delete(newFilePath);
+                        }
+                        File.Move(file, newFilePath);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        Debug.LogWarningFormat("{0} couldn't be overwritten. It may be a native plugin already locked by Unity. Please close Unity and manually delete it.", newFilePath);
+                    }
+                }
+
+                LogVerbose("Deleting {0}", packageInstallDirectory + "/unityplugin");
+
+                DeleteDirectory(packageInstallDirectory + "/unityplugin");
             }
         }
 
