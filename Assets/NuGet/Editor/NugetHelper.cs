@@ -537,7 +537,7 @@
             // order results
             //url += "$orderby=Id&";
             //url += "$orderby=LastUpdated&";
-            url += "$orderby=DownloadCount&";
+            url += "$orderby=DownloadCount desc&";
 
             // skip a certain number of entries
             url += string.Format("$skip={0}&", numberToSkip);
