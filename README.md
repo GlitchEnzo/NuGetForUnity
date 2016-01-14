@@ -74,11 +74,15 @@ NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically 
 
 You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet → Reload NuGet.config** menu item is useful if you are editing the *NuGet.config* file.
 
+See more information about *NuGet.config* files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
+
 ![](screenshots/menu_item.png?raw=true)
 
-NuGetForUnity installs packages into the local repository path defined in the *NuGet.config* file.  By default, this is set to the `Assets/Packages` folder.  In the *NuGet.config* file, this can either be a full path, or it can be a relative path based on the project's Assets folder.  Note:  You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
+NuGetForUnity installs packages into the local repository path defined in the *NuGet.config* file (`repositoryPath`).  By default, this is set to the `Assets/Packages` folder.  In the *NuGet.config* file, this can either be a full path, or it can be a relative path based on the project's Assets folder.  Note:  You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
 
 When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet → Restore Packages** menu item.
+
+If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console.  Add the line `<add key="verbose" value="true" />` to the `<config>` element in the *NuGet.config* file.  You can disable verbose logging by either setting the value to false or completely deleting the line.
 
 ![](screenshots/menu_item.png?raw=true)
 
