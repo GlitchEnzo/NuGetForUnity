@@ -11,7 +11,7 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 Install the provided Unity package into your Unity project.  Located [here - TBD].
 
 # How to use?
-To launch, select **NuGet --> Manage NuGet Packages**
+To launch, select **NuGet → Manage NuGet Packages**
 
 ![](screenshots/menu_item.png?raw=true)
 
@@ -72,20 +72,20 @@ NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically 
 </configuration>
 ```
 
-You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet --> Reload NuGet.config** menu item is useful if you are editing the *NuGet.config* file.
+You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet → Reload NuGet.config** menu item is useful if you are editing the *NuGet.config* file.
 
 ![](screenshots/menu_item.png?raw=true)
 
 NuGetForUnity installs packages into the local repository path defined in the *NuGet.config* file.  By default, this is set to the `Assets/Packages` folder.  In the *NuGet.config* file, this can either be a full path, or it can be a relative path based on the project's Assets folder.  Note:  You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
 
-When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet --> Restore Packages** menu item.
+When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet → Restore Packages** menu item.
 
 ![](screenshots/menu_item.png?raw=true)
 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # How to create packages?
-First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create --> Nuspec File**.
+First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create → Nuspec File**.
 
 ![](screenshots/nuspec_menu.png?raw=true)
 
