@@ -82,11 +82,11 @@ NuGetForUnity installs packages into the local repository path defined in the *N
 
 When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet → Restore Packages** menu item. 
 
+![](screenshots/menu_item.png?raw=true)
+
 Note: Depending on the size and number of packages you need to isntalled, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console.  Add the line `<add key="verbose" value="true" />` to the `<config>` element in the *NuGet.config* file.  You can disable verbose logging by either setting the value to false or completely deleting the line.
-
-![](screenshots/menu_item.png?raw=true)
 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
