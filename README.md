@@ -53,7 +53,26 @@ The version in brackets on the left is the new version number.  The version in b
 Click the **Update** button to uninstall the current package and install the new package.
 
 # How does it work?
-NuGetForUnity loads the NuGet.config file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to.  By default, this server is set to the nuget.org package source.  You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet --> Reload NuGet.config** menu item is useful if you are editing the NuGet.config file.
+NuGetForUnity loads the NuGet.config file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to.  By default, this server is set to the nuget.org package source.  
+
+*The default NuGet.config file:*
+```
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="NuGet" value="http://www.nuget.org/api/v2/" />
+  </packageSources>
+  <activePackageSource>
+    <add key="NuGet" value="http://www.nuget.org/api/v2/" />
+  </activePackageSource>
+  <config>
+    <add key="repositoryPath" value="./Packages" />
+    <add key="DefaultPushSource" value="http://10.122.128.25/nuget/GDK/" />
+  </config>
+</configuration>
+```
+
+You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet --> Reload NuGet.config** menu item is useful if you are editing the NuGet.config file.
 
 ![](screenshots/menu_item.png?raw=true)
 
