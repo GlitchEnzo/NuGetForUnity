@@ -67,7 +67,7 @@ NuGetForUnity loads the NuGet.config file in the Unity project (automatically cr
   </activePackageSource>
   <config>
     <add key="repositoryPath" value="./Packages" />
-    <add key="DefaultPushSource" value="http://10.122.128.25/nuget/GDK/" />
+    <add key="DefaultPushSource" value="http://www.nuget.org/api/v2/" />
   </config>
 </configuration>
 ```
