@@ -82,7 +82,7 @@ When a package is installed, the *packages.config* file in the project is automa
 
 ![](screenshots/menu_item.png?raw=true)
 
-The .nupkg files downloaded from the NuGet server are stored locally in the project folder just above the Assets folder.  (`Assets/../nupkgs`).
+The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # How to create packages?
 First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create --> Nuspec File**.
@@ -95,7 +95,7 @@ Select the new *.nuspec* file and you should see something like this:
 
 Input the appropriate information for your package (ID, Version, Author, Description, etc).  Be sure to include whatever dependencies are required by your package.
 
-Press the **Pack** button to pack you package into a *.nupkg* file that is saved in the `Assets/../nupkgs` folder.
+Press the **Pack** button to pack you package into a *.nupkg* file that is saved in the `C:\Users\[username]\AppData\Local\NuGet\Cache` folder.
 
 Press the **Push** button to push your package up to the server.  Be sure to set the correct API Key that give you permission to push to the server (if you server is configured to use one).
 
