@@ -85,7 +85,7 @@ When a package is installed, the *packages.config* file in the project is automa
 The .nupkg files downloaded from the NuGet server are stored locally in the project folder just above the Assets folder.  (`Assets/../nupkgs`).
 
 # How to create packages?
-First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the .nuspec file to go and select **Create --> Nuspec File**.
+First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create --> Nuspec File**.
 
 ![](screenshots/nuspec_menu.png?raw=true)
 
@@ -100,4 +100,8 @@ Press the **Pack** button to pack you package into a *.nupkg* file that is saved
 Press the **Push** button to push your package up to the server.  Be sure to set the correct API Key that give you permission to push to the server (if you server is configured to use one).
 
 # How to create your own server?
-You can use NuGet.Server, NuGet Gallery, ProGet, etc to create your own NuGet server.  Be sure to set the proper URL in the NuGet.config file and you should be good to go!
+You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.  Be sure to set the proper URL in the NuGet.config file and you should be good to go!
+
+Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget-feeds](http://docs.nuget.org/create/hosting-your-own-nuget-feeds)
+
+Note: NuGetForUnity currently does **not** support local feeds.
