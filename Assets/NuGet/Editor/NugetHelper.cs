@@ -67,7 +67,7 @@
         {
             // Load the NuGet.config file
             LoadNugetConfigFile();
-            
+
             // create the nupkgs directory, if it doesn't exist
             if (!Directory.Exists(PackOutputDirectory))
             {
@@ -461,7 +461,7 @@
         /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
         private static void SaveInstalledPackages(List<NugetPackageIdentifier> packages)
         {
-            packages.Sort(delegate (NugetPackageIdentifier x, NugetPackageIdentifier y)
+            packages.Sort(delegate(NugetPackageIdentifier x, NugetPackageIdentifier y)
             {
                 if (x.Id == null && y.Id == null)
                     return 0;
@@ -494,7 +494,7 @@
                 {
                     attributes &= ~FileAttributes.ReadOnly;
                     File.SetAttributes(PackagesConfigFilePath, attributes);
-                } 
+                }
             }
 
             packagesFile.Save(PackagesConfigFilePath);
@@ -795,7 +795,7 @@
             }
 
             NugetPackage foundPackage = GetSpecificPackage(package);
-            
+
             if (foundPackage != null)
             {
                 Install(foundPackage, refreshAssets);
@@ -828,6 +828,9 @@
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
+            if (refreshAssets)
+                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
+
             foreach (var dependency in package.Dependencies)
             {
                 LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
@@ -845,7 +848,10 @@
             {
                 LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
 
-                HttpWebRequest getRequest = (HttpWebRequest) WebRequest.Create(package.DownloadUrl);
+                if (refreshAssets)
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
+
+                HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
 
                 // TODO: Get the cached packages location from the config file
                 Stream objStream = getRequest.GetResponse().GetResponseStream();
@@ -856,6 +862,9 @@
                 }
             }
 
+            if (refreshAssets)
+                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Extracting Package", 0.6f);
+
             // unzip the package
             using (ZipFile zip = ZipFile.Read(cachedPackagePath))
             {
@@ -865,6 +874,9 @@
                 }
             }
 
+            if (refreshAssets)
+                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
+
             // clean
             Clean(package);
 
@@ -872,7 +884,13 @@
             AddInstalledPackage(package);
 
             if (refreshAssets)
+                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
+
+            if (refreshAssets)
                 AssetDatabase.Refresh();
+
+            if (refreshAssets)
+                EditorUtility.ClearProgressBar();
         }
 
         /// <summary>
@@ -881,13 +899,25 @@
         public static void Restore()
         {
             var packages = LoadInstalledPackages();
+
+            float progressStep = 1.0f / packages.Count;
+            float currentProgress = 0;
+
             foreach (var package in packages)
             {
+                EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
+
                 if (package != null && !IsInstalled(package))
                 {
-                    InstallIdentifier(package);
+                    InstallIdentifier(package, false);
                 }
+
+                currentProgress += progressStep;
             }
+
+            AssetDatabase.Refresh();
+
+            EditorUtility.ClearProgressBar();
         }
 
         /// <summary>
