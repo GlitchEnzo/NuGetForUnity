@@ -47,5 +47,37 @@
         {
             return other.Id == Id && other.Version == Version;
         }
+
+        /// <summary>
+        /// Creates a new <see cref="NugetPackage"/> from the given <see cref="NuspecFile"/>.
+        /// </summary>
+        /// <param name="nuspec">The <see cref="NuspecFile"/> to use to create the <see cref="NugetPackage"/>.</param>
+        /// <returns>The newly created <see cref="NugetPackage"/>.</returns>
+        public static NugetPackage FromNuspec(NuspecFile nuspec)
+        {
+            NugetPackage package = new NugetPackage();
+
+            package.Id = nuspec.Id;
+            package.Version = nuspec.Version;
+            package.Title = nuspec.Title;
+            package.Description = nuspec.Description;
+            package.LicenseUrl = nuspec.LicenseUrl;
+            //package.DownloadUrl = not in a nuspec
+
+            if (!string.IsNullOrEmpty(nuspec.IconUrl))
+            {
+                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
+            }
+
+            // if there is no title, just use the ID as the title
+            if (string.IsNullOrEmpty(package.Title))
+            {
+                package.Title = package.Id;
+            }
+
+            package.Dependencies = nuspec.Dependencies;
+
+            return package;
+        }
     }
 }
