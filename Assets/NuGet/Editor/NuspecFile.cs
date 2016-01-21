@@ -1,6 +1,8 @@
 ﻿namespace NugetForUnity
 {
     using System.Collections.Generic;
+    using System.IO;
+    using System.Xml;
     using System.Xml.Linq;
 
     /// <summary>
@@ -17,6 +19,11 @@
         /// Gets or sets the version number of the NuGet package.
         /// </summary>
         public string Version { get; set; }
+
+        /// <summary>
+        /// Gets or sets the title of the NuGet package.
+        /// </summary>
+        public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets the authors of the NuGet package.
@@ -80,33 +87,58 @@
         /// <returns>The newly loaded <see cref="NuspecFile"/>.</returns>
         public static NuspecFile Load(string filePath)
         {
+            return Load(XDocument.Load(filePath));
+        }
+
+        /// <summary>
+        /// Loads a .nuspec file inside the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing the .nuspec file to load.</param>
+        /// <returns>The newly loaded <see cref="NuspecFile"/>.</returns>
+        public static NuspecFile Load(Stream stream)
+        {
+            XmlReader reader = new XmlTextReader(stream);
+            XDocument document = XDocument.Load(reader);
+            return Load(document);
+        }
+
+        /// <summary>
+        /// Loads a .nuspec file inside the given <see cref="XDocument"/>.
+        /// </summary>
+        /// <param name="nuspecDocument">The .nuspec file as an <see cref="XDocument"/>.</param>
+        /// <returns>The newly loaded <see cref="NuspecFile"/>.</returns>
+        public static NuspecFile Load(XDocument nuspecDocument)
+        {
             NuspecFile nuspec = new NuspecFile();
 
-            XDocument file = XDocument.Load(filePath);
-            XElement metadata = file.Root.Element("metadata");
+            string nuspecNamespace = nuspecDocument.Root.GetDefaultNamespace().ToString();
 
-            nuspec.Id = (string) metadata.Element("id") ?? string.Empty;
-            nuspec.Version = (string) metadata.Element("version") ?? string.Empty;
-            nuspec.Authors = (string) metadata.Element("authors") ?? string.Empty;
-            nuspec.Owners = (string) metadata.Element("owners") ?? string.Empty;
-            nuspec.LicenseUrl = (string) metadata.Element("licenseUrl") ?? string.Empty;
-            nuspec.ProjectUrl = (string) metadata.Element("projectUrl") ?? string.Empty;
-            nuspec.IconUrl = (string) metadata.Element("iconUrl") ?? string.Empty;
-            nuspec.RequireLicenseAcceptance = bool.Parse((string) metadata.Element("requireLicenseAcceptance") ?? "False");
-            nuspec.Description = (string) metadata.Element("description") ?? string.Empty;
-            nuspec.ReleaseNotes = (string) metadata.Element("releaseNotes") ?? string.Empty;
-            nuspec.Copyright = (string) metadata.Element("copyright");
-            nuspec.Tags = (string) metadata.Element("tags") ?? string.Empty;
+            XElement package = nuspecDocument.Element(XName.Get("package", nuspecNamespace));
+            XElement metadata = package.Element(XName.Get("metadata", nuspecNamespace));
+
+            nuspec.Id = (string)metadata.Element(XName.Get("id", nuspecNamespace)) ?? string.Empty;
+            nuspec.Version = (string)metadata.Element(XName.Get("version", nuspecNamespace)) ?? string.Empty;
+            nuspec.Title = (string)metadata.Element(XName.Get("title", nuspecNamespace)) ?? string.Empty;
+            nuspec.Authors = (string)metadata.Element(XName.Get("authors", nuspecNamespace)) ?? string.Empty;
+            nuspec.Owners = (string)metadata.Element(XName.Get("owners", nuspecNamespace)) ?? string.Empty;
+            nuspec.LicenseUrl = (string)metadata.Element(XName.Get("licenseUrl", nuspecNamespace)) ?? string.Empty;
+            nuspec.ProjectUrl = (string)metadata.Element(XName.Get("projectUrl", nuspecNamespace)) ?? string.Empty;
+            nuspec.IconUrl = (string)metadata.Element(XName.Get("iconUrl", nuspecNamespace)) ?? string.Empty;
+            nuspec.RequireLicenseAcceptance = bool.Parse((string)metadata.Element(XName.Get("requireLicenseAcceptance", nuspecNamespace)) ?? "False");
+            nuspec.Description = (string)metadata.Element(XName.Get("description", nuspecNamespace)) ?? string.Empty;
+            nuspec.ReleaseNotes = (string)metadata.Element(XName.Get("releaseNotes", nuspecNamespace)) ?? string.Empty;
+            nuspec.Copyright = (string)metadata.Element(XName.Get("copyright", nuspecNamespace));
+            nuspec.Tags = (string)metadata.Element(XName.Get("tags", nuspecNamespace)) ?? string.Empty;
 
             nuspec.Dependencies = new List<NugetPackageIdentifier>();
-            var dependenciesElement = metadata.Element("dependencies");
+            var dependenciesElement = metadata.Element(XName.Get("dependencies", nuspecNamespace));
             if (dependenciesElement != null)
             {
-                foreach (var dependencyElement in dependenciesElement.Elements("dependency"))
+                foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
                 {
                     NugetPackage dependency = new NugetPackage();
-                    dependency.Id = (string) dependencyElement.Attribute("id") ?? string.Empty;
-                    dependency.Version = (string) dependencyElement.Attribute("version") ?? string.Empty;
+                    dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
+                    dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
                     nuspec.Dependencies.Add(dependency);
                 }
             }
@@ -120,12 +152,20 @@
         /// <param name="filePath">The full filepath to the .nuspec file to save.</param>
         public void Save(string filePath)
         {
+            // TODO: Set a namespace when saving
+
             XDocument file = new XDocument();
             file.Add(new XElement("package"));
             XElement metadata = new XElement("metadata");
 
             metadata.Add(new XElement("id", Id));
             metadata.Add(new XElement("version", Version));
+
+            if (!string.IsNullOrEmpty(Title))
+            {
+                metadata.Add(new XElement("title", Title));
+            }
+
             metadata.Add(new XElement("authors", Authors));
             metadata.Add(new XElement("owners", Owners));
             metadata.Add(new XElement("licenseUrl", LicenseUrl));
