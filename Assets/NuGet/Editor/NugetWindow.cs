@@ -187,7 +187,7 @@
         private void UpdateInstalledPackages()
         {
             // load a list of install packages
-            installedPackages = NugetHelper.GetFullInstalledPackages();
+            installedPackages = NugetHelper.GetInstalledPackages();
 
             // get any available updates for the installed packages
             updates = NugetHelper.GetUpdates(installedPackages, showPrerelease, showAllVersions);
