@@ -385,27 +385,6 @@
         }
 
         /// <summary>
-        /// Gets a list of all currently installed packages by reading the packages.config file AND querying the server for the FULL details.
-        /// NOTE: This retrieves all of the data for the package by querying the server for info.
-        /// </summary>
-        /// <returns>A list of installed NugetPackages.</returns>
-        public static List<NugetPackage> GetFullInstalledPackages()
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
-
-            List<NugetPackage> fullPackages = new List<NugetPackage>(packages.Count);
-            fullPackages.AddRange(packages.Select(package => GetSpecificPackage(package)));
-
-            stopwatch.Stop();
-            LogVerbose("Getting installed packages from server took {0} ms", stopwatch.ElapsedMilliseconds);
-
-            return fullPackages;
-        }
-
-        /// <summary>
         /// Gets a list of all currently installed packages by reading the packages.config file and then reading the .nuspec file inside the .nupkg file.
         /// </summary>
         /// <returns>A list of installed NugetPackages.</returns>
@@ -427,23 +406,12 @@
                 {
                     var entry = zip[string.Format("{0}.nuspec", package.Id)];
 
-                    LogVerbose("{0}: IsText={1}, FileName={2}", string.Format("{0}.nuspec", package.Id), entry.IsText, entry.FileName);
-
                     using (MemoryStream stream = new MemoryStream())
                     {
                         entry.Extract(stream);
-
                         stream.Position = 0;
-
-                        TextReader reader = new StreamReader(stream, new UTF8Encoding());
-                        string contents = reader.ReadToEnd();
-                        LogVerbose("Contents = {0}", contents);
-                        stream.Position = 0;
-
-                        LogVerbose("Stream Length = {0}. Stream Position = {1}.", stream.Length, stream.Position);
 
                         NuspecFile nuspec = NuspecFile.Load(stream);
-
                         fullPackages.Add(NugetPackage.FromNuspec(nuspec));
                     }
                 }
@@ -694,8 +662,6 @@
 
             var updates = GetPackagesFromUrl(url);
 
-            LogVerbose("{0} updates found.", updates.Count);
-
             return updates;
         }
 
@@ -733,6 +699,9 @@
         private static List<NugetPackage> GetPackagesFromUrl(string url)
         {
             LogVerbose("Getting packages from: {0}", url);
+
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             WebRequest getRequest = WebRequest.Create(url);
             Stream responseStream = getRequest.GetResponse().GetResponseStream();
@@ -794,7 +763,8 @@
                 packages.Add(package);
             }
 
-            LogVerbose("Retreived {0} packages", packages.Count);
+            stopwatch.Stop();
+            LogVerbose("Retreived {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
 
             return packages;
         }
