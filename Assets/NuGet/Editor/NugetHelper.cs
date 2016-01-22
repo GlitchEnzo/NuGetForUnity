@@ -61,12 +61,19 @@
         private static NugetConfigFile NugetConfigFile;
 
         /// <summary>
+        /// Gets the loaded packages.config file that hold the dependencies for the project.
+        /// </summary>
+        public static PackagesConfigFile PackagesConfigFile { get; private set; }
+
+        /// <summary>
         /// Static constructor used by Unity to restore packages defined in packages.config.
         /// </summary>
         static NugetHelper()
         {
             // Load the NuGet.config file
             LoadNugetConfigFile();
+
+            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
             // create the nupkgs directory, if it doesn't exist
             if (!Directory.Exists(PackOutputDirectory))
@@ -366,8 +373,9 @@
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
-
-            RemoveInstalledPackage(package);
+            
+            PackagesConfigFile.RemovePackage(package);
+            PackagesConfigFile.Save(PackagesConfigFilePath);
 
             if (refreshAssets)
                 AssetDatabase.Refresh();
@@ -393,11 +401,9 @@
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
+            List<NugetPackage> fullPackages = new List<NugetPackage>(PackagesConfigFile.Packages.Count);
 
-            List<NugetPackage> fullPackages = new List<NugetPackage>(packages.Count);
-
-            foreach (var package in packages)
+            foreach (var package in PackagesConfigFile.Packages)
             {
                 string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version));
 
@@ -431,107 +437,6 @@
             LogVerbose("Getting installed packages locally took {0} ms", stopwatch.ElapsedMilliseconds);
 
             return fullPackages;
-        }
-
-        /// <summary>
-        /// Loads a list of all currently installed packages by reading the packages.config file.
-        /// NOTE: This only retrieves the ID and Version for the package, nothing else.
-        /// </summary>
-        /// <returns>A list of installed NugetPackages.</returns>
-        private static List<NugetPackageIdentifier> LoadInstalledPackages()
-        {
-            // Create a package.config file, if there isn't already one in the project
-            if (!File.Exists(PackagesConfigFilePath))
-            {
-                Debug.LogFormat("No packages.config file found. Creating default at {0}", PackagesConfigFilePath);
-
-                SaveInstalledPackages(new List<NugetPackageIdentifier>());
-                AssetDatabase.Refresh();
-            }
-
-            List<NugetPackageIdentifier> packages = new List<NugetPackageIdentifier>();
-
-            XDocument packagesFile = XDocument.Load(PackagesConfigFilePath);
-            foreach (var packageElement in packagesFile.Root.Elements())
-            {
-                NugetPackage package = new NugetPackage();
-                package.Id = packageElement.Attribute("id").Value;
-                package.Version = packageElement.Attribute("version").Value;
-                packages.Add(package);
-            }
-
-            return packages;
-        }
-
-        /// <summary>
-        /// Adds a package to the packages.config file.
-        /// </summary>
-        /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        private static void AddInstalledPackage(NugetPackageIdentifier package)
-        {
-            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
-
-            if (!packages.Contains(package))
-            {
-                packages.Add(package);
-                SaveInstalledPackages(packages);
-            }
-        }
-
-        /// <summary>
-        /// Removes a package from the packages.config file.
-        /// </summary>
-        /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        private static void RemoveInstalledPackage(NugetPackageIdentifier package)
-        {
-            List<NugetPackageIdentifier> packages = LoadInstalledPackages();
-            packages.Remove(package);
-            SaveInstalledPackages(packages);
-        }
-
-        /// <summary>
-        /// Saves the packages.config file and populates it with given installed NugetPackages.
-        /// </summary>
-        /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
-        private static void SaveInstalledPackages(List<NugetPackageIdentifier> packages)
-        {
-            packages.Sort(delegate(NugetPackageIdentifier x, NugetPackageIdentifier y)
-            {
-                if (x.Id == null && y.Id == null)
-                    return 0;
-                else if (x.Id == null)
-                    return -1;
-                else if (y.Id == null)
-                    return 1;
-                else if (x.Id == y.Id)
-                    return x.Version.CompareTo(y.Version);
-                else
-                    return x.Id.CompareTo(y.Id);
-            });
-
-            XDocument packagesFile = new XDocument();
-            packagesFile.Add(new XElement("packages"));
-            foreach (var package in packages)
-            {
-                XElement packageElement = new XElement("package");
-                packageElement.Add(new XAttribute("id", package.Id));
-                packageElement.Add(new XAttribute("version", package.Version));
-                packagesFile.Root.Add(packageElement);
-            }
-
-            // remove the read only flag on the file, if there is one.
-            if (File.Exists(PackagesConfigFilePath))
-            {
-                FileAttributes attributes = File.GetAttributes(PackagesConfigFilePath);
-
-                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
-                {
-                    attributes &= ~FileAttributes.ReadOnly;
-                    File.SetAttributes(PackagesConfigFilePath, attributes);
-                }
-            }
-
-            packagesFile.Save(PackagesConfigFilePath);
         }
 
         /// <summary>
@@ -804,16 +709,14 @@
             // If an earlier version is installed, update it.
             // If not installed, look on the server for specific version
             // If specific version not found on server, use the next version up (not latest)
-
-            var installedPackages = LoadInstalledPackages();
-            foreach (var installedPackage in installedPackages)
+            
+            foreach (var installedPackage in PackagesConfigFile.Packages)
             {
                 if (installedPackage.Id == package.Id && IsInstalled(installedPackage))
                 {
                     if (installedPackage < package)
                     {
                         // the installed version is older than the version to install, so update it
-                        //NugetPackage oldPackage = GetSpecificPackage(installedPackage);
                         NugetPackage newPackage = GetSpecificPackage(package);
 
                         LogVerbose("{0} {1} is installed, but need {2}.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
@@ -889,8 +792,6 @@
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
                 HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
-
-                // TODO: Get the cached packages location from the config file
                 Stream objStream = getRequest.GetResponse().GetResponseStream();
 
                 using (Stream file = File.Create(cachedPackagePath))
@@ -921,16 +822,15 @@
             Clean(package);
 
             // update packages.config
-            AddInstalledPackage(package);
+            PackagesConfigFile.AddPackage(package);
+            PackagesConfigFile.Save(PackagesConfigFilePath);
 
             if (refreshAssets)
+            {
                 EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
-
-            if (refreshAssets)
                 AssetDatabase.Refresh();
-
-            if (refreshAssets)
                 EditorUtility.ClearProgressBar();
+            }
         }
 
         /// <summary>
@@ -938,12 +838,13 @@
         /// </summary>
         public static void Restore()
         {
-            var packages = LoadInstalledPackages();
+            // TODO: Is this reload needed?
+            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
-            float progressStep = 1.0f / packages.Count;
+            float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
             float currentProgress = 0;
 
-            foreach (var package in packages)
+            foreach (var package in PackagesConfigFile.Packages)
             {
                 EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
 
