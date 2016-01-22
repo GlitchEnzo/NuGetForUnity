@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text;
     using UnityEditor;
     using UnityEngine;
 
@@ -592,6 +593,21 @@
             EditorStyles.label.wordWrap = true;
             EditorStyles.label.fontStyle = FontStyle.Normal;
             EditorGUILayout.LabelField(string.Format("{0}", package.Description));
+
+            // Show the dependencies
+            EditorStyles.label.wordWrap = true;
+            EditorStyles.label.fontStyle = FontStyle.Italic;
+            StringBuilder builder = new StringBuilder();
+            foreach (var dependency in package.Dependencies)
+            {
+                builder.Append(string.Format("{0} {1};", dependency.Id, dependency.Version));
+            }
+            if (package.Dependencies.Count == 0)
+            {
+                builder.Append("NONE;");
+            }
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField(string.Format("Depends on: {0}", builder.ToString()));
 
             // Show the license button
             if (GUILayout.Button("View License", GUILayout.Width(120)))
