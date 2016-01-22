@@ -20,12 +20,12 @@
         /// <summary>
         /// The list of NugetPackages available to install.
         /// </summary>
-        private List<NugetPackage> packages;
+        private List<NugetPackage> packages = new List<NugetPackage>();
 
         /// <summary>
         /// The list of NugetPackages already installed.
         /// </summary>
-        private List<NugetPackage> installedPackages;
+        private List<NugetPackage> installedPackages = new List<NugetPackage>();
 
         /// <summary>
         /// True to show all old package versions.  False to only show the latest version.
@@ -70,7 +70,7 @@
         /// <summary>
         /// The list of package updates available, based on the already installed packages.
         /// </summary>
-        private List<NugetPackage> updates;
+        private List<NugetPackage> updates = new List<NugetPackage>();
 
         /// <summary>
         /// The default icon to display for packages.
@@ -426,12 +426,12 @@
                     UpdateInstalledPackages();
                 }
 
-                // search if the search term was changed
-                string searchTermTemp = EditorGUILayout.TextField(searchTerm);
-                if (searchTermTemp != searchTerm)
-                {
-                    searchTerm = searchTermTemp;
+                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
+                // search only if the enter key is pressed
+                searchTerm = EditorGUILayout.TextField(searchTerm);
+                if (enterPressed)
+                {
                     // reset the number to skip
                     numberToSkip = 0;
                     UpdatePackages();
