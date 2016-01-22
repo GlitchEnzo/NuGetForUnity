@@ -714,6 +714,7 @@
             stopwatch.Start();
 
             WebRequest getRequest = WebRequest.Create(url);
+            getRequest.Timeout = 5000;
             Stream responseStream = getRequest.GetResponse().GetResponseStream();
             StreamReader objReader = new StreamReader(responseStream);
             SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
