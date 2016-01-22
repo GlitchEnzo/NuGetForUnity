@@ -401,6 +401,16 @@
             {
                 string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version));
 
+                // if the .nupkg file doesn't exist in the installed directory, it was probably installed via an older version.  Copy it now from the cached location, if it exists.
+                if (!File.Exists(installedPackagePath))
+                {
+                    string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                    if (File.Exists(cachedPackagePath))
+                    {
+                        File.Copy(cachedPackagePath, installedPackagePath);
+                    }
+                }
+
                 // get the .nuspec file from inside the .nupkg
                 using (ZipFile zip = ZipFile.Read(installedPackagePath))
                 {
@@ -904,7 +914,7 @@
                 EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
 
             // copy the .nupkg inside the Unity project
-            File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)));
+            File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
 
             // clean
             Clean(package);
