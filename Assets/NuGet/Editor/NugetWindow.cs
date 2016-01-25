@@ -289,6 +289,7 @@
                 EditorStyles.label.fontSize = 14;
                 EditorGUILayout.LabelField("There are no updates available!", GUILayout.Height(20));
                 EditorStyles.label.fontSize = 10;
+                EditorStyles.label.fontStyle = FontStyle.Normal;
             }
 
             EditorGUILayout.EndVertical();
@@ -327,6 +328,7 @@
                 EditorStyles.label.fontSize = 14;
                 EditorGUILayout.LabelField("There are no packages installed!", GUILayout.Height(20));
                 EditorStyles.label.fontSize = 10;
+                EditorStyles.label.fontStyle = FontStyle.Normal;
             }
 
             EditorGUILayout.EndVertical();
@@ -539,6 +541,7 @@
                     ////EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20), GUILayout.Width(position.width / 2 - 32));
                     GUI.Label(rect, string.Format("{1} [{0}]", package.Version, package.Title), EditorStyles.label);
                     EditorStyles.label.fontSize = 10;
+                    EditorStyles.label.fontStyle = FontStyle.Normal;
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -600,14 +603,15 @@
             StringBuilder builder = new StringBuilder();
             foreach (var dependency in package.Dependencies)
             {
-                builder.Append(string.Format("{0} {1};", dependency.Id, dependency.Version));
+                builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
             }
             if (package.Dependencies.Count == 0)
             {
                 builder.Append("NONE;");
             }
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(string.Format("Depends on: {0}", builder.ToString()));
+            EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
+            EditorStyles.label.fontStyle = FontStyle.Normal;
 
             // Show the license button
             if (GUILayout.Button("View License", GUILayout.Width(120)))
