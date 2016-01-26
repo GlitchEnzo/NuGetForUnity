@@ -709,8 +709,11 @@
             // If an earlier version is installed, update it.
             // If not installed, look on the server for specific version
             // If specific version not found on server, use the next version up (not latest)
-            
-            foreach (var installedPackage in PackagesConfigFile.Packages)
+
+            // copy the list since the Update operation below changes the actual installed packages list
+            var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+
+            foreach (var installedPackage in installedPackages)
             {
                 if (installedPackage.Id == package.Id && IsInstalled(installedPackage))
                 {
@@ -844,7 +847,10 @@
             float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
             float currentProgress = 0;
 
-            foreach (var package in PackagesConfigFile.Packages)
+            // copy the list since the InstallIdentifier operation below changes the actual installed packages list
+            var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+
+            foreach (var package in installedPackages)
             {
                 EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
 
