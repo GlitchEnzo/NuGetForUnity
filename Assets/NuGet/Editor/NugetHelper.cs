@@ -765,95 +765,104 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void Install(NugetPackage package, bool refreshAssets = true)
         {
-            LogVerbose("Installing: {0} {1}", package.Id, package.Version);
-
-            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-            // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
-            if (refreshAssets)
-                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
-
-            foreach (var dependency in package.Dependencies)
+            try
             {
-                LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
-                bool alreadyListed = false;
+                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
+                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-                // look in the packages.config file to see if the dependency is already listed
-                foreach (var installedPackage in PackagesConfigFile.Packages)
+                if (refreshAssets)
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
+
+                foreach (var dependency in package.Dependencies)
                 {
-                    if (installedPackage.Id == package.Id)
-                    {
-                        alreadyListed = true;
-                        if (installedPackage < package)
-                        {
-                            // the installed version is older than the version to install, so update it
-                            InstallIdentifier(dependency, false);
-                        }
+                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
 
-                        // if the package is listed, but it is the same or newer, simply skip it
-                        break;
+                    bool alreadyListed = false;
+
+                    // look in the packages.config file to see if the dependency is already listed
+                    foreach (var installedPackage in PackagesConfigFile.Packages)
+                    {
+                        if (installedPackage.Id == package.Id)
+                        {
+                            alreadyListed = true;
+                            if (installedPackage < package)
+                            {
+                                // the installed version is older than the version to install, so update it
+                                InstallIdentifier(dependency, false);
+                            }
+
+                            // if the package is listed, but it is the same or newer, simply skip it
+                            break;
+                        }
+                    }
+
+                    if (!alreadyListed)
+                    {
+                        InstallIdentifier(dependency, false);
                     }
                 }
 
-                if (!alreadyListed)
+                string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                if (File.Exists(cachedPackagePath))
                 {
-                    InstallIdentifier(dependency, false);
+                    LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
                 }
-            }
+                else
+                {
+                    LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
 
-            string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-            if (File.Exists(cachedPackagePath))
-            {
-                LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
-            }
-            else
-            {
-                LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
+                    if (refreshAssets)
+                        EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
+
+                    HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
+                    Stream objStream = getRequest.GetResponse().GetResponseStream();
+
+                    using (Stream file = File.Create(cachedPackagePath))
+                    {
+                        CopyStream(objStream, file);
+                    }
+                }
 
                 if (refreshAssets)
-                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Extracting Package", 0.6f);
 
-                HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
-                Stream objStream = getRequest.GetResponse().GetResponseStream();
-
-                using (Stream file = File.Create(cachedPackagePath))
+                // unzip the package
+                using (ZipFile zip = ZipFile.Read(cachedPackagePath))
                 {
-                    CopyStream(objStream, file);
+                    foreach (ZipEntry entry in zip)
+                    {
+                        entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                    }
                 }
+
+                if (refreshAssets)
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
+
+                // copy the .nupkg inside the Unity project
+                File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
+
+                // clean
+                Clean(package);
+
+                // update packages.config
+                PackagesConfigFile.AddPackage(package);
+                PackagesConfigFile.Save(PackagesConfigFilePath);
             }
-
-            if (refreshAssets)
-                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Extracting Package", 0.6f);
-
-            // unzip the package
-            using (ZipFile zip = ZipFile.Read(cachedPackagePath))
+            catch (Exception e)
             {
-                foreach (ZipEntry entry in zip)
+                Debug.LogErrorFormat("{0}", e.ToString());
+            }
+            finally
+            {
+                if (refreshAssets)
                 {
-                    entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
+                    AssetDatabase.Refresh();
+                    EditorUtility.ClearProgressBar();
                 }
-            }
-
-            if (refreshAssets)
-                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
-
-            // copy the .nupkg inside the Unity project
-            File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
-
-            // clean
-            Clean(package);
-
-            // update packages.config
-            PackagesConfigFile.AddPackage(package);
-            PackagesConfigFile.Save(PackagesConfigFilePath);
-
-            if (refreshAssets)
-            {
-                EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
-                AssetDatabase.Refresh();
-                EditorUtility.ClearProgressBar();
             }
         }
 
@@ -862,30 +871,38 @@
         /// </summary>
         public static void Restore()
         {
-            // TODO: Is this reload needed?
-            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
-
-            float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
-            float currentProgress = 0;
-
-            // copy the list since the InstallIdentifier operation below changes the actual installed packages list
-            var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
-
-            foreach (var package in installedPackages)
+            try
             {
-                EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
+                // TODO: Is this reload needed?
+                PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
-                if (package != null && !IsInstalled(package))
+                float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
+                float currentProgress = 0;
+
+                // copy the list since the InstallIdentifier operation below changes the actual installed packages list
+                var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+
+                foreach (var package in installedPackages)
                 {
-                    InstallIdentifier(package, false);
+                    EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
+
+                    if (package != null && !IsInstalled(package))
+                    {
+                        InstallIdentifier(package, false);
+                    }
+
+                    currentProgress += progressStep;
                 }
-
-                currentProgress += progressStep;
             }
-
-            AssetDatabase.Refresh();
-
-            EditorUtility.ClearProgressBar();
+            catch (Exception e)
+            {
+                Debug.LogErrorFormat("{0}", e.ToString());
+            }
+            finally
+            {
+                AssetDatabase.Refresh();
+                EditorUtility.ClearProgressBar();
+            }
         }
 
         /// <summary>

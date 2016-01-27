@@ -152,26 +152,35 @@
         /// </summary>
         private void OnEnable()
         {
-            // set the window title
-            titleContent = new GUIContent("NuGet");
+            try
+            {
+                // set the window title
+                titleContent = new GUIContent("NuGet");
 
-            // reset the number to skip
-            numberToSkip = 0;
+                // reset the number to skip
+                numberToSkip = 0;
 
-            EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server", 0.3f);
+                EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server", 0.3f);
 
-            // update the available packages list
-            UpdatePackages();
+                // update the available packages list
+                UpdatePackages();
 
-            EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages and available updates", 0.75f);
+                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages and available updates", 0.75f);
 
-            // update the list of installed packages
-            UpdateInstalledPackages();
+                // update the list of installed packages
+                UpdateInstalledPackages();
 
-            // load the default icon from the Resources folder
-            defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
-
-            EditorUtility.ClearProgressBar();
+                // load the default icon from the Resources folder
+                defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
+            }
+            catch (Exception e)
+            {
+                Debug.LogErrorFormat("{0}", e.ToString());
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
         }
 
         /// <summary>
