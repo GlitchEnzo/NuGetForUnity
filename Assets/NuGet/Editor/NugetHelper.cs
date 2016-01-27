@@ -411,7 +411,7 @@
                 if (!File.Exists(installedPackagePath))
                 {
                     string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-                    if (File.Exists(cachedPackagePath))
+                    if (File.Exists(cachedPackagePath) && Directory.Exists(Path.GetDirectoryName(installedPackagePath)))
                     {
                         File.Copy(cachedPackagePath, installedPackagePath);
                     }
@@ -750,6 +750,7 @@
                 }
             }
 
+            // TODO: Load from the cache, if it exists
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
@@ -791,30 +792,27 @@
 
                 foreach (var dependency in package.Dependencies)
                 {
-                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-
                     bool alreadyListed = false;
 
-                    // look in the packages.config file to see if the dependency is already listed
+                    // look in the packages.config file to see if the dependency, the same or newer version, is already listed
                     foreach (var installedPackage in PackagesConfigFile.Packages)
                     {
                         if (installedPackage.Id == package.Id)
                         {
-                            alreadyListed = true;
-                            if (installedPackage < package)
-                            {
-                                // the installed version is older than the version to install, so update it
-                                InstallIdentifier(dependency, false);
-                            }
-
-                            // if the package is listed, but it is the same or newer, simply skip it
+                            // TODO: Overload >=
+                            alreadyListed = installedPackage > package || installedPackage == package;
                             break;
                         }
                     }
 
                     if (!alreadyListed)
                     {
+                        LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
                         InstallIdentifier(dependency, false);
+                    }
+                    else
+                    {
+                        LogVerbose("Skipping Dependency: {0} {1}", dependency.Id, dependency.Version);
                     }
                 }
 
@@ -842,20 +840,27 @@
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Extracting Package", 0.6f);
 
-                // unzip the package
-                using (ZipFile zip = ZipFile.Read(cachedPackagePath))
+                if (File.Exists(cachedPackagePath))
                 {
-                    foreach (ZipEntry entry in zip)
+                    // unzip the package
+                    using (ZipFile zip = ZipFile.Read(cachedPackagePath))
                     {
-                        entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                        foreach (ZipEntry entry in zip)
+                        {
+                            entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                        }
                     }
+
+                    // copy the .nupkg inside the Unity project
+                    File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
+                }
+                else
+                {
+                    Debug.LogErrorFormat("File not found: {0}", cachedPackagePath);
                 }
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
-
-                // copy the .nupkg inside the Unity project
-                File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
 
                 // clean
                 Clean(package);
