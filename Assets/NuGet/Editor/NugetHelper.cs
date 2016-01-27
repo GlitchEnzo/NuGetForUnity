@@ -778,8 +778,29 @@
             {
                 LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
 
-                // TODO: Do all of the appropriate dependency version range checking instead of grabbing the specific version.
-                InstallIdentifier(dependency, false);
+                bool alreadyListed = false;
+
+                // look in the packages.config file to see if the dependency is already listed
+                foreach (var installedPackage in PackagesConfigFile.Packages)
+                {
+                    if (installedPackage.Id == package.Id)
+                    {
+                        alreadyListed = true;
+                        if (installedPackage < package)
+                        {
+                            // the installed version is older than the version to install, so update it
+                            InstallIdentifier(dependency, false);
+                        }
+
+                        // if the package is listed, but it is the same or newer, simply skip it
+                        break;
+                    }
+                }
+
+                if (!alreadyListed)
+                {
+                    InstallIdentifier(dependency, false);
+                }
             }
 
             string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
