@@ -417,35 +417,8 @@
                     }
                 }
 
-                // TODO: Use NuspecFile.FromNupkgFile
-
-                if (File.Exists(installedPackagePath))
-                {
-                    // get the .nuspec file from inside the .nupkg
-                    using (ZipFile zip = ZipFile.Read(installedPackagePath))
-                    {
-                        var entry = zip[string.Format("{0}.nuspec", package.Id)];
-
-                        using (MemoryStream stream = new MemoryStream())
-                        {
-                            entry.Extract(stream);
-                            stream.Position = 0;
-
-                            NuspecFile nuspec = NuspecFile.Load(stream);
-                            fullPackages.Add(NugetPackage.FromNuspec(nuspec));
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Package could not be read: {0}", installedPackagePath);
-
-                    NugetPackage dummyPackage = new NugetPackage();
-                    dummyPackage.Id = package.Id;
-                    dummyPackage.Version = package.Version;
-                    dummyPackage.Description = "COULD NOT LOAD .NUPKG FILE!";
-                    fullPackages.Add(dummyPackage);
-                }
+                // get the NugetPackage via the .nuspec file inside the .nupkg file
+                fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath, package.Id));
             }
 
             stopwatch.Stop();
