@@ -4,6 +4,7 @@
     using System.IO;
     using System.Xml;
     using System.Xml.Linq;
+    using Ionic.Zip;
 
     /// <summary>
     /// Represents a .nuspec file used to store metadata for a NuGet package.
@@ -79,6 +80,45 @@
         /// Gets or sets the tags of the NuGet package.
         /// </summary>
         public string Tags { get; set; }
+
+        /// <summary>
+        /// Loads the .nuspec file inside the .nupkg file at the given filepath.
+        /// </summary>
+        /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
+        /// <param name="packageId">The ID of the package.</param>
+        /// <returns>The .nuspec file loaded from inside the .nupkg file.</returns>
+        public static NuspecFile FromNupkgFile(string nupkgFilepath, string packageId)
+        {
+            // TODO: Get the ID and Version from the filepath
+            NuspecFile nuspec = new NuspecFile();
+
+            if (File.Exists(nupkgFilepath))
+            {
+                // get the .nuspec file from inside the .nupkg
+                using (ZipFile zip = ZipFile.Read(nupkgFilepath))
+                {
+                    var entry = zip[string.Format("{0}.nuspec", packageId)];
+
+                    using (MemoryStream stream = new MemoryStream())
+                    {
+                        entry.Extract(stream);
+                        stream.Position = 0;
+
+                        nuspec = Load(stream);
+                    }
+                }
+            }
+            else
+            {
+                UnityEngine.Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilepath);
+
+                nuspec.Id = packageId;
+                //nuspec.Version = packageVersion;
+                nuspec.Description = "COULD NOT LOAD .NUPKG FILE!";
+            }
+
+            return nuspec;
+        }
 
         /// <summary>
         /// Loads a .nuspec file at the given filepath.

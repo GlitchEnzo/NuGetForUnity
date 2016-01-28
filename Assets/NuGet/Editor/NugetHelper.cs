@@ -373,7 +373,7 @@
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
-            
+
             PackagesConfigFile.RemovePackage(package);
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
@@ -416,6 +416,8 @@
                         File.Copy(cachedPackagePath, installedPackagePath);
                     }
                 }
+
+                // TODO: Use NuspecFile.FromNupkgFile
 
                 if (File.Exists(installedPackagePath))
                 {
@@ -601,17 +603,29 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
-            string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", NugetConfigFile.ActivePackageSource.Path, package.Version, package.Id);
+            NugetPackage foundPackage;
 
-            var foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+            string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
 
-            if (foundPackage == null)
+            if (File.Exists(cachedPackagePath))
             {
-                Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                foundPackage = NugetPackage.FromNupkgFile(cachedPackagePath, package.Id);
             }
-            else if (foundPackage.Version != package.Version)
+            else
             {
-                Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", NugetConfigFile.ActivePackageSource.Path, package.Version, package.Id);
+
+                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+
+                if (foundPackage == null)
+                {
+                    Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                }
+                else if (foundPackage.Version != package.Version)
+                {
+                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                }
             }
 
             return foundPackage;
@@ -750,7 +764,6 @@
                 }
             }
 
-            // TODO: Load from the cache, if it exists
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
