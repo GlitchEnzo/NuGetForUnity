@@ -661,17 +661,29 @@
                     foreach (var dependencyString in dependencies)
                     {
                         string[] details = dependencyString.Split(':');
+                        string id = details[0];
+                        string version = details[1];
+                        string framework = string.Empty;
+
+                        if (details.Length > 2)
+                        {
+                            framework = details[2];
+                        }
 
                         // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
                         // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
                         // so we need to only add valid dependencies and skip invalid ones
-                        if (!string.IsNullOrEmpty(details[0]) && !string.IsNullOrEmpty(details[1]))
+                        if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(version))
                         {
-                            NugetPackageIdentifier dependency = new NugetPackageIdentifier();
-                            dependency.Id = details[0];
-                            dependency.Version = details[1];
+                            // only use the dependency if there is no framework specified, or it is explicitly .NET 3.0
+                            if (string.IsNullOrEmpty(framework) || framework == "net30")
+                            {
+                                NugetPackageIdentifier dependency = new NugetPackageIdentifier();
+                                dependency.Id = id;
+                                dependency.Version = version;
 
-                            package.Dependencies.Add(dependency);
+                                package.Dependencies.Add(dependency);
+                            }
                         }
                     }
                 }
