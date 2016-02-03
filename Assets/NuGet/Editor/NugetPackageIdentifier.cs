@@ -127,7 +127,8 @@
         }
 
         /// <summary>
-        /// Compares two version numbers in the form "1.2.1". Returns:
+        /// Compares two version numbers in the form "1.2.1". Also supports an optional 4th number as well as a prerelease tag, such as "1.3.0.1-alpha2".
+        /// Returns:
         /// -1 if versionA is less than versionB
         ///  0 if versionA is equal to versionB
         /// +1 if versionA is greater than versionB
@@ -139,8 +140,15 @@
         {
             try
             {
-                // TODO: Compare the prerelease beta/alpha tag
-                versionA = versionA.Split('-')[0];
+                string[] splitStringsA = versionA.Split('-');
+                versionA = splitStringsA[0];
+                string prereleaseA = string.Empty;
+
+                if (splitStringsA.Length > 1)
+                {
+                    prereleaseA = splitStringsA[1];
+                }
+
                 string[] splitA = versionA.Split('.');
                 int majorA = int.Parse(splitA[0]);
                 int minorA = int.Parse(splitA[1]);
@@ -151,7 +159,15 @@
                     buildA = int.Parse(splitA[3]);
                 }
 
-                versionB = versionB.Split('-')[0];
+                string[] splitStringsB = versionB.Split('-');
+                versionB = splitStringsB[0];
+                string prereleaseB = string.Empty;
+
+                if (splitStringsB.Length > 1)
+                {
+                    prereleaseB = splitStringsB[1];
+                }
+
                 string[] splitB = versionB.Split('.');
                 int majorB = int.Parse(splitB[0]);
                 int minorB = int.Parse(splitB[1]);
@@ -166,6 +182,7 @@
                 int minor = minorA < minorB ? -1 : minorA > minorB ? 1 : 0;
                 int patch = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
                 int build = buildA < buildB ? -1 : buildA > buildB ? 1 : 0;
+                int prerelease = string.Compare(prereleaseA, prereleaseB);
 
                 if (major == 0)
                 {
@@ -174,7 +191,14 @@
                     {
                         if (patch == 0)
                         {
-                            // if patch versions are equal, just use the build version
+                            // if patch versions are equal, compare build versions
+                            if (build == 0)
+                            {
+                                // if the build versions are equal, just return the prerelease version comparison
+                                return prerelease;
+                            }
+
+                            // the build versions are different, so use them
                             return build;
                         }
 

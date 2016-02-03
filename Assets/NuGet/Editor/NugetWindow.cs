@@ -569,7 +569,7 @@
                     var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
                     if (installed != null)
                     {
-                        if (CompareVersions(installed.Version, package.Version) < 0)
+                        if (installed < package)
                         {
                             // An older version is installed
                             if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
@@ -578,7 +578,7 @@
                                 UpdateInstalledPackages();
                             }
                         }
-                        else if (CompareVersions(installed.Version, package.Version) > 0)
+                        else if (installed > package)
                         {
                             // A newer version is installed
                             if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
@@ -630,76 +630,6 @@
 
             EditorGUILayout.Separator();
             EditorGUILayout.Separator();
-        }
-
-        /// <summary>
-        /// Compares two version numbers in the form "1.2.1". Returns:
-        /// -1 if versionA is less than versionB
-        ///  0 if versionA is equal to versionB
-        /// +1 if versionA is greater than versionB
-        /// </summary>
-        /// <param name="versionA">The first version number to compare.</param>
-        /// <param name="versionB">The second version number to compare.</param>
-        /// <returns>-1 if versionA is less than versionB. 0 if versionA is equal to versionB. +1 if versionA is greater than versionB</returns>
-        private int CompareVersions(string versionA, string versionB)
-        {
-            try
-            {
-                // TODO: Compare the prerelease beta/alpha tag
-                versionA = versionA.Split('-')[0];
-                string[] splitA = versionA.Split('.');
-                int majorA = int.Parse(splitA[0]);
-                int minorA = int.Parse(splitA[1]);
-                int patchA = int.Parse(splitA[2]);
-                int buildA = 0;
-                if (splitA.Length == 4)
-                {
-                    buildA = int.Parse(splitA[3]);
-                }
-
-                versionB = versionB.Split('-')[0];
-                string[] splitB = versionB.Split('.');
-                int majorB = int.Parse(splitB[0]);
-                int minorB = int.Parse(splitB[1]);
-                int patchB = int.Parse(splitB[2]);
-                int buildB = 0;
-                if (splitB.Length == 4)
-                {
-                    buildB = int.Parse(splitB[3]);
-                }
-
-                int major = majorA < majorB ? -1 : majorA > majorB ? 1 : 0;
-                int minor = minorA < minorB ? -1 : minorA > minorB ? 1 : 0;
-                int patch = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
-                int build = buildA < buildB ? -1 : buildA > buildB ? 1 : 0;
-
-                if (major == 0)
-                {
-                    // if major versions are equal, compare minor versions
-                    if (minor == 0)
-                    {
-                        if (patch == 0)
-                        {
-                            // if patch versions are equal, just use the build version
-                            return build;
-                        }
-
-                        // the patch versions are different, so use them
-                        return patch;
-                    }
-
-                    // the minor versions are different, so use them
-                    return minor;
-                }
-
-                // the major versions are different, so use them
-                return major;
-            }
-            catch (Exception)
-            {
-                Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
-                return 0;
-            }
         }
     }
 }
