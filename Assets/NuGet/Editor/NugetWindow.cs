@@ -46,12 +46,22 @@
         /// <summary>
         /// True to show all old package versions.  False to only show the latest version.
         /// </summary>
-        private bool showAllVersions;
+        private bool showAllOnlineVersions;
 
         /// <summary>
         /// True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
-        private bool showPrerelease;
+        private bool showOnlinePrerelease;
+
+        /// <summary>
+        /// True to show all old package versions.  False to only show the latest version.
+        /// </summary>
+        private bool showAllUpdateVersions;
+
+        /// <summary>
+        /// True to show beta and alpha package versions.  False to only show stable versions.
+        /// </summary>
+        private bool showPrereleaseUpdates;
 
         /// <summary>
         /// The width to use for the install/uninstall/update/downgrade button
@@ -216,7 +226,7 @@
         /// </summary>
         private void UpdateOnlinePackages()
         {
-            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
+            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip);
         }
 
         /// <summary>
@@ -240,7 +250,7 @@
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(installedPackages, showPrerelease, showAllVersions);
+            updatePackages = NugetHelper.GetUpdates(installedPackages, showPrereleaseUpdates, showAllUpdateVersions);
             filteredUpdatePackages = updatePackages;
 
             if (updatesSearchTerm != "Search")
@@ -436,7 +446,7 @@
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
-                availablePackages.AddRange(NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
+                availablePackages.AddRange(NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip));
             }
             EditorGUILayout.EndVertical();
 
@@ -463,12 +473,11 @@
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
-                    if (showAllVersionsTemp != showAllVersions)
+                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllOnlineVersions);
+                    if (showAllVersionsTemp != showAllOnlineVersions)
                     {
-                        showAllVersions = showAllVersionsTemp;
+                        showAllOnlineVersions = showAllVersionsTemp;
                         UpdateOnlinePackages();
-                        UpdateInstalledPackages();
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -478,12 +487,11 @@
                 }
                 EditorGUILayout.EndHorizontal();
 
-                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
-                if (showPrereleaseTemp != showPrerelease)
+                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showOnlinePrerelease);
+                if (showPrereleaseTemp != showOnlinePrerelease)
                 {
-                    showPrerelease = showPrereleaseTemp;
+                    showOnlinePrerelease = showPrereleaseTemp;
                     UpdateOnlinePackages();
-                    UpdateInstalledPackages();
                 }
 
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
@@ -581,22 +589,20 @@
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllVersions);
-                    if (showAllVersionsTemp != showAllVersions)
+                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllUpdateVersions);
+                    if (showAllVersionsTemp != showAllUpdateVersions)
                     {
-                        showAllVersions = showAllVersionsTemp;
-                        UpdateOnlinePackages();
-                        UpdateInstalledPackages();
+                        showAllUpdateVersions = showAllVersionsTemp;
+                        UpdateUpdatePackages();
                     }
                 }
                 EditorGUILayout.EndHorizontal();
 
-                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrerelease);
-                if (showPrereleaseTemp != showPrerelease)
+                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
+                if (showPrereleaseTemp != showPrereleaseUpdates)
                 {
-                    showPrerelease = showPrereleaseTemp;
-                    UpdateOnlinePackages();
-                    UpdateInstalledPackages();
+                    showPrereleaseUpdates = showPrereleaseTemp;
+                    UpdateUpdatePackages();
                 }
 
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
@@ -680,9 +686,10 @@
                     // This specific version is installed
                     if (GUILayout.Button("Uninstall", installButtonWidth))
                     {
-                        ////installedPackages.Remove(package);
+                        // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                         NugetHelper.Uninstall(package);
                         UpdateInstalledPackages();
+                        UpdateUpdatePackages();
                     }
                 }
                 else
@@ -697,6 +704,7 @@
                             {
                                 NugetHelper.Update(installed, package);
                                 UpdateInstalledPackages();
+                                UpdateUpdatePackages();
                             }
                         }
                         else if (installed > package)
@@ -706,6 +714,7 @@
                             {
                                 NugetHelper.Update(installed, package);
                                 UpdateInstalledPackages();
+                                UpdateUpdatePackages();
                             }
                         }
                     }
@@ -716,6 +725,7 @@
                             NugetHelper.Install(package);
                             AssetDatabase.Refresh();
                             UpdateInstalledPackages();
+                            UpdateUpdatePackages();
                         }
                     }
                 }
