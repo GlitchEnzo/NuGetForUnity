@@ -421,6 +421,21 @@
                 fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath, package.Id));
             }
 
+            // sort alphabetically
+            fullPackages.Sort(delegate(NugetPackage x, NugetPackage y)
+            {
+                if (x.Id == null && y.Id == null)
+                    return 0;
+                else if (x.Id == null)
+                    return -1;
+                else if (y.Id == null)
+                    return 1;
+                else if (x.Id == y.Id)
+                    return x.Version.CompareTo(y.Version);
+                else
+                    return x.Id.CompareTo(y.Id);
+            });
+
             stopwatch.Stop();
             LogVerbose("Getting installed packages locally took {0} ms", stopwatch.ElapsedMilliseconds);
 
@@ -564,6 +579,21 @@
             string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", NugetConfigFile.ActivePackageSource.Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
             var updates = GetPackagesFromUrl(url);
+
+            // sort alphabetically
+            updates.Sort(delegate(NugetPackage x, NugetPackage y)
+            {
+                if (x.Id == null && y.Id == null)
+                    return 0;
+                else if (x.Id == null)
+                    return -1;
+                else if (y.Id == null)
+                    return 1;
+                else if (x.Id == y.Id)
+                    return x.Version.CompareTo(y.Version);
+                else
+                    return x.Id.CompareTo(y.Id);
+            });
 
             return updates;
         }

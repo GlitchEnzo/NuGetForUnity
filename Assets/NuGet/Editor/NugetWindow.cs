@@ -21,12 +21,27 @@
         /// <summary>
         /// The list of NugetPackages available to install.
         /// </summary>
-        private List<NugetPackage> packages = new List<NugetPackage>();
+        private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
         /// <summary>
         /// The list of NugetPackages already installed.
         /// </summary>
         private List<NugetPackage> installedPackages = new List<NugetPackage>();
+
+        /// <summary>
+        /// The filtered list of NugetPackages already installed.
+        /// </summary>
+        private List<NugetPackage> filteredInstalledPackages = new List<NugetPackage>();
+
+        /// <summary>
+        /// The list of package updates available, based on the already installed packages.
+        /// </summary>
+        private List<NugetPackage> updatePackages = new List<NugetPackage>();
+
+        /// <summary>
+        /// The filtered list of package updates available.
+        /// </summary>
+        private List<NugetPackage> filteredUpdatePackages = new List<NugetPackage>();
 
         /// <summary>
         /// True to show all old package versions.  False to only show the latest version.
@@ -44,9 +59,19 @@
         private readonly GUILayoutOption installButtonWidth = GUILayout.Width(160);
 
         /// <summary>
-        /// The search term to search the packages for.
+        /// The search term to search the online packages for.
         /// </summary>
-        private string searchTerm = "Search";
+        private string onlineSearchTerm = "Search";
+
+        /// <summary>
+        /// The search term to search the installed packages for.
+        /// </summary>
+        private string installedSearchTerm = "Search";
+
+        /// <summary>
+        /// The search term to search the update packages for.
+        /// </summary>
+        private string updatesSearchTerm = "Search";
 
         /// <summary>
         /// The number of packages to get from the request to the server.
@@ -67,11 +92,6 @@
         /// The titles of the tabs in the window.
         /// </summary>
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
-
-        /// <summary>
-        /// The list of package updates available, based on the already installed packages.
-        /// </summary>
-        private List<NugetPackage> updates = new List<NugetPackage>();
 
         /// <summary>
         /// The default icon to display for packages.
@@ -121,8 +141,7 @@
         {
             string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
 
-            // TODO: Use a better method than string.Replace, since that could remove subfolders
-            string filepath = selectedFile.Replace("Assets/", string.Empty);
+            string filepath = selectedFile.Substring("Assets/".Length);
             filepath = Path.Combine(Application.dataPath, filepath);
 
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
@@ -148,7 +167,7 @@
             file.ProjectUrl = "http://your_project_url_here";
             file.Description = "A description of what this packages is and does.";
             file.ReleaseNotes = "Notes for this specific release";
-            file.Copyright = "Copyright 2015";
+            file.Copyright = "Copyright 2016";
             file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
             file.Save(filepath);
 
@@ -168,15 +187,16 @@
                 // reset the number to skip
                 numberToSkip = 0;
 
-                EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server", 0.3f);
+                // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
 
-                // update the available packages list
-                UpdatePackages();
+                EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
+                UpdateOnlinePackages();
 
-                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages and available updates", 0.75f);
-
-                // update the list of installed packages
+                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
                 UpdateInstalledPackages();
+
+                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
+                UpdateUpdatePackages();
 
                 // load the default icon from the Resources folder
                 defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
@@ -192,23 +212,41 @@
         }
 
         /// <summary>
-        /// Updates the list of available packages by running a search with the server using the currently set parameters (# get, # skip, etc).
+        /// Updates the list of available packages by running a search with the server using the currently set parameters (# to get, # to skip, etc).
         /// </summary>
-        private void UpdatePackages()
+        private void UpdateOnlinePackages()
         {
-            packages = NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
+            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip);
         }
 
         /// <summary>
-        /// Updates the list of installed packages as well as the list of updates available.
+        /// Updates the list of installed packages.
         /// </summary>
         private void UpdateInstalledPackages()
         {
             // load a list of install packages
             installedPackages = NugetHelper.GetInstalledPackages();
+            filteredInstalledPackages = installedPackages;
 
+            if (installedSearchTerm != "Search")
+            {
+                filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+            }
+        }
+
+        /// <summary>
+        /// Updates the list of update packages.
+        /// </summary>
+        private void UpdateUpdatePackages()
+        {
             // get any available updates for the installed packages
-            updates = NugetHelper.GetUpdates(installedPackages, showPrerelease, showAllVersions);
+            updatePackages = NugetHelper.GetUpdates(installedPackages, showPrerelease, showAllVersions);
+            filteredUpdatePackages = updatePackages;
+
+            if (updatesSearchTerm != "Search")
+            {
+                filteredUpdatePackages = updatePackages.Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm)).ToList();
+            }
         }
 
         /// <summary>
@@ -285,9 +323,9 @@
 
             GUIStyle style = CreateColoredBackground();
 
-            if (updates != null && updates.Count > 0)
+            if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                for (int i = 0; i < updates.Count; i++)
+                for (int i = 0; i < filteredUpdatePackages.Count; i++)
                 {
                     // alternate the background color for each package
                     if (i % 2 == 0)
@@ -295,7 +333,7 @@
                     else
                         EditorGUILayout.BeginVertical(style);
 
-                    DrawPackage(updates[i]);
+                    DrawPackage(filteredUpdatePackages[i]);
 
                     EditorGUILayout.EndVertical();
                 }
@@ -318,15 +356,17 @@
         /// </summary>
         private void DrawInstalled()
         {
+            DrawInstalledHeader();
+
             // display all of the installed packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
             GUIStyle style = CreateColoredBackground();
 
-            if (installedPackages != null && installedPackages.Count > 0)
+            if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
-                for (int i = 0; i < installedPackages.Count; i++)
+                for (int i = 0; i < filteredInstalledPackages.Count; i++)
                 {
                     // alternate the background color for each package
                     if (i % 2 == 0)
@@ -334,7 +374,7 @@
                     else
                         EditorGUILayout.BeginVertical(style);
 
-                    DrawPackage(installedPackages[i]);
+                    DrawPackage(filteredInstalledPackages[i]);
 
                     EditorGUILayout.EndVertical();
                 }
@@ -365,9 +405,9 @@
 
             GUIStyle style = CreateColoredBackground();
 
-            if (packages != null)
+            if (availablePackages != null)
             {
-                for (int i = 0; i < packages.Count; i++)
+                for (int i = 0; i < availablePackages.Count; i++)
                 {
                     // alternate the background color for each package
                     if (i % 2 == 0)
@@ -375,7 +415,7 @@
                     else
                         EditorGUILayout.BeginVertical(style);
 
-                    DrawPackage(packages[i]);
+                    DrawPackage(availablePackages[i]);
 
                     EditorGUILayout.EndVertical();
                 }
@@ -396,7 +436,7 @@
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
-                packages.AddRange(NugetHelper.Search(searchTerm != "Search" ? searchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
+                availablePackages.AddRange(NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllVersions, showPrerelease, numberToGet, numberToSkip));
             }
             EditorGUILayout.EndVertical();
 
@@ -427,7 +467,7 @@
                     if (showAllVersionsTemp != showAllVersions)
                     {
                         showAllVersions = showAllVersionsTemp;
-                        UpdatePackages();
+                        UpdateOnlinePackages();
                         UpdateInstalledPackages();
                     }
 
@@ -442,7 +482,7 @@
                 if (showPrereleaseTemp != showPrerelease)
                 {
                     showPrerelease = showPrereleaseTemp;
-                    UpdatePackages();
+                    UpdateOnlinePackages();
                     UpdateInstalledPackages();
                 }
 
@@ -452,9 +492,9 @@
                 {
                     int oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    searchTerm = EditorGUILayout.TextField(searchTerm, GUILayout.Height(30));
+                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, GUILayout.Height(30));
 
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(30)))
+                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
                     {
                         // the search button emulates the Enter key
                         enterPressed = true;
@@ -469,7 +509,54 @@
                 {
                     // reset the number to skip
                     numberToSkip = 0;
-                    UpdatePackages();
+                    UpdateOnlinePackages();
+                }
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// Draws the header which allows filtering the installed list of packages.
+        /// </summary>
+        private void DrawInstalledHeader()
+        {
+            GUIStyle headerStyle = new GUIStyle();
+            if (Application.HasProLicense())
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+            }
+            else
+            {
+                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
+            }
+
+            EditorGUILayout.BeginVertical(headerStyle);
+            {
+                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    int oldFontSize = GUI.skin.textField.fontSize;
+                    GUI.skin.textField.fontSize = 25;
+                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
+
+                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
+                    {
+                        // the search button emulates the Enter key
+                        enterPressed = true;
+                    }
+
+                    GUI.skin.textField.fontSize = oldFontSize;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // search only if the enter key is pressed
+                if (enterPressed)
+                {
+                    if (installedSearchTerm != "Search")
+                    {
+                        filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+                    }
                 }
             }
             EditorGUILayout.EndVertical();
@@ -498,14 +585,9 @@
                     if (showAllVersionsTemp != showAllVersions)
                     {
                         showAllVersions = showAllVersionsTemp;
-                        UpdatePackages();
+                        UpdateOnlinePackages();
                         UpdateInstalledPackages();
                     }
-
-                    //if (GUILayout.Button("Refresh", GUILayout.Width(60)))
-                    //{
-                    //    OnEnable();
-                    //}
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -513,20 +595,36 @@
                 if (showPrereleaseTemp != showPrerelease)
                 {
                     showPrerelease = showPrereleaseTemp;
-                    UpdatePackages();
+                    UpdateOnlinePackages();
                     UpdateInstalledPackages();
                 }
 
-                // search if the search term was changed
-                //string searchTermTemp = EditorGUILayout.TextField(searchTerm);
-                //if (searchTermTemp != searchTerm)
-                //{
-                //    searchTerm = searchTermTemp;
+                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-                //    // reset the number to skip
-                //    numberToSkip = 0;
-                //    UpdatePackages();
-                //}
+                EditorGUILayout.BeginHorizontal();
+                {
+                    int oldFontSize = GUI.skin.textField.fontSize;
+                    GUI.skin.textField.fontSize = 25;
+                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GUILayout.Height(30));
+
+                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
+                    {
+                        // the search button emulates the Enter key
+                        enterPressed = true;
+                    }
+
+                    GUI.skin.textField.fontSize = oldFontSize;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // search only if the enter key is pressed
+                if (enterPressed)
+                {
+                    if (updatesSearchTerm != "Search")
+                    {
+                        filteredUpdatePackages = updatePackages.Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm)).ToList();
+                    }
+                }
             }
             EditorGUILayout.EndVertical();
         }
