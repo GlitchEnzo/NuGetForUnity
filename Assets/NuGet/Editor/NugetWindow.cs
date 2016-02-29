@@ -448,8 +448,23 @@
 
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
+                EditorGUILayout.BeginHorizontal();
+                {
+                    int oldFontSize = GUI.skin.textField.fontSize;
+                    GUI.skin.textField.fontSize = 25;
+                    searchTerm = EditorGUILayout.TextField(searchTerm, GUILayout.Height(30));
+
+                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(30)))
+                    {
+                        // the search button emulates the Enter key
+                        enterPressed = true;
+                    }
+
+                    GUI.skin.textField.fontSize = oldFontSize;
+                }
+                EditorGUILayout.EndHorizontal();
+
                 // search only if the enter key is pressed
-                searchTerm = EditorGUILayout.TextField(searchTerm);
                 if (enterPressed)
                 {
                     // reset the number to skip
