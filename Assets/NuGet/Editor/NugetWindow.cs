@@ -106,6 +106,14 @@
         }
 
         /// <summary>
+        /// Displays the version number of NuGetForUnity.
+        /// </summary>
+        [MenuItem("NuGet/Version 0.0.2")]
+        protected static void DisplayVersion()
+        {
+        }
+
+        /// <summary>
         /// Creates a new MyPackage.nuspec file.
         /// </summary>
         [MenuItem("Assets/Create/Nuspec File")]
