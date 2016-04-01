@@ -418,7 +418,7 @@
                 }
 
                 // get the NugetPackage via the .nuspec file inside the .nupkg file
-                fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath, package.Id));
+                fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath));
             }
 
             // sort alphabetically
@@ -442,6 +442,32 @@
             return fullPackages;
         }
 
+        private static List<NugetPackage> GetLocalPackages(string searchTerm = "")
+        {
+            List<NugetPackage> localPackages = new List<NugetPackage>();
+
+            string path = NugetConfigFile.ActivePackageSource.Path;
+
+            if (Directory.Exists(path))
+            {
+                string[] packages = Directory.GetFiles(path, "*.nupkg");
+
+                foreach (var package in packages)
+                {
+                    if (Path.GetFileNameWithoutExtension(package).ToLower().Contains(searchTerm))
+                    {
+                        localPackages.Add(NugetPackage.FromNupkgFile(package));
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogErrorFormat("Local folder not found: {0}", path);
+            }
+
+            return localPackages;
+        }
+
         /// <summary>
         /// Gets a list of NuGetPackages via the HTTP Search() function defined by NuGet.Server and NuGet Gallery.
         /// This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
@@ -456,47 +482,54 @@
         /// <returns></returns>
         public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
-            //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
-
-            string url = NugetConfigFile.ActivePackageSource.Path;
-
-            // call the search method
-            url += "Search()?";
-
-            // filter results
-            if (!includeAllVersions)
+            if (NugetConfigFile.ActivePackageSource.IsLocalPath)
             {
-                if (!includePrerelease)
-                {
-                    url += "$filter=IsLatestVersion&";
-                }
-                else
-                {
-                    url += "$filter=IsAbsoluteLatestVersion&";
-                }
+                return GetLocalPackages(searchTerm);
             }
+            else
+            {
+                //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
-            // order results
-            //url += "$orderby=Id&";
-            //url += "$orderby=LastUpdated&";
-            url += "$orderby=DownloadCount desc&";
+                string url = NugetConfigFile.ActivePackageSource.Path;
 
-            // skip a certain number of entries
-            url += string.Format("$skip={0}&", numberToSkip);
+                // call the search method
+                url += "Search()?";
 
-            // show a certain number of entries
-            url += string.Format("$top={0}&", numberToGet);
+                // filter results
+                if (!includeAllVersions)
+                {
+                    if (!includePrerelease)
+                    {
+                        url += "$filter=IsLatestVersion&";
+                    }
+                    else
+                    {
+                        url += "$filter=IsAbsoluteLatestVersion&";
+                    }
+                }
 
-            // apply the search term
-            url += string.Format("searchTerm='{0}'&", searchTerm);
+                // order results
+                //url += "$orderby=Id&";
+                //url += "$orderby=LastUpdated&";
+                url += "$orderby=DownloadCount desc&";
 
-            // apply the target framework filters
-            url += "targetFramework=''&";
+                // skip a certain number of entries
+                url += string.Format("$skip={0}&", numberToSkip);
 
-            // should we include prerelease packages?
-            url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
+                // show a certain number of entries
+                url += string.Format("$top={0}&", numberToGet);
 
-            return GetPackagesFromUrl(url);
+                // apply the search term
+                url += string.Format("searchTerm='{0}'&", searchTerm);
+
+                // apply the target framework filters
+                url += "targetFramework=''&";
+
+                // should we include prerelease packages?
+                url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
+
+                return GetPackagesFromUrl(url);
+            }
         }
 
         /// <summary>
@@ -541,6 +574,13 @@
             return GetPackagesFromUrl(url);
         }
 
+        private static List<NugetPackage> GetLocalUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false)
+        {
+            List<NugetPackage> updates = new List<NugetPackage>();
+
+            return updates;
+        }
+
         /// <summary>
         /// Queries the server with the given list of installed packages to get any updates that are available.
         /// </summary>
@@ -552,6 +592,11 @@
         /// <returns>A list of all updates available.</returns>
         public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
+            if (NugetConfigFile.ActivePackageSource.IsLocalPath)
+            {
+                return GetLocalUpdates(installedPackages, includePrerelease, includeAllVersions);
+            }
+
             string packageIds = string.Empty;
             string versions = string.Empty;
 
@@ -606,6 +651,11 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
+            if (NugetConfigFile.ActivePackageSource.IsLocalPath)
+            {
+                return null;
+            }
+
             NugetPackage foundPackage;
 
             string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
@@ -613,7 +663,7 @@
             if (File.Exists(cachedPackagePath))
             {
                 LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
-                foundPackage = NugetPackage.FromNupkgFile(cachedPackagePath, package.Id);
+                foundPackage = NugetPackage.FromNupkgFile(cachedPackagePath);
             }
             else
             {

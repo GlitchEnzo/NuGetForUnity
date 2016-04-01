@@ -27,6 +27,11 @@
             public string Path { get; private set; }
 
             /// <summary>
+            /// Gets or sets a value indicated whether the path is a local path or a remote path.
+            /// </summary>
+            public bool IsLocalPath { get; private set; }
+
+            /// <summary>
             /// Initializes a new instance of the <see cref="PackageSource"/> class.
             /// </summary>
             /// <param name="addElement">The "add" XML element contained in the NuGet.config file.</param>
@@ -34,6 +39,8 @@
             {
                 Name = addElement.Attribute("key").Value;
                 Path = addElement.Attribute("value").Value;
+
+                IsLocalPath = !Path.StartsWith("http");
             }
         }
 

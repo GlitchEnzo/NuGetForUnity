@@ -84,11 +84,10 @@
         /// Loads a <see cref="NugetPackage"/> from the .nupkg file at the given filepath.
         /// </summary>
         /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
-        /// <param name="packageId">The ID of the package.</param>
         /// <returns>The <see cref="NugetPackage"/> loaded from the .nupkg file.</returns>
-        public static NugetPackage FromNupkgFile(string nupkgFilepath, string packageId)
+        public static NugetPackage FromNupkgFile(string nupkgFilepath)
         {
-            return FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath, packageId));
+            return FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath));
         }
     }
 }
