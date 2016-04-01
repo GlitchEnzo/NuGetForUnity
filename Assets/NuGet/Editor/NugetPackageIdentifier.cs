@@ -18,6 +18,11 @@
         public string Version { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether this is a prerelease package or an official release package.
+        /// </summary>
+        public bool IsPrerelease { get { return Version.Contains("-"); } }
+
+        /// <summary>
         /// Checks to see if this <see cref="NugetPackageIdentifier"/> is equal to the given one.
         /// </summary>
         /// <param name="other">The other <see cref="NugetPackageIdentifier"/> to check equality with.</param>

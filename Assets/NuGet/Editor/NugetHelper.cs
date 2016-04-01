@@ -442,7 +442,14 @@
             return fullPackages;
         }
 
-        private static List<NugetPackage> GetLocalPackages(string searchTerm = "")
+        /// <summary>
+        /// Gets a list of all available packages from a local source (not a web server) that match the given filters.
+        /// </summary>
+        /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <returns>The list of available packages.</returns>
+        private static List<NugetPackage> GetLocalPackages(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false)
         {
             List<NugetPackage> localPackages = new List<NugetPackage>();
 
@@ -450,13 +457,40 @@
 
             if (Directory.Exists(path))
             {
-                string[] packages = Directory.GetFiles(path, "*.nupkg");
+                string[] packagePaths = Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm));
 
-                foreach (var package in packages)
+                foreach (var packagePath in packagePaths)
                 {
-                    if (Path.GetFileNameWithoutExtension(package).ToLower().Contains(searchTerm))
+                    var package = NugetPackage.FromNupkgFile(packagePath);
+                    if (package.IsPrerelease && !includePrerelease)
                     {
-                        localPackages.Add(NugetPackage.FromNupkgFile(package));
+                        // if it's a prerelease package and we aren't supposed to return prerelease packages, just skip it
+                        continue;
+                    }
+
+                    if (includeAllVersions)
+                    {
+                        // if all versions are being included, simply add it and move on
+                        localPackages.Add(package);
+                        //LogVerbose("Adding {0} {1}", package.Id, package.Version);
+                        continue;
+                    }
+
+                    var existingPackage = localPackages.FirstOrDefault(x => x.Id == package.Id);
+                    if (existingPackage != null)
+                    {
+                        // there is already a package with the same ID in the list
+                        if (existingPackage < package)
+                        {
+                            // if the current package is newer than the existing package, swap them
+                            localPackages.Remove(existingPackage);
+                            localPackages.Add(package);
+                        }
+                    }
+                    else
+                    {
+                        // there is no package with the same ID in the list yet
+                        localPackages.Add(package);
                     }
                 }
             }
@@ -474,62 +508,60 @@
         /// 
         /// NOTE: See the functions and parameters defined here: https://www.nuget.org/api/v2/$metadata
         /// </summary>
-        /// <param name="searchTerm"></param>
-        /// <param name="includeAllVersions"></param>
-        /// <param name="includePrerelease"></param>
-        /// <param name="numberToGet"></param>
-        /// <param name="numberToSkip"></param>
-        /// <returns></returns>
+        /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="numberToGet">The number of packages to fetch.</param>
+        /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
+        /// <returns>The list of available packages.</returns>
         public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
             if (NugetConfigFile.ActivePackageSource.IsLocalPath)
             {
-                return GetLocalPackages(searchTerm);
+                return GetLocalPackages(searchTerm, includeAllVersions, includePrerelease);
             }
-            else
+
+            //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
+
+            string url = NugetConfigFile.ActivePackageSource.Path;
+
+            // call the search method
+            url += "Search()?";
+
+            // filter results
+            if (!includeAllVersions)
             {
-                //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
-
-                string url = NugetConfigFile.ActivePackageSource.Path;
-
-                // call the search method
-                url += "Search()?";
-
-                // filter results
-                if (!includeAllVersions)
+                if (!includePrerelease)
                 {
-                    if (!includePrerelease)
-                    {
-                        url += "$filter=IsLatestVersion&";
-                    }
-                    else
-                    {
-                        url += "$filter=IsAbsoluteLatestVersion&";
-                    }
+                    url += "$filter=IsLatestVersion&";
                 }
-
-                // order results
-                //url += "$orderby=Id&";
-                //url += "$orderby=LastUpdated&";
-                url += "$orderby=DownloadCount desc&";
-
-                // skip a certain number of entries
-                url += string.Format("$skip={0}&", numberToSkip);
-
-                // show a certain number of entries
-                url += string.Format("$top={0}&", numberToGet);
-
-                // apply the search term
-                url += string.Format("searchTerm='{0}'&", searchTerm);
-
-                // apply the target framework filters
-                url += "targetFramework=''&";
-
-                // should we include prerelease packages?
-                url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
-
-                return GetPackagesFromUrl(url);
+                else
+                {
+                    url += "$filter=IsAbsoluteLatestVersion&";
+                }
             }
+
+            // order results
+            //url += "$orderby=Id&";
+            //url += "$orderby=LastUpdated&";
+            url += "$orderby=DownloadCount desc&";
+
+            // skip a certain number of entries
+            url += string.Format("$skip={0}&", numberToSkip);
+
+            // show a certain number of entries
+            url += string.Format("$top={0}&", numberToGet);
+
+            // apply the search term
+            url += string.Format("searchTerm='{0}'&", searchTerm);
+
+            // apply the target framework filters
+            url += "targetFramework=''&";
+
+            // should we include prerelease packages?
+            url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
+
+            return GetPackagesFromUrl(url);
         }
 
         /// <summary>
@@ -574,9 +606,31 @@
             return GetPackagesFromUrl(url);
         }
 
+        /// <summary>
+        /// Gets a list of available packages from a local source (not a web server) that are upgrades for the given list of installed packages.
+        /// </summary>
+        /// <param name="installedPackages">The list of currently installed packages to use to find updates.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <returns>A list of all updates available.</returns>
         private static List<NugetPackage> GetLocalUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false)
         {
             List<NugetPackage> updates = new List<NugetPackage>();
+
+            var availablePackages = GetLocalPackages(string.Empty, includeAllVersions, includePrerelease);
+            foreach (var installedPackage in installedPackages)
+            {
+                foreach (var availablePackage in availablePackages)
+                {
+                    if (installedPackage.Id == availablePackage.Id)
+                    {
+                        if (installedPackage < availablePackage)
+                        {
+                            updates.Add(availablePackage);
+                        }
+                    }
+                }
+            }
 
             return updates;
         }
@@ -651,12 +705,7 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
-            if (NugetConfigFile.ActivePackageSource.IsLocalPath)
-            {
-                return null;
-            }
-
-            NugetPackage foundPackage;
+            NugetPackage foundPackage = null;
 
             string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
 
@@ -667,17 +716,33 @@
             }
             else
             {
-                string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", NugetConfigFile.ActivePackageSource.Path, package.Version, package.Id);
-
-                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
-
-                if (foundPackage == null)
+                if (NugetConfigFile.ActivePackageSource.IsLocalPath)
                 {
-                    Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                    // TODO: Try to find later versions of the same package
+                    string localPackagePath = Path.Combine(NugetConfigFile.ActivePackageSource.Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                    if (File.Exists(localPackagePath))
+                    {
+                        foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    }
+                    else
+                    {
+                        Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
+                    }
                 }
-                else if (foundPackage.Version != package.Version)
+                else
                 {
-                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                    string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", NugetConfigFile.ActivePackageSource.Path, package.Version, package.Id);
+
+                    foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+
+                    if (foundPackage == null)
+                    {
+                        Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                    }
+                    else if (foundPackage.Version != package.Version)
+                    {
+                        Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                    }
                 }
             }
 
@@ -861,10 +926,6 @@
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
-                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
 
@@ -901,17 +962,39 @@
                 }
                 else
                 {
-                    LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
-
-                    if (refreshAssets)
-                        EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
-
-                    HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
-                    Stream objStream = getRequest.GetResponse().GetResponseStream();
-
-                    using (Stream file = File.Create(cachedPackagePath))
+                    if (NugetConfigFile.ActivePackageSource.IsLocalPath)
                     {
-                        CopyStream(objStream, file);
+                        LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
+
+                        // copy the .nupkg from the local path to the cache
+                        File.Copy(Path.Combine(NugetConfigFile.ActivePackageSource.Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
+                    }
+                    else
+                    {
+                        // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
+                        // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+
+                        // remove all handlers
+                        //if (ServicePointManager.ServerCertificateValidationCallback != null)
+                        //    foreach (var d in ServicePointManager.ServerCertificateValidationCallback.GetInvocationList())
+                        //        ServicePointManager.ServerCertificateValidationCallback -= (d as System.Net.Security.RemoteCertificateValidationCallback);
+                        ServicePointManager.ServerCertificateValidationCallback = null;
+
+                        // add anonymous handler
+                        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
+
+                        LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
+
+                        if (refreshAssets)
+                            EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
+
+                        HttpWebRequest getRequest = (HttpWebRequest) WebRequest.Create(package.DownloadUrl);
+                        Stream objStream = getRequest.GetResponse().GetResponseStream();
+
+                        using (Stream file = File.Create(cachedPackagePath))
+                        {
+                            CopyStream(objStream, file);
+                        }
                     }
                 }
 
