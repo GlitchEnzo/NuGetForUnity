@@ -718,7 +718,6 @@
             {
                 if (NugetConfigFile.ActivePackageSource.IsLocalPath)
                 {
-                    // TODO: Try to find later versions of the same package
                     string localPackagePath = Path.Combine(NugetConfigFile.ActivePackageSource.Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                     if (File.Exists(localPackagePath))
                     {
@@ -726,7 +725,20 @@
                     }
                     else
                     {
-                        Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
+                        // TODO: Sort the local packages?  Currently assuming they are in alphabetical order due to the filesystem.
+
+                        // Try to find later versions of the same package
+                        var packages = GetLocalPackages(package.Id, true, true);
+                        foundPackage = packages.SkipWhile(x => x < package).FirstOrDefault();
+
+                        if (foundPackage == null)
+                        {
+                            Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
+                        }
+                        else if (foundPackage.Version != package.Version)
+                        {
+                            Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
+                        }
                     }
                 }
                 else
