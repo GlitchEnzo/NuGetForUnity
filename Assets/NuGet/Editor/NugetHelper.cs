@@ -147,6 +147,33 @@
         }
 
         /// <summary>
+        /// Replace all %20 encodings with a normal space.
+        /// </summary>
+        /// <param name="directoryPath">The path to the directory.</param>
+        private static void FixSpaces(string directoryPath)
+        {
+            string[] subdirectories = Directory.GetDirectories(directoryPath);
+            foreach (var subDir in subdirectories)
+            {
+                FixSpaces(subDir);
+            }
+
+            string[] files = Directory.GetFiles(directoryPath);
+            foreach (var file in files)
+            {
+                if (file.Contains("%20"))
+                {
+                    File.Move(file, file.Replace("%20", " "));
+                }
+            }
+
+            if (directoryPath.Contains("%20"))
+            {
+                Directory.Move(directoryPath, directoryPath.Replace("%20", " "));
+            }
+        }
+
+        /// <summary>
         /// Cleans up a package after it has been installed.
         /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
