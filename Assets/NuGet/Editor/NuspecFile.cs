@@ -233,6 +233,18 @@
 
             file.Root.Add(metadata);
 
+            // remove the read only flag on the file, if there is one.
+            if (File.Exists(filePath))
+            {
+                FileAttributes attributes = File.GetAttributes(filePath);
+
+                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    attributes &= ~FileAttributes.ReadOnly;
+                    File.SetAttributes(filePath, attributes);
+                }
+            }
+
             file.Save(filePath);
         }
     }
