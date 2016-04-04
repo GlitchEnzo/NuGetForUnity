@@ -475,10 +475,18 @@
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="numberToGet">The number of packages to fetch.</param>
+        /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
-        private static List<NugetPackage> GetLocalPackages(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false)
+        private static List<NugetPackage> GetLocalPackages(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
             List<NugetPackage> localPackages = new List<NugetPackage>();
+
+            if (numberToSkip != 0)
+            {
+                // we return the entire list the first time, so no more to add
+                return localPackages;
+            }
 
             string path = NugetConfigFile.ActivePackageSource.Path;
 
@@ -545,7 +553,7 @@
         {
             if (NugetConfigFile.ActivePackageSource.IsLocalPath)
             {
-                return GetLocalPackages(searchTerm, includeAllVersions, includePrerelease);
+                return GetLocalPackages(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
             }
 
             //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
