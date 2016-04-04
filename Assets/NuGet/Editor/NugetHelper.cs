@@ -158,18 +158,21 @@
                 FixSpaces(subDir);
             }
 
+            if (directoryPath.Contains("%20"))
+            {
+                LogVerbose("Removing %20 from {0}", directoryPath);
+                Directory.Move(directoryPath, directoryPath.Replace("%20", " "));
+                directoryPath = directoryPath.Replace("%20", " ");
+            }
+
             string[] files = Directory.GetFiles(directoryPath);
             foreach (var file in files)
             {
                 if (file.Contains("%20"))
                 {
+                    LogVerbose("Removing %20 from {0}", file);
                     File.Move(file, file.Replace("%20", " "));
                 }
-            }
-
-            if (directoryPath.Contains("%20"))
-            {
-                Directory.Move(directoryPath, directoryPath.Replace("%20", " "));
             }
         }
 
@@ -183,6 +186,8 @@
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
             LogVerbose("Cleaning {0}", packageInstallDirectory);
+
+            FixSpaces(packageInstallDirectory);
 
             // delete a remnant .meta file that may exist from packages created by Unity
             DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec.meta");
