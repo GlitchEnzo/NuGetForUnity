@@ -230,21 +230,22 @@
                 string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
                 foreach (var directory in libDirectories)
                 {
-                    if (directoriesToDelete.Any(s => directory.Contains(s)))
+                    string directoryName = new DirectoryInfo(directory).Name;
+                    if (directoriesToDelete.Any(directoryName.Contains))
                     {
-                        LogVerbose("Deleting {0}", directory);
+                        LogVerbose("Deleting unused directory: {0}", directory);
                         DeleteDirectory(directory);
                     }
-                    else if (directory.Contains("net20") && (has30 || has35))
+                    else if (directoryName.Contains("net20") && (has30 || has35))
                     {
                         // if .NET 2.0 exists, keep it, unless there is also a .NET 3.0 or 3.5 version as well
-                        LogVerbose("Deleting {0}", directory);
+                        LogVerbose("Deleting net20: {0}", directory);
                         DeleteDirectory(directory);
                     }
-                    else if (directory.Contains("net30") && has35)
+                    else if (directoryName.Contains("net30") && has35)
                     {
                         // if .NET 3.0 exists, keep it, unless there is also a .NET 3.5 version as well
-                        LogVerbose("Deleting {0}", directory);
+                        LogVerbose("Deleting net30: {0}", directory);
                         DeleteDirectory(directory);
                     }
                 }
