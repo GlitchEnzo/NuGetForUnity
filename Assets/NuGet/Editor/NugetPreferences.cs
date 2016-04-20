@@ -27,6 +27,14 @@
         public static bool UseCache { get; private set; }
 
         /// <summary>
+        /// Static contructor used to set default values for the preferences.
+        /// </summary>
+        static NugetPreferences()
+        {
+            UseCache = true;
+        }
+
+        /// <summary>
         /// Draws the preferences GUI inside the Unity preferences window in the Editor.
         /// </summary>
         [PreferenceItem("NuGet For Unity")]
