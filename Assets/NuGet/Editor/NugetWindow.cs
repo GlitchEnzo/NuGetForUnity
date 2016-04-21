@@ -138,7 +138,7 @@
         /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
-        [MenuItem("NuGet/Version 0.0.3")]
+        [MenuItem("NuGet/Version 0.0.4")]
         protected static void DisplayVersion()
         {
         }
