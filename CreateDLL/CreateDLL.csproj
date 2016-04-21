@@ -59,6 +59,9 @@
     <Compile Include="..\Assets\NuGet\Editor\NugetPackageIdentifier.cs">
       <Link>NugetPackageIdentifier.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\NugetPreferences.cs">
+      <Link>NugetPreferences.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NugetWindow.cs">
       <Link>NugetWindow.cs</Link>
     </Compile>
@@ -67,6 +70,9 @@
     </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NuspecFile.cs">
       <Link>NuspecFile.cs</Link>
+    </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\PackagesConfigFile.cs">
+      <Link>PackagesConfigFile.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
