@@ -48,7 +48,7 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        private static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\NuGet\\Cache";
+        public static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\NuGet\\Cache";
 
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
@@ -960,7 +960,7 @@
         /// </summary>
         /// <param name="format">The formatted message string.</param>
         /// <param name="args">The arguments for the formattted message string.</param>
-        private static void LogVerbose(string format, params object[] args)
+        public static void LogVerbose(string format, params object[] args)
         {
             if (NugetConfigFile.Verbose)
             {
@@ -1114,13 +1114,23 @@
                 // copy the list since the InstallIdentifier operation below changes the actual installed packages list
                 var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
 
+                LogVerbose("Restoring {0} packages.", installedPackages.Count);
+
                 foreach (var package in installedPackages)
                 {
-                    EditorUtility.DisplayProgressBar("Restoring NuGet Packages", "Restoring " + package.Id, currentProgress);
-
-                    if (package != null && !IsInstalled(package))
+                    if (package != null)
                     {
-                        InstallIdentifier(package, false);
+                        EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0}", package.Id), currentProgress);
+                        
+                        if (!IsInstalled(package))
+                        {
+                            LogVerbose("Installing {0}", package.Id);
+                            InstallIdentifier(package, false);
+                        }
+                        else
+                        {
+                            LogVerbose("Already installed: {0}", package.Id);
+                        }
                     }
 
                     currentProgress += progressStep;
