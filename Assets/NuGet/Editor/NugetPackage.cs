@@ -29,6 +29,11 @@
         public string DownloadUrl { get; set; }
 
         /// <summary>
+        /// Gets or sets the <see cref="NugetPackageSource"/> that contains this package.
+        /// </summary>
+        public NugetPackageSource PackageSource { get; set; }
+
+        /// <summary>
         /// Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
         /// </summary>
         public UnityEngine.Texture2D Icon { get; set; }

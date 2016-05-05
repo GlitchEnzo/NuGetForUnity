@@ -12,53 +12,20 @@
     public class NugetConfigFile
     {
         /// <summary>
-        /// Represents a NuGet Package Source (a "server").
-        /// </summary>
-        public class PackageSource
-        {
-            /// <summary>
-            /// Gets or sets the name of the package source.
-            /// </summary>
-            public string Name { get; private set; }
-
-            /// <summary>
-            /// Gets or sets the path of the package source.
-            /// </summary>
-            public string Path { get; private set; }
-
-            /// <summary>
-            /// Gets or sets a value indicated whether the path is a local path or a remote path.
-            /// </summary>
-            public bool IsLocalPath { get; private set; }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="PackageSource"/> class.
-            /// </summary>
-            /// <param name="addElement">The "add" XML element contained in the NuGet.config file.</param>
-            public PackageSource(XElement addElement)
-            {
-                Name = addElement.Attribute("key").Value;
-                Path = addElement.Attribute("value").Value;
-
-                IsLocalPath = !Path.StartsWith("http");
-            }
-        }
-
-        /// <summary>
         /// Gets the list of package sources that are defined in the NuGet.config file.
         /// </summary>
-        public List<PackageSource> PackageSources { get; private set; }
+        public List<NugetPackageSource> PackageSources { get; private set; }
 
         /// <summary>
         /// Gets the currectly active package source that is defined in the NuGet.config file.
         /// Note: If the key/Name is set to "All" and the value/Path is set to "(Aggregate source)", all package sources are used.
         /// </summary>
-        public PackageSource ActivePackageSource { get; private set; }
+        public NugetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
         /// Gets the list of all disabled package sources.  These should NOT be used when querying for packages.
         /// </summary>
-        public List<PackageSource> DisabledPackageSources { get; private set; }
+        public List<NugetPackageSource> DisabledPackageSources { get; private set; }
 
         /// <summary>
         /// Gets the local path where packages are to be installed.  It can be a full path or a relative path.
@@ -89,30 +56,31 @@
             XElement packageSources = file.Root.Element("packageSources");
             if (packageSources != null)
             {
-                configFile.PackageSources = new List<PackageSource>();
+                configFile.PackageSources = new List<NugetPackageSource>();
 
                 var adds = packageSources.Elements("add");
                 foreach (var add in adds)
                 {
-                    configFile.PackageSources.Add(new PackageSource(add));
+                    configFile.PackageSources.Add(new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value));
                 }
             }
 
             XElement activePackageSource = file.Root.Element("activePackageSource");
             if (activePackageSource != null)
             {
-                configFile.ActivePackageSource = new PackageSource(activePackageSource.Element("add"));
+                var add = activePackageSource.Element("add");
+                configFile.ActivePackageSource = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
             }
 
             XElement disabledPackageSources = file.Root.Element("disabledPackageSources");
             if (disabledPackageSources != null)
             {
-                configFile.DisabledPackageSources = new List<PackageSource>();
+                configFile.DisabledPackageSources = new List<NugetPackageSource>();
 
                 var adds = disabledPackageSources.Elements("add");
                 foreach (var add in adds)
                 {
-                    PackageSource disabledPackage = new PackageSource(add);
+                    NugetPackageSource disabledPackage = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
                     if (disabledPackage.Path == "true")
                     {
                         configFile.DisabledPackageSources = configFile.PackageSources.FindAll(source => source.Name == disabledPackage.Name);
@@ -126,7 +94,7 @@
                 var adds = config.Elements("add");
                 foreach (var add in adds)
                 {
-                    PackageSource configPair = new PackageSource(add);
+                    NugetPackageSource configPair = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
                     if (configPair.Name == "repositoryPath")
                     {
                         configFile.RepositoryPath = configPair.Path;

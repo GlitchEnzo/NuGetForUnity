@@ -11,6 +11,9 @@
     using UnityEngine;
     using Debug = UnityEngine.Debug;
 
+    /// <summary>
+    /// Represents a NuGet Package Source (a "server").
+    /// </summary>
     public class NugetPackageSource
     {
         /// <summary>
@@ -48,7 +51,7 @@
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        private NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
             NugetPackage foundPackage = null;
 
@@ -196,6 +199,8 @@
                 foreach (var packagePath in packagePaths)
                 {
                     var package = NugetPackage.FromNupkgFile(packagePath);
+                    package.PackageSource = this;
+
                     if (package.IsPrerelease && !includePrerelease)
                     {
                         // if it's a prerelease package and we aren't supposed to return prerelease packages, just skip it
@@ -243,7 +248,7 @@
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        private static List<NugetPackage> GetPackagesFromUrl(string url)
+        private List<NugetPackage> GetPackagesFromUrl(string url)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -265,6 +270,7 @@
                 var properties = (XElement)XDocument.ReadFrom(reader);
 
                 NugetPackage package = new NugetPackage();
+                package.PackageSource = this;
                 package.DownloadUrl = ((UrlSyndicationContent)item.Content).Url.ToString();
                 package.Id = item.Title.Text;
                 package.Title = (string)properties.Element(XName.Get("Title", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
@@ -275,7 +281,7 @@
                 string iconUrl = (string)properties.Element(XName.Get("IconUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
-                    package.Icon = DownloadImage(iconUrl);
+                    package.Icon = NugetHelper.DownloadImage(iconUrl);
                 }
 
                 // if there is no title, just use the ID as the title
@@ -418,46 +424,6 @@
             });
 
             return updates;
-        }
-
-        /// <summary>
-        /// Downloads an image at the given URL and converts it to a Unity Texture2D.
-        /// </summary>
-        /// <param name="url">The URL of the image to download.</param>
-        /// <returns>The image as a Unity Texture2D object.</returns>
-        private static Texture2D DownloadImage(string url)
-        {
-            bool timedout = false;
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            WWW request = new WWW(url);
-            while (!request.isDone)
-            {
-                if (stopwatch.ElapsedMilliseconds >= 750)
-                {
-                    NugetHelper.LogVerbose("Timed out!");
-
-                    request.Dispose();
-                    stopwatch.Stop();
-                    timedout = true;
-                    break;
-                }
-            }
-
-            if (!timedout && !string.IsNullOrEmpty(request.error))
-            {
-                NugetHelper.LogVerbose(request.error);
-            }
-
-            Texture2D result = null;
-
-            if (!timedout && string.IsNullOrEmpty(request.error))
-            {
-                result = request.texture;
-            }
-
-            return result;
         }
     }
 }
