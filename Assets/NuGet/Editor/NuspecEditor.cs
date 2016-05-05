@@ -40,9 +40,8 @@
         /// </summary>
         public void OnEnable()
         {
-            // TODO: Use a better method than string.Replace, since that could remove subfolders
             filepath = AssetDatabase.GetAssetPath(target);
-            filepath = filepath.Replace("Assets/", string.Empty);
+            filepath = filepath.Substring(0, Application.dataPath.Length - "Assets".Length);
             filepath = Path.Combine(Application.dataPath, filepath);
 
             isNuspec = Path.GetExtension(filepath) == ".nuspec";

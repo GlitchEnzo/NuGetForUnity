@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using System.Xml.Linq;
 
@@ -21,11 +22,6 @@
         /// Note: If the key/Name is set to "All" and the value/Path is set to "(Aggregate source)", all package sources are used.
         /// </summary>
         public NugetPackageSource ActivePackageSource { get; private set; }
-
-        /// <summary>
-        /// Gets the list of all disabled package sources.  These should NOT be used when querying for packages.
-        /// </summary>
-        public List<NugetPackageSource> DisabledPackageSources { get; private set; }
 
         /// <summary>
         /// Gets the local path where packages are to be installed.  It can be a full path or a relative path.
@@ -53,6 +49,7 @@
 
             XDocument file = XDocument.Load(filePath);
 
+            // read the full list of package sources (some may be disabled below)
             XElement packageSources = file.Root.Element("packageSources");
             if (packageSources != null)
             {
@@ -65,6 +62,7 @@
                 }
             }
 
+            // read the active package source (may be an aggregate of all enabled sources!)
             XElement activePackageSource = file.Root.Element("activePackageSource");
             if (activePackageSource != null)
             {
@@ -72,32 +70,39 @@
                 configFile.ActivePackageSource = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
             }
 
+            // disable all listed disabled package sources
             XElement disabledPackageSources = file.Root.Element("disabledPackageSources");
             if (disabledPackageSources != null)
             {
-                configFile.DisabledPackageSources = new List<NugetPackageSource>();
-
                 var adds = disabledPackageSources.Elements("add");
                 foreach (var add in adds)
                 {
-                    NugetPackageSource disabledPackage = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
-                    if (disabledPackage.Path == "true")
+                    string name = add.Attribute("key").Value;
+                    string enabled = add.Attribute("value").Value;
+                    if (enabled == "true")
                     {
-                        configFile.DisabledPackageSources = configFile.PackageSources.FindAll(source => source.Name == disabledPackage.Name);
+                        var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                        if (source != null)
+                        {
+                            source.IsEnabled = false;
+                        }
                     }
                 }
             }
 
+            // read the configuration data
             XElement config = file.Root.Element("config");
             if (config != null)
             {
                 var adds = config.Elements("add");
                 foreach (var add in adds)
                 {
-                    NugetPackageSource configPair = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
-                    if (configPair.Name == "repositoryPath")
+                    string key = add.Attribute("key").Value;
+                    string value = add.Attribute("value").Value;
+
+                    if (key == "repositoryPath")
                     {
-                        configFile.RepositoryPath = configPair.Path;
+                        configFile.RepositoryPath = value;
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
                         {
@@ -110,13 +115,13 @@
                             configFile.RepositoryPath = Path.GetFullPath((UnityEngine.Application.dataPath + configFile.RepositoryPath).Replace('/', '\\'));
                         }
                     }
-                    else if (configPair.Name == "DefaultPushSource")
+                    else if (key == "DefaultPushSource")
                     {
-                        configFile.DefaultPushSource = configPair.Path;
+                        configFile.DefaultPushSource = value;
                     }
-                    else if (configPair.Name == "verbose")
+                    else if (key == "verbose")
                     {
-                        configFile.Verbose = bool.Parse(configPair.Path);
+                        configFile.Verbose = bool.Parse(value);
                     }
                 }
             }

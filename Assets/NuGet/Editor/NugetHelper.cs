@@ -489,8 +489,24 @@
         /// <returns>The list of available packages.</returns>
         public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
-            // TODO: Loop through all active sources and combine them into a single list
-            return NugetConfigFile.ActivePackageSource.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+            List<NugetPackage> packages = new List<NugetPackage>();
+
+            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            {
+                // Loop through all active sources and combine them into a single list
+                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
+                {
+                    var newPackages = source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+                    packages.AddRange(newPackages);
+                    packages = packages.Distinct().ToList();
+                }
+            }
+            else
+            {
+                packages = NugetConfigFile.ActivePackageSource.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+            }
+
+            return packages;
         }
 
         /// <summary>
@@ -502,22 +518,80 @@
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(List<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
-            // TODO: Loop through all active sources and combine them into a single list
-            return NugetConfigFile.ActivePackageSource.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+            List<NugetPackage> packages = new List<NugetPackage>();
+
+            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            {
+                // Loop through all active sources and combine them into a single list
+                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
+                {
+                    var newPackages = source.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                    packages.AddRange(newPackages);
+                    packages = packages.Distinct().ToList();
+                }
+            }
+            else
+            {
+                packages = NugetConfigFile.ActivePackageSource.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+            }
+
+            return packages;
         }
 
         /// <summary>
         /// Gets a NugetPackage from the NuGet server with the exact ID and Version given.
         /// If an exact match isn't found, it selects the next closest version available.
         /// </summary>
-        /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
+        /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        private static NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
-            // TODO: Loop through all active sources and stop once the package is found
-            return NugetConfigFile.ActivePackageSource.GetSpecificPackage(package);
+            NugetPackage package = null;
+
+            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            {
+                // Loop through all active sources and stop once the package is found
+                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
+                {
+                    var foundPackage = source.GetSpecificPackage(packageId);
+                    if (foundPackage != null)
+                    {
+                        if (foundPackage == packageId)
+                        {
+                            // the found package matches the ID identically
+                            package = foundPackage;
+                            break;
+                        }
+                        
+                        if (foundPackage > packageId)
+                        {
+                            // the found package does NOT match the ID identically
+                            if (package == null)
+                            {
+                                // if another package hasn't been found yet, use the new one
+                                package = foundPackage;
+                            }
+                            else
+                            {
+                                // another package has been found previously, but neither match identically
+                                if (foundPackage < package)
+                                {
+                                    // use the new package if it's closer to the desired version
+                                    package = foundPackage;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                package = NugetConfigFile.ActivePackageSource.GetSpecificPackage(packageId);
+            }
+
+            return package;
         }
 
         /// <summary>
@@ -616,8 +690,7 @@
                     {
                         if (installedPackage.Id == package.Id)
                         {
-                            // TODO: Overload >=
-                            alreadyListed = installedPackage > package || installedPackage == package;
+                            alreadyListed = installedPackage >= package;
                             break;
                         }
                     }

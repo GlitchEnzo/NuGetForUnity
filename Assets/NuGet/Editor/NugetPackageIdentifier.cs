@@ -65,6 +65,38 @@
         }
 
         /// <summary>
+        /// Checks to see if the first <see cref="NugetPackageIdentifier"/> is less than or equal to the second.
+        /// </summary>
+        /// <param name="first">The first to compare.</param>
+        /// <param name="second">The second to compare.</param>
+        /// <returns>True if the first is less than or equal to the second.</returns>
+        public static bool operator <=(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        {
+            if (first.Id != second.Id)
+            {
+                return string.Compare(first.Id, second.Id) <= 0;
+            }
+
+            return CompareVersions(first.Version, second.Version) <= 0;
+        }
+
+        /// <summary>
+        /// Checks to see if the first <see cref="NugetPackageIdentifier"/> is greater than or equal to the second.
+        /// </summary>
+        /// <param name="first">The first to compare.</param>
+        /// <param name="second">The second to compare.</param>
+        /// <returns>True if the first is greater than or equal to the second.</returns>
+        public static bool operator >=(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        {
+            if (first.Id != second.Id)
+            {
+                return string.Compare(first.Id, second.Id) >= 0;
+            }
+
+            return CompareVersions(first.Version, second.Version) >= 0;
+        }
+
+        /// <summary>
         /// Checks to see if the first <see cref="NugetPackageIdentifier"/> is equal to the second.
         /// They are equal if the Id and the Version match.
         /// </summary>
@@ -73,9 +105,9 @@
         /// <returns>True if the first is equal to the second.</returns>
         public static bool operator ==(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (object.ReferenceEquals(first, null))
+            if (ReferenceEquals(first, null))
             {
-                return object.ReferenceEquals(second, null);
+                return ReferenceEquals(second, null);
             }
 
             return first.Equals(second);
@@ -90,9 +122,9 @@
         /// <returns>True if the first is not equal to the second.</returns>
         public static bool operator !=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (object.ReferenceEquals(first, null))
+            if (ReferenceEquals(first, null))
             {
-                return !object.ReferenceEquals(second, null);
+                return !ReferenceEquals(second, null);
             }
 
             return !first.Equals(second);
@@ -119,7 +151,7 @@
             }
 
             // Return true if the fields match:
-            return (Id == p.Id) && (Version== p.Version);
+            return (Id == p.Id) && (Version == p.Version);
         }
 
         /// <summary>

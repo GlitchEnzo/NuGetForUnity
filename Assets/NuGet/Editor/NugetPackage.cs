@@ -6,7 +6,7 @@
     /// <summary>
     /// Represents a package available from NuGet.
     /// </summary>
-    public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>
+    public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>, IEqualityComparer<NugetPackage>
     {
         /// <summary>
         /// Gets or sets the title (not ID) of the package.  This is the "friendly" name that only appears in GUIs and on webpages.
@@ -93,6 +93,26 @@
         public static NugetPackage FromNupkgFile(string nupkgFilepath)
         {
             return FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath));
+        }
+
+        /// <summary>
+        /// Checks to see if the two given <see cref="NugetPackage"/>s are equal.
+        /// </summary>
+        /// <param name="x">The first <see cref="NugetPackage"/> to compare.</param>
+        /// <param name="y">The second <see cref="NugetPackage"/> to compare.</param>
+        /// <returns>True if the packages are equal, otherwise false.</returns>
+        public bool Equals(NugetPackage x, NugetPackage y)
+        {
+            return x.Id == y.Id && x.Version == y.Version;
+        }
+
+        /// <summary>
+        /// Gets the hashcode for the given <see cref="NugetPackage"/>.
+        /// </summary>
+        /// <returns>The hashcode for the given <see cref="NugetPackage"/>.</returns>
+        public int GetHashCode(NugetPackage obj)
+        {
+            return obj.Id.GetHashCode() ^ obj.Version.GetHashCode();
         }
     }
 }

@@ -31,7 +31,10 @@
         /// </summary>
         public bool IsLocalPath { get; private set; }
 
-        //public bool IsEnabled { get; private set; }
+        /// <summary>
+        /// Gets or sets a value indicated whether this source is enabled or not.
+        /// </summary>
+        public bool IsEnabled { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NugetPackageSource"/> class.
@@ -43,6 +46,7 @@
             Name = name;
             Path = path;
             IsLocalPath = !Path.StartsWith("http");
+            IsEnabled = true;
         }
 
         /// <summary>
