@@ -39,6 +39,93 @@
         public bool Verbose { get; private set; }
 
         /// <summary>
+        /// The incomplete path that is saved.  The path is expanded and made public via the property above.
+        /// </summary>
+        private string savedRepositoryPath;
+
+        /// <summary>
+        /// Saves this NuGet.config file to disk.
+        /// </summary>
+        /// <param name="filepath">The filepath to where this NuGet.config will be saved.</param>
+        public void Save(string filepath)
+        {
+            XDocument configFile = new XDocument();
+
+            XElement packageSources = new XElement("packageSources");
+            XElement disabledPackageSources = new XElement("disabledPackageSources");
+
+            XElement addElement;
+
+            // save all enabled and disabled package sources 
+            foreach (var source in PackageSources)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", source.Name));
+                addElement.Add(new XAttribute("value", source.Path));
+                packageSources.Add(addElement);
+
+                if (!source.IsEnabled)
+                {
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("key", source.Name));
+                    addElement.Add(new XAttribute("value", "true"));
+                    disabledPackageSources.Add(addElement);
+                }
+            }
+
+            // save the active package source (may be an aggregate)
+            XElement activePackageSource = new XElement("activePackageSource");
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", ActivePackageSource.Name));
+            addElement.Add(new XAttribute("value", ActivePackageSource.Path));
+            packageSources.Add(addElement);
+
+            XElement config = new XElement("config");
+
+            // save the un-expanded respository path
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "repositoryPath"));
+            addElement.Add(new XAttribute("value", savedRepositoryPath));
+            config.Add(addElement);
+
+            // save the default push source
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "DefaultPushSource"));
+            addElement.Add(new XAttribute("value", DefaultPushSource));
+            config.Add(addElement);
+
+            if (Verbose)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "verbose"));
+                addElement.Add(new XAttribute("value", Verbose.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
+            XElement configuration = new XElement("configuration");
+            configuration.Add(packageSources);
+            configuration.Add(disabledPackageSources);
+            configuration.Add(activePackageSource);
+            configuration.Add(config);
+
+            configFile.Add(configuration);
+
+            // remove the read only flag on the file, if there is one.
+            if (File.Exists(filepath))
+            {
+                FileAttributes attributes = File.GetAttributes(filepath);
+
+                if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                {
+                    attributes &= ~FileAttributes.ReadOnly;
+                    File.SetAttributes(filepath, attributes);
+                }
+            }
+
+            configFile.Save(filepath);
+        }
+
+        /// <summary>
         /// Loads a NuGet.config file at the given filepath.
         /// </summary>
         /// <param name="filePath">The full filepath to the NuGet.config file to load.</param>
@@ -78,8 +165,8 @@
                 foreach (var add in adds)
                 {
                     string name = add.Attribute("key").Value;
-                    string enabled = add.Attribute("value").Value;
-                    if (enabled == "true")
+                    string disabled = add.Attribute("value").Value;
+                    if (disabled == "true")
                     {
                         var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
                         if (source != null)
@@ -102,6 +189,7 @@
 
                     if (key == "repositoryPath")
                     {
+                        configFile.savedRepositoryPath = value;
                         configFile.RepositoryPath = value;
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
@@ -140,14 +228,15 @@
 @"<?xml version=""1.0"" encoding=""utf-8""?>
 <configuration>
     <packageSources>
-    <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
+       <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
     </packageSources>
+    <disabledPackageSources />
     <activePackageSource>
-    <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
+       <add key=""All"" value=""(Aggregate source)"" />
     </activePackageSource>
     <config>
-    <add key=""repositoryPath"" value=""./Packages"" />
-    <add key=""DefaultPushSource"" value=""http://www.nuget.org/api/v2/"" />
+       <add key=""repositoryPath"" value=""./Packages"" />
+       <add key=""DefaultPushSource"" value=""http://www.nuget.org/api/v2/"" />
     </config>
 </configuration>";
 

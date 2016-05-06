@@ -6,10 +6,7 @@
     using System.IO;
     using System.Linq;
     using System.Net;
-    using System.ServiceModel.Syndication;
     using System.Text;
-    using System.Xml;
-    using System.Xml.Linq;
     using Ionic.Zip;
     using UnityEditor;
     using UnityEngine;

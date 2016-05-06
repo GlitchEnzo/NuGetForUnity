@@ -74,7 +74,7 @@
         /// <summary>
         /// Saves the packages.config file and populates it with given installed NugetPackages.
         /// </summary>
-        /// <param name="packages">The list of currently installed NugetPackages to write to the packages.config file.</param>
+        /// <param name="filepath">The filepath to where this packages.config will be saved.</param>
         public void Save(string filepath)
         {
             Packages.Sort(delegate (NugetPackageIdentifier x, NugetPackageIdentifier y)
