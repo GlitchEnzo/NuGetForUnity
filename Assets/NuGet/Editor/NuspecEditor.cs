@@ -41,8 +41,8 @@
         public void OnEnable()
         {
             filepath = AssetDatabase.GetAssetPath(target);
-            filepath = filepath.Substring(0, Application.dataPath.Length - "Assets".Length);
-            filepath = Path.Combine(Application.dataPath, filepath);
+            string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
+            filepath = Path.Combine(dataPath, filepath);
 
             isNuspec = Path.GetExtension(filepath) == ".nuspec";
             if (isNuspec)
