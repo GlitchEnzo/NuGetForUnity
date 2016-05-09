@@ -30,7 +30,7 @@
         /// <summary>
         /// The path to the nuget.config file.
         /// </summary>
-        private static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "../NuGet.config");
+        public static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "../NuGet.config");
 
         /// <summary>
         /// The path to the nuget.exe file.
@@ -55,7 +55,7 @@
         /// <summary>
         /// The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
-        private static NugetConfigFile NugetConfigFile;
+        public static NugetConfigFile NugetConfigFile { get; private set; }
 
         /// <summary>
         /// Gets the loaded packages.config file that hold the dependencies for the project.

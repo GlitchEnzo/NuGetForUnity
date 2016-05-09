@@ -1,4 +1,6 @@
-﻿namespace NugetForUnity
+﻿using UnityEditorInternal;
+
+namespace NugetForUnity
 {
     using UnityEditor;
     using UnityEngine;
@@ -36,12 +38,43 @@
         public static void PreferencesGUI()
         {
             // Draw the GUI
-            UseCache = EditorGUILayout.Toggle("Use Cache", UseCache);
+            UseCache = EditorGUILayout.Toggle("Install From the Cache", UseCache);
 
             // Save the preferences
             if (GUI.changed)
             {
                 EditorPrefs.SetBool(PrefKeys.UseCache, UseCache);
+            }
+
+            NugetHelper.NugetConfigFile.Verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
+
+            EditorGUILayout.LabelField("Package Sources:");
+
+            foreach (var source in NugetHelper.NugetConfigFile.PackageSources)
+            {
+                EditorGUILayout.BeginHorizontal();
+                {
+                    EditorGUILayout.BeginVertical(GUILayout.Width(20));
+                    {
+                        GUILayout.Space(10);
+                        source.IsEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                    }
+                    EditorGUILayout.EndVertical();
+                    
+                    
+                    EditorGUILayout.BeginVertical();
+                    {
+                        source.Name = EditorGUILayout.TextField(source.Name);
+                        source.Path = EditorGUILayout.TextField(source.Path);
+                    }
+                    EditorGUILayout.EndVertical();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+
+            if (GUILayout.Button(string.Format("Save")))
+            {
+                NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
             }
         }
     }

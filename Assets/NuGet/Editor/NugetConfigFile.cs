@@ -36,7 +36,7 @@
         /// <summary>
         /// True to output verbose log messages to the console.  False to output the normal level of messages.
         /// </summary>
-        public bool Verbose { get; private set; }
+        public bool Verbose { get; set; }
 
         /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.

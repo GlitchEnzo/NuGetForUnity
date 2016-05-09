@@ -19,12 +19,12 @@
         /// <summary>
         /// Gets or sets the name of the package source.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the path of the package source.
         /// </summary>
-        public string Path { get; private set; }
+        public string Path { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicated whether the path is a local path or a remote path.
