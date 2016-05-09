@@ -302,6 +302,63 @@
 
                 DeleteDirectory(packageInstallDirectory + "/unityplugin");
             }
+
+            // if there are Unity StreamingAssets, copy them to the Unity StreamingAssets folder (Assets/StreamingAssets)
+            if (Directory.Exists(packageInstallDirectory + "/StreamingAssets"))
+            {
+                string streamingAssetsDirectory = Application.dataPath + "/StreamingAssets/";
+
+                if (!Directory.Exists(streamingAssetsDirectory))
+                {
+                    Directory.CreateDirectory(streamingAssetsDirectory);
+                }
+
+                // move the files
+                string[] files = Directory.GetFiles(packageInstallDirectory + "/StreamingAssets");
+                foreach (string file in files)
+                {
+                    string newFilePath = streamingAssetsDirectory + Path.GetFileName(file);
+
+                    try
+                    {
+                        LogVerbose("Moving {0} to {1}", file, newFilePath);
+                        if (File.Exists(newFilePath))
+                        {
+                            File.Delete(newFilePath);
+                        }
+                        File.Move(file, newFilePath);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarningFormat("{0} couldn't be overwritten. {1}", newFilePath, e.ToString());
+                    }
+                }
+
+                // move the directories
+                string[] directories = Directory.GetDirectories(packageInstallDirectory + "/StreamingAssets");
+                foreach (string directory in directories)
+                {
+                    string newDirectoryPath = streamingAssetsDirectory + Path.GetFileName(Path.GetDirectoryName(directory));
+
+                    try
+                    {
+                        LogVerbose("Moving {0} to {1}", directory, newDirectoryPath);
+                        if (Directory.Exists(newDirectoryPath))
+                        {
+                            Directory.Delete(newDirectoryPath);
+                        }
+                        Directory.Move(directory, newDirectoryPath);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarningFormat("{0} couldn't be moved. {1}", newDirectoryPath, e.ToString());
+                    }
+                }
+
+                LogVerbose("Deleting {0}", packageInstallDirectory + "/StreamingAssets");
+
+                DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
+            }
         }
 
         /// <summary>
