@@ -78,7 +78,7 @@
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", ActivePackageSource.Name));
             addElement.Add(new XAttribute("value", ActivePackageSource.Path));
-            packageSources.Add(addElement);
+            activePackageSource.Add(addElement);
 
             XElement config = new XElement("config");
 
