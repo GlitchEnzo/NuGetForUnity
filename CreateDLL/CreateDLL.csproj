@@ -59,6 +59,9 @@
     <Compile Include="..\Assets\NuGet\Editor\NugetPackageIdentifier.cs">
       <Link>NugetPackageIdentifier.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\NugetPackageSource.cs">
+      <Link>NugetPackageSource.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NugetPreferences.cs">
       <Link>NugetPreferences.cs</Link>
     </Compile>
