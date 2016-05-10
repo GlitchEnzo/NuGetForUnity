@@ -81,8 +81,8 @@
             // save the active package source (may be an aggregate)
             XElement activePackageSource = new XElement("activePackageSource");
             addElement = new XElement("add");
-            addElement.Add(new XAttribute("key", ActivePackageSource.Name));
-            addElement.Add(new XAttribute("value", ActivePackageSource.Path));
+            addElement.Add(new XAttribute("key", "All"));
+            addElement.Add(new XAttribute("value", "(Aggregate source)"));
             activePackageSource.Add(addElement);
 
             XElement config = new XElement("config");
