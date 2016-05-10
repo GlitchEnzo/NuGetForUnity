@@ -61,7 +61,7 @@
 
             string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
 
-            if (NugetPreferences.UseCache && File.Exists(cachedPackagePath))
+            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
             {
                 NugetHelper.LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
                 foundPackage = NugetPackage.FromNupkgFile(cachedPackagePath);

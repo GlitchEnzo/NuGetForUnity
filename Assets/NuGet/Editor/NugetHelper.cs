@@ -761,7 +761,7 @@
                 }
 
                 string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-                if (NugetPreferences.UseCache && File.Exists(cachedPackagePath))
+                if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
                 }

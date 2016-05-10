@@ -39,6 +39,11 @@
         public bool Verbose { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the server.
+        /// </summary>
+        public bool InstallFromCache { get; set; }
+
+        /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         private string savedRepositoryPath;
@@ -102,6 +107,14 @@
                 config.Add(addElement);
             }
 
+            if (!InstallFromCache)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "InstallFromCache"));
+                addElement.Add(new XAttribute("value", InstallFromCache.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
@@ -133,6 +146,7 @@
         public static NugetConfigFile Load(string filePath)
         {
             NugetConfigFile configFile = new NugetConfigFile();
+            configFile.InstallFromCache = true;
 
             XDocument file = XDocument.Load(filePath);
 
@@ -210,6 +224,10 @@
                     else if (key == "verbose")
                     {
                         configFile.Verbose = bool.Parse(value);
+                    }
+                    else if (key == "InstallFromCache")
+                    {
+                        configFile.InstallFromCache = bool.Parse(value);
                     }
                 }
             }
