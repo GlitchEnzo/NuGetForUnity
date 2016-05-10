@@ -9,6 +9,11 @@
     public class NugetPreferences
     {
         /// <summary>
+        /// The current position of the scroll bar in the GUI.
+        /// </summary>
+        private static Vector2 scrollPosition;
+
+        /// <summary>
         /// Draws the preferences GUI inside the Unity preferences window in the Editor.
         /// </summary>
         [PreferenceItem("NuGet For Unity")]
@@ -20,27 +25,89 @@
 
             EditorGUILayout.LabelField("Package Sources:");
 
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+
+            NugetPackageSource sourceToMoveUp = null;
+            NugetPackageSource sourceToMoveDown = null;
+            NugetPackageSource sourceToRemove = null;
+
             foreach (var source in NugetHelper.NugetConfigFile.PackageSources)
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginVertical();
                 {
-                    EditorGUILayout.BeginVertical(GUILayout.Width(20));
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        GUILayout.Space(10);
-                        source.IsEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                        EditorGUILayout.BeginVertical(GUILayout.Width(20));
+                        {
+                            GUILayout.Space(10);
+                            source.IsEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                        }
+                        EditorGUILayout.EndVertical();
+
+                        EditorGUILayout.BeginVertical();
+                        {
+                            source.Name = EditorGUILayout.TextField(source.Name);
+                            source.Path = EditorGUILayout.TextField(source.Path);
+                        }
+                        EditorGUILayout.EndVertical();
                     }
-                    EditorGUILayout.EndVertical();
-                    
-                    
-                    EditorGUILayout.BeginVertical();
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        source.Name = EditorGUILayout.TextField(source.Name);
-                        source.Path = EditorGUILayout.TextField(source.Path);
+                        if (GUILayout.Button(string.Format("Move Up")))
+                        {
+                            sourceToMoveUp = source;
+                        }
+
+                        if (GUILayout.Button(string.Format("Move Down")))
+                        {
+                            sourceToMoveDown = source;
+                        }
+
+                        if (GUILayout.Button(string.Format("Remove")))
+                        {
+                            sourceToRemove = source;
+                        }
                     }
-                    EditorGUILayout.EndVertical();
+                    EditorGUILayout.EndHorizontal();
                 }
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndVertical();
             }
+
+            if (sourceToMoveUp != null)
+            {
+                int index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
+                if (index > 0)
+                {
+                    NugetPackageSource swap = NugetHelper.NugetConfigFile.PackageSources[index - 1];
+                    NugetHelper.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
+                    NugetHelper.NugetConfigFile.PackageSources[index] = swap;
+                }
+            }
+
+            if (sourceToMoveDown != null)
+            {
+                int index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
+                if (index < NugetHelper.NugetConfigFile.PackageSources.Count - 1)
+                {
+                    NugetPackageSource swap = NugetHelper.NugetConfigFile.PackageSources[index + 1];
+                    NugetHelper.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
+                    NugetHelper.NugetConfigFile.PackageSources[index] = swap;
+                }
+            }
+
+            if (sourceToRemove != null)
+            {
+                NugetHelper.NugetConfigFile.PackageSources.Remove(sourceToRemove);
+            }
+
+            if (GUILayout.Button(string.Format("Add New Source")))
+            {
+                NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSource("New Source", "source_path"));
+            }
+
+            EditorGUILayout.EndScrollView();
 
             if (GUILayout.Button(string.Format("Save")))
             {
