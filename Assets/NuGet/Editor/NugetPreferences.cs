@@ -80,9 +80,8 @@
                 int index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
                 if (index > 0)
                 {
-                    NugetPackageSource swap = NugetHelper.NugetConfigFile.PackageSources[index - 1];
+                    NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index - 1];
                     NugetHelper.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
-                    NugetHelper.NugetConfigFile.PackageSources[index] = swap;
                 }
             }
 
@@ -91,9 +90,8 @@
                 int index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
                 if (index < NugetHelper.NugetConfigFile.PackageSources.Count - 1)
                 {
-                    NugetPackageSource swap = NugetHelper.NugetConfigFile.PackageSources[index + 1];
+                    NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index + 1];
                     NugetHelper.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
-                    NugetHelper.NugetConfigFile.PackageSources[index] = swap;
                 }
             }
 
