@@ -67,5 +67,6 @@ $RECYCLE.BIN/
 Packages/
 Packages.meta
 
-# Ignore the generated (packed) NuGet packages folder
-nupkgs/
+# Ignore the bin folder
+CreateDLL/bin
+*.suo
