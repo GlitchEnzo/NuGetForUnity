@@ -176,7 +176,7 @@
             {
                 foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
                 {
-                    NugetPackage dependency = new NugetPackage();
+                    NugetPackageIdentifier dependency = new NugetPackageIdentifier();
                     dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
                     dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
                     nuspec.Dependencies.Add(dependency);

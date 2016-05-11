@@ -110,7 +110,7 @@
 
                     if (GUILayout.Button("Add Dependency"))
                     {
-                        nuspec.Dependencies.Add(new NugetPackage());
+                        nuspec.Dependencies.Add(new NugetPackageIdentifier());
                     }
 
                     EditorGUI.indentLevel--;
