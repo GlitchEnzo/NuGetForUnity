@@ -110,6 +110,11 @@
                 }
             }
 
+            if (foundPackage != null)
+            {
+                foundPackage.PackageSource = this;
+            }
+
             return foundPackage;
         }
 

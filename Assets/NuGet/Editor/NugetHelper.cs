@@ -615,6 +615,7 @@
                         if (foundPackage == packageId)
                         {
                             // the found package matches the ID identically
+                            LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                             package = foundPackage;
                             break;
                         }
@@ -625,6 +626,7 @@
                             if (package == null)
                             {
                                 // if another package hasn't been found yet, use the new one
+                                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                 package = foundPackage;
                             }
                             else
@@ -633,6 +635,7 @@
                                 if (foundPackage < package)
                                 {
                                     // use the new package if it's closer to the desired version
+                                    LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                     package = foundPackage;
                                 }
                             }
