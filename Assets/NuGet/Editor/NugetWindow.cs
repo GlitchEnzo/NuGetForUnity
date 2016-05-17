@@ -138,7 +138,7 @@
         /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
-        [MenuItem("NuGet/Version 0.0.5")]
+        [MenuItem("NuGet/Version 0.0.6")]
         protected static void DisplayVersion()
         {
         }
@@ -593,6 +593,13 @@
                     if (showAllVersionsTemp != showAllUpdateVersions)
                     {
                         showAllUpdateVersions = showAllVersionsTemp;
+                        UpdateUpdatePackages();
+                    }
+
+                    if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                    {
+                        NugetHelper.UpdateAll(updatePackages, installedPackages);
+                        UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }

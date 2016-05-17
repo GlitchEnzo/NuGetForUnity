@@ -473,10 +473,35 @@
         /// </summary>
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
-        public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion)
+        /// <param name="refreshAssets">True to refresh the assets inside Unity.  False to ignore them (for now).  Defaults to true.</param>
+        public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion, bool refreshAssets = true)
         {
+            LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
-            Install(newVersion);
+            Install(newVersion, refreshAssets);
+        }
+
+        /// <summary>
+        /// Installs all of the given updates, and uninstalls the corresponding package that is already installed.
+        /// </summary>
+        /// <param name="updates">The list of all updates to install.</param>
+        /// <param name="installedPackages">The list of all packages currently installed.</param>
+        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> installedPackages)
+        {
+            foreach (NugetPackage update in updates)
+            {
+                NugetPackage installedPackage = installedPackages.FirstOrDefault(p => p.Id == update.Id);
+                if (installedPackage != null)
+                {
+                    Update(installedPackage, update, false);
+                }
+                else
+                {
+                    Debug.LogErrorFormat("Trying to update {0} to {1}, but no version is installed!", update.Id, update.Version);
+                }
+            }
+
+            AssetDatabase.Refresh();
         }
 
         /// <summary>
@@ -689,7 +714,7 @@
                         NugetPackage newPackage = GetSpecificPackage(package);
 
                         LogVerbose("{0} {1} is installed, but need {2}.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
-                        Update(installedPackage, newPackage);
+                        Update(installedPackage, newPackage, refreshAssets);
                         return;
                     }
                     else
