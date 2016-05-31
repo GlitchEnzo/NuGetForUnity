@@ -9,6 +9,11 @@
     public class NugetPreferences
     {
         /// <summary>
+        /// The current version of NuGet for Unity.
+        /// </summary>
+        public static string NuGetForUnityVersion = "0.0.6";
+
+        /// <summary>
         /// The current position of the scroll bar in the GUI.
         /// </summary>
         private static Vector2 scrollPosition;
@@ -19,6 +24,8 @@
         [PreferenceItem("NuGet For Unity")]
         public static void PreferencesGUI()
         {
+            EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
+
             NugetHelper.NugetConfigFile.InstallFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
 
             NugetHelper.NugetConfigFile.Verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
