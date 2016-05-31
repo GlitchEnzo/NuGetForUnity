@@ -256,10 +256,7 @@
                 {
                     string newFilePath = Directory.GetCurrentDirectory() + "/" + Path.GetFileName(file);
                     LogVerbose("Moving {0} to {1}", file, newFilePath);
-                    if (File.Exists(newFilePath))
-                    {
-                        File.Delete(newFilePath);
-                    }
+                    DeleteFile(newFilePath);
                     File.Move(file, newFilePath);
                 }
 
@@ -286,10 +283,7 @@
                     try
                     {
                         LogVerbose("Moving {0} to {1}", file, newFilePath);
-                        if (File.Exists(newFilePath))
-                        {
-                            File.Delete(newFilePath);
-                        }
+                        DeleteFile(newFilePath);
                         File.Move(file, newFilePath);
                     }
                     catch (UnauthorizedAccessException)
@@ -322,10 +316,7 @@
                     try
                     {
                         LogVerbose("Moving {0} to {1}", file, newFilePath);
-                        if (File.Exists(newFilePath))
-                        {
-                            File.Delete(newFilePath);
-                        }
+                        DeleteFile(newFilePath);
                         File.Move(file, newFilePath);
                     }
                     catch (Exception e)
@@ -444,6 +435,7 @@
         {
             if (File.Exists(filePath))
             {
+                File.SetAttributes(filePath, FileAttributes.Normal);
                 File.Delete(filePath);
             }
         }
