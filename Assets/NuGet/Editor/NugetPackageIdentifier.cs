@@ -184,6 +184,10 @@
                 if (splitStringsA.Length > 1)
                 {
                     prereleaseA = splitStringsA[1];
+                    for (int i = 2; i < splitStringsA.Length; i++)
+                    {
+                        prereleaseA += "-" + splitStringsA[i];
+                    }
                 }
 
                 string[] splitA = versionA.Split('.');
@@ -203,6 +207,10 @@
                 if (splitStringsB.Length > 1)
                 {
                     prereleaseB = splitStringsB[1];
+                    for (int i = 2; i < splitStringsB.Length; i++)
+                    {
+                        prereleaseB += "-" + splitStringsB[i];
+                    }
                 }
 
                 string[] splitB = versionB.Split('.');
