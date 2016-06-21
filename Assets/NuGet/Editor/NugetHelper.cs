@@ -506,17 +506,17 @@
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            List<NugetPackage> fullPackages = new List<NugetPackage>(PackagesConfigFile.Packages.Count);
+            List<NugetPackage> fullPackages = new List<NugetPackage>();
 
-            // loops through the packages that the packages.config file says are installed
-            foreach (var package in PackagesConfigFile.Packages)
+            // loops through the packages that are actually installed in the project
+            foreach (var installedPackage in GetActualInstalledPackages())
             {
-                string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version));
+                string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", installedPackage.Id, installedPackage.Version));
 
                 // if the .nupkg file doesn't exist in the installed directory, it was probably installed via an older version.  Copy it now from the cached location, if it exists.
                 if (!File.Exists(installedPackagePath))
                 {
-                    string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                    string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", installedPackage.Id, installedPackage.Version));
                     if (File.Exists(cachedPackagePath) && Directory.Exists(Path.GetDirectoryName(installedPackagePath)))
                     {
                         File.Copy(cachedPackagePath, installedPackagePath);
@@ -526,9 +526,6 @@
                 // get the NugetPackage via the .nuspec file inside the .nupkg file
                 fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath));
             }
-
-            // get the packages that are actually present in the project
-            //GetActualInstalledPackages();
 
             // sort alphabetically
             fullPackages.Sort(delegate (NugetPackage x, NugetPackage y)
@@ -579,8 +576,6 @@
                     package.Version = directoryName.Substring(match.Index + 1);
 
                     installedPackages.Add(package);
-
-                    //LogVerbose("Package installed = {0} {1}", package.Id, package.Version);
                 }
                 else
                 {
@@ -676,7 +671,7 @@
                     {
                         if (foundPackage == packageId)
                         {
-                            // the found package matches the ID identically
+                            // the found package matches the desired package identically
                             LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                             package = foundPackage;
                             break;
@@ -684,10 +679,10 @@
                         
                         if (foundPackage > packageId)
                         {
-                            // the found package does NOT match the ID identically
+                            // the found package does NOT match the desired package identically
                             if (package == null)
                             {
-                                // if another package hasn't been found yet, use the new one
+                                // if another package hasn't been found yet, use the current found one
                                 LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                 package = foundPackage;
                             }
@@ -727,40 +722,37 @@
         }
 
         /// <summary>
-        /// Installs the package given by the identifer.  It fetches the appropriate full package from the server and installs it.
+        /// Installs the package given by the identifer.  It fetches the appropriate full package from the package source and installs it.
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
-        /// <param name="refreshAssets">True to force Unity to refrehs the asset database.  False to temporarily ignore the change.</param>
+        /// <param name="refreshAssets">True to force Unity to refresh the asset database.  False to temporarily ignore the change.</param>
         private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            // If the package, or a later version, is already installed and use it.
+            // If the package, or a later version, is already installed, use it.
             // If an earlier version is installed, update it.
             // If not installed, look on the server for specific version
-            // If specific version not found on server, use the next version up (not latest)
+            // If specific version not found on server, use the NEXT version up (not latest)
 
-            // copy the list since the Update operation below changes the actual installed packages list
-            //var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+            // get the list of packages actually installed in the project
             var installedPackages = GetActualInstalledPackages();
 
             foreach (var installedPackage in installedPackages)
             {
-                if (installedPackage.Id == package.Id && IsInstalled(installedPackage))
+                if (installedPackage.Id == package.Id)
                 {
                     if (installedPackage < package)
                     {
                         // the installed version is older than the version to install, so update it
                         NugetPackage newPackage = GetSpecificPackage(package);
 
-                        LogVerbose("{0} {1} is installed, but need {2}.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
+                        LogVerbose("{0} {1} is installed, but need {2} or greater.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
                         Update(installedPackage, newPackage, refreshAssets);
                         return;
                     }
                     else
                     {
-                        // Either case below is true
-                        // the installed version is newer than the version to install, so use it
-                        // the installed version is equal to the version to install, so use it
-                        LogVerbose("{0} {1} is installed. {2} is needed, so just using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                        // the installed version is greater than or equal to the version to install, so use it
+                        LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
                         return;
                     }
                 }
@@ -789,7 +781,7 @@
         }
 
         /// <summary>
-        /// Installs the given package via the HTTP server API.
+        /// Installs the given package.
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
@@ -804,27 +796,8 @@
 
                 foreach (var dependency in package.Dependencies)
                 {
-                    bool alreadyListed = false;
-
-                    // look in the packages.config file to see if the dependency, the same or newer version, is already listed
-                    foreach (var installedPackage in PackagesConfigFile.Packages)
-                    {
-                        if (installedPackage.Id == package.Id)
-                        {
-                            alreadyListed = installedPackage >= package;
-                            break;
-                        }
-                    }
-
-                    if (!alreadyListed)
-                    {
-                        LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                        InstallIdentifier(dependency, false);
-                    }
-                    else
-                    {
-                        LogVerbose("Skipping Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    }
+                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                    InstallIdentifier(dependency, false);
                 }
 
                 string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
@@ -939,16 +912,16 @@
                 {
                     if (package != null)
                     {
-                        EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0}", package.Id), currentProgress);
+                        EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0} {1}", package.Id, package.Version), currentProgress);
                         
                         if (!IsInstalled(package))
                         {
-                            LogVerbose("   Installing {0}", package.Id);
+                            LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
                             InstallIdentifier(package, false);
                         }
                         else
                         {
-                            LogVerbose("   Already installed: {0}", package.Id);
+                            LogVerbose("---Already installed: {0} {1}", package.Id, package.Version);
                         }
                     }
 
