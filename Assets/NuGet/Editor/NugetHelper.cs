@@ -929,11 +929,7 @@
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
             bool installed = Directory.Exists(packageInstallDirectory);
 
-            if (installed)
-            {
-                LogVerbose("Directory DOES exist: {0}", packageInstallDirectory);
-            }
-            else
+            if (!installed)
             {
                 LogVerbose("Directory does NOT exist: {0}", packageInstallDirectory);
             }
