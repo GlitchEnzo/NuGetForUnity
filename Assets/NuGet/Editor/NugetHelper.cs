@@ -696,8 +696,15 @@
                         // the installed version is older than the version to install, so update it
                         NugetPackage newPackage = GetSpecificPackage(package);
 
-                        LogVerbose("{0} {1} is installed, but need {2} or greater.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
-                        Update(installedPackage, newPackage, false);
+                        if (newPackage != null)
+                        {
+                            LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
+                            Update(installedPackage, newPackage, false);
+                        }
+                        else
+                        {
+                            Debug.LogErrorFormat("{0} {1} is installed, but need {2} or greater. Could not find appropriate package.", installedPackage.Id, installedPackage.Version, package.Version);
+                        }
                         return;
                     }
                     else
@@ -715,6 +722,10 @@
             if (foundPackage != null)
             {
                 Install(foundPackage, false);
+            }
+            else
+            {
+                Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
             }
         }
 
