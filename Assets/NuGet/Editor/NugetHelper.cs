@@ -677,8 +677,7 @@
         /// Installs the package given by the identifer.  It fetches the appropriate full package from the package source and installs it.
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
-        /// <param name="refreshAssets">True to force Unity to refresh the asset database.  False to temporarily ignore the change.</param>
-        private static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        private static void InstallIdentifier(NugetPackageIdentifier package)
         {
             // If the package, or a later version, is already installed, use it.
             // If an earlier version is installed, update it.
@@ -698,7 +697,7 @@
                         NugetPackage newPackage = GetSpecificPackage(package);
 
                         LogVerbose("{0} {1} is installed, but need {2} or greater.  Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
-                        Update(installedPackage, newPackage, refreshAssets);
+                        Update(installedPackage, newPackage, false);
                         return;
                     }
                     else
@@ -715,7 +714,7 @@
 
             if (foundPackage != null)
             {
-                Install(foundPackage, refreshAssets);
+                Install(foundPackage, false);
             }
         }
 
@@ -749,7 +748,7 @@
                 foreach (var dependency in package.Dependencies)
                 {
                     LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    InstallIdentifier(dependency, false);
+                    InstallIdentifier(dependency);
                 }
 
                 string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
@@ -869,7 +868,7 @@
                         if (!IsInstalled(package))
                         {
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            InstallIdentifier(package, false);
+                            InstallIdentifier(package);
                         }
                         else
                         {
