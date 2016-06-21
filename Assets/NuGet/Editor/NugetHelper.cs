@@ -967,7 +967,7 @@
             {
                 if (stopwatch.ElapsedMilliseconds >= 750)
                 {
-                    LogVerbose("Timed out!");
+                    //LogVerbose("Downloading image timed out! Took more than 750ms.");
 
                     request.Dispose();
                     stopwatch.Stop();
