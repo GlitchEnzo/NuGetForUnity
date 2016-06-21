@@ -560,26 +560,29 @@
         private static List<NugetPackageIdentifier> GetActualInstalledPackages()
         {
             List<NugetPackageIdentifier> installedPackages = new List<NugetPackageIdentifier>();
-            
-            string[] installedPackagePaths = Directory.GetDirectories(NugetConfigFile.RepositoryPath);
-            foreach (string installedPackagePath in installedPackagePaths)
+
+            if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
-                string directoryName = new DirectoryInfo(installedPackagePath).Name;
-
-                // directory should be in the form Package.ID.Version-PrereleaseTag (ex: Newtonsoft.Json.6.0.8-rc02)
-                // so, attempt to find the first case of a period followed by a number (ex: .6), that is the split between ID and Version
-                Match match = Regex.Match(directoryName, @"\.\d");
-                if (match.Success)
+                string[] installedPackagePaths = Directory.GetDirectories(NugetConfigFile.RepositoryPath);
+                foreach (string installedPackagePath in installedPackagePaths)
                 {
-                    NugetPackageIdentifier package = new NugetPackageIdentifier();
-                    package.Id = directoryName.Substring(0, match.Index);
-                    package.Version = directoryName.Substring(match.Index + 1);
+                    string directoryName = new DirectoryInfo(installedPackagePath).Name;
 
-                    installedPackages.Add(package);
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Invalid package path: {0}", installedPackagePath);
+                    // directory should be in the form Package.ID.Version-PrereleaseTag (ex: Newtonsoft.Json.6.0.8-rc02)
+                    // so, attempt to find the first case of a period followed by a number (ex: .6), that is the split between ID and Version
+                    Match match = Regex.Match(directoryName, @"\.\d");
+                    if (match.Success)
+                    {
+                        NugetPackageIdentifier package = new NugetPackageIdentifier();
+                        package.Id = directoryName.Substring(0, match.Index);
+                        package.Version = directoryName.Substring(match.Index + 1);
+
+                        installedPackages.Add(package);
+                    }
+                    else
+                    {
+                        Debug.LogErrorFormat("Invalid package path: {0}", installedPackagePath);
+                    }
                 }
             }
 
