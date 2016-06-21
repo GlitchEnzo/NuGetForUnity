@@ -7,6 +7,7 @@
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Text.RegularExpressions;
     using Ionic.Zip;
     using UnityEditor;
     using UnityEngine;
@@ -507,6 +508,7 @@
 
             List<NugetPackage> fullPackages = new List<NugetPackage>(PackagesConfigFile.Packages.Count);
 
+            // loops through the packages that the packages.config file says are installed
             foreach (var package in PackagesConfigFile.Packages)
             {
                 string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version));
@@ -525,8 +527,10 @@
                 fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath));
             }
 
+            // get the packages that are actually present in the project
+
             // sort alphabetically
-            fullPackages.Sort(delegate(NugetPackage x, NugetPackage y)
+            fullPackages.Sort(delegate (NugetPackage x, NugetPackage y)
             {
                 if (x.Id == null && y.Id == null)
                     return 0;
@@ -541,9 +545,49 @@
             });
 
             stopwatch.Stop();
-            LogVerbose("Getting installed packages locally took {0} ms", stopwatch.ElapsedMilliseconds);
+            LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
 
             return fullPackages;
+        }
+
+        /// <summary>
+        /// Gets the list of packages that are actually installed in the project.
+        /// </summary>
+        /// <remarks>
+        /// There may be packages installed that are not listed in the packages.config file.
+        /// This happens when the packages.config file is edited by hand, or when it is edited by a user and checked into source control (and checked out by another user).
+        /// This method parses the installed package directories to find out what is ACTUALLY installed.
+        /// </remarks>
+        /// <returns></returns>
+        private static List<NugetPackageIdentifier> GetActualInstalledPackages()
+        {
+            List<NugetPackageIdentifier> installedPackages = new List<NugetPackageIdentifier>();
+            
+            string[] installedPackagePaths = Directory.GetDirectories(NugetConfigFile.RepositoryPath);
+            foreach (string installedPackagePath in installedPackagePaths)
+            {
+                string directoryName = new DirectoryInfo(installedPackagePath).Name;
+
+                // directory should be in the form Package.ID.Version-PrereleaseTag (ex: Newtonsoft.Json.6.0.8-rc02)
+                // so, attempt to find the first case of a period followed by a number (ex: .6), that is the split between ID and Version
+                Match match = Regex.Match(directoryName, @"\.\d");
+                if (match.Success)
+                {
+                    NugetPackageIdentifier package = new NugetPackageIdentifier();
+                    package.Id = directoryName.Substring(0, match.Index);
+                    package.Version = directoryName.Substring(match.Index + 1);
+
+                    installedPackages.Add(package);
+
+                    //LogVerbose("Package installed = {0} {1}", package.Id, package.Version);
+                }
+                else
+                {
+                    Debug.LogErrorFormat("Invalid package path: {0}", installedPackagePath);
+                }
+            }
+
+            return installedPackages;
         }
 
         /// <summary>
@@ -694,7 +738,8 @@
             // If specific version not found on server, use the next version up (not latest)
 
             // copy the list since the Update operation below changes the actual installed packages list
-            var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+            //var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+            var installedPackages = GetActualInstalledPackages();
 
             foreach (var installedPackage in installedPackages)
             {
@@ -720,6 +765,7 @@
                 }
             }
 
+            // if we reach here, that means no other version of the package is already installed
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
@@ -877,18 +923,18 @@
         {
             try
             {
-                // TODO: Is this reload needed?
+                // Reload since the packages.config file may have been edited by hand
                 PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
                 float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
                 float currentProgress = 0;
 
                 // copy the list since the InstallIdentifier operation below changes the actual installed packages list
-                var installedPackages = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+                var packagesToInstall = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
 
-                LogVerbose("Restoring {0} packages.", installedPackages.Count);
+                LogVerbose("Restoring {0} packages.", packagesToInstall.Count);
 
-                foreach (var package in installedPackages)
+                foreach (var package in packagesToInstall)
                 {
                     if (package != null)
                     {
@@ -928,12 +974,6 @@
         {
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
             bool installed = Directory.Exists(packageInstallDirectory);
-
-            if (!installed)
-            {
-                LogVerbose("Directory does NOT exist: {0}", packageInstallDirectory);
-            }
-
             return installed;
         }
 
