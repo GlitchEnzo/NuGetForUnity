@@ -528,6 +528,7 @@
             }
 
             // get the packages that are actually present in the project
+            //GetActualInstalledPackages();
 
             // sort alphabetically
             fullPackages.Sort(delegate (NugetPackage x, NugetPackage y)
