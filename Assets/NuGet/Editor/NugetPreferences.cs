@@ -6,12 +6,12 @@
     /// <summary>
     /// Handles the displaying, editing, and saving of the preferences for NuGet For Unity.
     /// </summary>
-    public class NugetPreferences
+    public static class NugetPreferences
     {
         /// <summary>
         /// The current version of NuGet for Unity.
         /// </summary>
-        public static string NuGetForUnityVersion = "0.0.6";
+        public const string NuGetForUnityVersion = "0.0.7";
 
         /// <summary>
         /// The current position of the scroll bar in the GUI.

@@ -498,93 +498,42 @@
         }
 
         /// <summary>
-        /// Gets a list of all currently installed packages by reading the packages.config file and then reading the .nuspec file inside the .nupkg file.
+        /// Gets the list of packages that are actually installed in the project.
         /// </summary>
-        /// <returns>A list of installed NugetPackages.</returns>
+        /// <returns>A list of installed <see cref="NugetPackage"/>s.</returns>
         public static List<NugetPackage> GetInstalledPackages()
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            List<NugetPackage> fullPackages = new List<NugetPackage>();
+            List<NugetPackage> installedPackages = new List<NugetPackage>();
 
             // loops through the packages that are actually installed in the project
-            foreach (var installedPackage in GetActualInstalledPackages())
+            if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
-                string installedPackagePath = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", installedPackage.Id, installedPackage.Version));
-
-                // if the .nupkg file doesn't exist in the installed directory, it was probably installed via an older version.  Copy it now from the cached location, if it exists.
-                if (!File.Exists(installedPackagePath))
+                string[] nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
+                foreach (string nupkgFile in nupkgFiles)
                 {
-                    string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", installedPackage.Id, installedPackage.Version));
-                    if (File.Exists(cachedPackagePath) && Directory.Exists(Path.GetDirectoryName(installedPackagePath)))
-                    {
-                        File.Copy(cachedPackagePath, installedPackagePath);
-                    }
+                    installedPackages.Add(NugetPackage.FromNupkgFile(nupkgFile));
                 }
-
-                // get the NugetPackage via the .nuspec file inside the .nupkg file
-                fullPackages.Add(NugetPackage.FromNupkgFile(installedPackagePath));
             }
 
             // sort alphabetically
-            fullPackages.Sort(delegate (NugetPackage x, NugetPackage y)
+            installedPackages.Sort(delegate(NugetPackage x, NugetPackage y)
             {
                 if (x.Id == null && y.Id == null)
                     return 0;
-                else if (x.Id == null)
+                if (x.Id == null)
                     return -1;
-                else if (y.Id == null)
+                if (y.Id == null)
                     return 1;
-                else if (x.Id == y.Id)
+                if (x.Id == y.Id)
                     return x.Version.CompareTo(y.Version);
-                else
-                    return x.Id.CompareTo(y.Id);
+                return x.Id.CompareTo(y.Id);
             });
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
-
-            return fullPackages;
-        }
-
-        /// <summary>
-        /// Gets the list of packages that are actually installed in the project.
-        /// </summary>
-        /// <remarks>
-        /// There may be packages installed that are not listed in the packages.config file.
-        /// This happens when the packages.config file is edited by hand, or when it is edited by a user and checked into source control (and checked out by another user).
-        /// This method parses the installed package directories to find out what is ACTUALLY installed.
-        /// </remarks>
-        /// <returns></returns>
-        private static List<NugetPackageIdentifier> GetActualInstalledPackages()
-        {
-            List<NugetPackageIdentifier> installedPackages = new List<NugetPackageIdentifier>();
-
-            if (Directory.Exists(NugetConfigFile.RepositoryPath))
-            {
-                string[] installedPackagePaths = Directory.GetDirectories(NugetConfigFile.RepositoryPath);
-                foreach (string installedPackagePath in installedPackagePaths)
-                {
-                    string directoryName = new DirectoryInfo(installedPackagePath).Name;
-
-                    // directory should be in the form Package.ID.Version-PrereleaseTag (ex: Newtonsoft.Json.6.0.8-rc02)
-                    // so, attempt to find the first case of a period followed by a number (ex: .6), that is the split between ID and Version
-                    Match match = Regex.Match(directoryName, @"\.\d");
-                    if (match.Success)
-                    {
-                        NugetPackageIdentifier package = new NugetPackageIdentifier();
-                        package.Id = directoryName.Substring(0, match.Index);
-                        package.Version = directoryName.Substring(match.Index + 1);
-
-                        installedPackages.Add(package);
-                    }
-                    else
-                    {
-                        Debug.LogErrorFormat("Invalid package path: {0}", installedPackagePath);
-                    }
-                }
-            }
 
             return installedPackages;
         }
@@ -736,8 +685,8 @@
             // If not installed, look on the server for specific version
             // If specific version not found on server, use the NEXT version up (not latest)
 
-            // get the list of packages actually installed in the project
-            var installedPackages = GetActualInstalledPackages();
+            // get the list of packages installed in the project
+            var installedPackages = GetInstalledPackages();
 
             foreach (var installedPackage in installedPackages)
             {
