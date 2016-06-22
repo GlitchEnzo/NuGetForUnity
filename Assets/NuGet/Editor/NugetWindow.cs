@@ -191,6 +191,9 @@
         {
             try
             {
+                // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
+                NugetHelper.LoadNugetConfigFile();
+
                 // set the window title
                 titleContent = new GUIContent("NuGet");
 
