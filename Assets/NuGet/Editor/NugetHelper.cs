@@ -222,13 +222,19 @@
                     "cf", // compact framework
                     "wp", // windows phone
                     "sl", // silverlight
-                    "windowsphone"
+                    "windowsphone",
+                    "monoandroid",
+                    "monotouch",
+                    "win8",
+                    "win", // windows store
+                    "xamarin.ios10",
+                    "xamarin.mac20"
                 };
 
                 string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
                 foreach (var directory in libDirectories)
                 {
-                    string directoryName = new DirectoryInfo(directory).Name;
+                    string directoryName = new DirectoryInfo(directory).Name.ToLower();
                     if (directoriesToDelete.Any(directoryName.Contains))
                     {
                         LogVerbose("Deleting unused directory: {0}", directory);
