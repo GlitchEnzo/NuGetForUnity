@@ -127,15 +127,6 @@
         }
 
         /// <summary>
-        /// Reloads the NuGet.config file to get any changes that have occurred.
-        /// </summary>
-        [MenuItem("NuGet/Reload NuGet.config")]
-        protected static void ReloadNugetConfigFile()
-        {
-            NugetHelper.LoadNugetConfigFile();
-        }
-
-        /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
         [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion)]
