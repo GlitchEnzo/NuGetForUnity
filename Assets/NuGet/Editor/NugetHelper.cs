@@ -64,13 +64,60 @@
         public static PackagesConfigFile PackagesConfigFile { get; private set; }
 
         /// <summary>
-        /// Static constructor used by Unity to restore packages defined in packages.config.
+        /// The list of <see cref="NugetPackageSource"/>s to use.
+        /// </summary>
+        private static List<NugetPackageSource> packageSources = new List<NugetPackageSource>(); 
+
+        /// <summary>
+        /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
         /// </summary>
         static NugetHelper()
         {
             // Load the NuGet.config file
             LoadNugetConfigFile();
 
+            // parse any command line arguments
+            packageSources.Clear();
+            bool readingSources = false;
+            bool useCommandLineSources = false;
+            foreach (var arg in Environment.GetCommandLineArgs())
+            {
+                if (readingSources)
+                {
+                    if (arg.StartsWith("-"))
+                    {
+                        readingSources = false;
+                    }
+                    else
+                    {
+                        NugetPackageSource source = new NugetPackageSource("CMD_LINE_SRC_" + packageSources.Count, arg);
+                        LogVerbose("Adding command line package source {0} at {1}", "CMD_LINE_SRC_" + packageSources.Count, arg);
+                        packageSources.Add(source);
+                        
+                    }
+                }
+
+                if (arg == "-Source")
+                {
+                    readingSources = true;
+                    useCommandLineSources = true;
+                }
+            }
+
+            // if there are not command line overrides, use the NuGet.config package sources
+            if (!useCommandLineSources)
+            {
+                if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+                {
+                    packageSources.AddRange(NugetConfigFile.PackageSources);
+                }
+                else
+                {
+                    packageSources.Add(NugetConfigFile.ActivePackageSource);
+                }
+            }
+
+            // Load the packages.config file
             PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
             // create the nupkgs directory, if it doesn't exist
@@ -560,19 +607,12 @@
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
-            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            // Loop through all active sources and combine them into a single list
+            foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
-                // Loop through all active sources and combine them into a single list
-                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
-                {
-                    var newPackages = source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
-                    packages.AddRange(newPackages);
-                    packages = packages.Distinct().ToList();
-                }
-            }
-            else
-            {
-                packages = NugetConfigFile.ActivePackageSource.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+                var newPackages = source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+                packages.AddRange(newPackages);
+                packages = packages.Distinct().ToList();
             }
 
             return packages;
@@ -591,19 +631,12 @@
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
-            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            // Loop through all active sources and combine them into a single list
+            foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
-                // Loop through all active sources and combine them into a single list
-                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
-                {
-                    var newPackages = source.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
-                    packages.AddRange(newPackages);
-                    packages = packages.Distinct().ToList();
-                }
-            }
-            else
-            {
-                packages = NugetConfigFile.ActivePackageSource.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                var newPackages = source.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                packages.AddRange(newPackages);
+                packages = packages.Distinct().ToList();
             }
 
             return packages;
@@ -619,48 +652,41 @@
         {
             NugetPackage package = null;
 
-            if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+            // Loop through all active sources and stop once the package is found
+            foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
-                // Loop through all active sources and stop once the package is found
-                foreach (var source in NugetConfigFile.PackageSources.Where(s => s.IsEnabled))
+                var foundPackage = source.GetSpecificPackage(packageId);
+                if (foundPackage != null)
                 {
-                    var foundPackage = source.GetSpecificPackage(packageId);
-                    if (foundPackage != null)
+                    if (foundPackage == packageId)
                     {
-                        if (foundPackage == packageId)
-                        {
-                            // the found package matches the desired package identically
-                            LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
-                            package = foundPackage;
-                            break;
-                        }
+                        // the found package matches the desired package identically
+                        LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
+                        package = foundPackage;
+                        break;
+                    }
                         
-                        if (foundPackage > packageId)
+                    if (foundPackage > packageId)
+                    {
+                        // the found package does NOT match the desired package identically
+                        if (package == null)
                         {
-                            // the found package does NOT match the desired package identically
-                            if (package == null)
+                            // if another package hasn't been found yet, use the current found one
+                            LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                            package = foundPackage;
+                        }
+                        else
+                        {
+                            // another package has been found previously, but neither match identically
+                            if (foundPackage < package)
                             {
-                                // if another package hasn't been found yet, use the current found one
+                                // use the new package if it's closer to the desired version
                                 LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                 package = foundPackage;
-                            }
-                            else
-                            {
-                                // another package has been found previously, but neither match identically
-                                if (foundPackage < package)
-                                {
-                                    // use the new package if it's closer to the desired version
-                                    LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                                    package = foundPackage;
-                                }
                             }
                         }
                     }
                 }
-            }
-            else
-            {
-                package = NugetConfigFile.ActivePackageSource.GetSpecificPackage(packageId);
             }
 
             return package;
@@ -865,6 +891,8 @@
         {
             try
             {
+                LoadNugetConfigFile();
+
                 // Reload since the packages.config file may have been edited by hand
                 PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
