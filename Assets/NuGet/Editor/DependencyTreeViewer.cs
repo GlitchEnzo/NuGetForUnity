@@ -27,6 +27,8 @@
 
         private List<NugetPackage> roots;
 
+        private Vector2 scrollPosition;
+
         /// <summary>
         /// Called when enabling the window.
         /// </summary>
@@ -81,10 +83,12 @@
         /// </summary>
         protected void OnGUI()
         {
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             foreach (NugetPackage package in roots)
             {
                 DrawPackage(package);
             }
+            EditorGUILayout.EndScrollView();
         }
 
         private void DrawDepencency(NugetPackageIdentifier dependency)
