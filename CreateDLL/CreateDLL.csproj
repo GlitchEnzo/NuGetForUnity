@@ -47,6 +47,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Assets\NuGet\Editor\DependencyTreeViewer.cs">
+      <Link>DependencyTreeViewer.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NugetConfigFile.cs">
       <Link>NugetConfigFile.cs</Link>
     </Compile>
