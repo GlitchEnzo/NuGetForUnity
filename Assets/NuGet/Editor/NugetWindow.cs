@@ -111,7 +111,7 @@
         /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
-        [MenuItem("NuGet/Manage NuGet Packages")]
+        [MenuItem("NuGet/Manage NuGet Packages", false, 0)]
         protected static void DisplayNugetWindow()
         {
             GetWindow<NugetWindow>();
@@ -120,7 +120,7 @@
         /// <summary>
         /// Restores all packages defined in packages.config
         /// </summary>
-        [MenuItem("NuGet/Restore Packages")]
+        [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
             NugetHelper.Restore();
@@ -129,7 +129,7 @@
         /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
-        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion)]
+        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
         protected static void DisplayVersion()
         {
         }
