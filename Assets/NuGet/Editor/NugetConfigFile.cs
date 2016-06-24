@@ -146,6 +146,7 @@
         public static NugetConfigFile Load(string filePath)
         {
             NugetConfigFile configFile = new NugetConfigFile();
+            configFile.PackageSources = new List<NugetPackageSource>();
             configFile.InstallFromCache = true;
 
             XDocument file = XDocument.Load(filePath);
@@ -154,8 +155,6 @@
             XElement packageSources = file.Root.Element("packageSources");
             if (packageSources != null)
             {
-                configFile.PackageSources = new List<NugetPackageSource>();
-
                 var adds = packageSources.Elements("add");
                 foreach (var add in adds)
                 {
