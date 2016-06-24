@@ -501,14 +501,15 @@
         /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
         public static void Uninstall(NugetPackageIdentifier package, bool refreshAssets = true)
         {
+            // update the package.config file
+            PackagesConfigFile.RemovePackage(package);
+            PackagesConfigFile.Save(PackagesConfigFilePath);
+
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
             DeleteDirectory(packageInstallDirectory);
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
-
-            PackagesConfigFile.RemovePackage(package);
-            PackagesConfigFile.Save(PackagesConfigFilePath);
 
             if (refreshAssets)
                 AssetDatabase.Refresh();
@@ -785,6 +786,10 @@
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
+                // update packages.config
+                PackagesConfigFile.AddPackage(package);
+                PackagesConfigFile.Save(PackagesConfigFilePath);
+
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
 
@@ -864,10 +869,6 @@
 
                 // clean
                 Clean(package);
-
-                // update packages.config
-                PackagesConfigFile.AddPackage(package);
-                PackagesConfigFile.Save(PackagesConfigFilePath);
             }
             catch (Exception e)
             {
