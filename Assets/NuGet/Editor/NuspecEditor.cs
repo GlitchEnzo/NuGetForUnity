@@ -1,6 +1,8 @@
 ﻿namespace NugetForUnity
 {
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using UnityEditor;
     using UnityEngine;
 
@@ -79,6 +81,29 @@
                 if (dependenciesExpanded)
                 {
                     EditorGUI.indentLevel++;
+
+                    // automatically fill in the dependencies based upon the "root" packages currently installed in the project
+                    if (GUILayout.Button("Automatically Fill Dependencies"))
+                    {
+                        List<NugetPackage> installedPackages = NugetHelper.GetInstalledPackages();
+
+                        // default all packages to being roots
+                        List<NugetPackage> roots = new List<NugetPackage>(installedPackages);
+
+                        // remove a package as a root if another package is dependent on it
+                        foreach (NugetPackage package in installedPackages)
+                        {
+                            foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                            {
+                                roots.RemoveAll(p => p.Id == dependency.Id);
+                            }
+                        }
+
+                        // remove all existing dependencies from the .nuspec
+                        nuspec.Dependencies.Clear();
+
+                        nuspec.Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
+                    }
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
