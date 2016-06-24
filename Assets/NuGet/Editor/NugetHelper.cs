@@ -77,6 +77,7 @@
             LoadNugetConfigFile();
 
             // parse any command line arguments
+            LogVerbose("Command line: {0}", Environment.CommandLine);
             packageSources.Clear();
             bool readingSources = false;
             bool useCommandLineSources = false;
@@ -93,7 +94,6 @@
                         NugetPackageSource source = new NugetPackageSource("CMD_LINE_SRC_" + packageSources.Count, arg);
                         LogVerbose("Adding command line package source {0} at {1}", "CMD_LINE_SRC_" + packageSources.Count, arg);
                         packageSources.Add(source);
-                        
                     }
                 }
 
