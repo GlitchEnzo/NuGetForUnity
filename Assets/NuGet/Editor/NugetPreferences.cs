@@ -117,6 +117,7 @@
             if (GUILayout.Button(string.Format("Save")))
             {
                 NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+                NugetHelper.LoadNugetConfigFile();
             }
         }
     }
