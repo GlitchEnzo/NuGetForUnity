@@ -76,6 +76,36 @@
             // Load the NuGet.config file
             LoadNugetConfigFile();
 
+            // Load the packages.config file
+            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
+
+            // create the nupkgs directory, if it doesn't exist
+            if (!Directory.Exists(PackOutputDirectory))
+            {
+                Directory.CreateDirectory(PackOutputDirectory);
+            }
+
+            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
+            Restore();
+        }
+
+        /// <summary>
+        /// Loads the NuGet.config file.
+        /// </summary>
+        public static void LoadNugetConfigFile()
+        {
+            if (File.Exists(NugetConfigFilePath))
+            {
+                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+            }
+            else
+            {
+                Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
+
+                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
+                AssetDatabase.Refresh();
+            }
+
             // parse any command line arguments
             LogVerbose("Command line: {0}", Environment.CommandLine);
             packageSources.Clear();
@@ -115,36 +145,6 @@
                 {
                     packageSources.Add(NugetConfigFile.ActivePackageSource);
                 }
-            }
-
-            // Load the packages.config file
-            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
-
-            // create the nupkgs directory, if it doesn't exist
-            if (!Directory.Exists(PackOutputDirectory))
-            {
-                Directory.CreateDirectory(PackOutputDirectory);
-            }
-
-            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-            Restore();
-        }
-
-        /// <summary>
-        /// Loads the NuGet.config file.
-        /// </summary>
-        public static void LoadNugetConfigFile()
-        {
-            if (File.Exists(NugetConfigFilePath))
-            {
-                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
-            }
-            else
-            {
-                Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
-
-                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
-                AssetDatabase.Refresh();
             }
         }
 
