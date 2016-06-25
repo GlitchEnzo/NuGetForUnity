@@ -132,6 +132,58 @@
         [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
         protected static void DisplayVersion()
         {
+            var assembly = System.Reflection.Assembly.GetAssembly(typeof(EditorWindow));
+            var preferencesWindow = assembly.GetType("UnityEditor.PreferencesWindow");
+            var preferencesWindowSection = assembly.GetType("UnityEditor.PreferencesWindow+Section"); // access nested class via + instead of .         
+
+            // open the preferences window
+            EditorWindow preferencesEditorWindow = EditorWindow.GetWindowWithRect(preferencesWindow, new Rect(100f, 100f, 500f, 400f), true, "Unity Preferences");
+            //preferencesEditorWindow.m_Parent.window.m_DontSaveToLayout = true; //<-- Unity's implementation also does this
+
+            // Get the flag to see if custom sections have already been added
+            var m_RefreshCustomPreferences = preferencesWindow.GetField("m_RefreshCustomPreferences", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            bool refesh = (bool)m_RefreshCustomPreferences.GetValue(preferencesEditorWindow);
+
+            if (refesh)
+            {
+                // Invoke the AddCustomSections to load all user-specified preferences sections.  This normally isn't done until OnGUI, but we need to call it now to set the proper index
+                var addCustomSections = preferencesWindow.GetMethod("AddCustomSections", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                addCustomSections.Invoke(preferencesEditorWindow, null);
+
+                // Unity is dumb and doesn't set the flag for having loaded the custom sections INSIDE the AddCustomSections method!  So we must call it manually.
+                m_RefreshCustomPreferences.SetValue(preferencesEditorWindow, false);
+            }
+
+            // get the List<PreferencesWindow.Section> m_Sections.Count
+            var m_Sections = preferencesWindow.GetField("m_Sections", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object list = m_Sections.GetValue(preferencesEditorWindow);
+            var sectionList = typeof(List<>).MakeGenericType(new Type[] { preferencesWindowSection });
+            var getCount = sectionList.GetProperty("Count").GetGetMethod(true);
+            int count = (int)getCount.Invoke(list, null);
+            //Debug.LogFormat("Count = {0}", count);
+
+            // Figure out the index of the NuGet for Unity preferences
+            var getItem = sectionList.GetMethod("get_Item");
+            int nugetIndex = 0;
+            for (int i = 0; i < count; i++)
+            {
+                var section = getItem.Invoke(list, new object[] { i });
+                GUIContent content = (GUIContent)section.GetType().GetField("content", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(section);
+                if (content != null && content.text == "NuGet For Unity")
+                {
+                    nugetIndex = i;
+                    break;
+                }
+            }
+            //Debug.LogFormat("NuGet index = {0}", nugetIndex);
+
+            // set the selected section index
+            var selectedSectionIndex = preferencesWindow.GetProperty("selectedSectionIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
+            var selectedSectionIndexSetter = selectedSectionIndex.GetSetMethod(true);
+            selectedSectionIndexSetter.Invoke(preferencesEditorWindow, new object[] { nugetIndex });
+            //object index = selectedSectionIndexGetter.Invoke(preferencesEditorWindow, null);
+            //Debug.LogFormat("Selected Index = {0}", index);
         }
 
         /// <summary>
