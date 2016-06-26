@@ -264,8 +264,9 @@
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            WebRequest getRequest = WebRequest.Create(url);
+            HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
             getRequest.Timeout = 5000;
+            getRequest.ReadWriteTimeout = 5000;
             Stream responseStream = getRequest.GetResponse().GetResponseStream();
             StreamReader objReader = new StreamReader(responseStream);
             SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));
