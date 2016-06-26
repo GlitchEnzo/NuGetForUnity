@@ -179,9 +179,9 @@
 
             // set the selected section index
             var selectedSectionIndex = preferencesWindow.GetProperty("selectedSectionIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
             var selectedSectionIndexSetter = selectedSectionIndex.GetSetMethod(true);
             selectedSectionIndexSetter.Invoke(preferencesEditorWindow, new object[] { nugetIndex });
+            //var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
             //object index = selectedSectionIndexGetter.Invoke(preferencesEditorWindow, null);
             //Debug.LogFormat("Selected Index = {0}", index);
         }
