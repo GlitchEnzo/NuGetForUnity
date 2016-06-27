@@ -71,7 +71,7 @@
 
                 foreach (NugetPackage package in installedPackages)
                 {
-                    expanded.Add(package, true);
+                    expanded.Add(package, false);
                     installedPackageNames.Add(package.Id);
                 }
 
@@ -149,11 +149,14 @@
                         }
                     }
                     
+                    EditorGUILayout.Space();
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 14;
                     EditorGUILayout.LabelField("Packages That Depend on Above:", GUILayout.Height(20));
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorStyles.label.fontSize = 10;
+
+                    scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
                     EditorGUI.indentLevel++;
                     if (parentPackages.Count <= 0)
                     {
@@ -163,10 +166,12 @@
                     {
                         foreach (var parent in parentPackages)
                         {
-                            EditorGUILayout.LabelField(string.Format("{0} {1}", parent.Id, parent.Version));
+                            //EditorGUILayout.LabelField(string.Format("{0} {1}", parent.Id, parent.Version));
+                            DrawPackage(parent);
                         }
                     }
                     EditorGUI.indentLevel--;
+                    EditorGUILayout.EndScrollView();
                     break;
             } 
         }
