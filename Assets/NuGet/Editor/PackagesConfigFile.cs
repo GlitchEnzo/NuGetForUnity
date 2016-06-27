@@ -22,11 +22,23 @@
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
         public void AddPackage(NugetPackageIdentifier package)
         {
-            if (!Packages.Contains(package))
+            NugetPackageIdentifier existingPackage = Packages.Find(p => p.Id == package.Id);
+            if (existingPackage != null)
+            {
+                if (existingPackage < package)
+                {
+                    Debug.LogWarningFormat("{0} {1} is already listed in the packages.config file.  Updating to {2}", existingPackage.Id, existingPackage.Version, package.Version);
+                    Packages.Remove(existingPackage);
+                    Packages.Add(package);
+                }
+                else
+                {
+                    Debug.LogWarningFormat("Trying to add {0} {1} to the packages.config file.  {2} is already listed, so using that.", package.Id, package.Version, existingPackage.Version);
+                }
+            }
+            else
             {
                 Packages.Add(package);
-                //Sort?
-                //Save()?
             }
         }
 
@@ -37,7 +49,6 @@
         public void RemovePackage(NugetPackageIdentifier package)
         {
             Packages.Remove(package);
-            //Save()?
         }
 
         /// <summary>
