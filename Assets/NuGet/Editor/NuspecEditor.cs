@@ -63,6 +63,7 @@
 
             if (isNuspec)
             {
+                EditorGUIUtility.labelWidth = 100;
                 nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The name of the package."), nuspec.Id);
                 nuspec.Version = EditorGUILayout.TextField(new GUIContent("Version", "The semantic version of the package."), nuspec.Version);
                 nuspec.Authors = EditorGUILayout.TextField(new GUIContent("Authors", "The authors of the package."), nuspec.Authors);
@@ -115,6 +116,8 @@
                     {
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(75);
+                        float prevLabelWidth = EditorGUIUtility.labelWidth;
+                        EditorGUIUtility.labelWidth = 50;
                         dependency.Id = EditorGUILayout.TextField(new GUIContent("ID", "The ID of the dependency package."), dependency.Id);
                         EditorGUILayout.EndHorizontal();
 
@@ -142,6 +145,8 @@
                         EditorGUILayout.EndHorizontal();
 
                         EditorGUILayout.Separator();
+
+                        EditorGUIUtility.labelWidth = prevLabelWidth;
                     }
 
                     if (toDelete != null)
