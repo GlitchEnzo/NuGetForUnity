@@ -80,36 +80,43 @@
 
                 if (dependenciesExpanded)
                 {
-                    EditorGUI.indentLevel++;
-
-                    // automatically fill in the dependencies based upon the "root" packages currently installed in the project
-                    if (GUILayout.Button("Automatically Fill Dependencies"))
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        List<NugetPackage> installedPackages = NugetHelper.GetInstalledPackages();
+                        GUILayout.Space(50);
 
-                        // default all packages to being roots
-                        List<NugetPackage> roots = new List<NugetPackage>(installedPackages);
-
-                        // remove a package as a root if another package is dependent on it
-                        foreach (NugetPackage package in installedPackages)
+                        // automatically fill in the dependencies based upon the "root" packages currently installed in the project
+                        if (GUILayout.Button("Automatically Fill Dependencies"))
                         {
-                            foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                            List<NugetPackage> installedPackages = NugetHelper.GetInstalledPackages();
+
+                            // default all packages to being roots
+                            List<NugetPackage> roots = new List<NugetPackage>(installedPackages);
+
+                            // remove a package as a root if another package is dependent on it
+                            foreach (NugetPackage package in installedPackages)
                             {
-                                roots.RemoveAll(p => p.Id == dependency.Id);
+                                foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                                {
+                                    roots.RemoveAll(p => p.Id == dependency.Id);
+                                }
                             }
+
+                            // remove all existing dependencies from the .nuspec
+                            nuspec.Dependencies.Clear();
+
+                            nuspec.Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
                         }
-
-                        // remove all existing dependencies from the .nuspec
-                        nuspec.Dependencies.Clear();
-
-                        nuspec.Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
                     }
+                    EditorGUILayout.EndHorizontal();
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
                     foreach (var dependency in nuspec.Dependencies)
                     {
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.Space(75);
                         dependency.Id = EditorGUILayout.TextField(new GUIContent("ID", "The ID of the dependency package."), dependency.Id);
+                        EditorGUILayout.EndHorizontal();
 
                         //int oldSeletedIndex = IndexOf(ref existingComponents, dependency.Id);
                         //int newSelectIndex = EditorGUILayout.Popup("Name", oldSeletedIndex, existingComponents);
@@ -118,12 +125,21 @@
                         //    dependency.Name = existingComponents[newSelectIndex];
                         //}
 
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.Space(75);
                         dependency.Version = EditorGUILayout.TextField(new GUIContent("Version", "The version number of the dependency package. (specify ranges with =><)"), dependency.Version);
+                        EditorGUILayout.EndHorizontal();
 
-                        if (GUILayout.Button("Remove " + dependency.Id))
+                        EditorGUILayout.BeginHorizontal();
                         {
-                            toDelete = dependency;
+                            GUILayout.Space(75);
+
+                            if (GUILayout.Button("Remove " + dependency.Id))
+                            {
+                                toDelete = dependency;
+                            }
                         }
+                        EditorGUILayout.EndHorizontal();
 
                         EditorGUILayout.Separator();
                     }
@@ -133,12 +149,16 @@
                         nuspec.Dependencies.Remove(toDelete);
                     }
 
-                    if (GUILayout.Button("Add Dependency"))
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        nuspec.Dependencies.Add(new NugetPackageIdentifier());
-                    }
+                        GUILayout.Space(50);
 
-                    EditorGUI.indentLevel--;
+                        if (GUILayout.Button("Add Dependency"))
+                        {
+                            nuspec.Dependencies.Add(new NugetPackageIdentifier());
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
 
                 EditorGUILayout.Separator();
