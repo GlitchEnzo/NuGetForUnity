@@ -565,10 +565,18 @@
             // loops through the packages that are actually installed in the project
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
+                // a package that was installed via NuGet will have the .nupkg it came from inside the folder
                 string[] nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
                 foreach (string nupkgFile in nupkgFiles)
                 {
                     installedPackages.Add(NugetPackage.FromNupkgFile(nupkgFile));
+                }
+
+                // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
+                string[] nuspecFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nuspec", SearchOption.AllDirectories);
+                foreach (string nuspecFile in nupkgFiles)
+                {
+                    installedPackages.Add(NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile)));
                 }
             }
 
