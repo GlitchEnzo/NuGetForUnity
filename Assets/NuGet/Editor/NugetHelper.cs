@@ -574,7 +574,7 @@
 
                 // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
                 string[] nuspecFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nuspec", SearchOption.AllDirectories);
-                foreach (string nuspecFile in nupkgFiles)
+                foreach (string nuspecFile in nuspecFiles)
                 {
                     installedPackages.Add(NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile)));
                 }
