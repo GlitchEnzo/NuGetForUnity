@@ -129,6 +129,8 @@
 
                 if (arg == "-Source")
                 {
+                    // if the source is being forced, don't install packages from the cache
+                    NugetConfigFile.InstallFromCache = false;
                     readingSources = true;
                     useCommandLineSources = true;
                 }
