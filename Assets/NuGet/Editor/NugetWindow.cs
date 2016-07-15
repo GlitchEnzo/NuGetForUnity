@@ -192,10 +192,14 @@
         [MenuItem("Assets/Create/Nuspec File")]
         protected static void CreateNuspecFile()
         {
-            string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
+            string filepath = Application.dataPath;
 
-            string filepath = selectedFile.Substring("Assets/".Length);
-            filepath = Path.Combine(Application.dataPath, filepath);
+            if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
+            {
+                string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
+                filepath = selectedFile.Substring("Assets/".Length);
+                filepath = Path.Combine(Application.dataPath, filepath);
+            }
 
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
             {
@@ -209,7 +213,7 @@
                 filepath += "/MyPackage.nuspec";
             }
 
-            ////Debug.LogFormat("Created: {0}", filepath);
+            Debug.LogFormat("Creating: {0}", filepath);
 
             NuspecFile file = new NuspecFile();
             file.Id = "MyPackage";
