@@ -11,7 +11,7 @@
         /// <summary>
         /// The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "0.0.7";
+        public const string NuGetForUnityVersion = "0.0.8";
 
         /// <summary>
         /// The current position of the scroll bar in the GUI.

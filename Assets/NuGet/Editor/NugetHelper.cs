@@ -252,6 +252,9 @@
             // For now, delete Content.  We may use it later...
             DeleteDirectory(packageInstallDirectory + "/Content");
 
+            // For now, delete src.  We may use it later...
+            DeleteDirectory(packageInstallDirectory + "/src");
+
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
 
@@ -303,6 +306,9 @@
                     }
                 }
             }
+
+            // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
+            DeleteAllFiles(packageInstallDirectory, "*.pdb");
 
             // if there are native DLLs, copy them to the Unity project root (1 up from Assets)
             if (Directory.Exists(packageInstallDirectory + "/output"))
@@ -493,6 +499,20 @@
             {
                 File.SetAttributes(filePath, FileAttributes.Normal);
                 File.Delete(filePath);
+            }
+        }
+
+        /// <summary>
+        /// Deletes all files in the given directory or in any sub-directory, with the given extension.
+        /// </summary>
+        /// <param name="directoryPath">The path to the directory to delete all files of the given extension from.</param>
+        /// <param name="extension">The extension of the files to delete, in the form "*.ext"</param>
+        private static void DeleteAllFiles(string directoryPath, string extension)
+        {
+            string[] files = Directory.GetFiles(directoryPath, extension, SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                DeleteFile(file);
             }
         }
 
