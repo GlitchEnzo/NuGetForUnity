@@ -920,6 +920,9 @@
         /// </summary>
         public static void Restore()
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             try
             {
                 LoadNugetConfigFile();
@@ -961,6 +964,9 @@
             }
             finally
             {
+                stopwatch.Stop();
+                LogVerbose("Restoring packages took {0} ms", stopwatch.ElapsedMilliseconds);
+
                 AssetDatabase.Refresh();
                 EditorUtility.ClearProgressBar();
             }
