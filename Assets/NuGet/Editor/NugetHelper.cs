@@ -7,7 +7,6 @@
     using System.Linq;
     using System.Net;
     using System.Text;
-    using System.Text.RegularExpressions;
     using Ionic.Zip;
     using UnityEditor;
     using UnityEngine;
@@ -69,6 +68,11 @@
         private static List<NugetPackageSource> packageSources = new List<NugetPackageSource>(); 
 
         /// <summary>
+        /// The list of currently installed <see cref="NugetPackage"/>s.
+        /// </summary>
+        private static List<NugetPackage> installedPackages = new List<NugetPackage>();
+
+        /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
         /// </summary>
         static NugetHelper()
@@ -84,6 +88,8 @@
             {
                 Directory.CreateDirectory(PackOutputDirectory);
             }
+
+            installedPackages = GetInstalledPackages();
 
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
             Restore();
@@ -554,12 +560,12 @@
         /// Installs all of the given updates, and uninstalls the corresponding package that is already installed.
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
-        /// <param name="installedPackages">The list of all packages currently installed.</param>
-        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> installedPackages)
+        /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
+        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> packagesToUpdate)
         {
             foreach (NugetPackage update in updates)
             {
-                NugetPackage installedPackage = installedPackages.FirstOrDefault(p => p.Id == update.Id);
+                NugetPackage installedPackage = packagesToUpdate.FirstOrDefault(p => p.Id == update.Id);
                 if (installedPackage != null)
                 {
                     Update(installedPackage, update, false);
@@ -582,7 +588,7 @@
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            List<NugetPackage> installedPackages = new List<NugetPackage>();
+            installedPackages.Clear();
 
             // loops through the packages that are actually installed in the project
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
@@ -652,20 +658,20 @@
         /// <summary>
         /// Queries the server with the given list of installed packages to get any updates that are available.
         /// </summary>
-        /// <param name="installedPackages">The list of currently installed packages.</param>
+        /// <param name="packagesToUpdate">The list of currently installed packages.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(List<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(List<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
             // Loop through all active sources and combine them into a single list
             foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
-                var newPackages = source.GetUpdates(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                var newPackages = source.GetUpdates(packagesToUpdate, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
                 packages.AddRange(newPackages);
                 packages = packages.Distinct().ToList();
             }
@@ -747,9 +753,6 @@
             // If not installed, look on the server for specific version
             // If specific version not found on server, use the NEXT version up (not latest)
 
-            // get the list of packages installed in the project
-            var installedPackages = GetInstalledPackages();
-
             foreach (var installedPackage in installedPackages)
             {
                 if (installedPackage.Id == package.Id)
@@ -770,12 +773,10 @@
                         }
                         return;
                     }
-                    else
-                    {
-                        // the installed version is greater than or equal to the version to install, so use it
-                        LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
-                        return;
-                    }
+
+                    // the installed version is greater than or equal to the version to install, so use it
+                    LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                    return;
                 }
             }
 
@@ -899,6 +900,9 @@
 
                 // clean
                 Clean(package);
+
+                // update the installed packages list
+                installedPackages = GetInstalledPackages();
             }
             catch (Exception e)
             {
