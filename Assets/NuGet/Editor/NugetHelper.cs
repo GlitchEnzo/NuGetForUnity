@@ -205,17 +205,17 @@
         /// <param name="directoryPath">The path to the directory.</param>
         private static void FixSpaces(string directoryPath)
         {
-            string[] subdirectories = Directory.GetDirectories(directoryPath);
-            foreach (var subDir in subdirectories)
-            {
-                FixSpaces(subDir);
-            }
-
             if (directoryPath.Contains("%20"))
             {
                 LogVerbose("Removing %20 from {0}", directoryPath);
                 Directory.Move(directoryPath, directoryPath.Replace("%20", " "));
                 directoryPath = directoryPath.Replace("%20", " ");
+            }
+
+            string[] subdirectories = Directory.GetDirectories(directoryPath);
+            foreach (var subDir in subdirectories)
+            {
+                FixSpaces(subDir);
             }
 
             string[] files = Directory.GetFiles(directoryPath);
