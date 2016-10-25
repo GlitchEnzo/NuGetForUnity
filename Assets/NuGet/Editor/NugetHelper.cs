@@ -389,7 +389,7 @@
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarningFormat("{0} couldn't be overwritten. {1}", newFilePath, e.ToString());
+                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newFilePath, e.ToString());
                     }
                 }
 
@@ -397,26 +397,27 @@
                 string[] directories = Directory.GetDirectories(packageInstallDirectory + "/StreamingAssets");
                 foreach (string directory in directories)
                 {
-                    string newDirectoryPath = streamingAssetsDirectory + Path.GetFileName(Path.GetDirectoryName(directory));
+                    string newDirectoryPath = streamingAssetsDirectory + new DirectoryInfo(directory).Name;
 
                     try
                     {
                         LogVerbose("Moving {0} to {1}", directory, newDirectoryPath);
                         if (Directory.Exists(newDirectoryPath))
                         {
-                            Directory.Delete(newDirectoryPath);
+                            DeleteDirectory(newDirectoryPath);
                         }
                         Directory.Move(directory, newDirectoryPath);
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarningFormat("{0} couldn't be moved. {1}", newDirectoryPath, e.ToString());
+                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newDirectoryPath, e.ToString());
                     }
                 }
 
+                // delete the package's StreamingAssets folder and .meta file
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/StreamingAssets");
-
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
+                DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
         }
 
