@@ -71,7 +71,15 @@
 
                 foreach (NugetPackage package in installedPackages)
                 {
-                    expanded.Add(package, false);
+                    if (!expanded.ContainsKey(package))
+                    {
+                        expanded.Add(package, false);
+                    }
+                    else
+                    {
+                        //Debug.LogErrorFormat("Expanded already contains {0} {1}", package.Id, package.Version);
+                    }
+
                     installedPackageNames.Add(package.Id);
                 }
 
