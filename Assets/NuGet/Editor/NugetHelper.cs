@@ -77,6 +77,12 @@
         /// </summary>
         static NugetHelper()
         {
+            // if we are entering playmode, don't do anything
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
             // Load the NuGet.config file
             LoadNugetConfigFile();
 
