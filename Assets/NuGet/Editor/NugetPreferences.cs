@@ -11,7 +11,7 @@
         /// <summary>
         /// The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "0.0.9";
+        public const string NuGetForUnityVersion = "0.0.10";
 
         /// <summary>
         /// The current position of the scroll bar in the GUI.
@@ -25,6 +25,8 @@
         public static void PreferencesGUI()
         {
             EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
+
+            NugetHelper.LoadNugetConfigFile();
 
             NugetHelper.NugetConfigFile.InstallFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
 

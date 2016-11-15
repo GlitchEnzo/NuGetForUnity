@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("ReCreation Studios")]
 [assembly: AssemblyProduct("CreateDLL")]
-[assembly: AssemblyCopyright("Copyright © ReCreation Studios 2015")]
+[assembly: AssemblyCopyright("Copyright © ReCreation Studios 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
