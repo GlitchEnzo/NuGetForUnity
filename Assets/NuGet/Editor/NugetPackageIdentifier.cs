@@ -193,9 +193,13 @@
                 string[] splitA = versionA.Split('.');
                 int majorA = int.Parse(splitA[0]);
                 int minorA = int.Parse(splitA[1]);
-                int patchA = int.Parse(splitA[2]);
+                int patchA = 0;
+                if (splitA.Length >= 3)
+                {
+                    patchA = int.Parse(splitA[2]);
+                }
                 int buildA = 0;
-                if (splitA.Length == 4)
+                if (splitA.Length >= 4)
                 {
                     buildA = int.Parse(splitA[3]);
                 }
@@ -216,9 +220,13 @@
                 string[] splitB = versionB.Split('.');
                 int majorB = int.Parse(splitB[0]);
                 int minorB = int.Parse(splitB[1]);
-                int patchB = int.Parse(splitB[2]);
+                int patchB = 0;
+                if (splitB.Length >= 3)
+                {
+                    patchB = int.Parse(splitB[2]);
+                }
                 int buildB = 0;
-                if (splitB.Length == 4)
+                if (splitB.Length >= 4)
                 {
                     buildB = int.Parse(splitB[3]);
                 }
