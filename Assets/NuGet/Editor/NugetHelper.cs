@@ -907,7 +907,7 @@
                 Clean(package);
 
                 // update the installed packages list
-                installedPackages = GetInstalledPackages();
+                installedPackages.Add(package);
             }
             catch (Exception e)
             {
@@ -929,7 +929,7 @@
         /// </summary>
         public static void Restore()
         {
-            installedPackages = GetInstalledPackages();
+            GetInstalledPackages();
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
