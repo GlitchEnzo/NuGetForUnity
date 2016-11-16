@@ -95,8 +95,6 @@
                 Directory.CreateDirectory(PackOutputDirectory);
             }
 
-            installedPackages = GetInstalledPackages();
-
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
             Restore();
         }
@@ -931,6 +929,8 @@
         /// </summary>
         public static void Restore()
         {
+            installedPackages = GetInstalledPackages();
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -990,9 +990,7 @@
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         private static bool IsInstalled(NugetPackageIdentifier package)
         {
-            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
-            bool installed = Directory.Exists(packageInstallDirectory);
-            return installed;
+            return installedPackages.Any(x => x.Id == package.Id && x.Version == package.Version);
         }
 
         /// <summary>
