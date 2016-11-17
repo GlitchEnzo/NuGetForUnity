@@ -31,7 +31,7 @@
                     Packages.Remove(existingPackage);
                     Packages.Add(package);
                 }
-                else
+                else if (existingPackage > package)
                 {
                     Debug.LogWarningFormat("Trying to add {0} {1} to the packages.config file.  {2} is already listed, so using that.", package.Id, package.Version, existingPackage.Version);
                 }

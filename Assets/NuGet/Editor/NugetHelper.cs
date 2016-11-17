@@ -65,7 +65,7 @@
         /// <summary>
         /// The list of <see cref="NugetPackageSource"/>s to use.
         /// </summary>
-        private static List<NugetPackageSource> packageSources = new List<NugetPackageSource>(); 
+        private static List<NugetPackageSource> packageSources = new List<NugetPackageSource>();
 
         /// <summary>
         /// The list of currently installed <see cref="NugetPackage"/>s.
@@ -692,49 +692,54 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
-            NugetPackage package = null;
+            // first look to see if the package is already installed
+            NugetPackage package = installedPackages.FirstOrDefault(x => x.Id == packageId.Id && x.Version == packageId.Version);
 
-            string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+            if (package == null)
+            {
+                // the package is null, so that exact package isn't installed yet
+                string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
 
-            // TODO: Look in the already installed packages list, then the cache, then the package sources
-            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
-            {
-                LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
-                package = NugetPackage.FromNupkgFile(cachedPackagePath);
-            }
-            else
-            {
-                // Loop through all active sources and stop once the package is found
-                foreach (var source in packageSources.Where(s => s.IsEnabled))
+                if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
-                    var foundPackage = source.GetSpecificPackage(packageId);
-                    if (foundPackage != null)
+                    // the exact package was in the cache
+                    LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                    package = NugetPackage.FromNupkgFile(cachedPackagePath);
+                }
+                else
+                {
+                    // It's not in the cache, so we need to loop through all active sources and stop once the package is found
+                    foreach (var source in packageSources.Where(s => s.IsEnabled))
                     {
-                        if (foundPackage == packageId)
+                        var foundPackage = source.GetSpecificPackage(packageId);
+                        if (foundPackage != null)
                         {
-                            // the found package matches the desired package identically
-                            LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
-                            package = foundPackage;
-                            break;
-                        }
-
-                        if (foundPackage > packageId)
-                        {
-                            // the found package does NOT match the desired package identically
-                            if (package == null)
+                            if (foundPackage == packageId)
                             {
-                                // if another package hasn't been found yet, use the current found one
-                                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                                // the found package matches the desired package identically
+                                LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                                 package = foundPackage;
+                                break;
                             }
-                            else
+
+                            if (foundPackage > packageId)
                             {
-                                // another package has been found previously, but neither match identically
-                                if (foundPackage < package)
+                                // the found package does NOT match the desired package identically
+                                if (package == null)
                                 {
-                                    // use the new package if it's closer to the desired version
+                                    // if another package hasn't been found yet, use the current found one
                                     LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                     package = foundPackage;
+                                }
+                                else
+                                {
+                                    // another package has been found previously, but neither match identically
+                                    if (foundPackage < package)
+                                    {
+                                        // use the new package if it's closer to the desired version
+                                        LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                                        package = foundPackage;
+                                    }
                                 }
                             }
                         }
@@ -759,44 +764,11 @@
         }
 
         /// <summary>
-        /// Installs the package given by the identifer.  It fetches the appropriate full package from the package source and installs it.
+        /// Installs the package given by the identifer.  It fetches the appropriate full package from the installed packages, package cache, or package sources and installs it.
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
         private static void InstallIdentifier(NugetPackageIdentifier package)
         {
-            // If the package, or a later version, is already installed, use it.
-            // If an earlier version is installed, update it.
-            // If not installed, look on the server for specific version
-            // If specific version not found on server, use the NEXT version up (not latest)
-
-            foreach (var installedPackage in installedPackages)
-            {
-                if (installedPackage.Id == package.Id)
-                {
-                    if (installedPackage < package)
-                    {
-                        // the installed version is older than the version to install, so update it
-                        NugetPackage newPackage = GetSpecificPackage(package);
-
-                        if (newPackage != null)
-                        {
-                            LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, newPackage.Version);
-                            Update(installedPackage, newPackage, false);
-                        }
-                        else
-                        {
-                            Debug.LogErrorFormat("{0} {1} is installed, but need {2} or greater. Could not find appropriate package.", installedPackage.Id, installedPackage.Version, package.Version);
-                        }
-                        return;
-                    }
-
-                    // the installed version is greater than or equal to the version to install, so use it
-                    LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
-                    return;
-                }
-            }
-
-            // if we reach here, that means no other version of the package is already installed
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
@@ -846,6 +818,28 @@
                     InstallIdentifier(dependency);
                 }
 
+                // look to see if the package (any version) is already installed
+                foreach (var installedPackage in installedPackages)
+                {
+                    if (installedPackage.Id == package.Id)
+                    {
+                        if (installedPackage < package)
+                        {
+                            LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
+                            Update(installedPackage, package, false);
+                        }
+                        else if (installedPackage > package)
+                        {
+                            LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                        }
+                        else
+                        {
+                            LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
+                        }
+                        return;
+                    }
+                }
+
                 string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
@@ -879,7 +873,7 @@
                         if (refreshAssets)
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
-                        HttpWebRequest getRequest = (HttpWebRequest) WebRequest.Create(package.DownloadUrl);
+                        HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
                         Stream objStream = getRequest.GetResponse().GetResponseStream();
 
                         using (Stream file = File.Create(cachedPackagePath))
