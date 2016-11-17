@@ -59,54 +59,44 @@
         {
             NugetPackage foundPackage = null;
 
-            string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-
-            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
+            if (IsLocalPath)
             {
-                NugetHelper.LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
-                foundPackage = NugetPackage.FromNupkgFile(cachedPackagePath);
-            }
-            else
-            {
-                if (IsLocalPath)
+                string localPackagePath = System.IO.Path.Combine(Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                if (File.Exists(localPackagePath))
                 {
-                    string localPackagePath = System.IO.Path.Combine(Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-                    if (File.Exists(localPackagePath))
-                    {
-                        foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
-                    }
-                    else
-                    {
-                        // TODO: Sort the local packages?  Currently assuming they are in alphabetical order due to the filesystem.
-
-                        // Try to find later versions of the same package
-                        var packages = GetLocalPackages(package.Id, true, true);
-                        foundPackage = packages.SkipWhile(x => x < package).FirstOrDefault();
-
-                        if (foundPackage == null)
-                        {
-                            Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
-                        }
-                        else if (foundPackage.Version != package.Version)
-                        {
-                            Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
-                        }
-                    }
+                    foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
                 }
                 else
                 {
-                    string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", Path, package.Version, package.Id);
+                    // TODO: Sort the local packages?  Currently assuming they are in alphabetical order due to the filesystem.
 
-                    foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+                    // Try to find later versions of the same package
+                    var packages = GetLocalPackages(package.Id, true, true);
+                    foundPackage = packages.SkipWhile(x => x < package).FirstOrDefault();
 
                     if (foundPackage == null)
                     {
-                        Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                        Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
                     }
                     else if (foundPackage.Version != package.Version)
                     {
                         Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
                     }
+                }
+            }
+            else
+            {
+                string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", Path, package.Version, package.Id);
+
+                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+
+                if (foundPackage == null)
+                {
+                    Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
+                }
+                else if (foundPackage.Version != package.Version)
+                {
+                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
                 }
             }
 

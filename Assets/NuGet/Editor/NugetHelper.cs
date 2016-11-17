@@ -694,37 +694,48 @@
         {
             NugetPackage package = null;
 
-            // Loop through all active sources and stop once the package is found
-            foreach (var source in packageSources.Where(s => s.IsEnabled))
+            string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+
+            // TODO: Look in the already installed packages list, then the cache, then the package sources
+            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
             {
-                var foundPackage = source.GetSpecificPackage(packageId);
-                if (foundPackage != null)
+                LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                package = NugetPackage.FromNupkgFile(cachedPackagePath);
+            }
+            else
+            {
+                // Loop through all active sources and stop once the package is found
+                foreach (var source in packageSources.Where(s => s.IsEnabled))
                 {
-                    if (foundPackage == packageId)
+                    var foundPackage = source.GetSpecificPackage(packageId);
+                    if (foundPackage != null)
                     {
-                        // the found package matches the desired package identically
-                        LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
-                        package = foundPackage;
-                        break;
-                    }
-                        
-                    if (foundPackage > packageId)
-                    {
-                        // the found package does NOT match the desired package identically
-                        if (package == null)
+                        if (foundPackage == packageId)
                         {
-                            // if another package hasn't been found yet, use the current found one
-                            LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                            // the found package matches the desired package identically
+                            LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                             package = foundPackage;
+                            break;
                         }
-                        else
+
+                        if (foundPackage > packageId)
                         {
-                            // another package has been found previously, but neither match identically
-                            if (foundPackage < package)
+                            // the found package does NOT match the desired package identically
+                            if (package == null)
                             {
-                                // use the new package if it's closer to the desired version
+                                // if another package hasn't been found yet, use the current found one
                                 LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                                 package = foundPackage;
+                            }
+                            else
+                            {
+                                // another package has been found previously, but neither match identically
+                                if (foundPackage < package)
+                                {
+                                    // use the new package if it's closer to the desired version
+                                    LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                                    package = foundPackage;
+                                }
                             }
                         }
                     }
@@ -954,16 +965,9 @@
                     if (package != null)
                     {
                         EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0} {1}", package.Id, package.Version), currentProgress);
-                        
-                        if (!IsInstalled(package))
-                        {
-                            LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            InstallIdentifier(package);
-                        }
-                        else
-                        {
-                            LogVerbose("---Already installed: {0} {1}", package.Id, package.Version);
-                        }
+
+                        LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
+                        InstallIdentifier(package);
                     }
 
                     currentProgress += progressStep;
