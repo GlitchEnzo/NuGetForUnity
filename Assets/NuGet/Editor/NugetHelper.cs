@@ -738,6 +738,12 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
+            if (packageId.Version.StartsWith("(") || packageId.Version.StartsWith("["))
+            {
+                Debug.LogErrorFormat("There is no support for version ranges yet! Could not get {0} {1}", packageId.Id, packageId.Version);
+                return null;
+            }
+
             // first look to see if the package is already installed
             NugetPackage package = installedPackages.FirstOrDefault(x => x.Id == packageId.Id && x.Version == packageId.Version);
 
