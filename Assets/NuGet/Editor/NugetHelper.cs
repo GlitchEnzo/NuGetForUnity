@@ -117,7 +117,7 @@
             }
 
             // parse any command line arguments
-            LogVerbose("Command line: {0}", Environment.CommandLine);
+            //LogVerbose("Command line: {0}", Environment.CommandLine);
             packageSources.Clear();
             bool readingSources = false;
             bool useCommandLineSources = false;
@@ -275,20 +275,62 @@
                 bool has30 = Directory.Exists(packageInstallDirectory + "/lib/net30");
                 bool has35 = Directory.Exists(packageInstallDirectory + "/lib/net35");
 
+                // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
                 List<string> directoriesToDelete = new List<string>
                 {
-                    "net40",
-                    "net45",
-                    "netcore45",
+                    // .NET Framework
                     "net4",
-                    "cf", // compact framework
-                    "wp", // windows phone
-                    "sl", // silverlight
+                    "net40",
+                    "net403",
+                    "net45",
+                    "net451",
+                    "net452",
+                    "net46",
+                    "net461",
+                    "net462",
+                    // .NET Core
+                    "netcore",
+                    "netcore45",
+                    "netcore451",
+                    "netcore50",
+                    // .NET MicroFramework
+                    "netmf", 
+                    // Windows
+                    "win", // windows store
+                    "win8",
+                    "win81",
+                    "win10",
+                    // Silverlight
+                    "sl",
+                    "sl4",
+                    "sl5",
+                    // Windows Phone
                     "windowsphone",
+                    "wp",
+                    "wp7",
+                    "wp75",
+                    "wp8",
+                    "wp81",
+                    "wpa81",
+                    // Universal Windows Platform
+                    "uap",
+                    "uap10",
+                    // .NET Standard
+                    // See here: https://blogs.msdn.microsoft.com/dotnet/2016/09/26/introducing-net-standard/
+                    "netstandard",
+                    "netstandard1.0",
+                    "netstandard1.1",
+                    "netstandard1.2",
+                    "netstandard1.3",
+                    "netstandard1.4",
+                    "netstandard1.5",
+                    "netstandard1.6",
+                    // .NET Core App
+                    "netcoreapp",
+                    "netcoreapp1.0",
+                    "cf", // compact framework
                     "monoandroid",
                     "monotouch",
-                    "win8",
-                    "win", // windows store
                     "xamarin.ios10",
                     "xamarin.mac20"
                 };
@@ -544,6 +586,8 @@
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
 
+            installedPackages.RemoveAll(x => x.Id == package.Id && x.Version == package.Version);
+
             if (refreshAssets)
                 AssetDatabase.Refresh();
         }
@@ -590,6 +634,8 @@
         /// <returns>A list of installed <see cref="NugetPackage"/>s.</returns>
         public static List<NugetPackage> GetInstalledPackages()
         {
+            LoadNugetConfigFile();
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -767,7 +813,7 @@
         /// Installs the package given by the identifer.  It fetches the appropriate full package from the installed packages, package cache, or package sources and installs it.
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
-        private static void InstallIdentifier(NugetPackageIdentifier package)
+        internal static void InstallIdentifier(NugetPackageIdentifier package)
         {
             NugetPackage foundPackage = GetSpecificPackage(package);
 
@@ -941,8 +987,6 @@
 
             try
             {
-                LoadNugetConfigFile();
-
                 // Reload since the packages.config file may have been edited by hand
                 PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
@@ -986,7 +1030,7 @@
         /// </summary>
         /// <param name="package">The package to check if is installed.</param>
         /// <returns>True if the given package is installed.  False if it is not.</returns>
-        private static bool IsInstalled(NugetPackageIdentifier package)
+        internal static bool IsInstalled(NugetPackageIdentifier package)
         {
             return installedPackages.Any(x => x.Id == package.Id && x.Version == package.Version);
         }

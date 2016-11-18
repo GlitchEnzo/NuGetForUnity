@@ -26,7 +26,10 @@
         {
             EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
 
-            NugetHelper.LoadNugetConfigFile();
+            if (NugetHelper.NugetConfigFile == null)
+            {
+                NugetHelper.LoadNugetConfigFile();
+            }
 
             NugetHelper.NugetConfigFile.InstallFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
 
