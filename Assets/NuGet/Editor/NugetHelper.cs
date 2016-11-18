@@ -738,61 +738,115 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
-            if (packageId.Version.StartsWith("(") || packageId.Version.StartsWith("["))
+            if (packageId.HasVersionRange)
             {
+                // See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
                 Debug.LogErrorFormat("There is no support for version ranges yet! Could not get {0} {1}", packageId.Id, packageId.Version);
+                //string[] minMax = packageId.Version.TrimStart(new [] {'[', '('}).TrimEnd(new [] {']', ')'}).Split(new [] {','});
+                //string minVersion = minMax[0];
+                //string maxVersion = minMax[1];
+
+                string output = "Need {0} ";
+                if (string.IsNullOrEmpty(packageId.MinimumVersion))
+                    output += "(any)";
+                else
+                    output += packageId.MinimumVersion;
+
+                if (packageId.IsMinInclusive)
+                    output += " <= x";
+                else
+                    output += " < x";
+
+                if (packageId.IsMaxInclusive)
+                    output += " <= ";
+                else
+                    output += " < ";
+
+                if (string.IsNullOrEmpty(packageId.MaximumVersion))
+                    output += "(any)";
+                else
+                    output += packageId.MaximumVersion;
+
+                Debug.LogErrorFormat(output, packageId.Id);
+
                 return null;
             }
 
-            // first look to see if the package is already installed
-            NugetPackage package = installedPackages.FirstOrDefault(x => x.Id == packageId.Id && x.Version == packageId.Version);
+            // First look to see if the package is already installed
+            NugetPackage package = GetInstalledPackage(packageId);
 
             if (package == null)
             {
-                // the package is null, so that exact package isn't installed yet
-                string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
+                // That package isn't installed yet, so look in the cache next
+                package = GetCachedPackage(packageId);
+            }
 
-                if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
+            if (package == null)
+            {
+                // It's not in the cache, so we need to look in the active sources
+                package = GetOnlinePackage(packageId);
+            }
+
+            return package;
+        }
+
+        private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
+        {
+            NugetPackage package = installedPackages.FirstOrDefault(x => x.Id == packageId.Id && x.Version == packageId.Version);
+            return package;
+        }
+
+        private static NugetPackage GetCachedPackage(NugetPackageIdentifier packageId)
+        {
+            NugetPackage package = null;
+
+            string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
+
+            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
+            {
+                // the exact package was in the cache
+                LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                package = NugetPackage.FromNupkgFile(cachedPackagePath);
+            }
+
+            return package;
+        }
+
+        private static NugetPackage GetOnlinePackage(NugetPackageIdentifier packageId)
+        {
+            NugetPackage package = null;
+
+            // Loop through all active sources and stop once the package is found
+            foreach (var source in packageSources.Where(s => s.IsEnabled))
+            {
+                var foundPackage = source.GetSpecificPackage(packageId);
+                if (foundPackage != null)
                 {
-                    // the exact package was in the cache
-                    LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
-                    package = NugetPackage.FromNupkgFile(cachedPackagePath);
-                }
-                else
-                {
-                    // It's not in the cache, so we need to loop through all active sources and stop once the package is found
-                    foreach (var source in packageSources.Where(s => s.IsEnabled))
+                    if (foundPackage == packageId)
                     {
-                        var foundPackage = source.GetSpecificPackage(packageId);
-                        if (foundPackage != null)
-                        {
-                            if (foundPackage == packageId)
-                            {
-                                // the found package matches the desired package identically
-                                LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
-                                package = foundPackage;
-                                break;
-                            }
+                        // the found package matches the desired package identically
+                        LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
+                        package = foundPackage;
+                        break;
+                    }
 
-                            if (foundPackage > packageId)
+                    if (foundPackage > packageId)
+                    {
+                        // the found package does NOT match the desired package identically
+                        if (package == null)
+                        {
+                            // if another package hasn't been found yet, use the current found one
+                            LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                            package = foundPackage;
+                        }
+                        else
+                        {
+                            // another package has been found previously, but neither match identically
+                            if (foundPackage < package)
                             {
-                                // the found package does NOT match the desired package identically
-                                if (package == null)
-                                {
-                                    // if another package hasn't been found yet, use the current found one
-                                    LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                                    package = foundPackage;
-                                }
-                                else
-                                {
-                                    // another package has been found previously, but neither match identically
-                                    if (foundPackage < package)
-                                    {
-                                        // use the new package if it's closer to the desired version
-                                        LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                                        package = foundPackage;
-                                    }
-                                }
+                                // use the new package if it's closer to the desired version
+                                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                                package = foundPackage;
                             }
                         }
                     }

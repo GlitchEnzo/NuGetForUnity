@@ -23,6 +23,31 @@
         public bool IsPrerelease { get { return Version.Contains("-"); } }
 
         /// <summary>
+        /// Gets a value indicating whether the version number specified is a range of values.
+        /// </summary>
+        public bool HasVersionRange { get { return Version.StartsWith("(") || Version.StartsWith("["); } }
+
+        /// <summary>
+        /// Gets a value indicating whether the minimum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
+        /// </summary>
+        public bool IsMinInclusive { get { return Version.StartsWith("["); } }
+
+        /// <summary>
+        /// Gets a value indicating whether the maximum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
+        /// </summary>
+        public bool IsMaxInclusive { get { return Version.EndsWith("]"); } }
+
+        /// <summary>
+        /// Gets the minimum version number of the NuGet package. Only valid when HAsVersionRange is true.
+        /// </summary>
+        public string MinimumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[0]; } }
+
+        /// <summary>
+        /// Gets the maximum version number of the NuGet package. Only valid when HAsVersionRange is true.
+        /// </summary>
+        public string MaximumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[1]; } }
+
+        /// <summary>
         /// Checks to see if this <see cref="NugetPackageIdentifier"/> is equal to the given one.
         /// </summary>
         /// <param name="other">The other <see cref="NugetPackageIdentifier"/> to check equality with.</param>
