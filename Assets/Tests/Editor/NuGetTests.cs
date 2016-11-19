@@ -35,6 +35,34 @@ public class NuGetTests
         id.Version = "6.0.8";
 
         NugetHelper.InstallIdentifier(id);
+        Assert.IsTrue(NugetHelper.IsInstalled(id), "The package was NOT installed: {0} {1}", id.Id, id.Version);
+
+        //NugetHelper.Uninstall(id, false);
+        //Assert.IsFalse(NugetHelper.IsInstalled(id), "The package is STILL installed: {0} {1}", id.Id, id.Version);
+
+        // install a newer version
+        id.Version = "7.0.1";
+        NugetHelper.InstallIdentifier(id);
+        Assert.IsTrue(NugetHelper.IsInstalled(id), "The package was NOT installed: {0} {1}", id.Id, id.Version);
+
+        // try to install an old version while a newer is already installed
+        id.Version = "6.0.8";
+        NugetHelper.InstallIdentifier(id);
+        id.Version = "7.0.1";
+        Assert.IsTrue(NugetHelper.IsInstalled(id), "The package was NOT installed: {0} {1}", id.Id, id.Version);
+
+        NugetHelper.Uninstall(id, false);
+        Assert.IsFalse(NugetHelper.IsInstalled(id), "The package is STILL installed: {0} {1}", id.Id, id.Version);
+    }
+
+    [Test]
+    public void InstallProtobufTest()
+    {
+        var id = new NugetPackageIdentifier();
+        id.Id = "protobuf-net";
+        id.Version = "2.0.0.668";
+
+        NugetHelper.InstallIdentifier(id);
 
         Assert.IsTrue(NugetHelper.IsInstalled(id), "The package was NOT installed: {0} {1}", id.Id, id.Version);
 

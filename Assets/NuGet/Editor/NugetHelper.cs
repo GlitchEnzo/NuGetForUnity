@@ -797,6 +797,11 @@
                 {
                     if (packageId.InRange(installedPackage.Version))
                     {
+                        if (packageId.Version != installedPackage.Version)
+                        {
+                            LogVerbose("Requested {0} {1}, but {2} is already installed, so using that.", packageId.Id, packageId.Version, installedPackage.Version);
+                        }
+
                         package = installedPackage;
                         break;
                     }
