@@ -38,14 +38,22 @@
         public bool IsMaxInclusive { get { return Version.EndsWith("]"); } }
 
         /// <summary>
-        /// Gets the minimum version number of the NuGet package. Only valid when HAsVersionRange is true.
+        /// Gets the minimum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
         public string MinimumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[0]; } }
 
         /// <summary>
-        /// Gets the maximum version number of the NuGet package. Only valid when HAsVersionRange is true.
+        /// Gets the maximum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
-        public string MaximumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[1]; } }
+        public string MaximumVersion 
+        {
+            get 
+            {
+                // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
+                string[] minMax = Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' });
+                return minMax.Length == 2 ? minMax[1] : null; 
+            } 
+        }
 
         /// <summary>
         /// Checks to see if this <see cref="NugetPackageIdentifier"/> is equal to the given one.
@@ -186,6 +194,82 @@
         public override int GetHashCode()
         {
             return Id.GetHashCode() ^ Version.GetHashCode();
+        }
+
+        /// <summary>
+        /// Determines if the given version is in the version range of this <see cref="NugetPackageIdentifier"/>.
+        /// See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
+        /// </summary>
+        /// <param name="otherVersion">The version to check if is in the range.</param>
+        /// <returns>True if the given version is in the range, otherwise false.</returns>
+        public bool InRange(string otherVersion)
+        {
+            if (!HasVersionRange)
+            {
+                // if it has no version range specified (ie only a single version number) NuGet's specs state that that is the minimum version number, inclusive
+                return CompareVersions(Version, otherVersion) <= 0;
+            }
+
+            if (!string.IsNullOrEmpty(MinimumVersion))
+            {
+                int compare = CompareVersions(MinimumVersion, otherVersion);
+                // -1 = Min < other <-- Inclusive & Exclusive
+                //  0 = Min = other <-- Inclusive Only
+                // +1 = Min > other <-- OUT OF RANGE
+
+                if (IsMinInclusive)
+                {
+                    if (compare > 0)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (compare >= 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(MaximumVersion))
+            {
+                int compare = CompareVersions(MaximumVersion, otherVersion);
+                // -1 = Max < other <-- OUT OF RANGE
+                //  0 = Max = other <-- Inclusive Only
+                // +1 = Max > other <-- Inclusive & Exclusive
+
+                if (IsMaxInclusive)
+                {
+                    if (compare < 0)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (compare <= 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                if (IsMaxInclusive)
+                {
+                    // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
+                    int compare = CompareVersions(MinimumVersion, otherVersion);
+
+                    if (compare != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

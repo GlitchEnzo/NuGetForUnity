@@ -738,13 +738,13 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
-            if (packageId.HasVersionRange)
+            // First look to see if the package is already installed
+            NugetPackage package = GetInstalledPackage(packageId);
+
+            if (package == null && packageId.HasVersionRange)
             {
                 // See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
-                Debug.LogErrorFormat("There is no support for version ranges yet! Could not get {0} {1}", packageId.Id, packageId.Version);
-                //string[] minMax = packageId.Version.TrimStart(new [] {'[', '('}).TrimEnd(new [] {']', ')'}).Split(new [] {','});
-                //string minVersion = minMax[0];
-                //string maxVersion = minMax[1];
+                Debug.LogErrorFormat("There is not full support for version ranges yet! Could not get {0} {1}", packageId.Id, packageId.Version);
 
                 string output = "Need {0} ";
                 if (string.IsNullOrEmpty(packageId.MinimumVersion))
@@ -772,9 +772,6 @@
                 return null;
             }
 
-            // First look to see if the package is already installed
-            NugetPackage package = GetInstalledPackage(packageId);
-
             if (package == null)
             {
                 // That package isn't installed yet, so look in the cache next
@@ -792,7 +789,20 @@
 
         private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
         {
-            NugetPackage package = installedPackages.FirstOrDefault(x => x.Id == packageId.Id && x.Version == packageId.Version);
+            NugetPackage package = null;
+
+            foreach (var installedPackage in installedPackages)
+            {
+                if (packageId.Id == installedPackage.Id)
+                {
+                    if (packageId.InRange(installedPackage.Version))
+                    {
+                        package = installedPackage;
+                        break;
+                    }
+                }
+            }
+
             return package;
         }
 
