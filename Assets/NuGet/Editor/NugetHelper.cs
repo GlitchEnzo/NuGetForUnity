@@ -576,6 +576,8 @@
         /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
         public static void Uninstall(NugetPackageIdentifier package, bool refreshAssets = true)
         {
+            LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
+
             // update the package.config file
             PackagesConfigFile.RemovePackage(package);
             PackagesConfigFile.Save(PackagesConfigFilePath);
@@ -739,7 +741,13 @@
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
             // First look to see if the package is already installed
-            NugetPackage package = GetInstalledPackage(packageId);
+            NugetPackage package = GetInstalledPackage(packageId);            
+
+            if (package == null)
+            {
+                // That package isn't installed yet, so look in the cache next
+                package = GetCachedPackage(packageId);
+            }
 
             if (package == null && packageId.HasVersionRange)
             {
@@ -774,12 +782,6 @@
 
             if (package == null)
             {
-                // That package isn't installed yet, so look in the cache next
-                package = GetCachedPackage(packageId);
-            }
-
-            if (package == null)
-            {
                 // It's not in the cache, so we need to look in the active sources
                 package = GetOnlinePackage(packageId);
             }
@@ -787,6 +789,11 @@
             return package;
         }
 
+        /// <summary>
+        /// Tries to find an already installed package that matches (or is in the range of) the given package ID.
+        /// </summary>
+        /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> of the <see cref="NugetPackage"/> to find.</param>
+        /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
         {
             NugetPackage package = null;
@@ -811,22 +818,48 @@
             return package;
         }
 
+        /// <summary>
+        /// Tries to find an already cached package that matches (or is in the range of) the given package ID.
+        /// </summary>
+        /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> of the <see cref="NugetPackage"/> to find.</param>
+        /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetCachedPackage(NugetPackageIdentifier packageId)
         {
             NugetPackage package = null;
 
-            string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
-
-            if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
+            if (NugetHelper.NugetConfigFile.InstallFromCache)
             {
-                // the exact package was in the cache
-                LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
-                package = NugetPackage.FromNupkgFile(cachedPackagePath);
+                // find all .nupkg files in the cache containing the package ID in the filename
+                List<string> cachedPackages = Directory.GetFiles(NugetHelper.PackOutputDirectory, string.Format("{0}.*.nupkg", packageId.Id)).OrderBy(x => x).ToList();
+
+                foreach (var cachedPackage in cachedPackages)
+                {
+                    //LogVerbose(cachedPackage);
+
+                    // read the version string from the filename
+                    int startIndex = cachedPackage.IndexOf(packageId.Id) + packageId.Id.Length + 1;
+                    int endIndex = cachedPackage.IndexOf(".nupkg");
+                    string version = cachedPackage.Substring(startIndex, endIndex - startIndex);
+
+                    //LogVerbose(version);
+
+                    if (packageId.InRange(version))
+                    {
+                        // since the packages were sorted in alphabetical order, we take the lowest (first) package that is in range
+                        LogVerbose("Found in local cache: {0}", cachedPackage);
+                        package = NugetPackage.FromNupkgFile(cachedPackage);
+                    }
+                }
             }
 
             return package;
         }
 
+        /// <summary>
+        /// Tries to find an "online" (in the package sources - which could be local) package that matches (or is in the range of) the given package ID.
+        /// </summary>
+        /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> of the <see cref="NugetPackage"/> to find.</param>
+        /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetOnlinePackage(NugetPackageIdentifier packageId)
         {
             NugetPackage package = null;

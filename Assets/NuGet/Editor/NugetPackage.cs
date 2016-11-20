@@ -92,7 +92,9 @@
         /// <returns>The <see cref="NugetPackage"/> loaded from the .nupkg file.</returns>
         public static NugetPackage FromNupkgFile(string nupkgFilepath)
         {
-            return FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath));
+            NugetPackage package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath));
+            package.DownloadUrl = nupkgFilepath;
+            return package;
         }
 
         /// <summary>
