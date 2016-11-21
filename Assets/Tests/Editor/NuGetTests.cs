@@ -30,15 +30,10 @@ public class NuGetTests
     [Test]
     public void InstallJsonTest()
     {
-        var id = new NugetPackageIdentifier();
-        id.Id = "Newtonsoft.Json";
-        id.Version = "6.0.8";
+        var id = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
 
         NugetHelper.InstallIdentifier(id);
         Assert.IsTrue(NugetHelper.IsInstalled(id), "The package was NOT installed: {0} {1}", id.Id, id.Version);
-
-        //NugetHelper.Uninstall(id, false);
-        //Assert.IsFalse(NugetHelper.IsInstalled(id), "The package is STILL installed: {0} {1}", id.Id, id.Version);
 
         // install a newer version
         id.Version = "7.0.1";
@@ -58,9 +53,7 @@ public class NuGetTests
     [Test]
     public void InstallProtobufTest()
     {
-        var id = new NugetPackageIdentifier();
-        id.Id = "protobuf-net";
-        id.Version = "2.0.0.668";
+        var id = new NugetPackageIdentifier("protobuf-net", "2.0.0.668");
 
         NugetHelper.InstallIdentifier(id);
 
@@ -69,6 +62,46 @@ public class NuGetTests
         NugetHelper.Uninstall(id, false);
 
         Assert.IsFalse(NugetHelper.IsInstalled(id), "The package is STILL installed: {0} {1}", id.Id, id.Version);
+    }
+
+    [Test]
+    public void InstallBootstrapCSSTest()
+    {
+        // disable the cache for now to force getting the lowest version of the dependency
+        NugetHelper.NugetConfigFile.InstallFromCache = false;
+
+        var bootstrap337 = new NugetPackageIdentifier("bootstrap", "3.3.7");
+
+        NugetHelper.InstallIdentifier(bootstrap337);
+        Assert.IsTrue(NugetHelper.IsInstalled(bootstrap337), "The package was NOT installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
+
+        // Bootstrap CSS 3.3.7 has a dependency on jQuery [1.9.1, 4.0.0) ... 1.9.1 <= x < 4.0.0
+        // Therefore it should install 1.9.1 since that is the lowest compatible version available
+        var jQuery191 = new NugetPackageIdentifier("jQuery", "1.9.1");
+        Assert.IsTrue(NugetHelper.IsInstalled(jQuery191), "The package was NOT installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+
+        // now upgrade jQuery to 3.1.1
+        var jQuery311 = new NugetPackageIdentifier("jQuery", "3.1.1");
+        NugetHelper.InstallIdentifier(jQuery311);
+        Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+
+        // reinstall bootstrap, which should use the currently installed jQuery 3.1.1
+        NugetHelper.Uninstall(bootstrap337, false);
+        NugetHelper.InstallIdentifier(bootstrap337);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+
+        // cleanup and uninstall everything
+        NugetHelper.Uninstall(bootstrap337, false);
+        NugetHelper.Uninstall(jQuery311, false);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(bootstrap337), "The package IS installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(jQuery311), "The package IS installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+
+        // turn cache back on
+        NugetHelper.NugetConfigFile.InstallFromCache = true;
     }
 
     [Test]
@@ -84,9 +117,7 @@ public class NuGetTests
     [TestCase("(1.0,2.0)", "1.5")]
     public void VersionInRangeTest(string versionRange, string version)
     {
-        var id = new NugetPackageIdentifier();
-        id.Id = "TestPackage";
-        id.Version = versionRange;
+        var id = new NugetPackageIdentifier("TestPackage", versionRange);
 
         Assert.IsTrue(id.InRange(version), "{0} was NOT in range of {1}!", version, versionRange);
     }
@@ -103,9 +134,7 @@ public class NuGetTests
     [TestCase("(1.0,2.0)", "2.0")]
     public void VersionOutOfRangeTest(string versionRange, string version)
     {
-        var id = new NugetPackageIdentifier();
-        id.Id = "TestPackage";
-        id.Version = versionRange;
+        var id = new NugetPackageIdentifier("TestPackage", versionRange);
 
         Assert.IsFalse(id.InRange(version), "{0} WAS in range of {1}!", version, versionRange);
     }

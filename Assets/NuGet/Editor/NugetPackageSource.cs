@@ -347,10 +347,7 @@
                             // only use the dependency if there is no framework specified, or it is explicitly .NET 3.0
                             if (string.IsNullOrEmpty(framework) || framework == "net30")
                             {
-                                NugetPackageIdentifier dependency = new NugetPackageIdentifier();
-                                dependency.Id = id;
-                                dependency.Version = version;
-
+                                NugetPackageIdentifier dependency = new NugetPackageIdentifier(id, version);
                                 package.Dependencies.Add(dependency);
                             }
                         }

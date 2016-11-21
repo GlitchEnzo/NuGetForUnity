@@ -56,6 +56,26 @@
         }
 
         /// <summary>
+        /// Initializes a new instance of a <see cref="NugetPackageIdentifider"/> with empty ID and Version.
+        /// </summary>
+        public NugetPackageIdentifier()
+        {
+            Id = string.Empty;
+            Version = string.Empty;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of a <see cref="NugetPackageIdentifider"/> with the given ID and Version.
+        /// </summary>
+        /// <param name="id">The ID of the package.</param>
+        /// <param name="version">The version number of the package.</param>
+        public NugetPackageIdentifier(string id, string version)
+        {
+            Id = id;
+            Version = version;
+        }
+
+        /// <summary>
         /// Checks to see if this <see cref="NugetPackageIdentifier"/> is equal to the given one.
         /// </summary>
         /// <param name="other">The other <see cref="NugetPackageIdentifier"/> to check equality with.</param>
