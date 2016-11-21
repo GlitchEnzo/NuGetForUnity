@@ -40,7 +40,7 @@
         /// <summary>
         /// Gets the minimum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
-        public string MinimumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[0]; } }
+        public string MinimumVersion { get { return Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' })[0].Trim(); } }
 
         /// <summary>
         /// Gets the maximum version number of the NuGet package. Only valid when HasVersionRange is true.
@@ -51,7 +51,7 @@
             {
                 // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
                 string[] minMax = Version.TrimStart(new[] { '[', '(' }).TrimEnd(new[] { ']', ')' }).Split(new[] { ',' });
-                return minMax.Length == 2 ? minMax[1] : null; 
+                return minMax.Length == 2 ? minMax[1].Trim() : null; 
             } 
         }
 
@@ -204,10 +204,22 @@
         /// <returns>True if the given version is in the range, otherwise false.</returns>
         public bool InRange(string otherVersion)
         {
+            return CompareVersion(otherVersion) == 0;
+        }
+
+        /// <summary>
+        /// Compares the given version string with the version range of this <see cref="NugetPackageIdentifier"/>.
+        /// See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
+        /// </summary>
+        /// <param name="otherVersion">The version to check if is in the range.</param>
+        /// <returns>-1 if otherVersion is less than the version range. 0 if otherVersion is inside the version range. +1 if otherVersion is greater than the version range.</returns>
+        public int CompareVersion(string otherVersion)
+        {
             if (!HasVersionRange)
             {
                 // if it has no version range specified (ie only a single version number) NuGet's specs state that that is the minimum version number, inclusive
-                return CompareVersions(Version, otherVersion) <= 0;
+                int compare = CompareVersions(Version, otherVersion);
+                return compare <= 0 ? 0 : compare;
             }
 
             if (!string.IsNullOrEmpty(MinimumVersion))
@@ -221,14 +233,14 @@
                 {
                     if (compare > 0)
                     {
-                        return false;
+                        return -1;
                     }
                 }
                 else
                 {
                     if (compare >= 0)
                     {
-                        return false;
+                        return -1;
                     }
                 }
             }
@@ -244,14 +256,14 @@
                 {
                     if (compare < 0)
                     {
-                        return false;
+                        return 1;
                     }
                 }
                 else
                 {
                     if (compare <= 0)
                     {
-                        return false;
+                        return 1;
                     }
                 }
             }
@@ -260,20 +272,15 @@
                 if (IsMaxInclusive)
                 {
                     // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                    int compare = CompareVersions(MinimumVersion, otherVersion);
-
-                    if (compare != 0)
-                    {
-                        return false;
-                    }
+                    return CompareVersions(MinimumVersion, otherVersion);
                 }
             }
 
-            return true;
+            return 0;
         }
 
         /// <summary>
-        /// Compares two version numbers in the form "1.2.1". Also supports an optional 4th number as well as a prerelease tag, such as "1.3.0.1-alpha2".
+        /// Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a prerelease tag, such as "1.3.0.1-alpha2".
         /// Returns:
         /// -1 if versionA is less than versionB
         ///  0 if versionA is equal to versionB

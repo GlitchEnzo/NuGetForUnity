@@ -50,7 +50,7 @@
         }
 
         /// <summary>
-        /// Gets a NugetPackage from the NuGet server with the exact ID and Version given.
+        /// Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier"/> given.
         /// If an exact match isn't found, it selects the next closest version available.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
@@ -69,35 +69,66 @@
                 else
                 {
                     // TODO: Sort the local packages?  Currently assuming they are in alphabetical order due to the filesystem.
+                    // TODO: Optimize to no longer use GetLocalPackages, since that loads the .nupkg itself
 
                     // Try to find later versions of the same package
                     var packages = GetLocalPackages(package.Id, true, true);
-                    foundPackage = packages.SkipWhile(x => x < package).FirstOrDefault();
-
-                    if (foundPackage == null)
-                    {
-                        Debug.LogErrorFormat("Could not find specific local package: {0} - {1}", package.Id, package.Version);
-                    }
-                    else if (foundPackage.Version != package.Version)
-                    {
-                        Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
-                    }
+                    foundPackage = packages.SkipWhile(x => !package.InRange(x.Version)).FirstOrDefault();
                 }
             }
             else
             {
-                string url = string.Format("{0}FindPackagesById()?$filter=Version ge '{1}'&$orderby=Version asc&id='{2}'", Path, package.Version, package.Id);
+                // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
+                string url = string.Empty;
+                if (!package.HasVersionRange)
+                {
+                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=Version ge '{2}'", Path, package.Id, package.Version);
+                }
+                else
+                {
+                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=", Path, package.Id);
+
+                    bool hasMin = false;
+                    if (!string.IsNullOrEmpty(package.MinimumVersion))
+                    {
+                        hasMin = true;
+                        if (package.IsMinInclusive)
+                        {
+                            url += string.Format("Version ge '{0}'", package.MinimumVersion);
+                        }
+                        else
+                        {
+                            url += string.Format("Version gt '{0}'", package.MinimumVersion);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(package.MaximumVersion))
+                    {
+                        if (hasMin)
+                        {
+                            url += " and ";
+                        }
+
+                        if (package.IsMaxInclusive)
+                        {
+                            url += string.Format("Version le '{0}'", package.MaximumVersion);
+                        }
+                        else
+                        {
+                            url += string.Format("Version lt '{0}'", package.MaximumVersion);
+                        }
+                    }
+                    else
+                    {
+                        if (package.IsMaxInclusive)
+                        {
+                            // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
+                            url += string.Format(" and Version le '{0}'", package.MinimumVersion);
+                        }
+                    }
+                }
 
                 foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
-
-                if (foundPackage == null)
-                {
-                    Debug.LogErrorFormat("Could not find specific package: {0} - {1}", package.Id, package.Version);
-                }
-                else if (foundPackage.Version != package.Version)
-                {
-                    Debug.LogWarningFormat("Requested {0} version {1}, but instead using {2}", package.Id, package.Version, foundPackage.Version);
-                }
             }
 
             if (foundPackage != null)

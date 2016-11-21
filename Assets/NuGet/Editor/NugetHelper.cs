@@ -749,37 +749,6 @@
                 package = GetCachedPackage(packageId);
             }
 
-            if (package == null && packageId.HasVersionRange)
-            {
-                // See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
-                Debug.LogErrorFormat("There is not full support for version ranges yet! Could not get {0} {1}", packageId.Id, packageId.Version);
-
-                string output = "Need {0} ";
-                if (string.IsNullOrEmpty(packageId.MinimumVersion))
-                    output += "(any)";
-                else
-                    output += packageId.MinimumVersion;
-
-                if (packageId.IsMinInclusive)
-                    output += " <= x";
-                else
-                    output += " < x";
-
-                if (packageId.IsMaxInclusive)
-                    output += " <= ";
-                else
-                    output += " < ";
-
-                if (string.IsNullOrEmpty(packageId.MaximumVersion))
-                    output += "(any)";
-                else
-                    output += packageId.MaximumVersion;
-
-                Debug.LogErrorFormat(output, packageId.Id);
-
-                return null;
-            }
-
             if (package == null)
             {
                 // It's not in the cache, so we need to look in the active sources
@@ -848,6 +817,7 @@
                         // since the packages were sorted in alphabetical order, we take the lowest (first) package that is in range
                         LogVerbose("Found in local cache: {0}", cachedPackage);
                         package = NugetPackage.FromNupkgFile(cachedPackage);
+                        break;
                     }
                 }
             }
@@ -870,32 +840,20 @@
                 var foundPackage = source.GetSpecificPackage(packageId);
                 if (foundPackage != null)
                 {
-                    if (foundPackage == packageId)
+                    if (package == null)
                     {
-                        // the found package matches the desired package identically
-                        LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
+                        // if another package hasn't been found yet, use the current found one
+                        LogVerbose("{0} {1} was found in {2}, and wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                         package = foundPackage;
-                        break;
                     }
-
-                    if (foundPackage > packageId)
+                    else
                     {
-                        // the found package does NOT match the desired package identically
-                        if (package == null)
+                        // another package has been found previously, but neither match identically
+                        if (foundPackage < package)
                         {
-                            // if another package hasn't been found yet, use the current found one
+                            // use the new package if it's closer to the desired version
                             LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
                             package = foundPackage;
-                        }
-                        else
-                        {
-                            // another package has been found previously, but neither match identically
-                            if (foundPackage < package)
-                            {
-                                // use the new package if it's closer to the desired version
-                                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                                package = foundPackage;
-                            }
                         }
                     }
                 }
