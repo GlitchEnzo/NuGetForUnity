@@ -19,6 +19,11 @@
         public string Description { get; set; }
 
         /// <summary>
+        /// Gets or sets the release notes of the NuGet package.
+        /// </summary>
+        public string ReleaseNotes { get; set; }
+
+        /// <summary>
         /// Gets or sets the URL for the location of the license of the NuGet package.
         /// </summary>
         public string LicenseUrl { get; set; }
@@ -66,6 +71,7 @@
             package.Version = nuspec.Version;
             package.Title = nuspec.Title;
             package.Description = nuspec.Description;
+            package.ReleaseNotes = nuspec.ReleaseNotes;
             package.LicenseUrl = nuspec.LicenseUrl;
             //package.DownloadUrl = not in a nuspec
 

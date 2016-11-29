@@ -791,29 +791,43 @@
 
             // Show the package description
             EditorStyles.label.wordWrap = true;
+            //EditorStyles.label.fontStyle = FontStyle.Bold;
+            //EditorGUILayout.LabelField(string.Format("Description:"));
             EditorStyles.label.fontStyle = FontStyle.Normal;
             EditorGUILayout.LabelField(string.Format("{0}", package.Description));
 
+            // Show the package release notes
+            if (!string.IsNullOrEmpty(package.ReleaseNotes))
+            {
+                EditorStyles.label.wordWrap = true;
+                EditorStyles.label.fontStyle = FontStyle.Bold;
+                EditorGUILayout.LabelField(string.Format("Release Notes:"));
+                EditorStyles.label.fontStyle = FontStyle.Normal;
+                EditorGUILayout.LabelField(string.Format("{0}", package.ReleaseNotes));
+            }
+
             // Show the dependencies
-            EditorStyles.label.wordWrap = true;
-            EditorStyles.label.fontStyle = FontStyle.Italic;
-            StringBuilder builder = new StringBuilder();
-            foreach (var dependency in package.Dependencies)
+            if (package.Dependencies.Count > 0)
             {
-                builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                EditorStyles.label.wordWrap = true;
+                EditorStyles.label.fontStyle = FontStyle.Italic;
+                StringBuilder builder = new StringBuilder();
+                foreach (var dependency in package.Dependencies)
+                {
+                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                }
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
+                EditorStyles.label.fontStyle = FontStyle.Normal;
             }
-            if (package.Dependencies.Count == 0)
-            {
-                builder.Append("NONE;");
-            }
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
-            EditorStyles.label.fontStyle = FontStyle.Normal;
 
             // Show the license button
-            if (GUILayout.Button("View License", GUILayout.Width(120)))
+            if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
             {
-                Application.OpenURL(package.LicenseUrl);
+                if (GUILayout.Button("View License", GUILayout.Width(120)))
+                {
+                    Application.OpenURL(package.LicenseUrl);
+                }
             }
 
             EditorGUILayout.Separator();
