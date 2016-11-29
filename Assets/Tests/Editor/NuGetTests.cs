@@ -105,6 +105,26 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallStyleCopTest()
+    {
+        var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
+        var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.1");
+
+        NugetHelper.InstallIdentifier(styleCopPlusId);
+
+        // StyleCopPlus depends on StyleCop, so they should both be installed
+        // it depends on version 4.7.49.0, but that version doesn't exist. the next closest is 4.7.49.1
+        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        Assert.IsTrue(NugetHelper.IsInstalled(styleCopId), "The package was NOT installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+
+        NugetHelper.Uninstall(styleCopPlusId, false);
+        NugetHelper.Uninstall(styleCopId, false);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package is STILL installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+    }
+
+    [Test]
     [TestCase("1.0", "1.0")]
     [TestCase("1.0", "2.0")]
     [TestCase("(1.0,)", "2.0")]
