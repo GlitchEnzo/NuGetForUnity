@@ -255,8 +255,7 @@
             DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec");
             DeleteFile(packageInstallDirectory + "/[Content_Types].xml");
 
-            // Unity has no use for the tools or build directories
-            DeleteDirectory(packageInstallDirectory + "/tools");
+            // Unity has no use for the build directory
             DeleteDirectory(packageInstallDirectory + "/build");
 
             // For now, delete Content.  We may use it later...
@@ -357,6 +356,12 @@
                         DeleteDirectory(directory);
                     }
                 }
+            }
+
+            if (Directory.Exists(packageInstallDirectory + "/tools"))
+            {
+                // Delete all JavaScript in the tools directory since Unity will think it's "UnityScript"
+                DeleteAllFiles(packageInstallDirectory + "/tools", "*.js");
             }
 
             // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
