@@ -746,7 +746,7 @@
         private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
         {
             // First look to see if the package is already installed
-            NugetPackage package = GetInstalledPackage(packageId);            
+            NugetPackage package = GetInstalledPackage(packageId);
 
             if (package == null)
             {
@@ -907,7 +907,9 @@
         {
             if (NugetConfigFile.Verbose)
             {
+                Application.stackTraceLogType = StackTraceLogType.None;
                 Debug.LogFormat(format, args);
+                Application.stackTraceLogType = StackTraceLogType.ScriptOnly;
             }
         }
 
@@ -1075,8 +1077,15 @@
                     {
                         EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0} {1}", package.Id, package.Version), currentProgress);
 
-                        LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                        InstallIdentifier(package);
+                        if (!IsInstalled(package))
+                        {
+                            LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
+                            InstallIdentifier(package);
+                        }
+                        else
+                        {
+                            LogVerbose("---Already installed: {0} {1}", package.Id, package.Version);
+                        }
                     }
 
                     currentProgress += progressStep;
