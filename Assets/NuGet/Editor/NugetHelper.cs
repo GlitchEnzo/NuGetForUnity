@@ -362,6 +362,9 @@
             {
                 // Delete all JavaScript in the tools directory since Unity will think it's "UnityScript"
                 DeleteAllFiles(packageInstallDirectory + "/tools", "*.js");
+
+                // Delete all DLLs in the tools directory since we can't tell which .NET version they target
+                DeleteAllFiles(packageInstallDirectory + "/tools", "*.dll");
             }
 
             // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
