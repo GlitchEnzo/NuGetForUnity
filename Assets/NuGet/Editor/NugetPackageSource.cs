@@ -409,36 +409,45 @@
                 return GetLocalUpdates(installedPackages, includePrerelease, includeAllVersions);
             }
 
-            string packageIds = string.Empty;
-            string versions = string.Empty;
+            List<NugetPackage> updates = new List<NugetPackage>();
 
-            foreach (var package in installedPackages)
+            // check for updates in groups of 10 instead of all of them, since that causes servers to throw errors for queries that are too long
+            for (int i = 0; i < installedPackages.Count(); i += 10)
             {
-                if (string.IsNullOrEmpty(packageIds))
+                var packageGroup = installedPackages.Skip(i).Take(10);
+
+                string packageIds = string.Empty;
+                string versions = string.Empty;
+
+                foreach (var package in packageGroup)
                 {
-                    packageIds += package.Id;
-                }
-                else
-                {
-                    packageIds += "|" + package.Id;
+                    if (string.IsNullOrEmpty(packageIds))
+                    {
+                        packageIds += package.Id;
+                    }
+                    else
+                    {
+                        packageIds += "|" + package.Id;
+                    }
+
+                    if (string.IsNullOrEmpty(versions))
+                    {
+                        versions += package.Version;
+                    }
+                    else
+                    {
+                        versions += "|" + package.Version;
+                    }
                 }
 
-                if (string.IsNullOrEmpty(versions))
-                {
-                    versions += package.Version;
-                }
-                else
-                {
-                    versions += "|" + package.Version;
-                }
+                string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
+
+                var newPackages = GetPackagesFromUrl(url);
+                updates.AddRange(newPackages);
             }
 
-            string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
-
-            var updates = GetPackagesFromUrl(url);
-
             // sort alphabetically
-            updates.Sort(delegate(NugetPackage x, NugetPackage y)
+            updates.Sort(delegate (NugetPackage x, NugetPackage y)
             {
                 if (x.Id == null && y.Id == null)
                     return 0;
