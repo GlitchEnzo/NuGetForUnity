@@ -316,6 +316,7 @@
                     "uap10",
                     // .NET Standard
                     // See here: https://blogs.msdn.microsoft.com/dotnet/2016/09/26/introducing-net-standard/
+                    "dotnet",
                     "netstandard",
                     "netstandard1.0",
                     "netstandard1.1",
