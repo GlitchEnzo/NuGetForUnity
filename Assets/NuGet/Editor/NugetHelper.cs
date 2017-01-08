@@ -270,13 +270,16 @@
             // Unity can only use .NET 3.5 or lower, so delete everything else
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                //bool has20 = Directory.Exists(packageInstallDirectory + "/lib/net20");
-                bool has30 = Directory.Exists(packageInstallDirectory + "/lib/net30");
-                bool has35 = Directory.Exists(packageInstallDirectory + "/lib/net35");
+                bool has30 = Directory.GetDirectories(packageInstallDirectory + "/lib/", "net30*").Any();
+                bool has35 = Directory.GetDirectories(packageInstallDirectory + "/lib/", "net35*").Any();
 
                 // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
                 List<string> directoriesToDelete = new List<string>
                 {
+                    // Client Profile
+                    // https://docs.nuget.org/ndocs/create-packages/supporting-multiple-target-frameworks
+                    // Note that "cf" and "wp" are handled further below
+                    "client", // For now just delete client profiles and assume there is a full profile. At some point we may need to keep the client profile if the full profile is not defined
                     // .NET Framework
                     "net4",
                     "net40",
