@@ -33,11 +33,6 @@
         public static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "../NuGet.config");
 
         /// <summary>
-        /// The path to the nuget.exe file.
-        /// </summary>
-        private static readonly string NugetExeFilePath = Path.Combine(NugetPath, "./nuget.exe");
-
-        /// <summary>
         /// The path to the packages.config file.
         /// </summary>
         private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
@@ -168,13 +163,31 @@
         /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
         private static void RunNugetProcess(string arguments, bool logOuput = true)
         {
-            LogVerbose("Running NuGet.exe with args = {0}", arguments);
+            // Try to find any nuget.exe in the Unity project
+            string[] files = Directory.GetFiles(Application.dataPath, "nuget.exe", SearchOption.AllDirectories);
+            if (files.Length > 1)
+            {
+                Debug.LogWarningFormat("More than one nuget.exe found. Using first one.");
+            }
+            else if (files.Length < 1)
+            {
+                Debug.LogWarningFormat("No nuget.exe found! Attemping to install the NuGet.CommandLine package.");
+                InstallIdentifier(new NugetPackageIdentifier("NuGet.CommandLine", "2.8.6"));
+                files = Directory.GetFiles(Application.dataPath, "nuget.exe", SearchOption.AllDirectories);
+                if (files.Length < 1)
+                {
+                    Debug.LogErrorFormat("nuget.exe still not found. Quiting...");
+                    return;
+                }
+            }
+
+            LogVerbose("Running: {0} \nArgs: {1}", files[0], arguments);
 
             Process process = new Process();
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.FileName = NugetExeFilePath;
+            process.StartInfo.FileName = files[0];
             process.StartInfo.Arguments = arguments;
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.WorkingDirectory = NugetPath;
