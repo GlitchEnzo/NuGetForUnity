@@ -945,11 +945,7 @@
         {
             try
             {
-                LogVerbose("Installing: {0} {1}", package.Id, package.Version);
-
-                // update packages.config
-                PackagesConfigFile.AddPackage(package);
-                PackagesConfigFile.Save(PackagesConfigFilePath);
+                LogVerbose("Installing: {0} {1}", package.Id, package.Version);                
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
@@ -981,6 +977,10 @@
                         return;
                     }
                 }
+
+                // update packages.config
+                PackagesConfigFile.AddPackage(package);
+                PackagesConfigFile.Save(PackagesConfigFilePath);
 
                 string cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
