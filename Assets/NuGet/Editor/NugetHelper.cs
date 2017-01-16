@@ -372,11 +372,18 @@
 
             if (Directory.Exists(packageInstallDirectory + "/tools"))
             {
-                // Delete all JavaScript in the tools directory since Unity will think it's "UnityScript"
-                DeleteAllFiles(packageInstallDirectory + "/tools", "*.js");
+                // Move the tools folder outside of the Unity Assets folder
+                string toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}/tools", package.Id, package.Version));
 
-                // Delete all DLLs in the tools directory since we can't tell which .NET version they target
-                DeleteAllFiles(packageInstallDirectory + "/tools", "*.dll");
+                LogVerbose("Moving {0} to {1}", packageInstallDirectory + "/tools", toolsInstallDirectory);
+
+                // create the directory to create any of the missing folders in the path
+                Directory.CreateDirectory(toolsInstallDirectory);
+
+                // delete the final directory to prevent the Move operation from throwing exceptions.
+                Directory.Delete(toolsInstallDirectory);
+
+                Directory.Move(packageInstallDirectory + "/tools", toolsInstallDirectory);
             }
 
             // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
@@ -610,6 +617,9 @@
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
+
+            string toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}", package.Id, package.Version));
+            DeleteDirectory(toolsInstallDirectory);
 
             installedPackages.RemoveAll(x => x.Id == package.Id && x.Version == package.Version);
 
