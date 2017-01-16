@@ -158,8 +158,13 @@
         /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
         private static void RunNugetProcess(string arguments, bool logOuput = true)
         {
-            // Try to find any nuget.exe in the Unity project
-            string[] files = Directory.GetFiles(Application.dataPath, "nuget.exe", SearchOption.AllDirectories);
+            // Try to find any nuget.exe in the package tools installation location
+            string toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
+
+            // create the folder to prevent an exception when getting the files
+            Directory.CreateDirectory(toolsPackagesFolder);
+
+            string[] files = Directory.GetFiles(toolsPackagesFolder, "nuget.exe", SearchOption.AllDirectories);
             if (files.Length > 1)
             {
                 Debug.LogWarningFormat("More than one nuget.exe found. Using first one.");
@@ -168,7 +173,7 @@
             {
                 Debug.LogWarningFormat("No nuget.exe found! Attemping to install the NuGet.CommandLine package.");
                 InstallIdentifier(new NugetPackageIdentifier("NuGet.CommandLine", "2.8.6"));
-                files = Directory.GetFiles(Application.dataPath, "nuget.exe", SearchOption.AllDirectories);
+                files = Directory.GetFiles(toolsPackagesFolder, "nuget.exe", SearchOption.AllDirectories);
                 if (files.Length < 1)
                 {
                     Debug.LogErrorFormat("nuget.exe still not found. Quiting...");
