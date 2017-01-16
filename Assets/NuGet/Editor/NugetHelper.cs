@@ -23,14 +23,9 @@
     public static class NugetHelper
     {
         /// <summary>
-        /// The path to the directory that contains nuget.exe and nuget.config.
-        /// </summary>
-        private static readonly string NugetPath = Path.Combine(Application.dataPath, "./NuGet");
-
-        /// <summary>
         /// The path to the nuget.config file.
         /// </summary>
-        public static readonly string NugetConfigFilePath = Path.Combine(NugetPath, "../NuGet.config");
+        public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, "./NuGet.config");
 
         /// <summary>
         /// The path to the packages.config file.
@@ -190,7 +185,7 @@
             process.StartInfo.FileName = files[0];
             process.StartInfo.Arguments = arguments;
             process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.WorkingDirectory = NugetPath;
+            //process.StartInfo.WorkingDirectory = Path.GetDirectoryName(files[0]);
 
             // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
             // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
