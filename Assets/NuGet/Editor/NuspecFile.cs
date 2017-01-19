@@ -10,8 +10,13 @@
     /// <summary>
     /// Represents a .nuspec file used to store metadata for a NuGet package.
     /// </summary>
+    /// <remarks>
+    /// At a minumum, Id, Version, Description, and Authors is required.  Everything else is optional.
+    /// See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec
+    /// </remarks>
     public class NuspecFile
     {
+        #region Required
         /// <summary>
         /// Gets or sets the ID of the NuGet package.
         /// </summary>
@@ -23,14 +28,20 @@
         public string Version { get; set; }
 
         /// <summary>
-        /// Gets or sets the title of the NuGet package.
+        /// Gets or sets the description of the NuGet package.
         /// </summary>
-        public string Title { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
         /// Gets or sets the authors of the NuGet package.
         /// </summary>
         public string Authors { get; set; }
+        #endregion
+
+        /// <summary>
+        /// Gets or sets the title of the NuGet package.
+        /// </summary>
+        public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets the owners of the NuGet package.
@@ -61,11 +72,6 @@
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
         public List<NugetPackageIdentifier> Dependencies { get; set; }
-
-        /// <summary>
-        /// Gets or sets the description of the NuGet package.
-        /// </summary>
-        public string Description { get; set; }
 
         /// <summary>
         /// Gets or sets the release notes of the NuGet package.
@@ -218,24 +224,56 @@
             file.Add(packageElement);
             XElement metadata = new XElement("metadata");
 
+            // required
             metadata.Add(new XElement("id", Id));
             metadata.Add(new XElement("version", Version));
+            metadata.Add(new XElement("description", Description));
+            metadata.Add(new XElement("authors", Authors));
 
             if (!string.IsNullOrEmpty(Title))
             {
                 metadata.Add(new XElement("title", Title));
             }
 
-            metadata.Add(new XElement("authors", Authors));
-            metadata.Add(new XElement("owners", Owners));
-            metadata.Add(new XElement("licenseUrl", LicenseUrl));
-            metadata.Add(new XElement("projectUrl", ProjectUrl));
-            metadata.Add(new XElement("iconUrl", IconUrl));
-            metadata.Add(new XElement("requireLicenseAcceptance", RequireLicenseAcceptance));
-            metadata.Add(new XElement("description", Description));
-            metadata.Add(new XElement("releaseNotes", ReleaseNotes));
-            metadata.Add(new XElement("copyright", Copyright));
-            metadata.Add(new XElement("tags", Tags));
+            if (!string.IsNullOrEmpty(Owners))
+            {
+                metadata.Add(new XElement("owners", Owners));
+            }
+
+            if (!string.IsNullOrEmpty(LicenseUrl))
+            {
+                metadata.Add(new XElement("licenseUrl", LicenseUrl));
+            }
+
+            if (!string.IsNullOrEmpty(ProjectUrl))
+            {
+                metadata.Add(new XElement("projectUrl", ProjectUrl));
+            }
+
+            if (!string.IsNullOrEmpty(IconUrl))
+            {
+                metadata.Add(new XElement("iconUrl", IconUrl));
+            }
+            
+            if (RequireLicenseAcceptance)
+            {
+                metadata.Add(new XElement("requireLicenseAcceptance", RequireLicenseAcceptance));
+            }
+                
+            if (!string.IsNullOrEmpty(ReleaseNotes))
+            {
+                metadata.Add(new XElement("releaseNotes", ReleaseNotes));
+            }
+                    
+            if (!string.IsNullOrEmpty(Copyright))
+            {
+                metadata.Add(new XElement("copyright", Copyright));
+            }
+
+            if (!string.IsNullOrEmpty(Tags))
+            {
+                metadata.Add(new XElement("tags", Tags));
+            }
 
             if (Dependencies != null && Dependencies.Count > 0)
             {
