@@ -71,6 +71,9 @@
     <Compile Include="..\Assets\NuGet\Editor\NugetWindow.cs">
       <Link>NugetWindow.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\NuspecContentFile.cs">
+      <Link>NuspecContentFile.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NuspecEditor.cs">
       <Link>NuspecEditor.cs</Link>
     </Compile>

@@ -83,6 +83,11 @@
         public string Tags { get; set; }
 
         /// <summary>
+        /// Gets or sets the list of content files listed in the .nuspec file.
+        /// </summary>
+        public List<NuspecContentFile> Files { get; set; }
+
+        /// <summary>
         /// Loads the .nuspec file inside the .nupkg file at the given filepath.
         /// </summary>
         /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
@@ -183,6 +188,20 @@
                 }
             }
 
+            nuspec.Files = new List<NuspecContentFile>();
+            var filesElement = package.Element(XName.Get("files", nuspecNamespace));
+            if (filesElement != null)
+            {
+                //UnityEngine.Debug.Log("Loading files!");
+                foreach (var fileElement in filesElement.Elements(XName.Get("file", nuspecNamespace)))
+                {
+                    NuspecContentFile file = new NuspecContentFile();
+                    file.Source = (string)fileElement.Attribute("src") ?? string.Empty;
+                    file.Target = (string)fileElement.Attribute("target") ?? string.Empty;
+                    nuspec.Files.Add(file);
+                }
+            }
+
             return nuspec;
         }
 
@@ -195,7 +214,8 @@
             // TODO: Set a namespace when saving
 
             XDocument file = new XDocument();
-            file.Add(new XElement("package"));
+            XElement packageElement = new XElement("package");
+            file.Add(packageElement);
             XElement metadata = new XElement("metadata");
 
             metadata.Add(new XElement("id", Id));
@@ -232,6 +252,20 @@
             }
 
             file.Root.Add(metadata);
+
+            if (Files != null && Files.Count > 0)
+            {
+                //UnityEngine.Debug.Log("Saving files!");
+                var filesElement = new XElement("files");
+                foreach (var contentFile in Files)
+                {
+                    var fileElement = new XElement("file");
+                    fileElement.Add(new XAttribute("src", contentFile.Source));
+                    fileElement.Add(new XAttribute("target", contentFile.Target));
+                    filesElement.Add(fileElement);
+                }
+                packageElement.Add(filesElement);
+            }
 
             // remove the read only flag on the file, if there is one.
             if (File.Exists(filePath))
