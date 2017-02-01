@@ -652,8 +652,13 @@
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
         public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> packagesToUpdate)
         {
+            float progressStep = 1.0f / updates.Count();
+            float currentProgress = 0;
+             
             foreach (NugetPackage update in updates)
             {
+                EditorUtility.DisplayProgressBar(string.Format("Updating to {0} {1}", update.Id, update.Version), "Installing All Updates", currentProgress);
+
                 NugetPackage installedPackage = packagesToUpdate.FirstOrDefault(p => p.Id == update.Id);
                 if (installedPackage != null)
                 {
@@ -663,9 +668,13 @@
                 {
                     Debug.LogErrorFormat("Trying to update {0} to {1}, but no version is installed!", update.Id, update.Version);
                 }
+
+                currentProgress += progressStep;
             }
 
             AssetDatabase.Refresh();
+
+            EditorUtility.ClearProgressBar();
         }
 
         /// <summary>
