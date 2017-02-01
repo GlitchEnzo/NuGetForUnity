@@ -848,6 +848,14 @@
                     int endIndex = cachedPackage.IndexOf(".nupkg");
                     string version = cachedPackage.Substring(startIndex, endIndex - startIndex);
 
+                    if (char.IsLetter(version[0]))
+                    {
+                        // the id has the same start, but has some additional text, so skip it
+                        // for example, "PackageId.Debug"
+                        // NOTE: This will still fail if it was only a number appended, such as "PackageId2"
+                        continue;
+                    }
+
                     //LogVerbose(version);
 
                     if (packageId.InRange(version))
