@@ -405,7 +405,7 @@
             catch (Exception)
             {
                 UnityEngine.Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
-                return 0;
+                return -1;
             }
         }
     }
