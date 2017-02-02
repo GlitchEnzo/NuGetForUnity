@@ -835,7 +835,7 @@
         }
 
         /// <summary>
-        /// Tries to find an already cached package that matches (or is in the range of) the given package ID.
+        /// Tries to find an already cached package that matches the given package ID.
         /// </summary>
         /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> of the <see cref="NugetPackage"/> to find.</param>
         /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
@@ -845,35 +845,12 @@
 
             if (NugetHelper.NugetConfigFile.InstallFromCache)
             {
-                // find all .nupkg files in the cache containing the package ID in the filename
-                List<string> cachedPackages = Directory.GetFiles(NugetHelper.PackOutputDirectory, string.Format("{0}.*.nupkg", packageId.Id)).OrderBy(x => x).ToList();
-
-                foreach (var cachedPackage in cachedPackages)
+                string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
+ 
+                if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
-                    //LogVerbose(cachedPackage);
-
-                    // read the version string from the filename
-                    int startIndex = cachedPackage.IndexOf(packageId.Id) + packageId.Id.Length + 1;
-                    int endIndex = cachedPackage.IndexOf(".nupkg");
-                    string version = cachedPackage.Substring(startIndex, endIndex - startIndex);
-
-                    if (char.IsLetter(version[0]))
-                    {
-                        // the id has the same start, but has some additional text, so skip it
-                        // for example, "PackageId.Debug"
-                        // NOTE: This will still fail if it was only a number appended, such as "PackageId2"
-                        continue;
-                    }
-
-                    //LogVerbose(version);
-
-                    if (packageId.InRange(version))
-                    {
-                        // since the packages were sorted in alphabetical order, we take the lowest (first) package that is in range
-                        LogVerbose("Found in local cache: {0}", cachedPackage);
-                        package = NugetPackage.FromNupkgFile(cachedPackage);
-                        break;
-                    }
+                    LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                    package = NugetPackage.FromNupkgFile(cachedPackagePath);
                 }
             }
 
