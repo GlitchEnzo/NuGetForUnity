@@ -217,6 +217,26 @@
         }
 
         /// <summary>
+        /// Returns the string representation of this <see cref="NugetPackageIdentifer"/> in the form "{ID}.{Version}".
+        /// </summary>
+        /// <returns>A string in the form "{ID}.{Version}".</returns>
+        public override string ToString()
+        {
+            return string.Format("{0}.{1}", Id, Version);
+        }
+
+        /// <summary>
+        /// Determines if the given <see cref="NugetPackageIdentifier"/>'s version is in the version range of this <see cref="NugetPackageIdentifier"/>.
+        /// See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
+        /// </summary>
+        /// <param name="otherVersion">The <see cref="NugetPackageIdentifier"/> whose version to check if is in the range.</param>
+        /// <returns>True if the given version is in the range, otherwise false.</returns>
+        public bool InRange(NugetPackageIdentifier otherPackage)
+        {
+            return InRange(otherPackage.Version);
+        }
+
+        /// <summary>
         /// Determines if the given version is in the version range of this <see cref="NugetPackageIdentifier"/>.
         /// See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
         /// </summary>

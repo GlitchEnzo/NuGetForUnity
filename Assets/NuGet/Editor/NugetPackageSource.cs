@@ -73,7 +73,7 @@
 
                     // Try to find later versions of the same package
                     var packages = GetLocalPackages(package.Id, true, true);
-                    foundPackage = packages.SkipWhile(x => !package.InRange(x.Version)).FirstOrDefault();
+                    foundPackage = packages.SkipWhile(x => !package.InRange(x)).FirstOrDefault();
                 }
             }
             else
