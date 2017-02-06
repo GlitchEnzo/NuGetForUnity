@@ -386,7 +386,7 @@
                 Directory.CreateDirectory(toolsInstallDirectory);
 
                 // delete the final directory to prevent the Move operation from throwing exceptions.
-                Directory.Delete(toolsInstallDirectory);
+                DeleteDirectory(toolsInstallDirectory);
 
                 Directory.Move(packageInstallDirectory + "/tools", toolsInstallDirectory);
             }
