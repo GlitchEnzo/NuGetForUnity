@@ -654,7 +654,7 @@
         {
             float progressStep = 1.0f / updates.Count();
             float currentProgress = 0;
-             
+
             foreach (NugetPackage update in updates)
             {
                 EditorUtility.DisplayProgressBar(string.Format("Updating to {0} {1}", update.Id, update.Version), "Installing All Updates", currentProgress);
@@ -709,7 +709,7 @@
             }
 
             // sort alphabetically
-            installedPackages.Sort(delegate(NugetPackage x, NugetPackage y)
+            installedPackages.Sort(delegate (NugetPackage x, NugetPackage y)
             {
                 if (x.Id == null && y.Id == null)
                     return 0;
@@ -846,7 +846,7 @@
             if (NugetHelper.NugetConfigFile.InstallFromCache)
             {
                 string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
- 
+
                 if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
@@ -949,16 +949,7 @@
         {
             try
             {
-                LogVerbose("Installing: {0} {1}", package.Id, package.Version);                
-
-                if (refreshAssets)
-                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
-
-                foreach (var dependency in package.Dependencies)
-                {
-                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    InstallIdentifier(dependency);
-                }
+                LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
                 foreach (var installedPackage in installedPackages)
@@ -980,6 +971,16 @@
                         }
                         return;
                     }
+                }
+
+                if (refreshAssets)
+                    EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
+
+                // install all dependencies
+                foreach (var dependency in package.Dependencies)
+                {
+                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                    InstallIdentifier(dependency);
                 }
 
                 // update packages.config
