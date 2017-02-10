@@ -58,9 +58,9 @@
         private static List<NugetPackageSource> packageSources = new List<NugetPackageSource>();
 
         /// <summary>
-        /// The list of currently installed <see cref="NugetPackage"/>s.
+        /// The dictionary of currently installed <see cref="NugetPackage"/>s keyed off of their ID string.
         /// </summary>
-        private static List<NugetPackage> installedPackages = new List<NugetPackage>();
+        private static Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
 
         /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
@@ -626,7 +626,7 @@
             string toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}", package.Id, package.Version));
             DeleteDirectory(toolsInstallDirectory);
 
-            installedPackages.RemoveAll(x => x.Id == package.Id && x.Version == package.Version);
+            installedPackages.Remove(package.Id);
 
             if (refreshAssets)
                 AssetDatabase.Refresh();
@@ -678,10 +678,10 @@
         }
 
         /// <summary>
-        /// Gets the list of packages that are actually installed in the project.
+        /// Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
-        /// <returns>A list of installed <see cref="NugetPackage"/>s.</returns>
-        public static List<NugetPackage> GetInstalledPackages()
+        /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
+        public static Dictionary<string, NugetPackage> GetInstalledPackages()
         {
             LoadNugetConfigFile();
 
@@ -697,30 +697,32 @@
                 string[] nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
                 foreach (string nupkgFile in nupkgFiles)
                 {
-                    installedPackages.Add(NugetPackage.FromNupkgFile(nupkgFile));
+                    NugetPackage package = NugetPackage.FromNupkgFile(nupkgFile);
+                    if (!installedPackages.ContainsKey(package.Id))
+                    {
+                        installedPackages.Add(package.Id, package);
+                    }
+                    else
+                    {
+                        Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
+                    }
                 }
 
                 // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
                 string[] nuspecFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nuspec", SearchOption.AllDirectories);
                 foreach (string nuspecFile in nuspecFiles)
                 {
-                    installedPackages.Add(NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile)));
+                    NugetPackage package = NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile));
+                    if (!installedPackages.ContainsKey(package.Id))
+                    {
+                        installedPackages.Add(package.Id, package);
+                    }
+                    else
+                    {
+                        Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
+                    }
                 }
             }
-
-            // sort alphabetically
-            installedPackages.Sort(delegate (NugetPackage x, NugetPackage y)
-            {
-                if (x.Id == null && y.Id == null)
-                    return 0;
-                if (x.Id == null)
-                    return -1;
-                if (y.Id == null)
-                    return 1;
-                if (x.Id == y.Id)
-                    return x.Version.CompareTo(y.Version);
-                return x.Id.CompareTo(y.Id);
-            });
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
@@ -812,26 +814,30 @@
         /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
         {
-            NugetPackage package = null;
+            NugetPackage installedPackage = null;
 
-            foreach (var installedPackage in installedPackages)
+            if (installedPackages.TryGetValue(packageId.Id, out installedPackage))
             {
-                if (packageId.Id == installedPackage.Id)
+                if (packageId.Version != installedPackage.Version)
                 {
-                    if (packageId.InRange(installedPackage.Version))
+                    if (packageId.InRange(installedPackage))
                     {
-                        if (packageId.Version != installedPackage.Version)
-                        {
-                            LogVerbose("Requested {0} {1}, but {2} is already installed, so using that.", packageId.Id, packageId.Version, installedPackage.Version);
-                        }
-
-                        package = installedPackage;
-                        break;
+                        LogVerbose("Requested {0} {1}, but {2} is already installed, so using that.", packageId.Id, packageId.Version, installedPackage.Version);
                     }
+                    else
+                    {
+                        LogVerbose("Requested {0} {1}. {2} is already installed, but it is out of range.", packageId.Id, packageId.Version, installedPackage.Version);
+                        installedPackage = null;
+                    }
+                }
+                else
+                {
+                    LogVerbose("Found exact package already installed: {0} {1}", installedPackage.Id, installedPackage.Version);
                 }
             }
 
-            return package;
+
+            return installedPackage;
         }
 
         /// <summary>
@@ -847,9 +853,9 @@
             {
                 string cachedPackagePath = System.IO.Path.Combine(NugetHelper.PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
 
-                if (NugetHelper.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
+                if (File.Exists(cachedPackagePath))
                 {
-                    LogVerbose("Getting specific package from the cache: {0}", cachedPackagePath);
+                    LogVerbose("Found exact package in the cache: {0}", cachedPackagePath);
                     package = NugetPackage.FromNupkgFile(cachedPackagePath);
                 }
             }
@@ -952,25 +958,23 @@
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                foreach (var installedPackage in installedPackages)
+                NugetPackage installedPackage = null;
+                if (installedPackages.TryGetValue(package.Id, out installedPackage))
                 {
-                    if (installedPackage.Id == package.Id)
+                    if (installedPackage < package)
                     {
-                        if (installedPackage < package)
-                        {
-                            LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
-                            Update(installedPackage, package, false);
-                        }
-                        else if (installedPackage > package)
-                        {
-                            LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
-                        }
-                        else
-                        {
-                            LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
-                        }
-                        return;
+                        LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
+                        Update(installedPackage, package, false);
                     }
+                    else if (installedPackage > package)
+                    {
+                        LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                    }
+                    else
+                    {
+                        LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
+                    }
+                    return;
                 }
 
                 if (refreshAssets)
@@ -1059,7 +1063,7 @@
                 Clean(package);
 
                 // update the installed packages list
-                installedPackages.Add(package);
+                installedPackages.Add(package.Id, package);
             }
             catch (Exception e)
             {
@@ -1140,7 +1144,16 @@
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         internal static bool IsInstalled(NugetPackageIdentifier package)
         {
-            return installedPackages.Any(x => x.Id == package.Id && x.Version == package.Version);
+            bool isInstalled = false;
+            NugetPackage installedPackage = null;
+
+            if (installedPackages.TryGetValue(package.Id, out installedPackage))
+            {
+                // TODO: do we need to do a full range check, or just check if identical?
+                isInstalled = package.InRange(installedPackage);
+            }
+
+            return isInstalled;
         }
 
         /// <summary>

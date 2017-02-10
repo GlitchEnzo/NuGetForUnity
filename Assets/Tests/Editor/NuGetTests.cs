@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 using UnityEditor;
 using NUnit.Framework;
 using NugetForUnity;
@@ -7,7 +8,7 @@ public class NuGetTests
 {
     private void UninstallAllPackages()
     {
-        var installedPackages = NugetHelper.GetInstalledPackages();
+        var installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
 
         foreach (var installedPackage in installedPackages)
         {

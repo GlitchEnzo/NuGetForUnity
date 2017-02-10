@@ -285,7 +285,7 @@
         private void UpdateInstalledPackages()
         {
             // load a list of install packages
-            installedPackages = NugetHelper.GetInstalledPackages();
+            installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
             filteredInstalledPackages = installedPackages;
 
             if (installedSearchTerm != "Search")

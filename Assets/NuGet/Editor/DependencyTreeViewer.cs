@@ -1,6 +1,7 @@
 ﻿namespace NugetForUnity
 {
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEditor;
     using UnityEngine;
 
@@ -66,7 +67,7 @@
 
                 EditorUtility.DisplayProgressBar("Building Dependency Tree", "Reading installed packages...", 0.5f);
 
-                installedPackages = NugetHelper.GetInstalledPackages();
+                installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
                 List<string> installedPackageNames = new List<string>();
 
                 foreach (NugetPackage package in installedPackages)
