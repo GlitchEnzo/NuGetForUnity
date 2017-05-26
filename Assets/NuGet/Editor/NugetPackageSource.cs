@@ -5,10 +5,8 @@
     using System.IO;
     using System.Linq;
     using System.Net;
-    using System.ServiceModel.Syndication;
     using System.Xml;
     using System.Xml.Linq;
-    using UnityEngine;
     using Debug = UnityEngine.Debug;
 
     /// <summary>
@@ -293,71 +291,13 @@
                 getRequest.Timeout = 5000;
                 getRequest.ReadWriteTimeout = 5000;
                 Stream responseStream = getRequest.GetResponse().GetResponseStream();
-                StreamReader objReader = new StreamReader(responseStream);
-                SyndicationFeed atomFeed = SyndicationFeed.Load(XmlReader.Create(objReader));                
+                StreamReader streamReader = new StreamReader(responseStream);
 
-                foreach (var item in atomFeed.Items)
+                packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
+
+                foreach (var package in packages)
                 {
-                    var propertiesExtension = item.ElementExtensions.First();
-                    var reader = propertiesExtension.GetReader();
-                    var properties = (XElement)XDocument.ReadFrom(reader);
-
-                    NugetPackage package = new NugetPackage();
                     package.PackageSource = this;
-                    package.DownloadUrl = ((UrlSyndicationContent)item.Content).Url.ToString();
-                    package.Id = item.Title.Text;
-                    package.Title = (string)properties.Element(XName.Get("Title", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    package.Version = (string)properties.Element(XName.Get("Version", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    package.Description = (string)properties.Element(XName.Get("Description", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    package.ReleaseNotes = (string)properties.Element(XName.Get("ReleaseNotes", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    package.LicenseUrl = (string)properties.Element(XName.Get("LicenseUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-
-                    string iconUrl = (string)properties.Element(XName.Get("IconUrl", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(iconUrl))
-                    {
-                        package.Icon = NugetHelper.DownloadImage(iconUrl);
-                    }
-
-                    // if there is no title, just use the ID as the title
-                    if (string.IsNullOrEmpty(package.Title))
-                    {
-                        package.Title = package.Id;
-                    }
-
-                    // Get dependencies
-                    package.Dependencies = new List<NugetPackageIdentifier>();
-                    string rawDependencies = (string)properties.Element(XName.Get("Dependencies", "http://schemas.microsoft.com/ado/2007/08/dataservices")) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(rawDependencies))
-                    {
-                        string[] dependencies = rawDependencies.Split('|');
-                        foreach (var dependencyString in dependencies)
-                        {
-                            string[] details = dependencyString.Split(':');
-                            string id = details[0];
-                            string version = details[1];
-                            string framework = string.Empty;
-
-                            if (details.Length > 2)
-                            {
-                                framework = details[2];
-                            }
-
-                            // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
-                            // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
-                            // so we need to only add valid dependencies and skip invalid ones
-                            if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(version))
-                            {
-                                // only use the dependency if there is no framework specified, or it is explicitly .NET 3.0
-                                if (string.IsNullOrEmpty(framework) || framework == "net30")
-                                {
-                                    NugetPackageIdentifier dependency = new NugetPackageIdentifier(id, version);
-                                    package.Dependencies.Add(dependency);
-                                }
-                            }
-                        }
-                    }
-
-                    packages.Add(package);
                 }
             }
             catch (System.Exception e)

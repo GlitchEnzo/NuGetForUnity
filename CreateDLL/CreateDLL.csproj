@@ -56,6 +56,9 @@
     <Compile Include="..\Assets\NuGet\Editor\NugetHelper.cs">
       <Link>NugetHelper.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\NugetODataResponse.cs">
+      <Link>NugetODataResponse.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NugetPackage.cs">
       <Link>NugetPackage.cs</Link>
     </Compile>

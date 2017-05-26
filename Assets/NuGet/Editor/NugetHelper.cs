@@ -63,6 +63,11 @@
         private static Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
 
         /// <summary>
+        /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
+        /// </summary>
+        private static ApiCompatibilityLevel DotNetVersion;
+
+        /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
         /// </summary>
         static NugetHelper()
@@ -72,6 +77,10 @@
             {
                 return;
             }
+
+            // get the .NET version being used, since we don't want a specific platform, send unknown
+            //DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); // Unity 5.6+ way
+            DotNetVersion = PlayerSettings.apiCompatibilityLevel; // Added in Unity 4.0 and marked as deprecated in Unity 5.6, but still exists and works in Unity 2017.1
 
             // Load the NuGet.config file
             LoadNugetConfigFile();
@@ -279,98 +288,90 @@
 
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
-
-            // Unity can only use .NET 3.5 or lower, so delete everything else
+            
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                bool has30 = Directory.GetDirectories(packageInstallDirectory + "/lib/", "net30*").Any();
-                bool has35 = Directory.GetDirectories(packageInstallDirectory + "/lib/", "net35*").Any();
+                int intDotNetVersion = (int)DotNetVersion; // c
+                //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
+                bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+                string selectedDirectory = string.Empty;
 
-                // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                List<string> directoriesToDelete = new List<string>
-                {
-                    // Client Profile
-                    // https://docs.nuget.org/ndocs/create-packages/supporting-multiple-target-frameworks
-                    // Note that "cf" and "wp" are handled further below
-                    "client", // For now just delete client profiles and assume there is a full profile. At some point we may need to keep the client profile if the full profile is not defined
-                    // .NET Framework
-                    "net4",
-                    "net40",
-                    "net403",
-                    "net45",
-                    "net451",
-                    "net452",
-                    "net46",
-                    "net461",
-                    "net462",
-                    // .NET Core
-                    "netcore",
-                    "netcore45",
-                    "netcore451",
-                    "netcore50",
-                    // .NET MicroFramework
-                    "netmf", 
-                    // Windows
-                    "win", // windows store
-                    "win8",
-                    "win81",
-                    "win10",
-                    // Silverlight
-                    "sl",
-                    "sl4",
-                    "sl5",
-                    // Windows Phone
-                    "windowsphone",
-                    "wp",
-                    "wp7",
-                    "wp75",
-                    "wp8",
-                    "wp81",
-                    "wpa81",
-                    // Universal Windows Platform
-                    "uap",
-                    "uap10",
-                    // .NET Standard
-                    // See here: https://blogs.msdn.microsoft.com/dotnet/2016/09/26/introducing-net-standard/
-                    "dotnet",
-                    "netstandard",
-                    "netstandard1.0",
-                    "netstandard1.1",
-                    "netstandard1.2",
-                    "netstandard1.3",
-                    "netstandard1.4",
-                    "netstandard1.5",
-                    "netstandard1.6",
-                    // .NET Core App
-                    "netcoreapp",
-                    "netcoreapp1.0",
-                    "cf", // compact framework
-                    "monoandroid",
-                    "monotouch",
-                    "xamarin.ios10",
-                    "xamarin.mac20"
-                };
-
-                string[] libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib");
+                // go through the library folders in descending order (highest to lowest version)
+                var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).OrderByDescending(di => di.Name.ToLower());
                 foreach (var directory in libDirectories)
                 {
-                    string directoryName = new DirectoryInfo(directory).Name.ToLower();
-                    if (directoriesToDelete.Any(directoryName.Contains))
+                    string directoryName = directory.Name.ToLower();
+
+                    // Select the highest .NET library available that is supported
+                    // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
+                    if (using46 && directoryName == "net462")
                     {
-                        LogVerbose("Deleting unused directory: {0}", directory);
-                        DeleteDirectory(directory);
+                        selectedDirectory = directory.FullName;
+                        break;
                     }
-                    else if (directoryName.Contains("net20") && (has30 || has35))
+                    else if (using46 && directoryName == "net461")
                     {
-                        // if .NET 2.0 exists, keep it, unless there is also a .NET 3.0 or 3.5 version as well
-                        LogVerbose("Deleting net20: {0}", directory);
-                        DeleteDirectory(directory);
+                        selectedDirectory = directory.FullName;
+                        break;
                     }
-                    else if (directoryName.Contains("net30") && has35)
+                    else if (using46 && directoryName == "net46")
                     {
-                        // if .NET 3.0 exists, keep it, unless there is also a .NET 3.5 version as well
-                        LogVerbose("Deleting net30: {0}", directory);
-                        DeleteDirectory(directory);
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && directoryName == "net452")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && directoryName == "net451")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && directoryName == "net45")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && directoryName == "net403")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && (directoryName == "net40" || directoryName == "net4"))
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (directoryName == "net35")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (directoryName == "net20")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (directoryName == "net11")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(selectedDirectory))
+                {
+                    LogVerbose("Using {0}", selectedDirectory);
+                }
+
+                // delete all of the libaries except for the selected one
+                foreach (var directory in libDirectories)
+                {
+                    if (directory.FullName != selectedDirectory)
+                    {
+                        DeleteDirectory(directory.FullName);
                     }
                 }
             }
@@ -940,6 +941,9 @@
         {
             if (NugetConfigFile.Verbose)
             {
+                // Application.stackTraceLogType was added in Unity 5.2
+                // It was deprecated in Unity 5.4, but it still exists and works in Unity 2017.1
+                // Continuing to use it here for backwards compatibility
                 Application.stackTraceLogType = StackTraceLogType.None;
                 Debug.LogFormat(format, args);
                 Application.stackTraceLogType = StackTraceLogType.ScriptOnly;
