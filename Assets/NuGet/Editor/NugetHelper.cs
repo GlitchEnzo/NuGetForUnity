@@ -65,7 +65,7 @@
         /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
         /// </summary>
-        private static ApiCompatibilityLevel DotNetVersion;
+        internal static ApiCompatibilityLevel DotNetVersion;
 
         /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
@@ -602,6 +602,17 @@
             foreach (var file in files)
             {
                 DeleteFile(file);
+            }
+        }
+
+        /// <summary>
+        /// Uninstalls all of the currently installed packages.
+        /// </summary>
+        internal static void UninstallAll()
+        {
+            foreach (var package in installedPackages.Values.ToList())
+            {
+                Uninstall(package);
             }
         }
 
@@ -1153,8 +1164,7 @@
 
             if (installedPackages.TryGetValue(package.Id, out installedPackage))
             {
-                // TODO: do we need to do a full range check, or just check if identical?
-                isInstalled = package.InRange(installedPackage);
+                isInstalled = package.Version == installedPackage.Version;
             }
 
             return isInstalled;
