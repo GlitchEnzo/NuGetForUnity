@@ -1,5 +1,6 @@
 ﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -89,14 +90,21 @@
                     bool hasMin = false;
                     if (!string.IsNullOrEmpty(package.MinimumVersion))
                     {
+                        // Some packages append extraneous ".0"s to the end of the version number for dependencies
+                        // For example, the actual package version is "1.0", but the dependency is listed as "1.0.0"
+                        // In these cases the NuGet server fails to return the "1.0" version when that version string is queried
+                        // While this seems to be a flaw in the NuGet server, we shall fix it here by removing the last .0, if there is one
+                        // Note that it only removes the last one and not all, this can be made to loop if additional problems are found in other packages
+                        var minVersion = package.Version.EndsWith(".0") ? package.Version.Remove(package.Version.LastIndexOf(".0", StringComparison.Ordinal)) : package.Version;
+
                         hasMin = true;
                         if (package.IsMinInclusive)
                         {
-                            url += string.Format("Version ge '{0}'", package.MinimumVersion);
+                            url += string.Format("Version ge '{0}'", minVersion);
                         }
                         else
                         {
-                            url += string.Format("Version gt '{0}'", package.MinimumVersion);
+                            url += string.Format("Version gt '{0}'", minVersion);
                         }
                     }
 
