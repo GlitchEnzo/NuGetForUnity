@@ -48,9 +48,25 @@
         public static NugetConfigFile NugetConfigFile { get; private set; }
 
         /// <summary>
+        /// Backing field for the packages.config file.
+        /// </summary>
+        private static PackagesConfigFile packagesConfigFile;
+
+        /// <summary>
         /// Gets the loaded packages.config file that hold the dependencies for the project.
         /// </summary>
-        public static PackagesConfigFile PackagesConfigFile { get; private set; }
+        public static PackagesConfigFile PackagesConfigFile
+        {
+            get
+            {
+                if (packagesConfigFile == null)
+                {
+                    packagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
+                }
+
+                return packagesConfigFile;
+            }
+        }
 
         /// <summary>
         /// The list of <see cref="NugetPackageSource"/>s to use.
@@ -84,9 +100,6 @@
 
             // Load the NuGet.config file
             LoadNugetConfigFile();
-
-            // Load the packages.config file
-            PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
             // create the nupkgs directory, if it doesn't exist
             if (!Directory.Exists(PackOutputDirectory))
@@ -1107,9 +1120,6 @@
 
             try
             {
-                // Reload since the packages.config file may have been edited by hand
-                PackagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
-
                 float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
                 float currentProgress = 0;
 
