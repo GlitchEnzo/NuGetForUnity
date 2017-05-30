@@ -53,6 +53,9 @@
     <Compile Include="..\Assets\NuGet\Editor\NugetConfigFile.cs">
       <Link>NugetConfigFile.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\NugetFrameworkGroup.cs">
+      <Link>NugetFrameworkGroup.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\NugetHelper.cs">
       <Link>NugetHelper.cs</Link>
     </Compile>
