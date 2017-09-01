@@ -357,6 +357,16 @@
                         selectedDirectory = directory.FullName;
                         break;
                     }
+                    else if (directoryName == "net35-unity full v3.5")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (directoryName == "net35-unity subset v3.5")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
                     else if (directoryName == "net35")
                     {
                         selectedDirectory = directory.FullName;
