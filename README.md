@@ -72,7 +72,7 @@ NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically 
 </configuration>
 ```
 
-You can change this to any other NuGet server (such as NuGet.Server or ProGet).  The **NuGet → Reload NuGet.config** menu item is useful if you are editing the *NuGet.config* file.
+You can change this to any other NuGet server (such as NuGet.Server or ProGet - see below).  The **NuGet → Reload NuGet.config** menu item is useful if you are editing the *NuGet.config* file.
 
 See more information about *NuGet.config* files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
 
@@ -101,11 +101,15 @@ Select the new *.nuspec* file and you should see something like this:
 
 Input the appropriate information for your package (ID, Version, Author, Description, etc).  Be sure to include whatever dependencies are required by your package.
 
-Press the **Pack** button to pack you package into a *.nupkg* file that is saved in the `C:\Users\[username]\AppData\Local\NuGet\Cache` folder.
+Press the **Pack** button to pack your package into a *.nupkg* file that is saved in the `C:\Users\[username]\AppData\Local\NuGet\Cache` folder.
 
 Press the **Push** button to push your package up to the server.  Be sure to set the correct API Key that give you permission to push to the server (if you server is configured to use one).
 
 # How do I create my own NuGet server to host NuGet packages?
-You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.  Alternativly you can use a "local source" which is just a folder on your hard-drive. Be sure to set the proper URL/path in the *NuGet.config* file and you should be good to go!
+You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
+
+Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share.
+
+Be sure to set the proper URL/path in the *NuGet.config* file and you should be good to go!
 
 Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget-feeds](http://docs.nuget.org/create/hosting-your-own-nuget-feeds)
