@@ -1,5 +1,5 @@
-# What is it?
-NuGetForUnity is a Nuget client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
+# What is NuGetForUnity?
+NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
 You can learn more about NuGet here: [nuget.org](nuget.org)
 
@@ -7,15 +7,15 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 
 ![](screenshots/online.png?raw=true)
 
-# How to install?
-Install the provided Unity package into your Unity project.  Located [here - TBD].
+# How do I install NuGetForUnity?
+Install the provided Unity package into your Unity project.  Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).
 
-# How to use?
+# How do I use NuGetForUnity?
 To launch, select **NuGet → Manage NuGet Packages**
 
 ![](screenshots/menu_item.png?raw=true)
 
-After several seconds (it takes some time to query the server for packages), you should see a window like this:
+After several seconds (it can take some time to query the server for packages), you should see a window like this:
 
 ![](screenshots/online.png?raw=true)
 
@@ -52,7 +52,7 @@ The version in brackets on the left is the new version number.  The version in b
 
 Click the **Update** button to uninstall the current package and install the new package.
 
-# How does it work?
+# How does NuGetForUnity work?
 NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to.  By default, this server is set to the nuget.org package source.  
 
 *The default NuGet.config file:*
@@ -90,7 +90,7 @@ If you are interested in the process NuGetForUnity follows or you are trying to 
 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
-# How to create packages?
+# How do I create my own NuGet packages from within Unity?
 First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create → Nuspec File**.
 
 ![](screenshots/nuspec_menu.png?raw=true)
@@ -105,9 +105,7 @@ Press the **Pack** button to pack you package into a *.nupkg* file that is saved
 
 Press the **Push** button to push your package up to the server.  Be sure to set the correct API Key that give you permission to push to the server (if you server is configured to use one).
 
-# How to create your own server?
-You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.  Be sure to set the proper URL in the *NuGet.config* file and you should be good to go!
+# How do I create my own NuGet server to host NuGet packages?
+You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.  Alternativly you can use a "local source" which is just a folder on your hard-drive. Be sure to set the proper URL/path in the *NuGet.config* file and you should be good to go!
 
 Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget-feeds](http://docs.nuget.org/create/hosting-your-own-nuget-feeds)
-
-Note: NuGetForUnity currently does **not** support local feeds.
