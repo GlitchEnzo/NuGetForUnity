@@ -317,6 +317,7 @@
 
                     // Select the highest .NET library available that is supported
                     // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
+                    // See .NET Standard comparison here: https://docs.microsoft.com/en-us/dotnet/standard/library
                     if (using46 && directoryName == "net462")
                     {
                         selectedDirectory = directory.FullName;
@@ -327,7 +328,27 @@
                         selectedDirectory = directory.FullName;
                         break;
                     }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.6")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.5")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.4")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
                     else if (using46 && directoryName == "net46")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.3")
                     {
                         selectedDirectory = directory.FullName;
                         break;
@@ -342,7 +363,22 @@
                         selectedDirectory = directory.FullName;
                         break;
                     }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.2")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
                     else if (using46 && directoryName == "net45")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.1")
+                    {
+                        selectedDirectory = directory.FullName;
+                        break;
+                    }
+                    else if (using46 && NugetHelper.NugetConfigFile.AllowNetStandard && directoryName == "netstandard1.0")
                     {
                         selectedDirectory = directory.FullName;
                         break;

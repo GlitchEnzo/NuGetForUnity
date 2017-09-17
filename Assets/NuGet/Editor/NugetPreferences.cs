@@ -35,6 +35,14 @@
 
             NugetHelper.NugetConfigFile.Verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
 
+            NugetHelper.NugetConfigFile.AllowNetStandard = EditorGUILayout.Toggle(new GUIContent("Allow .NET Standard", "USE AT YOUR OWN RISK!!!"), NugetHelper.NugetConfigFile.AllowNetStandard);
+
+            if (GUILayout.Button(string.Format("!!! Uninstall All Packages !!!")))
+            {
+                NugetHelper.GetInstalledPackages();
+                NugetHelper.UninstallAll();
+            }
+
             EditorGUILayout.LabelField("Package Sources:");
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);

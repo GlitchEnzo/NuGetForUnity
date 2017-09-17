@@ -44,6 +44,11 @@
         public bool InstallFromCache { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether .NET Standard DLLs are allowed to be installed.
+        /// </summary>
+        public bool AllowNetStandard { get; set; }
+
+        /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         private string savedRepositoryPath;
@@ -112,6 +117,14 @@
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "InstallFromCache"));
                 addElement.Add(new XAttribute("value", InstallFromCache.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
+            if (AllowNetStandard)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "AllowNetStandard"));
+                addElement.Add(new XAttribute("value", AllowNetStandard.ToString().ToLower()));
                 config.Add(addElement);
             }
 
@@ -227,6 +240,10 @@
                     else if (key == "InstallFromCache")
                     {
                         configFile.InstallFromCache = bool.Parse(value);
+                    }
+                    else if (key == "AllowNetStandard")
+                    {
+                        configFile.AllowNetStandard = bool.Parse(value);
                     }
                 }
             }
