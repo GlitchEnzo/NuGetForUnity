@@ -307,7 +307,7 @@
                 int intDotNetVersion = (int)DotNetVersion; // c
                 //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
                 bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
-                string selectedDirectory = string.Empty;
+                var selectedDirectories = new List<string>();
 
                 // go through the library folders in descending order (highest to lowest version)
                 var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).OrderByDescending(di => di.Name.ToLower());
@@ -319,80 +319,82 @@
                     // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
                     if (using46 && directoryName == "net462")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net461")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net46")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net452")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net451")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net45")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && directoryName == "net403")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (using46 && (directoryName == "net40" || directoryName == "net4"))
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (directoryName == "net35-unity full v3.5")
+                    else if (
+                        directoryName == "unity" || 
+                        directoryName == "net35-unity full v3.5" || 
+                        directoryName == "net35-unity subset v3.5" )
                     {
-                        selectedDirectory = directory.FullName;
-                        break;
-                    }
-                    else if (directoryName == "net35-unity subset v3.5")
-                    {
-                        selectedDirectory = directory.FullName;
+                        // Keep all directories targeting Unity within a package
+                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "unity"));
+                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity full v3.5"));
+                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity subset v3.5"));
                         break;
                     }
                     else if (directoryName == "net35")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (directoryName == "net20")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                     else if (directoryName == "net11")
                     {
-                        selectedDirectory = directory.FullName;
+                        selectedDirectories.Add(directory.FullName);
                         break;
                     }
                 }
 
-                if (!string.IsNullOrEmpty(selectedDirectory))
+
+                foreach( var dir in selectedDirectories)
                 {
-                    LogVerbose("Using {0}", selectedDirectory);
+                    LogVerbose("Using {0}", dir);
                 }
 
                 // delete all of the libaries except for the selected one
                 foreach (var directory in libDirectories)
                 {
-                    if (directory.FullName != selectedDirectory)
+                    if (!selectedDirectories.Contains(directory.FullName))
                     {
                         DeleteDirectory(directory.FullName);
                     }
