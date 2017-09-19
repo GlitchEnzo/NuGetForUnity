@@ -295,6 +295,15 @@
 
             try
             {
+                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
+                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+
+                // remove all handlers
+                ServicePointManager.ServerCertificateValidationCallback = null;
+
+                // add anonymous handler
+                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
+
                 HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
                 getRequest.Timeout = 5000;
                 getRequest.ReadWriteTimeout = 5000;
