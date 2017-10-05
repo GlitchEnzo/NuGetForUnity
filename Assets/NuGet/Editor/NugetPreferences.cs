@@ -67,6 +67,19 @@
 
                     EditorGUILayout.BeginHorizontal();
                     {
+                        GUILayout.Space(29);
+                        EditorGUIUtility.labelWidth = 60;
+                        source.HasPassword = EditorGUILayout.Toggle("password", source.HasPassword);
+                        if (source.HasPassword)
+                        {
+                            EditorGUIUtility.labelWidth = 0;
+                            source.Password = EditorGUILayout.PasswordField(source.Password);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.BeginHorizontal();
+                    {
                         if (GUILayout.Button(string.Format("Move Up")))
                         {
                             sourceToMoveUp = source;

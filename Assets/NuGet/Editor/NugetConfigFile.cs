@@ -58,6 +58,7 @@
 
             XElement packageSources = new XElement("packageSources");
             XElement disabledPackageSources = new XElement("disabledPackageSources");
+            XElement passwordPackageSources = new XElement("passwordPackageSources");
 
             XElement addElement;
 
@@ -75,6 +76,14 @@
                     addElement.Add(new XAttribute("key", source.Name));
                     addElement.Add(new XAttribute("value", "true"));
                     disabledPackageSources.Add(addElement);
+                }
+
+                if (source.HasPassword)
+                {
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("key", source.Name));
+                    addElement.Add(new XAttribute("value", source.Password));
+                    passwordPackageSources.Add(addElement);
                 }
             }
 
@@ -118,6 +127,7 @@
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
+            configuration.Add(passwordPackageSources);
             configuration.Add(activePackageSource);
             configuration.Add(config);
 
@@ -186,6 +196,23 @@
                         {
                             source.IsEnabled = false;
                         }
+                    }
+                }
+            }
+
+            // set all listed passwords for package sources
+            XElement passwordPackageSources = file.Root.Element("passwordPackageSources");
+            if (passwordPackageSources != null)
+            {
+                var adds = passwordPackageSources.Elements("add");
+                foreach (var add in adds)
+                {
+                    string name = add.Attribute("key").Value;
+                    string password = add.Attribute("value").Value;
+                    var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                    if (source != null)
+                    {
+                        source.Password = password;
                     }
                 }
             }

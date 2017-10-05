@@ -26,6 +26,31 @@
         public string Path { get; set; }
 
         /// <summary>
+        /// Gets or sets the password used to access the feed. Null indicates that no password is used.
+        /// </summary>
+        public string Password { get; set; }
+
+        public bool HasPassword
+        {
+            get { return Password != null; }
+
+            set
+            {
+                if (value)
+                {
+                    if (Password == null)
+                    {
+                        Password = string.Empty; // Initialize newly-enabled password to empty string.
+                    }
+                }
+                else
+                {
+                    Password = null; // Clear password to null when disabled.
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value indicated whether the path is a local path or a remote path.
         /// </summary>
         public bool IsLocalPath { get; private set; }
