@@ -159,7 +159,7 @@
                     }
                 }
 
-                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+                foundPackage = GetPackagesFromUrl(url, Password).FirstOrDefault();
             }
 
             if (foundPackage != null)
@@ -229,7 +229,7 @@
             // should we include prerelease packages?
             url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-            return GetPackagesFromUrl(url);
+            return GetPackagesFromUrl(url, Password);
         }
 
         /// <summary>
@@ -308,8 +308,9 @@
         /// See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
         /// </summary>
         /// <param name="url"></param>
+        /// <param name="password"></param>
         /// <returns></returns>
-        private List<NugetPackage> GetPackagesFromUrl(string url)
+        private List<NugetPackage> GetPackagesFromUrl(string url, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -329,7 +330,7 @@
                 // add anonymous handler
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-                Stream responseStream = NugetHelper.RequestUrl(url, timeOut: 5000);
+                Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
                 StreamReader streamReader = new StreamReader(responseStream);
 
                 packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
@@ -428,7 +429,7 @@
 
                 string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
-                var newPackages = GetPackagesFromUrl(url);
+                var newPackages = GetPackagesFromUrl(url, Password);
                 updates.AddRange(newPackages);
             }
 

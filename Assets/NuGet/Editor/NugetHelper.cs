@@ -1064,7 +1064,7 @@
                         if (refreshAssets)
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
-                        Stream objStream = RequestUrl(package.DownloadUrl, timeOut: null);
+                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.Password, timeOut: null);
                         using (Stream file = File.Create(cachedPackagePath))
                         {
                             CopyStream(objStream, file);
@@ -1122,15 +1122,23 @@
         /// Get the specified URL from the web. Throws exceptions if the request fails.
         /// </summary>
         /// <param name="url">URL that will be loaded.</param>
+        /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
         /// <returns>Stream containing the result.</returns>
-        public static Stream RequestUrl(string url, int? timeOut)
+        public static Stream RequestUrl(string url, string password, int? timeOut)
         {
             HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
             if (timeOut.HasValue)
             {
                 getRequest.Timeout = timeOut.Value;
                 getRequest.ReadWriteTimeout = timeOut.Value;
+            }
+            if (password != null)
+            {
+                // Send password as described by https://docs.microsoft.com/en-us/vsts/integrate/get-started/rest/basics.
+                // This works with Visual Studio Team Services, but hasn't been tested with other authentication schemes so there may be additional work needed if there
+                // are different kinds of authentication.
+                getRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", "", password))));
             }
             LogVerbose("HTTP GET {0}", url);
             Stream objStream = getRequest.GetResponse().GetResponseStream();
