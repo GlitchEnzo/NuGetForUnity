@@ -316,7 +316,7 @@
             }
             catch (System.Exception e)
             {
-                Debug.LogErrorFormat(e.ToString());
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
             }
 
             stopwatch.Stop();

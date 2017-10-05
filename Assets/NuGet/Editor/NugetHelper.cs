@@ -1105,7 +1105,7 @@
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                Debug.LogErrorFormat("Unable to install package {0}\n{1}", package.Id, e.ToString());
             }
             finally
             {
@@ -1132,6 +1132,7 @@
                 getRequest.Timeout = timeOut.Value;
                 getRequest.ReadWriteTimeout = timeOut.Value;
             }
+            LogVerbose("HTTP GET {0}", url);
             Stream objStream = getRequest.GetResponse().GetResponseStream();
             return objStream;
         }
