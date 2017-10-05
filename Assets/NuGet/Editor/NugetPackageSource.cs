@@ -304,10 +304,7 @@
                 // add anonymous handler
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-                HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
-                getRequest.Timeout = 5000;
-                getRequest.ReadWriteTimeout = 5000;
-                Stream responseStream = getRequest.GetResponse().GetResponseStream();
+                Stream responseStream = NugetHelper.RequestUrl(url, timeOut: 5000);
                 StreamReader streamReader = new StreamReader(responseStream);
 
                 packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
