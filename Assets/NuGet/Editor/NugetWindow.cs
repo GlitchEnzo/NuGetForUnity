@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -213,7 +214,7 @@
                 filepath += "/MyPackage.nuspec";
             }
 
-            Debug.LogFormat("Creating: {0}", filepath);
+            UnityEngine.Debug.LogFormat("Creating: {0}", filepath);
 
             NuspecFile file = new NuspecFile();
             file.Id = "MyPackage";
@@ -236,6 +237,9 @@
         /// </summary>
         private void OnEnable()
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             try
             {
                 // if we are entering playmode, don't do anything
@@ -271,11 +275,13 @@
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                UnityEngine.Debug.LogErrorFormat("{0}", e.ToString());
             }
             finally
             {
                 EditorUtility.ClearProgressBar();
+
+                NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
             }
         }
 
