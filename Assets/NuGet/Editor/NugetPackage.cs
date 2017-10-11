@@ -6,47 +6,48 @@
     /// <summary>
     /// Represents a package available from NuGet.
     /// </summary>
+    [Serializable]
     public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>, IEqualityComparer<NugetPackage>
     {
         /// <summary>
         /// Gets or sets the title (not ID) of the package.  This is the "friendly" name that only appears in GUIs and on webpages.
         /// </summary>
-        public string Title { get; set; }
+        public string Title;
 
         /// <summary>
         /// Gets or sets the description of the NuGet package.
         /// </summary>
-        public string Description { get; set; }
+        public string Description;
 
         /// <summary>
         /// Gets or sets the release notes of the NuGet package.
         /// </summary>
-        public string ReleaseNotes { get; set; }
+        public string ReleaseNotes;
 
         /// <summary>
         /// Gets or sets the URL for the location of the license of the NuGet package.
         /// </summary>
-        public string LicenseUrl { get; set; }
+        public string LicenseUrl;
 
         /// <summary>
         /// Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
         /// </summary>
-        public string DownloadUrl { get; set; }
+        public string DownloadUrl;
 
         /// <summary>
         /// Gets or sets the <see cref="NugetPackageSource"/> that contains this package.
         /// </summary>
-        public NugetPackageSource PackageSource { get; set; }
+        public NugetPackageSource PackageSource;
 
         /// <summary>
         /// Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
         /// </summary>
-        public UnityEngine.Texture2D Icon { get; set; }
+        public UnityEngine.Texture2D Icon;
 
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies { get; set; }
+        public List<NugetPackageIdentifier> Dependencies = new List<NugetPackageIdentifier>();
 
         /// <summary>
         /// Checks to see if this <see cref="NugetPackage"/> is equal to the given one.
