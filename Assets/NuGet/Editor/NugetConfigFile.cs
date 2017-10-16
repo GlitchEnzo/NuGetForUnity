@@ -207,13 +207,10 @@
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
                         {
-                            if (configFile.RepositoryPath.StartsWith("./"))
-                            {
-                                // since ./ is just a relative path to the same directory, replace it
-                                configFile.RepositoryPath = configFile.RepositoryPath.Replace("./", "\\");
-                            }
+                            string repositoryPath = Path.Combine(UnityEngine.Application.dataPath, configFile.RepositoryPath);
+                            repositoryPath = Path.GetFullPath(repositoryPath);
 
-                            configFile.RepositoryPath = Path.GetFullPath((UnityEngine.Application.dataPath + configFile.RepositoryPath).Replace('/', '\\'));
+                            configFile.RepositoryPath = repositoryPath;
                         }
                     }
                     else if (key == "DefaultPushSource")
