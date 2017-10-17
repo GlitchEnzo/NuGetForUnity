@@ -1105,6 +1105,7 @@
             }
             catch (Exception e)
             {
+                WarnIfDotNetAuthenticationIssue(e);
                 Debug.LogErrorFormat("Unable to install package {0}\n{1}", package.Id, e.ToString());
             }
             finally
@@ -1116,6 +1117,20 @@
                     EditorUtility.ClearProgressBar();
                 }
             }
+        }
+
+        private static void WarnIfDotNetAuthenticationIssue(Exception e)
+        {
+#if !NET_4_6
+            WebException webException = e as WebException;
+            HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
+            if (webResponse != null && webResponse.StatusCode == HttpStatusCode.BadRequest && webException.Message.Contains("Authentication information is not given in the correct format"))
+            {
+                // This error occurs when downloading a package with authentication using .NET 3.5, but seems to be fixed by the new .NET 4.6 runtime.
+                // Inform users when this occurs.
+                Debug.LogError("Authentication failed. This can occur due to a known issue in .NET 3.5. This can be fixed by changing Scripting Runtime to Experimental (.NET 4.6 Equivalent) in Player Settings.");
+            }
+#endif
         }
 
         /// <summary>
