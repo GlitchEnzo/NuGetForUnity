@@ -1233,10 +1233,7 @@
             {
                 if (stopwatch.ElapsedMilliseconds >= 750)
                 {
-                    //LogVerbose("Downloading image timed out! Took more than 750ms.");
-
                     request.Dispose();
-                    stopwatch.Stop();
                     timedout = true;
                     break;
                 }
@@ -1253,6 +1250,11 @@
             {
                 result = request.texture;
             }
+
+            LogVerbose(
+                timedout ? "Downloading image {0} timed out! Took more than 750ms." : "Downloading image {0} took {1} ms",
+                url,
+                stopwatch.ElapsedMilliseconds);
 
             return result;
         }
