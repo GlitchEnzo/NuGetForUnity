@@ -161,7 +161,7 @@
             // if there are not command line overrides, use the NuGet.config package sources
             if (!useCommandLineSources)
             {
-                if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+                if (NugetConfigFile.ActivePackageSource.ExpandedPath == "(Aggregate source)")
                 {
                     packageSources.AddRange(NugetConfigFile.PackageSources);
                 }
@@ -1043,7 +1043,7 @@
                         LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
 
                         // copy the .nupkg from the local path to the cache
-                        File.Copy(Path.Combine(package.PackageSource.Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
+                        File.Copy(Path.Combine(package.PackageSource.ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
                     }
                     else
                     {
@@ -1064,7 +1064,7 @@
                         if (refreshAssets)
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
-                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.Password, timeOut: null);
+                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.ExpandedPassword, timeOut: null);
                         using (Stream file = File.Create(cachedPackagePath))
                         {
                             CopyStream(objStream, file);

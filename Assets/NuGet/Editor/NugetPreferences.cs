@@ -59,7 +59,7 @@
                         EditorGUILayout.BeginVertical();
                         {
                             source.Name = EditorGUILayout.TextField(source.Name);
-                            source.Path = EditorGUILayout.TextField(source.Path);
+                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath);
                         }
                         EditorGUILayout.EndVertical();
                     }
@@ -73,7 +73,7 @@
                         if (source.HasPassword)
                         {
                             EditorGUIUtility.labelWidth = 0;
-                            source.Password = EditorGUILayout.PasswordField(source.Password);
+                            source.SavedPassword = EditorGUILayout.PasswordField(source.SavedPassword);
                         }
                     }
                     EditorGUILayout.EndHorizontal();

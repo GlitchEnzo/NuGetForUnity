@@ -1,5 +1,6 @@
 ﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -67,7 +68,7 @@
             {
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", source.Name));
-                addElement.Add(new XAttribute("value", source.Path));
+                addElement.Add(new XAttribute("value", source.SavedPath));
                 packageSources.Add(addElement);
 
                 if (!source.IsEnabled)
@@ -84,7 +85,7 @@
                     packageSourceCredentials.Add(sourceElement);
                     addElement = new XElement("add");
                     addElement.Add(new XAttribute("key", "clearTextPassword"));
-                    addElement.Add(new XAttribute("value", source.Password));
+                    addElement.Add(new XAttribute("value", source.SavedPassword));
                     sourceElement.Add(addElement);
                 }
             }
@@ -218,7 +219,7 @@
                             if (add.Attribute("key").Value == "clearTextPassword")
                             {
                                 string password = add.Attribute("value").Value;
-                                source.Password = password;
+                                source.SavedPassword = password;
                             }
                         }
                     }
@@ -238,7 +239,7 @@
                     if (key == "repositoryPath")
                     {
                         configFile.savedRepositoryPath = value;
-                        configFile.RepositoryPath = value;
+                        configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
                         {
