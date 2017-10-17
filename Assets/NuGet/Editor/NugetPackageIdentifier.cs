@@ -10,12 +10,12 @@
         /// <summary>
         /// Gets or sets the ID of the NuGet package.
         /// </summary>
-        public string Id { get; set; }
+        public string Id;
 
         /// <summary>
         /// Gets or sets the version number of the NuGet package.
         /// </summary>
-        public string Version { get; set; }
+        public string Version;
 
         /// <summary>
         /// Gets a value indicating whether this is a prerelease package or an official release package.

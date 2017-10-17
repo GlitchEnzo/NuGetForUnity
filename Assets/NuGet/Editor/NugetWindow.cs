@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -14,6 +15,12 @@
     public class NugetWindow : EditorWindow
     {
         /// <summary>
+        /// True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
+        /// </summary>
+        [SerializeField]
+        private bool hasRefreshed = false;
+
+        /// <summary>
         /// The current position of the scroll bar in the GUI.
         /// </summary>
         private Vector2 scrollPosition;
@@ -21,11 +28,13 @@
         /// <summary>
         /// The list of NugetPackages available to install.
         /// </summary>
+        [SerializeField]
         private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
         /// <summary>
         /// The list of NugetPackages already installed.
         /// </summary>
+        [SerializeField]
         private List<NugetPackage> installedPackages = new List<NugetPackage>();
 
         /// <summary>
@@ -36,6 +45,7 @@
         /// <summary>
         /// The list of package updates available, based on the already installed packages.
         /// </summary>
+        [SerializeField]
         private List<NugetPackage> updatePackages = new List<NugetPackage>();
 
         /// <summary>
@@ -91,6 +101,7 @@
         /// <summary>
         /// The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
         /// </summary>
+        [SerializeField]
         private int numberToSkip;
 
         /// <summary>
@@ -106,6 +117,7 @@
         /// <summary>
         /// The default icon to display for packages.
         /// </summary>
+        [SerializeField]
         private Texture2D defaultIcon;
 
         /// <summary>
@@ -213,7 +225,7 @@
                 filepath += "/MyPackage.nuspec";
             }
 
-            Debug.LogFormat("Creating: {0}", filepath);
+            UnityEngine.Debug.LogFormat("Creating: {0}", filepath);
 
             NuspecFile file = new NuspecFile();
             file.Id = "MyPackage";
@@ -236,38 +248,61 @@
         /// </summary>
         private void OnEnable()
         {
+            Refresh(false);
+        }
+
+        private void Refresh(bool forceFullRefresh)
+        {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             try
             {
                 // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
                 NugetHelper.LoadNugetConfigFile();
 
+                // if we are entering playmode, don't do anything
+                if (EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    return;
+                }
+
+                NugetHelper.LogVerbose(hasRefreshed ? "NugetWindow reloading config" : "NugetWindow reloading config and updating packages");
+
                 // set the window title
                 titleContent = new GUIContent("NuGet");
 
-                // reset the number to skip
-                numberToSkip = 0;
+                if (!hasRefreshed || forceFullRefresh)
+                {
+                    // reset the number to skip
+                    numberToSkip = 0;
 
-                // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
+                    // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
 
-                EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
-                UpdateOnlinePackages();
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
+                    UpdateOnlinePackages();
 
-                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                UpdateInstalledPackages();
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
+                    UpdateInstalledPackages();
 
-                EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
-                UpdateUpdatePackages();
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
+                    UpdateUpdatePackages();
 
-                // load the default icon from the Resources folder
-                defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
+                    // load the default icon from the Resources folder
+                    defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
+                }
+
+                hasRefreshed = true;
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                UnityEngine.Debug.LogErrorFormat("{0}", e.ToString());
             }
             finally
             {
                 EditorUtility.ClearProgressBar();
+
+                NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
             }
         }
 
@@ -532,7 +567,7 @@
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
                     {
-                        OnEnable();
+                        Refresh(true);
                     }
                 }
                 EditorGUILayout.EndHorizontal();
