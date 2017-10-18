@@ -58,6 +58,7 @@
 
             XElement packageSources = new XElement("packageSources");
             XElement disabledPackageSources = new XElement("disabledPackageSources");
+            XElement packageSourceCredentials = new XElement("packageSourceCredentials");
 
             XElement addElement;
 
@@ -75,6 +76,16 @@
                     addElement.Add(new XAttribute("key", source.Name));
                     addElement.Add(new XAttribute("value", "true"));
                     disabledPackageSources.Add(addElement);
+                }
+
+                if (source.HasPassword)
+                {
+                    XElement sourceElement = new XElement(source.Name);
+                    packageSourceCredentials.Add(sourceElement);
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("key", "clearTextPassword"));
+                    addElement.Add(new XAttribute("value", source.Password));
+                    sourceElement.Add(addElement);
                 }
             }
 
@@ -118,6 +129,7 @@
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
+            configuration.Add(packageSourceCredentials);
             configuration.Add(activePackageSource);
             configuration.Add(config);
 
@@ -185,6 +197,29 @@
                         if (source != null)
                         {
                             source.IsEnabled = false;
+                        }
+                    }
+                }
+            }
+
+            // set all listed passwords for package source credentials
+            XElement packageSourceCredentials = file.Root.Element("packageSourceCredentials");
+            if (packageSourceCredentials != null)
+            {
+                foreach (var sourceElement in packageSourceCredentials.Elements())
+                {
+                    string name = sourceElement.Name.LocalName;
+                    var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                    if (source != null)
+                    {
+                        var adds = sourceElement.Elements("add");
+                        foreach (var add in adds)
+                        {
+                            if (add.Attribute("key").Value == "clearTextPassword")
+                            {
+                                string password = add.Attribute("value").Value;
+                                source.Password = password;
+                            }
                         }
                     }
                 }

@@ -26,6 +26,31 @@
         public string Path { get; set; }
 
         /// <summary>
+        /// Gets or sets the password used to access the feed. Null indicates that no password is used.
+        /// </summary>
+        public string Password { get; set; }
+
+        public bool HasPassword
+        {
+            get { return Password != null; }
+
+            set
+            {
+                if (value)
+                {
+                    if (Password == null)
+                    {
+                        Password = string.Empty; // Initialize newly-enabled password to empty string.
+                    }
+                }
+                else
+                {
+                    Password = null; // Clear password to null when disabled.
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value indicated whether the path is a local path or a remote path.
         /// </summary>
         public bool IsLocalPath { get; private set; }
@@ -134,7 +159,7 @@
                     }
                 }
 
-                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+                foundPackage = GetPackagesFromUrl(url, Password).FirstOrDefault();
             }
 
             if (foundPackage != null)
@@ -204,7 +229,7 @@
             // should we include prerelease packages?
             url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-            return GetPackagesFromUrl(url);
+            return GetPackagesFromUrl(url, Password);
         }
 
         /// <summary>
@@ -283,8 +308,9 @@
         /// See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
         /// </summary>
         /// <param name="url"></param>
+        /// <param name="password"></param>
         /// <returns></returns>
-        private List<NugetPackage> GetPackagesFromUrl(string url)
+        private List<NugetPackage> GetPackagesFromUrl(string url, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -304,10 +330,7 @@
                 // add anonymous handler
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-                HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
-                getRequest.Timeout = 5000;
-                getRequest.ReadWriteTimeout = 5000;
-                Stream responseStream = getRequest.GetResponse().GetResponseStream();
+                Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
                 StreamReader streamReader = new StreamReader(responseStream);
 
                 packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
@@ -319,7 +342,7 @@
             }
             catch (System.Exception e)
             {
-                Debug.LogErrorFormat(e.ToString());
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
             }
 
             stopwatch.Stop();
@@ -406,7 +429,7 @@
 
                 string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
-                var newPackages = GetPackagesFromUrl(url);
+                var newPackages = GetPackagesFromUrl(url, Password);
                 updates.AddRange(newPackages);
             }
 
