@@ -977,12 +977,20 @@
         {
             if (NugetConfigFile.Verbose)
             {
-                // Application.stackTraceLogType was added in Unity 5.2
-                // It was deprecated in Unity 5.4, but it still exists and works in Unity 2017.1
-                // Continuing to use it here for backwards compatibility
+#if UNITY_5_4_OR_NEWER
+                var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
+                Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+#else
+                var stackTraceLogType = Application.stackTraceLogType;
                 Application.stackTraceLogType = StackTraceLogType.None;
+#endif
                 Debug.LogFormat(format, args);
-                Application.stackTraceLogType = StackTraceLogType.ScriptOnly;
+
+#if UNITY_5_4_OR_NEWER
+                Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
+#else
+                Application.stackTraceLogType = stackTraceLogType;
+#endif
             }
         }
 
