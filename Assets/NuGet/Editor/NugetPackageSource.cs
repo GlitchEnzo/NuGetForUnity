@@ -101,16 +101,17 @@
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        public List<NugetPackage> FindPackagesById(NugetPackageIdentifier package)
         {
-            NugetPackage foundPackage = null;
+            List<NugetPackage> foundPackages = null;
 
             if (IsLocalPath)
             {
                 string localPackagePath = System.IO.Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (File.Exists(localPackagePath))
                 {
-                    foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    foundPackages = new List<NugetPackage> { localPackage };
                 }
                 else
                 {
@@ -119,8 +120,8 @@
 
                     // Try to find later versions of the same package
                     var packages = GetLocalPackages(package.Id, true, true);
-                    foundPackage = packages.SkipWhile(x => !package.InRange(x)).FirstOrDefault();
-                }
+                    foundPackages = new List<NugetPackage>(packages.SkipWhile(x => !package.InRange(x)));
+                  }
             }
             else
             {
@@ -181,15 +182,36 @@
                     }
                 }
 
-                foundPackage = GetPackagesFromUrl(url, ExpandedPassword).FirstOrDefault();
+                try
+                {
+                    foundPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                }
             }
 
-            if (foundPackage != null)
+            if (foundPackages != null)
             {
-                foundPackage.PackageSource = this;
+                foreach (NugetPackage foundPackage in foundPackages)
+                {
+                    foundPackage.PackageSource = this;
+                }
             }
 
-            return foundPackage;
+            return foundPackages;
+        }
+
+        /// <summary>
+        /// Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier"/> given.
+        /// If an exact match isn't found, it selects the next closest version available.
+        /// </summary>
+        /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
+        /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
+        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        {
+            return FindPackagesById(package).FirstOrDefault();
         }
 
         /// <summary>
@@ -251,7 +273,15 @@
             // should we include prerelease packages?
             url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-            return GetPackagesFromUrl(url, ExpandedPassword);
+            try
+            {
+                return GetPackagesFromUrl(url, ExpandedPassword);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                return new List<NugetPackage>();
+            }
         }
 
         /// <summary>
@@ -341,30 +371,23 @@
 
             List<NugetPackage> packages = new List<NugetPackage>();
 
-            try
+            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
+            // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+
+            // remove all handlers
+            ServicePointManager.ServerCertificateValidationCallback = null;
+
+            // add anonymous handler
+            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
+
+            Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
+            StreamReader streamReader = new StreamReader(responseStream);
+
+            packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
+
+            foreach (var package in packages)
             {
-                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-
-                // remove all handlers
-                ServicePointManager.ServerCertificateValidationCallback = null;
-
-                // add anonymous handler
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
-                Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
-                StreamReader streamReader = new StreamReader(responseStream);
-
-                packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
-
-                foreach (var package in packages)
-                {
-                    package.PackageSource = this;
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                package.PackageSource = this;
             }
 
             stopwatch.Stop();
@@ -451,8 +474,24 @@
 
                 string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", ExpandedPath, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
-                var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
-                updates.AddRange(newPackages);
+                try
+                {
+                    var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                    updates.AddRange(newPackages);
+                }
+                catch (System.Exception e)
+                {
+                    WebException webException = e as WebException;
+                    HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
+                    if (webResponse != null && webResponse.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        // Some web services, such as VSTS don't support the GetUpdates API. Attempt to retrieve updates via FindPackagesById.
+                        NugetHelper.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
+                        return GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                    }
+
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                }
             }
 
             // sort alphabetically
@@ -469,6 +508,34 @@
                 else
                     return x.Id.CompareTo(y.Id);
             });
+
+            List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+
+            return updates;
+        }
+
+        /// <summary>
+        /// Some NuGet feeds such as Visual Studio Team Services do not implement the GetUpdates function.
+        /// In that case this fallback function can be used to retrieve updates by using the FindPackagesById function.
+        /// </summary>
+        private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        {
+            Debug.Assert(targetFrameworks == null && versionContraints == null); // These features are not supported by this version of GetUpdates.
+            List<NugetPackage> updates = new List<NugetPackage>();
+
+            foreach (NugetPackage installedPackage in installedPackages)
+            {
+                NugetPackageIdentifier id = installedPackage;
+                id.Version = string.Format("({0},)", id.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
+                List<NugetPackage> packagesById = FindPackagesById(id);
+                foreach (NugetPackage packageById in packagesById)
+                {
+                    if (includePrerelease || !packageById.IsPrerelease)
+                    {
+                        updates.Add(packageById);
+                    }
+                }
+            }
 
             return updates;
         }
