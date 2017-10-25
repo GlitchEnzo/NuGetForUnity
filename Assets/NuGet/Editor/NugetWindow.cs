@@ -814,7 +814,7 @@
                     {
                         if (GUILayout.Button("Install", installButtonWidth))
                         {
-                            NugetHelper.Install(package);
+                            NugetHelper.InstallIdentifier(package);
                             AssetDatabase.Refresh();
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
