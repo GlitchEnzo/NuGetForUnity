@@ -93,10 +93,12 @@
             {
                 return;
             }
-
-            // get the .NET version being used, since we don't want a specific platform, send unknown
-            //DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); // Unity 5.6+ way
-            DotNetVersion = PlayerSettings.apiCompatibilityLevel; // Added in Unity 4.0 and marked as deprecated in Unity 5.6, but still exists and works in Unity 2017.1
+            
+#if UNITY_5_6_OR_NEWER
+            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+#else
+            DotNetVersion = PlayerSettings.apiCompatibilityLevel;
+#endif
 
             // Load the NuGet.config file
             LoadNugetConfigFile();
