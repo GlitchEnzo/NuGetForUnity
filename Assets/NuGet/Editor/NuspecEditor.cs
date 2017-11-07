@@ -74,6 +74,10 @@
             file.Save(filepath);
 
             AssetDatabase.Refresh();
+
+            // select the newly created .nuspec file
+            string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
+            Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(filepath.Replace(dataPath, string.Empty));
         }
 
         /// <summary>
