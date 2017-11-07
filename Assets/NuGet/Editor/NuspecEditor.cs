@@ -9,14 +9,8 @@
     /// <summary>
     /// Represents a custom editor inside the Unity editor that allows easy editting of a .nuspec file.
     /// </summary>
-    [CustomEditor(typeof(DefaultAsset))]
-    public class NuspecEditor : Editor
+    public class NuspecEditor : EditorWindow
     {
-        /// <summary>
-        /// True if the selected file is a .nuspec file.
-        /// </summary>
-        private bool isNuspec;
-
         /// <summary>
         /// The full filepath to the .nuspec file that is being edited.
         /// </summary>
@@ -38,30 +32,139 @@
         private string apiKey = string.Empty;
 
         /// <summary>
-        /// Automatically called by Unity when the Inspector is first opened (when a .nuspec file is clicked on in the Project view).
+        /// Creates a new MyPackage.nuspec file.
         /// </summary>
-        public void OnEnable()
+        [MenuItem("Assets/NuGet/Create Nuspec File")]
+        protected static void CreateNuspecFile()
         {
-            filepath = AssetDatabase.GetAssetPath(target);
-            string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
-            filepath = Path.Combine(dataPath, filepath);
+            string filepath = Application.dataPath;
 
-            isNuspec = Path.GetExtension(filepath) == ".nuspec";
-            if (isNuspec)
+            if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
             {
-                nuspec = NuspecFile.Load(filepath);
+                string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
+                filepath = selectedFile.Substring("Assets/".Length);
+                filepath = Path.Combine(Application.dataPath, filepath);
+            }
+
+            if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
+            {
+                // if it was a file that was selected, replace the filename
+                filepath = filepath.Replace(Path.GetFileNameWithoutExtension(filepath), string.Empty);
+                filepath += "MyPackage.nuspec";
+            }
+            else
+            {
+                // if it was a directory that was selected, simply add the filename
+                filepath += "/MyPackage.nuspec";
+            }
+
+            Debug.LogFormat("Creating: {0}", filepath);
+
+            NuspecFile file = new NuspecFile();
+            file.Id = "MyPackage";
+            file.Version = "0.0.1";
+            file.Authors = "Your Name";
+            file.Owners = "Your Name";
+            file.LicenseUrl = "http://your_license_url_here";
+            file.ProjectUrl = "http://your_project_url_here";
+            file.Description = "A description of what this packages is and does.";
+            file.ReleaseNotes = "Notes for this specific release";
+            file.Copyright = "Copyright 2017";
+            file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
+            file.Save(filepath);
+
+            AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        /// Opens the .nuspec file editor.
+        /// </summary>
+        [MenuItem("Assets/NuGet/Open Nuspec Editor", false, 1337)]
+        protected static void DisplayNuspecEditor()
+        {
+            var nuspecEditor = GetWindow<NuspecEditor>();
+            nuspecEditor.Reload();
+        }
+
+        /// <summary>
+        /// Validates the opening of the .nuspec file editor.
+        /// </summary>
+        [MenuItem("Assets/NuGet/Open Nuspec Editor", true, 1337)]
+        protected static bool DisplayNuspecEditorValidation()
+        {
+            bool isNuspec = false;
+
+            var defaultAsset = Selection.activeObject as DefaultAsset;
+            if (defaultAsset != null)
+            {
+                var filepath = AssetDatabase.GetAssetPath(defaultAsset);
+                string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
+                filepath = Path.Combine(dataPath, filepath);
+
+                isNuspec = Path.GetExtension(filepath) == ".nuspec";
+            }
+
+            return isNuspec;
+        }
+
+        /// <summary>
+        /// Called when enabling the window.
+        /// </summary>
+        private void OnFocus()
+        {
+            Reload();
+        }
+
+        /// <summary>
+        /// Reloads the .nuspec file when the selection changes.
+        /// </summary>
+        void OnSelectionChange()
+        {
+            Reload();
+        }
+
+        /// <summary>
+        /// Reload the currently selected asset as a .nuspec file.
+        /// </summary>
+        protected void Reload()
+        {
+            var defaultAsset = Selection.activeObject as DefaultAsset;
+            if (defaultAsset != null)
+            {
+                var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
+                string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
+                assetFilepath = Path.Combine(dataPath, assetFilepath);
+
+                var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
+
+                if (isNuspec)
+                {
+                    filepath = assetFilepath;
+                    nuspec = NuspecFile.Load(filepath);
+                    titleContent = new GUIContent(Path.GetFileNameWithoutExtension(filepath));
+
+                    // force a repaint
+                    Repaint();
+                }
             }
         }
 
         /// <summary>
-        /// Use the Header GUI to draw the controls since the Inspector GUI method call is disabled by Unity.
+        /// Use the Unity GUI to draw the controls.
         /// </summary>
-        protected override void OnHeaderGUI()
+        protected void OnGUI()
         {
-            // draw the normal header
-            base.OnHeaderGUI();
+            if (nuspec == null)
+            {
+                Reload();
+            }
 
-            if (isNuspec)
+            if (nuspec == null)
+            {
+                titleContent = new GUIContent("(NUSPEC)");
+                EditorGUILayout.LabelField("There is no .nuspec file selected.");
+            }
+            else
             {
                 EditorGUIUtility.labelWidth = 100;
                 nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The name of the package."), nuspec.Id);
@@ -74,10 +177,10 @@
                 nuspec.RequireLicenseAcceptance = EditorGUILayout.Toggle(new GUIContent("Require License Acceptance", "Does the package license need to be accepted before use?"), nuspec.RequireLicenseAcceptance);
                 nuspec.Description = EditorGUILayout.TextField(new GUIContent("Description", "The description of the package."), nuspec.Description);
                 nuspec.ReleaseNotes = EditorGUILayout.TextField(new GUIContent("Release Notes", "The release notes for this specific version of the package."), nuspec.ReleaseNotes);
-                nuspec.Copyright = EditorGUILayout.TextField(new GUIContent("Copyright", "The copyright of the package."), nuspec.Copyright);
-                nuspec.Tags = EditorGUILayout.TextField(new GUIContent("Tags", "The tags of the package."), nuspec.Tags);
+                nuspec.Copyright = EditorGUILayout.TextField(new GUIContent("Copyright", "The copyright details for the package."), nuspec.Copyright);
+                nuspec.Tags = EditorGUILayout.TextField(new GUIContent("Tags", "The space-delimited list of tags and keywords that describe the package and aid discoverability of packages through search and filtering."), nuspec.Tags);
 
-                dependenciesExpanded = EditorGUILayout.Foldout(dependenciesExpanded, "Dependencies");
+                dependenciesExpanded = EditorGUILayout.Foldout(dependenciesExpanded, new GUIContent("Dependencies", "The list of NuGet packages that this packages depends on."));
 
                 if (dependenciesExpanded)
                 {
@@ -86,7 +189,7 @@
                         GUILayout.Space(50);
 
                         // automatically fill in the dependencies based upon the "root" packages currently installed in the project
-                        if (GUILayout.Button("Automatically Fill Dependencies"))
+                        if (GUILayout.Button(new GUIContent("Automatically Fill Dependencies", "Populates the list of dependencies with the \"root\" NuGet packages currently installed in the project.")))
                         {
                             List<NugetPackage> installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
 
@@ -188,17 +291,6 @@
                 {
                     NugetHelper.Push(nuspec, filepath, apiKey);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Allow the Inspector GUI to behave as normal if it's NOT a .nuspec file.
-        /// </summary>
-        public override void OnInspectorGUI()
-        {
-            if (isNuspec)
-            {
-                // do nothing
             }
         }
     }
