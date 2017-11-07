@@ -49,7 +49,7 @@
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
             {
                 // if it was a file that was selected, replace the filename
-                filepath = filepath.Replace(Path.GetFileNameWithoutExtension(filepath), string.Empty);
+                filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
                 filepath += "MyPackage.nuspec";
             }
             else
