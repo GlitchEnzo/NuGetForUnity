@@ -23,7 +23,54 @@
         /// <summary>
         /// Gets or sets the path of the package source.
         /// </summary>
-        public string Path { get; set; }
+        public string SavedPath { get; set; }
+
+        /// <summary>
+        /// Gets path, with the values of environment variables expanded.
+        /// </summary>
+        public string ExpandedPath
+        {
+            get
+            {
+                return Environment.ExpandEnvironmentVariables(SavedPath);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the password used to access the feed. Null indicates that no password is used.
+        /// </summary>
+        public string SavedPassword { get; set; }
+
+        /// <summary>
+        /// Gets password, with the values of environment variables expanded.
+        /// </summary>
+        public string ExpandedPassword
+        {
+            get
+            {
+                return SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
+            }
+        }
+
+        public bool HasPassword
+        {
+            get { return SavedPassword != null; }
+
+            set
+            {
+                if (value)
+                {
+                    if (SavedPassword == null)
+                    {
+                        SavedPassword = string.Empty; // Initialize newly-enabled password to empty string.
+                    }
+                }
+                else
+                {
+                    SavedPassword = null; // Clear password to null when disabled.
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicated whether the path is a local path or a remote path.
@@ -43,8 +90,8 @@
         public NugetPackageSource(string name, string path)
         {
             Name = name;
-            Path = path;
-            IsLocalPath = !Path.StartsWith("http");
+            SavedPath = path;
+            IsLocalPath = !ExpandedPath.StartsWith("http");
             IsEnabled = true;
         }
 
@@ -60,7 +107,7 @@
 
             if (IsLocalPath)
             {
-                string localPackagePath = System.IO.Path.Combine(Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                string localPackagePath = System.IO.Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (File.Exists(localPackagePath))
                 {
                     foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
@@ -81,11 +128,11 @@
                 string url = string.Empty;
                 if (!package.HasVersionRange)
                 {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=Version ge '{2}'", Path, package.Id, package.Version);
+                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=Version ge '{2}'", ExpandedPath, package.Id, package.Version);
                 }
                 else
                 {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=", Path, package.Id);
+                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=", ExpandedPath, package.Id);
 
                     bool hasMin = false;
                     if (!string.IsNullOrEmpty(package.MinimumVersion))
@@ -134,7 +181,7 @@
                     }
                 }
 
-                foundPackage = GetPackagesFromUrl(url).FirstOrDefault();
+                foundPackage = GetPackagesFromUrl(url, ExpandedPassword).FirstOrDefault();
             }
 
             if (foundPackage != null)
@@ -166,7 +213,7 @@
 
             //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
 
-            string url = Path;
+            string url = ExpandedPath;
 
             // call the search method
             url += "Search()?";
@@ -204,7 +251,7 @@
             // should we include prerelease packages?
             url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-            return GetPackagesFromUrl(url);
+            return GetPackagesFromUrl(url, ExpandedPassword);
         }
 
         /// <summary>
@@ -226,7 +273,7 @@
                 return localPackages;
             }
 
-            string path = Path;
+            string path = ExpandedPath;
 
             if (Directory.Exists(path))
             {
@@ -283,8 +330,9 @@
         /// See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
         /// </summary>
         /// <param name="url"></param>
+        /// <param name="password"></param>
         /// <returns></returns>
-        private List<NugetPackage> GetPackagesFromUrl(string url)
+        private List<NugetPackage> GetPackagesFromUrl(string url, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -304,10 +352,7 @@
                 // add anonymous handler
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-                HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
-                getRequest.Timeout = 5000;
-                getRequest.ReadWriteTimeout = 5000;
-                Stream responseStream = getRequest.GetResponse().GetResponseStream();
+                Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
                 StreamReader streamReader = new StreamReader(responseStream);
 
                 packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
@@ -319,7 +364,7 @@
             }
             catch (System.Exception e)
             {
-                Debug.LogErrorFormat(e.ToString());
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
             }
 
             stopwatch.Stop();
@@ -404,9 +449,9 @@
                     }
                 }
 
-                string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", Path, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
+                string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", ExpandedPath, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
-                var newPackages = GetPackagesFromUrl(url);
+                var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
                 updates.AddRange(newPackages);
             }
 

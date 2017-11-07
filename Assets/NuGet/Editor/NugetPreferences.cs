@@ -59,9 +59,22 @@
                         EditorGUILayout.BeginVertical();
                         {
                             source.Name = EditorGUILayout.TextField(source.Name);
-                            source.Path = EditorGUILayout.TextField(source.Path);
+                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath);
                         }
                         EditorGUILayout.EndVertical();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        GUILayout.Space(29);
+                        EditorGUIUtility.labelWidth = 60;
+                        source.HasPassword = EditorGUILayout.Toggle("password", source.HasPassword);
+                        if (source.HasPassword)
+                        {
+                            EditorGUIUtility.labelWidth = 0;
+                            source.SavedPassword = EditorGUILayout.PasswordField(source.SavedPassword);
+                        }
                     }
                     EditorGUILayout.EndHorizontal();
 

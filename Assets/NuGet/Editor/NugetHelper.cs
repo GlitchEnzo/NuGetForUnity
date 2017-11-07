@@ -93,10 +93,12 @@
             {
                 return;
             }
-
-            // get the .NET version being used, since we don't want a specific platform, send unknown
-            //DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); // Unity 5.6+ way
-            DotNetVersion = PlayerSettings.apiCompatibilityLevel; // Added in Unity 4.0 and marked as deprecated in Unity 5.6, but still exists and works in Unity 2017.1
+            
+#if UNITY_5_6_OR_NEWER
+            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+#else
+            DotNetVersion = PlayerSettings.apiCompatibilityLevel;
+#endif
 
             // Load the NuGet.config file
             LoadNugetConfigFile();
@@ -161,7 +163,7 @@
             // if there are not command line overrides, use the NuGet.config package sources
             if (!useCommandLineSources)
             {
-                if (NugetConfigFile.ActivePackageSource.Path == "(Aggregate source)")
+                if (NugetConfigFile.ActivePackageSource.ExpandedPath == "(Aggregate source)")
                 {
                     packageSources.AddRange(NugetConfigFile.PackageSources);
                 }
@@ -301,7 +303,7 @@
 
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
-            
+
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
                 int intDotNetVersion = (int)DotNetVersion; // c
@@ -358,9 +360,9 @@
                         break;
                     }
                     else if (
-                        directoryName == "unity" || 
-                        directoryName == "net35-unity full v3.5" || 
-                        directoryName == "net35-unity subset v3.5" )
+                        directoryName == "unity" ||
+                        directoryName == "net35-unity full v3.5" ||
+                        directoryName == "net35-unity subset v3.5")
                     {
                         // Keep all directories targeting Unity within a package
                         selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "unity"));
@@ -386,7 +388,7 @@
                 }
 
 
-                foreach( var dir in selectedDirectories)
+                foreach (var dir in selectedDirectories)
                 {
                     LogVerbose("Using {0}", dir);
                 }
@@ -977,12 +979,20 @@
         {
             if (NugetConfigFile.Verbose)
             {
-                // Application.stackTraceLogType was added in Unity 5.2
-                // It was deprecated in Unity 5.4, but it still exists and works in Unity 2017.1
-                // Continuing to use it here for backwards compatibility
+#if UNITY_5_4_OR_NEWER
+                var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
+                Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+#else
+                var stackTraceLogType = Application.stackTraceLogType;
                 Application.stackTraceLogType = StackTraceLogType.None;
+#endif
                 Debug.LogFormat(format, args);
-                Application.stackTraceLogType = StackTraceLogType.ScriptOnly;
+
+#if UNITY_5_4_OR_NEWER
+                Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
+#else
+                Application.stackTraceLogType = stackTraceLogType;
+#endif
             }
         }
 
@@ -1043,7 +1053,7 @@
                         LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
 
                         // copy the .nupkg from the local path to the cache
-                        File.Copy(Path.Combine(package.PackageSource.Path, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
+                        File.Copy(Path.Combine(package.PackageSource.ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
                     }
                     else
                     {
@@ -1064,9 +1074,7 @@
                         if (refreshAssets)
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
-                        HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(package.DownloadUrl);
-                        Stream objStream = getRequest.GetResponse().GetResponseStream();
-
+                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.ExpandedPassword, timeOut: null);
                         using (Stream file = File.Create(cachedPackagePath))
                         {
                             CopyStream(objStream, file);
@@ -1107,7 +1115,8 @@
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                WarnIfDotNetAuthenticationIssue(e);
+                Debug.LogErrorFormat("Unable to install package {0}\n{1}", package.Id, e.ToString());
             }
             finally
             {
@@ -1118,6 +1127,47 @@
                     EditorUtility.ClearProgressBar();
                 }
             }
+        }
+
+        private static void WarnIfDotNetAuthenticationIssue(Exception e)
+        {
+#if !NET_4_6
+            WebException webException = e as WebException;
+            HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
+            if (webResponse != null && webResponse.StatusCode == HttpStatusCode.BadRequest && webException.Message.Contains("Authentication information is not given in the correct format"))
+            {
+                // This error occurs when downloading a package with authentication using .NET 3.5, but seems to be fixed by the new .NET 4.6 runtime.
+                // Inform users when this occurs.
+                Debug.LogError("Authentication failed. This can occur due to a known issue in .NET 3.5. This can be fixed by changing Scripting Runtime to Experimental (.NET 4.6 Equivalent) in Player Settings.");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Get the specified URL from the web. Throws exceptions if the request fails.
+        /// </summary>
+        /// <param name="url">URL that will be loaded.</param>
+        /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
+        /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
+        /// <returns>Stream containing the result.</returns>
+        public static Stream RequestUrl(string url, string password, int? timeOut)
+        {
+            HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
+            if (timeOut.HasValue)
+            {
+                getRequest.Timeout = timeOut.Value;
+                getRequest.ReadWriteTimeout = timeOut.Value;
+            }
+            if (password != null)
+            {
+                // Send password as described by https://docs.microsoft.com/en-us/vsts/integrate/get-started/rest/basics.
+                // This works with Visual Studio Team Services, but hasn't been tested with other authentication schemes so there may be additional work needed if there
+                // are different kinds of authentication.
+                getRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", "", password))));
+            }
+            LogVerbose("HTTP GET {0}", url);
+            Stream objStream = getRequest.GetResponse().GetResponseStream();
+            return objStream;
         }
 
         /// <summary>
@@ -1208,10 +1258,7 @@
             {
                 if (stopwatch.ElapsedMilliseconds >= 750)
                 {
-                    //LogVerbose("Downloading image timed out! Took more than 750ms.");
-
                     request.Dispose();
-                    stopwatch.Stop();
                     timedout = true;
                     break;
                 }
@@ -1228,6 +1275,11 @@
             {
                 result = request.texture;
             }
+
+            LogVerbose(
+                timedout ? "Downloading image {0} timed out! Took more than 750ms." : "Downloading image {0} took {1} ms",
+                url,
+                stopwatch.ElapsedMilliseconds);
 
             return result;
         }

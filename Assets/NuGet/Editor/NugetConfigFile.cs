@@ -1,5 +1,6 @@
 ﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -58,6 +59,7 @@
 
             XElement packageSources = new XElement("packageSources");
             XElement disabledPackageSources = new XElement("disabledPackageSources");
+            XElement packageSourceCredentials = new XElement("packageSourceCredentials");
 
             XElement addElement;
 
@@ -66,7 +68,7 @@
             {
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", source.Name));
-                addElement.Add(new XAttribute("value", source.Path));
+                addElement.Add(new XAttribute("value", source.SavedPath));
                 packageSources.Add(addElement);
 
                 if (!source.IsEnabled)
@@ -75,6 +77,16 @@
                     addElement.Add(new XAttribute("key", source.Name));
                     addElement.Add(new XAttribute("value", "true"));
                     disabledPackageSources.Add(addElement);
+                }
+
+                if (source.HasPassword)
+                {
+                    XElement sourceElement = new XElement(source.Name);
+                    packageSourceCredentials.Add(sourceElement);
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("key", "clearTextPassword"));
+                    addElement.Add(new XAttribute("value", source.SavedPassword));
+                    sourceElement.Add(addElement);
                 }
             }
 
@@ -118,6 +130,7 @@
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
+            configuration.Add(packageSourceCredentials);
             configuration.Add(activePackageSource);
             configuration.Add(config);
 
@@ -190,6 +203,29 @@
                 }
             }
 
+            // set all listed passwords for package source credentials
+            XElement packageSourceCredentials = file.Root.Element("packageSourceCredentials");
+            if (packageSourceCredentials != null)
+            {
+                foreach (var sourceElement in packageSourceCredentials.Elements())
+                {
+                    string name = sourceElement.Name.LocalName;
+                    var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                    if (source != null)
+                    {
+                        var adds = sourceElement.Elements("add");
+                        foreach (var add in adds)
+                        {
+                            if (add.Attribute("key").Value == "clearTextPassword")
+                            {
+                                string password = add.Attribute("value").Value;
+                                source.SavedPassword = password;
+                            }
+                        }
+                    }
+                }
+            }
+
             // read the configuration data
             XElement config = file.Root.Element("config");
             if (config != null)
@@ -203,17 +239,14 @@
                     if (key == "repositoryPath")
                     {
                         configFile.savedRepositoryPath = value;
-                        configFile.RepositoryPath = value;
+                        configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
                         {
-                            if (configFile.RepositoryPath.StartsWith("./"))
-                            {
-                                // since ./ is just a relative path to the same directory, replace it
-                                configFile.RepositoryPath = configFile.RepositoryPath.Replace("./", "\\");
-                            }
+                            string repositoryPath = Path.Combine(UnityEngine.Application.dataPath, configFile.RepositoryPath);
+                            repositoryPath = Path.GetFullPath(repositoryPath);
 
-                            configFile.RepositoryPath = Path.GetFullPath((UnityEngine.Application.dataPath + configFile.RepositoryPath).Replace('/', '\\'));
+                            configFile.RepositoryPath = repositoryPath;
                         }
                     }
                     else if (key == "DefaultPushSource")
