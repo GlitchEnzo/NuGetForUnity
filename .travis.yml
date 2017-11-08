@@ -1,0 +1,32 @@
+# https://hackernoon.com/writing-an-open-source-unity-package-877bad3c8913
+# https://jonathan.porta.codes/2015/04/17/automatically-build-your-unity3d-project-in-the-cloud-using-travisci-for-free/
+
+# https://docs.travis-ci.com/user/languages/csharp/
+# language: csharp
+#solution: CreateDLL/CreateDLL.sln
+
+# Travis defaults to an Ubuntu Linux environment. 
+# Windows isn't available, so we use an OSX (Mac) VM to build the Unity package
+language: objective-c
+osx_image: xcode61
+rvm:
+- 2.1.2
+
+before_install:
+  # Mark the shell scripts as executable
+  - chmod a+x ./BuildScripts/*.sh
+
+install:
+  # Install the Unity editor on the Virtual Machine
+  - ./BuildScripts/install_unity.sh
+
+
+script:
+  # Build the C# scripts into a DLL using a configured Visual Studio solution
+  # From: https://github.com/travis-ci/travis-ci/issues/7450
+  - xbuild /p:Configuration=Release CreateDLL/CreateDLL.sln
+
+
+after_success:
+  # Create a new Unity project with the compiled DLL
+  # Export a .unitypackage from Unity
