@@ -9,7 +9,7 @@ URL=https://download.unity3d.com/download_unity/e7947df39b5c/MacEditorInstaller/
 PACKAGE=Unity-5.2.0f3.pkg
 
 echo "Downloading from $URL: "
-curl -o `basename "$PACKAGE"` "$URL"
+curl -o `basename "$PACKAGE"` "$URL" --retry 3
 
 echo "Installing "`basename "$PACKAGE"`
 sudo installer -dumplog -package `basename "$PACKAGE"` -target /
