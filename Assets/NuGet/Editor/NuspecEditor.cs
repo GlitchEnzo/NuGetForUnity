@@ -34,7 +34,7 @@
         /// <summary>
         /// Creates a new MyPackage.nuspec file.
         /// </summary>
-        [MenuItem("Assets/NuGet/Create Nuspec File")]
+        [MenuItem("Assets/NuGet/Create Nuspec File", false, 2000)]
         protected static void CreateNuspecFile()
         {
             string filepath = Application.dataPath;
@@ -78,12 +78,15 @@
             // select the newly created .nuspec file
             string dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
             Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(filepath.Replace(dataPath, string.Empty));
+
+            // automatically display the editor with the newly created .nuspec file
+            DisplayNuspecEditor();
         }
 
         /// <summary>
         /// Opens the .nuspec file editor.
         /// </summary>
-        [MenuItem("Assets/NuGet/Open Nuspec Editor", false, 1337)]
+        [MenuItem("Assets/NuGet/Open Nuspec Editor", false, 2000)]
         protected static void DisplayNuspecEditor()
         {
             var nuspecEditor = GetWindow<NuspecEditor>();
@@ -93,7 +96,7 @@
         /// <summary>
         /// Validates the opening of the .nuspec file editor.
         /// </summary>
-        [MenuItem("Assets/NuGet/Open Nuspec Editor", true, 1337)]
+        [MenuItem("Assets/NuGet/Open Nuspec Editor", true, 2000)]
         protected static bool DisplayNuspecEditorValidation()
         {
             bool isNuspec = false;
@@ -165,7 +168,7 @@
 
             if (nuspec == null)
             {
-                titleContent = new GUIContent("(NUSPEC)");
+                titleContent = new GUIContent("[NO NUSPEC]");
                 EditorGUILayout.LabelField("There is no .nuspec file selected.");
             }
             else
