@@ -199,51 +199,6 @@
         }
 
         /// <summary>
-        /// Creates a new MyPackage.nuspec file.
-        /// </summary>
-        [MenuItem("Assets/Create/Nuspec File")]
-        protected static void CreateNuspecFile()
-        {
-            string filepath = Application.dataPath;
-
-            if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
-            {
-                string selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
-                filepath = selectedFile.Substring("Assets/".Length);
-                filepath = Path.Combine(Application.dataPath, filepath);
-            }
-
-            if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
-            {
-                // if it was a file that was selected, replace the filename
-                filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
-                filepath += "MyPackage.nuspec";
-            }
-            else
-            {
-                // if it was a directory that was selected, simply add the filename
-                filepath += "/MyPackage.nuspec";
-            }
-
-            UnityEngine.Debug.LogFormat("Creating: {0}", filepath);
-
-            NuspecFile file = new NuspecFile();
-            file.Id = "MyPackage";
-            file.Version = "0.0.1";
-            file.Authors = "Your Name";
-            file.Owners = "Your Name";
-            file.LicenseUrl = "http://your_license_url_here";
-            file.ProjectUrl = "http://your_project_url_here";
-            file.Description = "A description of what this packages is and does.";
-            file.ReleaseNotes = "Notes for this specific release";
-            file.Copyright = "Copyright 2016";
-            file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
-            file.Save(filepath);
-
-            AssetDatabase.Refresh();
-        }
-
-        /// <summary>
         /// Called when enabling the window.
         /// </summary>
         private void OnEnable()
