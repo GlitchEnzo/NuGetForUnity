@@ -91,7 +91,7 @@ If you are interested in the process NuGetForUnity follows or you are trying to 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # How do I create my own NuGet packages from within Unity?
-First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create → Nuspec File**.
+First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **NuGet → Create Nuspec File**.
 
 ![](screenshots/nuspec_menu.png?raw=true)
 
