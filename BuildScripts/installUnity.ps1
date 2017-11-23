@@ -18,4 +18,4 @@ $silentArgs = '/S';
 $validExitCodes = @(0);
 
 Write-Host "Installing Unity via Chocolatey...";
-Install-ChocolateyPackage -packageName $packageName -fileType $installerType -silentArgs $silentArgs -url $url -url64bit $url64bit -validExitCodes $validExitCodes;
+Install-ChocolateyPackage -packageName $packageName -fileType $installerType -silentArgs $silentArgs -url $url -url64bit $url64bit -validExitCodes $validExitCodes -allowEmptyChecksums;
