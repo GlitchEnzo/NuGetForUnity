@@ -19,8 +19,8 @@ Write-Log "PSScriptRoot = $PSScriptRoot";
 Write-Log "Finished creating the project. Copying the files into the project...";
 
 # Create the folders
-New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Resources
-New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Editor
+New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Resources;
+New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Editor;
 
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $exporterProjectPath\Assets\NuGet\Resources;
 Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $exporterProjectPath\Assets\NuGet\Editor;
@@ -31,10 +31,19 @@ Write-Log "Exporting .unitypackage ...";
 
 & $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $exporterProjectPath | Out-Null;
 
-Write-Log "Uploading the build artifact...";
+$unityPackagePath = "$exporterProjectPath\NuGetForUnity.unitypackage";
 
-# Push-AppveyorArtifact uploads a file as a build artifact that is visible in the build webpage
-# See: https://www.appveyor.com/docs/packaging-artifacts/
-Push-AppveyorArtifact $exporterProjectPath\NuGetForUnity.unitypackage -FileName NuGetForUnity.unitypackage
+if (Test-Path $unityPackagePath)
+{
+    Write-Log "Uploading the build artifact...";
+
+    # Push-AppveyorArtifact uploads a file as a build artifact that is visible in the build webpage
+    # See: https://www.appveyor.com/docs/packaging-artifacts/
+    Push-AppveyorArtifact $unityPackagePath;
+}
+else
+{
+    Write-Log "The .unitypackage does not exist: $unityPackagePath";
+}
 
 Write-Log "DONE!";
