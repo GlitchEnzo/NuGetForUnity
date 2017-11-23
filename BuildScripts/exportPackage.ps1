@@ -31,4 +31,10 @@ Write-Log "Exporting .unitypackage ...";
 
 & $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $exporterProjectPath | Out-Null;
 
+Write-Log "Uploading the build artifact...";
+
+# Push-AppveyorArtifact uploads a file as a build artifact that is visible in the build webpage
+# See: https://www.appveyor.com/docs/packaging-artifacts/
+Push-AppveyorArtifact $exporterProjectPath\NuGetForUnity.unitypackage -FileName NuGetForUnity.unitypackage
+
 Write-Log "DONE!";
