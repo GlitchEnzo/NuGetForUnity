@@ -1,3 +1,8 @@
 # Reference: https://www.appveyor.com/docs/appveyor-yml/
 install:
   - ps: .\BuildScripts\installUnity.ps1
+  
+# AppVeyor automatically finds CreateDLL.sln and compiles it using MSBuild
+  
+after_build:
+  - ps: .\BuildScripts\exportPackage.ps1
