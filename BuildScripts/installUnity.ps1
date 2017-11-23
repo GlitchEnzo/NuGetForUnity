@@ -29,8 +29,10 @@ Start-FileDownload $url -Timeout $timeout;
 
 Write-Host "Finished downloading. Running Unity installer...";
 
+Get-ChildItem
+
 # https://docs.unity3d.com/Manual/InstallingUnity.html
 # /S = Performs a silent (no questions asked) install.
-& UnitySetup64-5.2.0f3.exe /S;
+& .\UnitySetup64-5.2.0f3.exe /S;
 
 Write-Host "Finished installing.";
