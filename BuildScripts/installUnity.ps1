@@ -38,13 +38,18 @@ $timeout = 30 * 60 * 1000;
 
 Start-FileDownload $url -Timeout $timeout;
 
-Write-Log "Finished downloading. Running Unity installer...";
-
 Get-ChildItem
+
+Write-Log "Finished downloading. Running Unity installer...";
 
 # https://docs.unity3d.com/Manual/InstallingUnity.html
 # /S = Performs a silent (no questions asked) install.
-& .\UnitySetup64-5.2.0f3.exe /S;
+#& .\UnitySetup64-5.2.0f3.exe /S;
+
+$output = .\UnitySetup64-5.2.0f3.exe /S | Out-String
+Write-Log "Application output = $output";
+Write-Log "Run Successfully = $?";
+Write-Log "Last Error Code = $LASTEXITCODE";
 
 Write-Log "Finished installing.";
 
