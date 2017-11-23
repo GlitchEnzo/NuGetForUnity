@@ -1,7 +1,8 @@
 # First set up the Chocolatey environment so that the Install commandlet is available
 # See here: https://stackoverflow.com/questions/35558911/why-is-the-uninstall-chocolateypackage-cmdlet-not-recognized
 Write-Host "Setting up the Chocolatey environment...";
-&"C:\ProgramData\chocolatey\helpers\chocolateyInstaller.psm1";
+#& "C:\ProgramData\chocolatey\helpers\chocolateyInstaller.psm1";
+Import-Module -Name "C:\ProgramData\chocolatey\helpers\chocolateyInstaller.psm1" -Verbose;
 
 # The direct URL to the Unity installer:
 # https://download.unity3d.com/download_unity/e7947df39b5c/Windows64EditorInstaller/UnitySetup64-5.2.0f3.exe
