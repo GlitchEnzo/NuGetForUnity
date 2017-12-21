@@ -93,7 +93,7 @@
             {
                 return;
             }
-            
+
 #if UNITY_5_6_OR_NEWER
             DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
 #else
@@ -324,12 +324,27 @@
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
+                    else if (using46 && directoryName == "netstandard1.5")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
                     else if (using46 && directoryName == "net461")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
+                    else if (using46 && directoryName == "netstandard1.4")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
                     else if (using46 && directoryName == "net46")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (using46 && directoryName == "netstandard1.3")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
@@ -344,7 +359,22 @@
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
+                    else if (using46 && directoryName == "netstandard1.2")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
                     else if (using46 && directoryName == "net45")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (using46 && directoryName == "netstandard1.1")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (using46 && directoryName == "netstandard1.0")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
