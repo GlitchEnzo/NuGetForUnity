@@ -5,7 +5,7 @@ function Write-Log
     return "$timestamp $message";
 }
 
-# TODO: Read install location from Registry?
+# TODO: Read Unity installed location from the Registry?
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
 $exporterProjectPath = "$PSScriptRoot\..\ExporterProject";
 
@@ -18,17 +18,18 @@ Write-Log "PSScriptRoot = $PSScriptRoot";
 
 Write-Log "Finished creating the project. Copying the files into the project...";
 
-# Create the folders
+# Create the needed folders in the project
 New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Resources;
 New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Editor;
 
+# Copy the needed files into the project
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $exporterProjectPath\Assets\NuGet\Resources;
 Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $exporterProjectPath\Assets\NuGet\Editor;
-Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\Ionic.Zip.dll" $exporterProjectPath\Assets\NuGet\Editor;
-#Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $exporterProjectPath\Assets\NuGet\Editor;
+Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $exporterProjectPath\Assets\NuGet\Editor;
 
 Write-Log "Exporting .unitypackage ...";
 
+# TODO: Get the version number and append it to the file name?
 & $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $exporterProjectPath | Out-Null;
 
 $unityPackagePath = "$exporterProjectPath\NuGetForUnity.unitypackage";
