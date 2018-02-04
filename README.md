@@ -1,7 +1,7 @@
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
-You can learn more about NuGet here: [nuget.org](nuget.org)
+You can learn more about NuGet here: [nuget.org](https://www.nuget.org/)
 
 NuGetForUnity provides a visual editor window to see available packages on the server, see installed packages, and see available package updates.  A visual interface is also provided to create and edit *.nuspec* files in order to define and publish your own NuGet packages from within Unity.
 
