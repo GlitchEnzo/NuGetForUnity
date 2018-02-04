@@ -31,8 +31,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Ionic.Zip">
-      <HintPath>..\Assets\NuGet\Editor\Ionic.Zip.dll</HintPath>
+    <Reference Include="DotNetZip">
+      <HintPath>..\Assets\NuGet\Editor\DotNetZip.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
