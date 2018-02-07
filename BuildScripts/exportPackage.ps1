@@ -7,32 +7,24 @@ function Write-Log
 
 # TODO: Read Unity installed location from the Registry?
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
-$exporterProjectPath = "$PSScriptRoot\..\ExporterProject";
+$packagerProjectPath = "$PSScriptRoot\..\Packager";
 
-Write-Log "Creating the Exporter Unity project...";
+Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
-
-# https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
-# | Out-Null forces PowerShell to wait for the application to finish before continuing
-& $unityExe -batchmode -quit -createProject $exporterProjectPath | Out-Null;
-
-Write-Log "Finished creating the project. Copying the files into the project...";
-
-# Create the needed folders in the project
-New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Resources;
-New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Editor;
+Write-Log $packagerProjectPath;
 
 # Copy the needed files into the project
-Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $exporterProjectPath\Assets\NuGet\Resources;
-Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $exporterProjectPath\Assets\NuGet\Editor;
-Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $exporterProjectPath\Assets\NuGet\Editor;
+Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
+Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $packagerProjectPath\Assets\NuGet\Editor;
+Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $packagerProjectPath\Assets\NuGet\Editor;
+Copy-Item "$PSScriptRoot\..\LICENSE" -Destination $packagerProjectPath\Assets\NuGet\LICENSE.txt;
 
 Write-Log "Exporting .unitypackage ...";
 
 # TODO: Get the version number and append it to the file name?
-& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $exporterProjectPath | Out-Null;
+& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
 
-$unityPackagePath = "$exporterProjectPath\NuGetForUnity.unitypackage";
+$unityPackagePath = "$packagerProjectPath\NuGetForUnity.unitypackage";
 
 if (Test-Path $unityPackagePath)
 {
