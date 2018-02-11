@@ -37,6 +37,11 @@ if (Test-Path $unityPackagePath)
 else
 {
     Write-Log "The .unitypackage does not exist: $unityPackagePath";
+
+    Get-ChildItem -Path C:\Users
+
+    # since there was a failure somewhere, push the Unity editor log as an artifact
+    Push-AppveyorArtifact "C:\Users\GlitchEnzo\AppData\Local\Unity\Editor\Editor.log";
 }
 
 Write-Log "DONE!";
