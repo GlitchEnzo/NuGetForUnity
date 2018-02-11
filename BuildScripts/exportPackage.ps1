@@ -38,12 +38,10 @@ else
 {
     Write-Log "The .unitypackage does not exist: $unityPackagePath";
 
-    Get-ChildItem -Path C:\Users
-
-    Get-ChildItem -Path %LocalAppData%
+    Get-ChildItem -Path C:\Users\$env:UserName
 
     # since there was a failure somewhere, push the Unity editor log as an artifact
-    Push-AppveyorArtifact "%LocalAppData%\Unity\Editor\Editor.log";
+    Push-AppveyorArtifact "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
 }
 
 Write-Log "DONE!";
