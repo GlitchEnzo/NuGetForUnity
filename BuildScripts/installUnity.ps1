@@ -15,6 +15,7 @@ Write-Log "Downloading the Unity installer from `n $url";
 $timeout = 30 * 60 * 1000; 
 
 # Start-FileDownload is a cmdlet provided by AppVeyor that downloads a file into the current folder
+# See here: https://www.appveyor.com/docs/how-to/download-file/
 Start-FileDownload $url -Timeout $timeout;
 
 Write-Log "Finished downloading. Running Unity installer...";
