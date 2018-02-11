@@ -40,8 +40,10 @@ else
 
     Get-ChildItem -Path C:\Users
 
+    Get-ChildItem -Path %LocalAppData%
+
     # since there was a failure somewhere, push the Unity editor log as an artifact
-    Push-AppveyorArtifact "C:\Users\GlitchEnzo\AppData\Local\Unity\Editor\Editor.log";
+    Push-AppveyorArtifact "%LocalAppData%\Unity\Editor\Editor.log";
 }
 
 Write-Log "DONE!";
