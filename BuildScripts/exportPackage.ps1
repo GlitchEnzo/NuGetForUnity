@@ -22,7 +22,7 @@ Copy-Item "$PSScriptRoot\..\LICENSE" -Destination $packagerProjectPath\Assets\Nu
 Write-Log "Exporting .unitypackage ...";
 
 # TODO: Get the version number and append it to the file name?
-& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
+& $unityExe -force-free -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
 
 $unityPackagePath = "$packagerProjectPath\NuGetForUnity.unitypackage";
 
