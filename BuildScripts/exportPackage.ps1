@@ -13,6 +13,11 @@ Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
 Write-Log $packagerProjectPath;
 
+# https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
+# | Out-Null forces PowerShell to wait for the application to finish before continuing
+# Unity is failing to activate when exporting the package, so create a dummy project to force it to activate
+& $unityExe -batchmode -quit -createProject "$PSScriptRoot\..\DummyProject" | Out-Null;
+
 # Copy the needed files into the project
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
 Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $packagerProjectPath\Assets\NuGet\Editor;
