@@ -9,6 +9,9 @@ function Write-Log
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
 $packagerProjectPath = "$PSScriptRoot\..\Packager";
 
+Write-Host $env:UNITY_USERNAME
+Write-Host $env:UNITY_PASSWORD
+
 Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
 Write-Log $packagerProjectPath;
@@ -16,7 +19,7 @@ Write-Log $packagerProjectPath;
 # https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
 # | Out-Null forces PowerShell to wait for the application to finish before continuing
 # Unity is failing to activate when exporting the package, so create a dummy project to force it to activate
-& $unityExe -force-free -logFile -batchmode -quit -createProject "$PSScriptRoot\..\DummyProject" | Out-Null;
+# & $unityExe -force-free -logFile -batchmode -quit -createProject "$PSScriptRoot\..\DummyProject" | Out-Null;
 
 # Copy the needed files into the project
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
@@ -27,7 +30,7 @@ Copy-Item "$PSScriptRoot\..\LICENSE" -Destination $packagerProjectPath\Assets\Nu
 Write-Log "Exporting .unitypackage ...";
 
 # TODO: Get the version number and append it to the file name?
-& $unityExe -force-free -logFile -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
+& $unityExe -batchmode -quit -username $env:UNITY_USERNAME -password $env:UNITY_PASSWORD -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
 
 $unityPackagePath = "$packagerProjectPath\NuGetForUnity.unitypackage";
 
@@ -43,10 +46,10 @@ else
 {
     Write-Log "The .unitypackage does not exist: $unityPackagePath";
 
-    Get-ChildItem -Path C:\Users\$env:UserName
-
     # since there was a failure somewhere, push the Unity editor log as an artifact
     Push-AppveyorArtifact "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
+
+    throw "Failed to create NuGetForUnity.unitypackage file"
 }
 
 Write-Log "DONE!";
