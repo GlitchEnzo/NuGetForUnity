@@ -93,10 +93,12 @@
             {
                 return;
             }
-
-            // get the .NET version being used, since we don't want a specific platform, send unknown
-            //DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); // Unity 5.6+ way
-            DotNetVersion = PlayerSettings.apiCompatibilityLevel; // Added in Unity 4.0 and marked as deprecated in Unity 5.6, but still exists and works in Unity 2017.1
+            
+#if UNITY_5_6_OR_NEWER
+            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+#else
+            DotNetVersion = PlayerSettings.apiCompatibilityLevel;
+#endif
 
             // Load the NuGet.config file
             LoadNugetConfigFile();
@@ -977,12 +979,20 @@
         {
             if (NugetConfigFile.Verbose)
             {
-                // Application.stackTraceLogType was added in Unity 5.2
-                // It was deprecated in Unity 5.4, but it still exists and works in Unity 2017.1
-                // Continuing to use it here for backwards compatibility
+#if UNITY_5_4_OR_NEWER
+                var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
+                Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+#else
+                var stackTraceLogType = Application.stackTraceLogType;
                 Application.stackTraceLogType = StackTraceLogType.None;
+#endif
                 Debug.LogFormat(format, args);
-                Application.stackTraceLogType = StackTraceLogType.ScriptOnly;
+
+#if UNITY_5_4_OR_NEWER
+                Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
+#else
+                Application.stackTraceLogType = stackTraceLogType;
+#endif
             }
         }
 

@@ -1,7 +1,7 @@
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
-You can learn more about NuGet here: [nuget.org](nuget.org)
+You can learn more about NuGet here: [nuget.org](https://www.nuget.org/)
 
 NuGetForUnity provides a visual editor window to see available packages on the server, see installed packages, and see available package updates.  A visual interface is also provided to create and edit *.nuspec* files in order to define and publish your own NuGet packages from within Unity.
 
@@ -91,7 +91,7 @@ If you are interested in the process NuGetForUnity follows or you are trying to 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # How do I create my own NuGet packages from within Unity?
-First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **Create → Nuspec File**.
+First, you'll need to create a *.nuspec* file that defines your package.  In your Project window, right click where you want the *.nuspec* file to go and select **NuGet → Create Nuspec File**.
 
 ![](screenshots/nuspec_menu.png?raw=true)
 
