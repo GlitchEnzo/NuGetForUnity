@@ -16,6 +16,10 @@ Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
 Write-Log "Packager project path = $packagerProjectPath";
 
+# Create the needed folders in the project
+New-Item -ItemType directory -Path $packagerProjectPath\Assets\NuGet\Resources;
+New-Item -ItemType directory -Path $packagerProjectPath\Assets\NuGet\Editor;
+
 # Copy the needed files into the project
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
 Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $packagerProjectPath\Assets\NuGet\Editor;
