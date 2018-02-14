@@ -7,50 +7,44 @@ function Write-Log
 
 # TODO: Read Unity installed location from the Registry?
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
-$unityLog = "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
-$packagerProjectPath = "$PSScriptRoot\..\ExporterProject";
+$exporterProjectPath = "$PSScriptRoot\..\ExporterProject";
 
-& $unityExe -batchmode -quit -createProject $packagerProjectPath | Out-Null;
-
-Write-Log "Copying the needed files into the Packager project...";
+Write-Log "Creating the Exporter Unity project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
-Write-Log "Packager project path = $packagerProjectPath";
-
-# Create the needed folders in the project
-New-Item -ItemType directory -Path $packagerProjectPath\Assets\NuGet\Resources;
-New-Item -ItemType directory -Path $packagerProjectPath\Assets\NuGet\Editor;
-
-# Copy the needed files into the project
-Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
-Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $packagerProjectPath\Assets\NuGet\Editor;
-Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $packagerProjectPath\Assets\NuGet\Editor;
-Copy-Item "$PSScriptRoot\..\LICENSE" -Destination $packagerProjectPath\Assets\NuGet\LICENSE.txt;
-
-Write-Log "Exporting .unitypackage ...";
 
 # https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
 # | Out-Null forces PowerShell to wait for the application to finish before continuing
+& $unityExe -batchmode -quit -createProject $exporterProjectPath | Out-Null;
+
+Write-Log "Finished creating the project. Copying the files into the project...";
+
+# Create the needed folders in the project
+New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Resources;
+New-Item -ItemType directory -Path $exporterProjectPath\Assets\NuGet\Editor;
+
+# Copy the needed files into the project
+Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $exporterProjectPath\Assets\NuGet\Resources;
+Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\NuGetForUnity.dll" $exporterProjectPath\Assets\NuGet\Editor;
+Copy-Item "$PSScriptRoot\..\CreateDLL\bin\Debug\DotNetZip.dll" $exporterProjectPath\Assets\NuGet\Editor;
+
+Write-Log "Exporting .unitypackage ...";
+
 # TODO: Get the version number and append it to the file name?
-& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
+& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $exporterProjectPath | Out-Null;
 
-# upload the Unity editor log as an artifact
-# See: https://www.appveyor.com/docs/packaging-artifacts/
-Push-AppveyorArtifact $unityLog;
-
-$unityPackagePath = "$packagerProjectPath\NuGetForUnity.unitypackage";
+$unityPackagePath = "$exporterProjectPath\NuGetForUnity.unitypackage";
 
 if (Test-Path $unityPackagePath)
 {
     Write-Log "Uploading the build artifact...";
 
-    # upload the .unitypackge file as an artifact
+    # Push-AppveyorArtifact uploads a file as a build artifact that is visible in the build webpage
+    # See: https://www.appveyor.com/docs/packaging-artifacts/
     Push-AppveyorArtifact $unityPackagePath;
 }
 else
 {
     Write-Log "The .unitypackage does not exist: $unityPackagePath";
-
-    throw "Failed to create NuGetForUnity.unitypackage file"
 }
 
 Write-Log "DONE!";
