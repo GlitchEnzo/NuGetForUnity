@@ -22,7 +22,7 @@
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
         public void AddPackage(NugetPackageIdentifier package)
         {
-            NugetPackageIdentifier existingPackage = Packages.Find(p => p.Id == package.Id);
+            NugetPackageIdentifier existingPackage = Packages.Find(p => p.Id.ToLower() == package.Id.ToLower());
             if (existingPackage != null)
             {
                 if (existingPackage < package)
