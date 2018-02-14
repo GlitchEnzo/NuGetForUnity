@@ -7,19 +7,12 @@ function Write-Log
 
 # TODO: Read Unity installed location from the Registry?
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
+$unityLog = "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
 $packagerProjectPath = "$PSScriptRoot\..\Packager";
-
-Write-Host $env:UNITY_USERNAME
-Write-Host $env:UNITY_PASSWORD
 
 Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
-Write-Log $packagerProjectPath;
-
-# https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
-# | Out-Null forces PowerShell to wait for the application to finish before continuing
-# Unity is failing to activate when exporting the package, so create a dummy project to force it to activate
-# & $unityExe -force-free -logFile -batchmode -quit -createProject "$PSScriptRoot\..\DummyProject" | Out-Null;
+Write-Log "Packager project path = $packagerProjectPath";
 
 # Copy the needed files into the project
 Copy-Item "$PSScriptRoot\..\Assets\NuGet\Resources\defaultIcon.png" $packagerProjectPath\Assets\NuGet\Resources;
@@ -29,8 +22,14 @@ Copy-Item "$PSScriptRoot\..\LICENSE" -Destination $packagerProjectPath\Assets\Nu
 
 Write-Log "Exporting .unitypackage ...";
 
+# https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
+# | Out-Null forces PowerShell to wait for the application to finish before continuing
 # TODO: Get the version number and append it to the file name?
 & $unityExe -batchmode -quit -username $env:UNITY_USERNAME -password $env:UNITY_PASSWORD -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
+
+# upload the Unity editor log as an artifact
+# See: https://www.appveyor.com/docs/packaging-artifacts/
+Push-AppveyorArtifact $unityLog;
 
 $unityPackagePath = "$packagerProjectPath\NuGetForUnity.unitypackage";
 
@@ -38,16 +37,12 @@ if (Test-Path $unityPackagePath)
 {
     Write-Log "Uploading the build artifact...";
 
-    # Push-AppveyorArtifact uploads a file as a build artifact that is visible in the build webpage
-    # See: https://www.appveyor.com/docs/packaging-artifacts/
+    # upload the .unitypackge file as an artifact
     Push-AppveyorArtifact $unityPackagePath;
 }
 else
 {
     Write-Log "The .unitypackage does not exist: $unityPackagePath";
-
-    # since there was a failure somewhere, push the Unity editor log as an artifact
-    Push-AppveyorArtifact "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
 
     throw "Failed to create NuGetForUnity.unitypackage file"
 }
