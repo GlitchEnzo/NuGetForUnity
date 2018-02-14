@@ -8,7 +8,9 @@ function Write-Log
 # TODO: Read Unity installed location from the Registry?
 $unityExe = "C:\Program Files\Unity\Editor\Unity.exe";
 $unityLog = "C:\Users\$env:UserName\AppData\Local\Unity\Editor\Editor.log";
-$packagerProjectPath = "$PSScriptRoot\..\Packager";
+$packagerProjectPath = "$PSScriptRoot\..\ExporterProject";
+
+& $unityExe -batchmode -quit -createProject $packagerProjectPath | Out-Null;
 
 Write-Log "Copying the needed files into the Packager project...";
 Write-Log "PSScriptRoot = $PSScriptRoot";
@@ -25,7 +27,7 @@ Write-Log "Exporting .unitypackage ...";
 # https://docs.unity3d.com/520/Documentation/Manual/CommandLineArguments.html
 # | Out-Null forces PowerShell to wait for the application to finish before continuing
 # TODO: Get the version number and append it to the file name?
-& $unityExe -batchmode -quit -username $env:UNITY_USERNAME -password $env:UNITY_PASSWORD -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
+& $unityExe -batchmode -quit -exportPackage Assets/NuGet NuGetForUnity.unitypackage -projectPath $packagerProjectPath | Out-Null;
 
 # upload the Unity editor log as an artifact
 # See: https://www.appveyor.com/docs/packaging-artifacts/
