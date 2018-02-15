@@ -8,6 +8,7 @@
     using System.Net;
     using System.Xml;
     using System.Xml.Linq;
+    using UnityEditor;
     using Debug = UnityEngine.Debug;
 
     /// <summary>
@@ -343,27 +344,25 @@
 
             try
             {
-                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-
-                // remove all handlers
-                ServicePointManager.ServerCertificateValidationCallback = null;
-
-                // add anonymous handler
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
                 Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
                 StreamReader streamReader = new StreamReader(responseStream);
 
-                packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
+                packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
 
                 foreach (var package in packages)
                 {
                     package.PackageSource = this;
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
+                var we = e as WebException;
+                if (we != null && we.Status == WebExceptionStatus.TrustFailure && TryHandleTrustFailure())
+                {
+                    // We may have resolved the trust failure, lets try again.
+                    return GetPackagesFromUrl(url, password);
+                }
+
                 Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
             }
 
@@ -371,6 +370,36 @@
             NugetHelper.LogVerbose("Retreived {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
 
             return packages;
+        }
+
+        private bool TryHandleTrustFailure()
+        {
+            string unityDir = System.IO.Path.GetDirectoryName(EditorApplication.applicationPath);
+            string mozroots = System.IO.Path.Combine(unityDir, @"Data\MonoBleedingEdge\lib\mono\4.5\mozroots.exe");
+            if (!File.Exists(mozroots))
+            {
+                EditorUtility.DisplayDialog(
+                    "Certificate trust failure!",
+                    "You may need to import certificates into the Mono trust store.\n\nTo learn more: http://www.mono-project.com/docs/faq/security/",
+                    "Ok");
+            }
+            else if (EditorUtility.DisplayDialog("Certificate trust failure!",
+                "Would you like to import the certificates trusted by Mozilla?\n\nTo learn more: http://www.mono-project.com/docs/faq/security/",
+                "Yes", "No"))
+            {
+                var process = Process.Start(mozroots, "--import --sync");
+                process.WaitForExit();
+                if (process.ExitCode == 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    Debug.LogErrorFormat("Mozroots exited with error code: {0}", process.ExitCode);
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
