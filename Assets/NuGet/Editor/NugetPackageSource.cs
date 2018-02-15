@@ -510,6 +510,34 @@
             });
 
             List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+            System.Text.StringBuilder matchingComparison = new System.Text.StringBuilder();
+            System.Text.StringBuilder missingComparison = new System.Text.StringBuilder();
+            foreach (NugetPackage package in updates)
+            {
+                if (updatesReplacement.Contains(package))
+                {
+                    matchingComparison.Append(matchingComparison.Length == 0 ? "Matching: " : ", ");
+                    matchingComparison.Append(package.ToString());
+                }
+                else
+                {
+                    missingComparison.Append(missingComparison.Length == 0 ? "Missing: " : ", ");
+                    missingComparison.Append(package.ToString());
+                }
+            }
+            System.Text.StringBuilder extraComparison = new System.Text.StringBuilder();
+            foreach (NugetPackage package in updatesReplacement)
+            {
+                if (!updates.Contains(package))
+                {
+                    extraComparison.Append(extraComparison.Length == 0 ? "Extra: " : ", ");
+                    extraComparison.Append(package.ToString());
+                }
+            }
+            if (missingComparison.Length > 0 || extraComparison.Length > 0)
+            {
+                Debug.LogWarningFormat("GetUpdatesFallback doesn't match:\n{0}\n{1}\n{2}", matchingComparison, missingComparison, extraComparison);
+            }
 
             return updates;
         }
@@ -520,13 +548,13 @@
         /// </summary>
         private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
-            Debug.Assert(targetFrameworks == null && versionContraints == null); // These features are not supported by this version of GetUpdates.
+            Debug.Assert(!includeAllVersions && string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
             List<NugetPackage> updates = new List<NugetPackage>();
 
             foreach (NugetPackage installedPackage in installedPackages)
             {
-                NugetPackageIdentifier id = installedPackage;
-                id.Version = string.Format("({0},)", id.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
+                string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
+                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
                 List<NugetPackage> packagesById = FindPackagesById(id);
                 foreach (NugetPackage packageById in packagesById)
                 {
