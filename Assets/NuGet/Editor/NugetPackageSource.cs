@@ -479,6 +479,13 @@
             });
 
             List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+            ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
+
+            return updates;
+        }
+
+        private static void ComparePackageLists(List<NugetPackage> updates, List<NugetPackage> updatesReplacement, string errorMessageToDisplayIfListsDoNotMatch)
+        {
             System.Text.StringBuilder matchingComparison = new System.Text.StringBuilder();
             System.Text.StringBuilder missingComparison = new System.Text.StringBuilder();
             foreach (NugetPackage package in updates)
@@ -505,10 +512,8 @@
             }
             if (missingComparison.Length > 0 || extraComparison.Length > 0)
             {
-                Debug.LogWarningFormat("GetUpdatesFallback doesn't match:\n{0}\n{1}\n{2}", matchingComparison, missingComparison, extraComparison);
+                Debug.LogWarningFormat("{0}\n{1}\n{2}\n{3}", errorMessageToDisplayIfListsDoNotMatch, matchingComparison, missingComparison, extraComparison);
             }
-
-            return updates;
         }
 
         /// <summary>
