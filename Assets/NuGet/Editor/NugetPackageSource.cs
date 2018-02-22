@@ -127,60 +127,11 @@
             {
                 // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
                 string url = string.Empty;
-                if (!package.HasVersionRange)
-                {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=Version ge '{2}'", ExpandedPath, package.Id, package.Version);
-                }
-                else
-                {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=", ExpandedPath, package.Id);
 
-                    bool hasMin = false;
-                    if (!string.IsNullOrEmpty(package.MinimumVersion))
-                    {
-                        // Some packages append extraneous ".0"s to the end of the version number for dependencies
-                        // For example, the actual package version is "1.0", but the dependency is listed as "1.0.0"
-                        // In these cases the NuGet server fails to return the "1.0" version when that version string is queried
-                        // While this seems to be a flaw in the NuGet server, we shall fix it here by removing the last .0, if there is one
-                        // Note that it only removes the last one and not all, this can be made to loop if additional problems are found in other packages
-                        var minVersion = package.MinimumVersion.EndsWith(".0") ? package.MinimumVersion.Remove(package.MinimumVersion.LastIndexOf(".0", StringComparison.Ordinal)) : package.MinimumVersion;
+                // We used to rely on expressions such as &$filter=Version ge '9.0.1' to find versions in a range, but the results were sorted alphabetically. This
+                // caused version 10.0.0 to be less than version 9.0.0. In order to work around this issue, we'll request all versions and perform filtering ourselves.
 
-                        hasMin = true;
-                        if (package.IsMinInclusive)
-                        {
-                            url += string.Format("Version ge '{0}'", minVersion);
-                        }
-                        else
-                        {
-                            url += string.Format("Version gt '{0}'", minVersion);
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(package.MaximumVersion))
-                    {
-                        if (hasMin)
-                        {
-                            url += " and ";
-                        }
-
-                        if (package.IsMaxInclusive)
-                        {
-                            url += string.Format("Version le '{0}'", package.MaximumVersion);
-                        }
-                        else
-                        {
-                            url += string.Format("Version lt '{0}'", package.MaximumVersion);
-                        }
-                    }
-                    else
-                    {
-                        if (package.IsMaxInclusive)
-                        {
-                            // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                            url += string.Format(" and Version le '{0}'", package.MinimumVersion);
-                        }
-                    }
-                }
+                url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'", ExpandedPath, package.Id);
 
                 try
                 {
@@ -188,7 +139,25 @@
                 }
                 catch (System.Exception e)
                 {
+                    foundPackages = new List<NugetPackage>();
                     Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                }
+
+                foundPackages.Sort();
+                if (foundPackages.Exists(p => package.InRange(p)))
+                {
+                    // Return all the packages in the range of versions specified by 'package'.
+                    foundPackages.RemoveAll(p => !package.InRange(p));
+                }
+                else
+                {
+                    // There are no packages in the range of versions specified by 'package'.
+                    // Return the most recent version after the version specified by 'package'.
+                    foundPackages.RemoveAll(p => package.CompareVersion(p.Version) < 0);
+                    if (foundPackages.Count > 0)
+                    {
+                        foundPackages.RemoveRange(1, foundPackages.Count - 1);
+                    }
                 }
             }
 
@@ -548,21 +517,25 @@
         /// </summary>
         private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
-            Debug.Assert(!includeAllVersions && string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
-            List<NugetPackage> updates = new List<NugetPackage>();
+            Debug.Assert(string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
 
+            List<NugetPackage> updates = new List<NugetPackage>();
             foreach (NugetPackage installedPackage in installedPackages)
             {
+                List<NugetPackage> packageUpdates = new List<NugetPackage>();
                 string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
                 NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
-                List<NugetPackage> packagesById = FindPackagesById(id);
-                foreach (NugetPackage packageById in packagesById)
+                packageUpdates = FindPackagesById(id);
+
+                NugetPackage mostRecentPrerelease = includePrerelease ? packageUpdates.FindLast(p => p.IsPrerelease) : default(NugetPackage);
+                packageUpdates.RemoveAll(p => p.IsPrerelease && p != mostRecentPrerelease);
+
+                if (!includeAllVersions && packageUpdates.Count > 0)
                 {
-                    if (includePrerelease || !packageById.IsPrerelease)
-                    {
-                        updates.Add(packageById);
-                    }
+                    packageUpdates.RemoveRange(0, packageUpdates.Count - 1);
                 }
+
+                updates.AddRange(packageUpdates);
             }
 
             return updates;
