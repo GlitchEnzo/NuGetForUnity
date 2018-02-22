@@ -478,8 +478,13 @@
                     return x.Id.CompareTo(y.Id);
             });
 
+#if TEST_GET_UPDATES_FALLBACK
+            // Enable this define in order to test that GetUpdatesFallback is working as intended. This tests that it returns the same set of packages
+            // that are returned by the GetUpdates API. Since GetUpdates isn't available when using a Visual Studio Team Services feed, the intention
+            // is that this test would be conducted by using nuget.org's feed where both paths can be compared.
             List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
             ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
+#endif
 
             return updates;
         }
@@ -520,6 +525,12 @@
         /// Some NuGet feeds such as Visual Studio Team Services do not implement the GetUpdates function.
         /// In that case this fallback function can be used to retrieve updates by using the FindPackagesById function.
         /// </summary>
+        /// <param name="installedPackages">The list of currently installed packages.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="targetFrameworks">The specific frameworks to target?</param>
+        /// <param name="versionContraints">The version constraints?</param>
+        /// <returns>A list of all updates available.</returns>
         private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             Debug.Assert(string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
