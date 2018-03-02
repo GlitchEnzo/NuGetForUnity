@@ -681,7 +681,7 @@
         {
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
-            Install(newVersion, refreshAssets);
+            InstallIdentifier(newVersion, refreshAssets);
         }
 
         /// <summary>
@@ -956,13 +956,14 @@
         /// Installs the package given by the identifer.  It fetches the appropriate full package from the installed packages, package cache, or package sources and installs it.
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
-        internal static void InstallIdentifier(NugetPackageIdentifier package)
+        /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
+        internal static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
             {
-                Install(foundPackage, false);
+                Install(foundPackage, refreshAssets);
             }
             else
             {
