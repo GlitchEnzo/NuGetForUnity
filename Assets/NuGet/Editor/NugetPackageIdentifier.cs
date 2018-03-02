@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
     /// </summary>
-    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>
+    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackage>
     {
         /// <summary>
         /// Gets or sets the ID of the NuGet package.
@@ -427,6 +427,16 @@
                 UnityEngine.Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
                 return -1;
             }
+        }
+
+        public int CompareTo(NugetPackage other)
+        {
+            if (this.Id != other.Id)
+            {
+                return string.Compare(this.Id, other.Id);
+            }
+
+            return CompareVersions(this.Version, other.Version);
         }
     }
 }

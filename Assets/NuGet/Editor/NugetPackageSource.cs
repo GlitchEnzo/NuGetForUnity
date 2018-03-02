@@ -101,16 +101,17 @@
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        public List<NugetPackage> FindPackagesById(NugetPackageIdentifier package)
         {
-            NugetPackage foundPackage = null;
+            List<NugetPackage> foundPackages = null;
 
             if (IsLocalPath)
             {
                 string localPackagePath = System.IO.Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (File.Exists(localPackagePath))
                 {
-                    foundPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    foundPackages = new List<NugetPackage> { localPackage };
                 }
                 else
                 {
@@ -119,77 +120,67 @@
 
                     // Try to find later versions of the same package
                     var packages = GetLocalPackages(package.Id, true, true);
-                    foundPackage = packages.SkipWhile(x => !package.InRange(x)).FirstOrDefault();
-                }
+                    foundPackages = new List<NugetPackage>(packages.SkipWhile(x => !package.InRange(x)));
+                  }
             }
             else
             {
                 // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
                 string url = string.Empty;
-                if (!package.HasVersionRange)
+
+                // We used to rely on expressions such as &$filter=Version ge '9.0.1' to find versions in a range, but the results were sorted alphabetically. This
+                // caused version 10.0.0 to be less than version 9.0.0. In order to work around this issue, we'll request all versions and perform filtering ourselves.
+
+                url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'", ExpandedPath, package.Id);
+
+                try
                 {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=Version ge '{2}'", ExpandedPath, package.Id, package.Version);
+                    foundPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                }
+                catch (System.Exception e)
+                {
+                    foundPackages = new List<NugetPackage>();
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                }
+
+                foundPackages.Sort();
+                if (foundPackages.Exists(p => package.InRange(p)))
+                {
+                    // Return all the packages in the range of versions specified by 'package'.
+                    foundPackages.RemoveAll(p => !package.InRange(p));
                 }
                 else
                 {
-                    url = string.Format("{0}FindPackagesById()?$orderby=Version asc&id='{1}'&$filter=", ExpandedPath, package.Id);
-
-                    bool hasMin = false;
-                    if (!string.IsNullOrEmpty(package.MinimumVersion))
+                    // There are no packages in the range of versions specified by 'package'.
+                    // Return the most recent version after the version specified by 'package'.
+                    foundPackages.RemoveAll(p => package.CompareVersion(p.Version) < 0);
+                    if (foundPackages.Count > 0)
                     {
-                        // Some packages append extraneous ".0"s to the end of the version number for dependencies
-                        // For example, the actual package version is "1.0", but the dependency is listed as "1.0.0"
-                        // In these cases the NuGet server fails to return the "1.0" version when that version string is queried
-                        // While this seems to be a flaw in the NuGet server, we shall fix it here by removing the last .0, if there is one
-                        // Note that it only removes the last one and not all, this can be made to loop if additional problems are found in other packages
-                        var minVersion = package.MinimumVersion.EndsWith(".0") ? package.MinimumVersion.Remove(package.MinimumVersion.LastIndexOf(".0", StringComparison.Ordinal)) : package.MinimumVersion;
-
-                        hasMin = true;
-                        if (package.IsMinInclusive)
-                        {
-                            url += string.Format("Version ge '{0}'", minVersion);
-                        }
-                        else
-                        {
-                            url += string.Format("Version gt '{0}'", minVersion);
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(package.MaximumVersion))
-                    {
-                        if (hasMin)
-                        {
-                            url += " and ";
-                        }
-
-                        if (package.IsMaxInclusive)
-                        {
-                            url += string.Format("Version le '{0}'", package.MaximumVersion);
-                        }
-                        else
-                        {
-                            url += string.Format("Version lt '{0}'", package.MaximumVersion);
-                        }
-                    }
-                    else
-                    {
-                        if (package.IsMaxInclusive)
-                        {
-                            // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                            url += string.Format(" and Version le '{0}'", package.MinimumVersion);
-                        }
+                        foundPackages.RemoveRange(1, foundPackages.Count - 1);
                     }
                 }
-
-                foundPackage = GetPackagesFromUrl(url, ExpandedPassword).FirstOrDefault();
             }
 
-            if (foundPackage != null)
+            if (foundPackages != null)
             {
-                foundPackage.PackageSource = this;
+                foreach (NugetPackage foundPackage in foundPackages)
+                {
+                    foundPackage.PackageSource = this;
+                }
             }
 
-            return foundPackage;
+            return foundPackages;
+        }
+
+        /// <summary>
+        /// Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier"/> given.
+        /// If an exact match isn't found, it selects the next closest version available.
+        /// </summary>
+        /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
+        /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
+        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        {
+            return FindPackagesById(package).FirstOrDefault();
         }
 
         /// <summary>
@@ -251,7 +242,15 @@
             // should we include prerelease packages?
             url += string.Format("includePrerelease={0}", includePrerelease.ToString().ToLower());
 
-            return GetPackagesFromUrl(url, ExpandedPassword);
+            try
+            {
+                return GetPackagesFromUrl(url, ExpandedPassword);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                return new List<NugetPackage>();
+            }
         }
 
         /// <summary>
@@ -341,30 +340,23 @@
 
             List<NugetPackage> packages = new List<NugetPackage>();
 
-            try
+            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
+            // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+
+            // remove all handlers
+            ServicePointManager.ServerCertificateValidationCallback = null;
+
+            // add anonymous handler
+            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
+
+            Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
+            StreamReader streamReader = new StreamReader(responseStream);
+
+            packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
+
+            foreach (var package in packages)
             {
-                // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-                // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-
-                // remove all handlers
-                ServicePointManager.ServerCertificateValidationCallback = null;
-
-                // add anonymous handler
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
-                Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
-                StreamReader streamReader = new StreamReader(responseStream);
-
-                packages = NugetODataResponse.Parse(XDocument.Load(streamReader));                
-
-                foreach (var package in packages)
-                {
-                    package.PackageSource = this;
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                package.PackageSource = this;
             }
 
             stopwatch.Stop();
@@ -451,8 +443,24 @@
 
                 string url = string.Format("{0}GetUpdates()?packageIds='{1}'&versions='{2}'&includePrerelease={3}&includeAllVersions={4}&targetFrameworks='{5}'&versionConstraints='{6}'", ExpandedPath, packageIds, versions, includePrerelease.ToString().ToLower(), includeAllVersions.ToString().ToLower(), targetFrameworks, versionContraints);
 
-                var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
-                updates.AddRange(newPackages);
+                try
+                {
+                    var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                    updates.AddRange(newPackages);
+                }
+                catch (System.Exception e)
+                {
+                    WebException webException = e as WebException;
+                    HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
+                    if (webResponse != null && webResponse.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        // Some web services, such as VSTS don't support the GetUpdates API. Attempt to retrieve updates via FindPackagesById.
+                        NugetHelper.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
+                        return GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                    }
+
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                }
             }
 
             // sort alphabetically
@@ -469,6 +477,82 @@
                 else
                     return x.Id.CompareTo(y.Id);
             });
+
+#if TEST_GET_UPDATES_FALLBACK
+            // Enable this define in order to test that GetUpdatesFallback is working as intended. This tests that it returns the same set of packages
+            // that are returned by the GetUpdates API. Since GetUpdates isn't available when using a Visual Studio Team Services feed, the intention
+            // is that this test would be conducted by using nuget.org's feed where both paths can be compared.
+            List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+            ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
+#endif
+
+            return updates;
+        }
+
+        private static void ComparePackageLists(List<NugetPackage> updates, List<NugetPackage> updatesReplacement, string errorMessageToDisplayIfListsDoNotMatch)
+        {
+            System.Text.StringBuilder matchingComparison = new System.Text.StringBuilder();
+            System.Text.StringBuilder missingComparison = new System.Text.StringBuilder();
+            foreach (NugetPackage package in updates)
+            {
+                if (updatesReplacement.Contains(package))
+                {
+                    matchingComparison.Append(matchingComparison.Length == 0 ? "Matching: " : ", ");
+                    matchingComparison.Append(package.ToString());
+                }
+                else
+                {
+                    missingComparison.Append(missingComparison.Length == 0 ? "Missing: " : ", ");
+                    missingComparison.Append(package.ToString());
+                }
+            }
+            System.Text.StringBuilder extraComparison = new System.Text.StringBuilder();
+            foreach (NugetPackage package in updatesReplacement)
+            {
+                if (!updates.Contains(package))
+                {
+                    extraComparison.Append(extraComparison.Length == 0 ? "Extra: " : ", ");
+                    extraComparison.Append(package.ToString());
+                }
+            }
+            if (missingComparison.Length > 0 || extraComparison.Length > 0)
+            {
+                Debug.LogWarningFormat("{0}\n{1}\n{2}\n{3}", errorMessageToDisplayIfListsDoNotMatch, matchingComparison, missingComparison, extraComparison);
+            }
+        }
+
+        /// <summary>
+        /// Some NuGet feeds such as Visual Studio Team Services do not implement the GetUpdates function.
+        /// In that case this fallback function can be used to retrieve updates by using the FindPackagesById function.
+        /// </summary>
+        /// <param name="installedPackages">The list of currently installed packages.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="targetFrameworks">The specific frameworks to target?</param>
+        /// <param name="versionContraints">The version constraints?</param>
+        /// <returns>A list of all updates available.</returns>
+        private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        {
+            Debug.Assert(string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
+
+            List<NugetPackage> updates = new List<NugetPackage>();
+            foreach (NugetPackage installedPackage in installedPackages)
+            {
+                List<NugetPackage> packageUpdates = new List<NugetPackage>();
+                string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
+                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
+                packageUpdates = FindPackagesById(id);
+
+                NugetPackage mostRecentPrerelease = includePrerelease ? packageUpdates.FindLast(p => p.IsPrerelease) : default(NugetPackage);
+                packageUpdates.RemoveAll(p => p.IsPrerelease && p != mostRecentPrerelease);
+
+                if (!includeAllVersions && packageUpdates.Count > 0)
+                {
+                    packageUpdates.RemoveRange(0, packageUpdates.Count - 1);
+                }
+
+                updates.AddRange(packageUpdates);
+            }
 
             return updates;
         }
