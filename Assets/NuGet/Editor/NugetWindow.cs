@@ -3,11 +3,12 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using UnityEditor;
     using UnityEngine;
+    using UnityEngine.Networking;
 
     /// <summary>
     /// Represents the NuGet Package Manager Window in the Unity Editor.
@@ -196,6 +197,80 @@
             //var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
             //object index = selectedSectionIndexGetter.Invoke(preferencesEditorWindow, null);
             //Debug.LogFormat("Selected Index = {0}", index);
+        }
+
+        /// <summary>
+        /// Checks/launches the Releases page to update NuGetForUnity with a new version.
+        /// </summary>
+        [MenuItem("NuGet/Check for Updates...", false, 10)]
+        protected static void CheckForUpdates()
+        {
+            const string url = "https://github.com/GlitchEnzo/NuGetForUnity/releases";
+            using (UnityWebRequest request = UnityWebRequest.Get(url))
+            {
+                NugetHelper.LogVerbose("HTTP GET {0}", url);
+                request.Send();
+
+                while (!request.isDone)
+                {
+                    EditorUtility.DisplayProgressBar("Checking updates", null, 0.0f);
+                }
+                EditorUtility.ClearProgressBar();
+
+                string latestVersion = null;
+                string latestVersionDownloadUrl = null;
+                if (!request.isNetworkError && !request.isHttpError)
+                {
+                    string response = request.downloadHandler.text;
+                    latestVersion = GetLatestVersonFromReleasesHtml(response, out latestVersionDownloadUrl);
+                }
+
+                if (latestVersion == null)
+                {
+                    EditorUtility.DisplayDialog(
+                            "Unable to Determine Updates",
+                            string.Format("Couldn't find release information at {0}.", url),
+                            "OK");
+                    return;
+                }
+
+                NugetPackageIdentifier current = new NugetPackageIdentifier("NuGetForUnity", NugetPreferences.NuGetForUnityVersion);
+                NugetPackageIdentifier latest = new NugetPackageIdentifier("NuGetForUnity", latestVersion);
+                if (current >= latest)
+                {
+                    EditorUtility.DisplayDialog(
+                            "No Updates Available",
+                            string.Format("Your version of NuGetForUnity is up to date.\nVersion {0}.", NugetPreferences.NuGetForUnityVersion),
+                            "OK");
+                    return;
+                }
+
+                // New version is available. Give user options for installing it.
+                switch (EditorUtility.DisplayDialogComplex(
+                        "Update Available",
+                        string.Format("Current Version: {0}\nLatest Version: {1}", NugetPreferences.NuGetForUnityVersion, latestVersion),
+                        "Install Latest",
+                        "Open Releases Page",
+                        "Cancel"))
+                {
+                    case 0: Application.OpenURL(latestVersionDownloadUrl); break;
+                    case 1: Application.OpenURL(url); break;
+                    case 2: break;
+                }
+            }
+        }
+
+        private static string GetLatestVersonFromReleasesHtml(string response, out string url)
+        {
+            Regex hrefRegex = new Regex(@"<a href=""(?<url>.*NuGetForUnity\.(?<version>\d+\.\d+\.\d+)\.unitypackage)""");
+            Match match = hrefRegex.Match(response);
+            if (!match.Success)
+            {
+                url = null;
+                return null;
+            }
+            url = "https://github.com/" + match.Groups["url"].Value;
+            return match.Groups["version"].Value;
         }
 
         /// <summary>
