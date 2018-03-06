@@ -222,7 +222,7 @@
                 if (!request.isNetworkError && !request.isHttpError)
                 {
                     string response = request.downloadHandler.text;
-                    latestVersion = GetLatestVersonFromReleaseHtml(response, out latestVersionDownloadUrl);
+                    latestVersion = GetLatestVersonFromReleasesHtml(response, out latestVersionDownloadUrl);
                 }
 
                 if (latestVersion == null)
@@ -245,7 +245,7 @@
                     return;
                 }
 
-                // New version is available. Instruct user on how to install it.
+                // New version is available. Give user options for installing it.
                 switch (EditorUtility.DisplayDialogComplex(
                         "Update Available",
                         string.Format("Current Version: {0}\nLatest Version: {1}", NugetPreferences.NuGetForUnityVersion, latestVersion),
@@ -253,14 +253,14 @@
                         "Open Releases Page",
                         "Cancel"))
                 {
-                    case 0: break;
+                    case 0: Application.OpenURL(latestVersionDownloadUrl); break;
                     case 1: Application.OpenURL(url); break;
                     case 2: break;
                 }
             }
         }
 
-        private static string GetLatestVersonFromReleaseHtml(string response, out string url)
+        private static string GetLatestVersonFromReleasesHtml(string response, out string url)
         {
             Regex hrefRegex = new Regex(@"<a href=""(?<url>.*NuGetForUnity\.(?<version>\d+\.\d+\.\d+)\.unitypackage)""");
             Match match = hrefRegex.Match(response);
@@ -269,7 +269,7 @@
                 url = null;
                 return null;
             }
-            url = match.Groups["url"].Value;
+            url = "https://github.com/" + match.Groups["url"].Value;
             return match.Groups["version"].Value;
         }
 
