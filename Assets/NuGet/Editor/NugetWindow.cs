@@ -199,6 +199,22 @@
         }
 
         /// <summary>
+        /// Launches the Releases page to update NuGetForUnity with a new version.
+        /// </summary>
+        [MenuItem("NuGet/Check for Updates...", false, 10)]
+        protected static void CheckForupdates()
+        {
+            if (EditorUtility.DisplayDialog(
+                    "Updates",
+                    string.Format("Updates to NuGetForUnity are released on GitHub. You are currently running NuGetForUnity {0}. Check the Releases page for a newer version. Download and open the .unitypackage file to install it in Unity.", NugetPreferences.NuGetForUnityVersion),
+                    "Open Releases Page",
+                    "Cancel"))
+            {
+                Application.OpenURL("https://github.com/GlitchEnzo/NuGetForUnity/releases");
+            }
+        }
+
+        /// <summary>
         /// Called when enabling the window.
         /// </summary>
         private void OnEnable()
