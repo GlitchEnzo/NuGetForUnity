@@ -192,7 +192,7 @@
                 {
                     string name = add.Attribute("key").Value;
                     string disabled = add.Attribute("value").Value;
-                    if (disabled == "true")
+                    if (String.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase))
                     {
                         var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
                         if (source != null)
@@ -216,7 +216,7 @@
                         var adds = sourceElement.Elements("add");
                         foreach (var add in adds)
                         {
-                            if (add.Attribute("key").Value == "clearTextPassword")
+                            if (String.Equals(add.Attribute("key").Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
                             {
                                 string password = add.Attribute("value").Value;
                                 source.SavedPassword = password;
@@ -236,7 +236,7 @@
                     string key = add.Attribute("key").Value;
                     string value = add.Attribute("value").Value;
 
-                    if (key == "repositoryPath")
+                    if (String.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.savedRepositoryPath = value;
                         configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
@@ -249,15 +249,15 @@
                             configFile.RepositoryPath = repositoryPath;
                         }
                     }
-                    else if (key == "DefaultPushSource")
+                    else if (String.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.DefaultPushSource = value;
                     }
-                    else if (key == "verbose")
+                    else if (String.Equals(key, "verbose", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.Verbose = bool.Parse(value);
                     }
-                    else if (key == "InstallFromCache")
+                    else if (String.Equals(key, "InstallFromCache", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.InstallFromCache = bool.Parse(value);
                     }
