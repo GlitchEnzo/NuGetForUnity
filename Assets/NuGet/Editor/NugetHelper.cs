@@ -1088,12 +1088,19 @@
 
                 if (File.Exists(cachedPackagePath))
                 {
+                    string baseDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+
                     // unzip the package
                     using (ZipFile zip = ZipFile.Read(cachedPackagePath))
                     {
                         foreach (ZipEntry entry in zip)
                         {
-                            entry.Extract(Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version)), ExtractExistingFileAction.OverwriteSilently);
+                            entry.Extract(baseDirectory, ExtractExistingFileAction.OverwriteSilently);
+                            if (NugetConfigFile.ReadOnlyPackageFiles)
+                            {
+                                FileInfo extractedFile = new FileInfo(Path.Combine(baseDirectory, entry.FileName));
+                                extractedFile.Attributes |= FileAttributes.ReadOnly;
+                            }
                         }
                     }
 
