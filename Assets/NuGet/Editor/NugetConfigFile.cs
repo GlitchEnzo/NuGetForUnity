@@ -45,6 +45,11 @@
         public bool InstallFromCache { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether installed package files are set to read-only.
+        /// </summary>
+        public bool ReadOnlyPackageFiles { get; set; }
+
+        /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         private string savedRepositoryPath;
@@ -127,6 +132,14 @@
                 config.Add(addElement);
             }
 
+            if (!ReadOnlyPackageFiles)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "ReadOnlyPackageFiles"));
+                addElement.Add(new XAttribute("value", ReadOnlyPackageFiles.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
@@ -161,6 +174,7 @@
             NugetConfigFile configFile = new NugetConfigFile();
             configFile.PackageSources = new List<NugetPackageSource>();
             configFile.InstallFromCache = true;
+            configFile.ReadOnlyPackageFiles = true;
 
             XDocument file = XDocument.Load(filePath);
 
@@ -260,6 +274,10 @@
                     else if (String.Equals(key, "InstallFromCache", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.InstallFromCache = bool.Parse(value);
+                    }
+                    else if (String.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.ReadOnlyPackageFiles = bool.Parse(value);
                     }
                 }
             }
