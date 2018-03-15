@@ -80,7 +80,7 @@
         private readonly GUILayoutOption installButtonWidth = GUILayout.Width(180);
 
         /// <summary>
-        /// The width to use for the install/uninstall/update/downgrade button
+        /// The height to use for the install/uninstall/update/downgrade button
         /// </summary>
         private readonly GUILayoutOption installButtonHeight = GUILayout.Height(27);
 
