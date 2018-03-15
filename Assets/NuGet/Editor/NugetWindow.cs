@@ -912,9 +912,9 @@
 
                 if (installed != null)
                 {
-                    GUIStyle gs = new GUIStyle(EditorStyles.label);
-                    gs.alignment = TextAnchor.UpperRight;
-                    GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), gs, installButtonWidth);
+                    GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
+                    labelStyle.alignment = TextAnchor.UpperRight;
+                    GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
                 }
             }
             EditorGUILayout.EndHorizontal();
