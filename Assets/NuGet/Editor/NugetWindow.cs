@@ -77,7 +77,12 @@
         /// <summary>
         /// The width to use for the install/uninstall/update/downgrade button
         /// </summary>
-        private readonly GUILayoutOption installButtonWidth = GUILayout.Width(160);
+        private readonly GUILayoutOption installButtonWidth = GUILayout.Width(180);
+
+        /// <summary>
+        /// The height to use for the install/uninstall/update/downgrade button
+        /// </summary>
+        private readonly GUILayoutOption installButtonHeight = GUILayout.Height(27);
 
         /// <summary>
         /// The search term to search the online packages for.
@@ -763,6 +768,8 @@
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
         private void DrawPackage(NugetPackage package)
         {
+            var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+
             EditorGUILayout.BeginHorizontal();
             {
                 // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
@@ -806,7 +813,7 @@
                 if (installedPackages.Contains(package))
                 {
                     // This specific version is installed
-                    if (GUILayout.Button("Uninstall", installButtonWidth))
+                    if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
                     {
                         // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                         NugetHelper.Uninstall(package);
@@ -816,13 +823,12 @@
                 }
                 else
                 {
-                    var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
                     if (installed != null)
                     {
                         if (installed < package)
                         {
                             // An older version is installed
-                            if (GUILayout.Button(string.Format("Update [{0}]", installed.Version), installButtonWidth))
+                            if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
                                 UpdateInstalledPackages();
@@ -832,7 +838,7 @@
                         else if (installed > package)
                         {
                             // A newer version is installed
-                            if (GUILayout.Button(string.Format("Downgrade [{0}]", installed.Version), installButtonWidth))
+                            if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
                                 UpdateInstalledPackages();
@@ -842,7 +848,7 @@
                     }
                     else
                     {
-                        if (GUILayout.Button("Install", installButtonWidth))
+                        if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
                         {
                             NugetHelper.InstallIdentifier(package);
                             AssetDatabase.Refresh();
@@ -854,49 +860,64 @@
             }
             EditorGUILayout.EndHorizontal();
 
-            // Show the package description
-            EditorStyles.label.wordWrap = true;
-            //EditorStyles.label.fontStyle = FontStyle.Bold;
-            //EditorGUILayout.LabelField(string.Format("Description:"));
-            EditorStyles.label.fontStyle = FontStyle.Normal;
-            EditorGUILayout.LabelField(string.Format("{0}", package.Description));
-
-            // Show the package release notes
-            if (!string.IsNullOrEmpty(package.ReleaseNotes))
+            EditorGUILayout.BeginHorizontal();
             {
-                EditorStyles.label.wordWrap = true;
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorGUILayout.LabelField(string.Format("Release Notes:"));
-                EditorStyles.label.fontStyle = FontStyle.Normal;
-                EditorGUILayout.LabelField(string.Format("{0}", package.ReleaseNotes));
-            }
-
-            // Show the dependencies
-            if (package.Dependencies.Count > 0)
-            {
-                EditorStyles.label.wordWrap = true;
-                EditorStyles.label.fontStyle = FontStyle.Italic;
-                StringBuilder builder = new StringBuilder();
-                foreach (var dependency in package.Dependencies)
+                EditorGUILayout.BeginVertical();
                 {
-                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
-                }
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
-                EditorStyles.label.fontStyle = FontStyle.Normal;
-            }
+                    // Show the package description
+                    EditorStyles.label.wordWrap = true;
+                    //EditorStyles.label.fontStyle = FontStyle.Bold;
+                    //EditorGUILayout.LabelField(string.Format("Description:"));
+                    EditorStyles.label.fontStyle = FontStyle.Normal;
+                    EditorGUILayout.LabelField(string.Format("{0}", package.Description));
 
-            // Show the license button
-            if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
-            {
-                if (GUILayout.Button("View License", GUILayout.Width(120)))
+                    // Show the package release notes
+                    if (!string.IsNullOrEmpty(package.ReleaseNotes))
+                    {
+                        EditorStyles.label.wordWrap = true;
+                        EditorStyles.label.fontStyle = FontStyle.Bold;
+                        EditorGUILayout.LabelField(string.Format("Release Notes:"));
+                        EditorStyles.label.fontStyle = FontStyle.Normal;
+                        EditorGUILayout.LabelField(string.Format("{0}", package.ReleaseNotes));
+                    }
+
+                    // Show the dependencies
+                    if (package.Dependencies.Count > 0)
+                    {
+                        EditorStyles.label.wordWrap = true;
+                        EditorStyles.label.fontStyle = FontStyle.Italic;
+                        StringBuilder builder = new StringBuilder();
+                        foreach (var dependency in package.Dependencies)
+                        {
+                            builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                        }
+                        EditorGUILayout.Space();
+                        EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
+                        EditorStyles.label.fontStyle = FontStyle.Normal;
+                    }
+
+                    // Show the license button
+                    if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                    {
+                        if (GUILayout.Button("View License", GUILayout.Width(120)))
+                        {
+                            Application.OpenURL(package.LicenseUrl);
+                        }
+                    }
+
+                    EditorGUILayout.Separator();
+                    EditorGUILayout.Separator();
+                }
+                EditorGUILayout.EndVertical();
+
+                if (installed != null)
                 {
-                    Application.OpenURL(package.LicenseUrl);
+                    GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
+                    labelStyle.alignment = TextAnchor.UpperRight;
+                    GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
                 }
             }
-
-            EditorGUILayout.Separator();
-            EditorGUILayout.Separator();
+            EditorGUILayout.EndHorizontal();
         }
     }
 }
