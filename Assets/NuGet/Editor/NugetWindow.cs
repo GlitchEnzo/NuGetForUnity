@@ -211,11 +211,9 @@
         protected static void CheckForUpdates()
         {
             const string url = "https://github.com/GlitchEnzo/NuGetForUnity/releases";
-            using (UnityWebRequest request = UnityWebRequest.Get(url))
+            using (WWW request = new WWW(url))
             {
                 NugetHelper.LogVerbose("HTTP GET {0}", url);
-                request.Send();
-
                 while (!request.isDone)
                 {
                     EditorUtility.DisplayProgressBar("Checking updates", null, 0.0f);
@@ -224,10 +222,9 @@
 
                 string latestVersion = null;
                 string latestVersionDownloadUrl = null;
-                if (!request.isNetworkError && !request.isHttpError)
+                if (request.error == null)
                 {
-                    string response = request.downloadHandler.text;
-                    latestVersion = GetLatestVersonFromReleasesHtml(response, out latestVersionDownloadUrl);
+                    latestVersion = GetLatestVersonFromReleasesHtml(request.text, out latestVersionDownloadUrl);
                 }
 
                 if (latestVersion == null)
