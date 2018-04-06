@@ -121,7 +121,7 @@
                     // Try to find later versions of the same package
                     var packages = GetLocalPackages(package.Id, true, true);
                     foundPackages = new List<NugetPackage>(packages.SkipWhile(x => !package.InRange(x)));
-                  }
+                }
             }
             else
             {
@@ -264,6 +264,8 @@
         /// <returns>The list of available packages.</returns>
         private List<NugetPackage> GetLocalPackages(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
         {
+            NugetHelper.LogVerbose("{0}: Getting local packages {1}", typeof(NugetPackageSource).Name, ExpandedPath);
+
             List<NugetPackage> localPackages = new List<NugetPackage>();
 
             if (numberToSkip != 0)
@@ -276,7 +278,51 @@
 
             if (Directory.Exists(path))
             {
-                string[] packagePaths = Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm));
+                //string[] packagePaths = Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm));
+
+                List<string> packagePaths = new List<string>();
+
+                // hierarchy of local feed
+                // 0.\\myserver\packages
+                // 1. └─<packageID>
+                // 2. └─<version>
+                // 3.   ├─<packageID>.<version>.nupkg
+                // 4.   └─<other files>
+                // https://docs.microsoft.com/en-us/nuget/hosting-packages/local-feeds
+
+                string aPackage = "";
+
+                foreach (DirectoryInfo aDirPackageID in new DirectoryInfo(path).GetDirectories(string.Format("*{0}*", searchTerm))) // 0; for each package directory which matches the terms
+                {
+                    NugetHelper.LogVerbose("{0}: Found a matching directory {1}", typeof(NugetPackageSource).Name, aDirPackageID);
+
+                    aPackage = aDirPackageID.Name; // example: sinedustries.collections
+
+                    //~ could optimize version checks while iterating?
+
+                    foreach (DirectoryInfo aDirVersion in aDirPackageID.GetDirectories()) // 1; for each version directory for a package directory
+                    {
+                        NugetHelper.LogVerbose("{0}: Found a version directory {1}", typeof(NugetPackageSource).Name, aDirVersion);
+
+                        //~piecewise path building for future operations
+
+                        aPackage = string.Format("{0}.{1}", aPackage, aDirVersion.Name); // packageID + version; example: sinedustries.collections.1.0.0
+                        aPackage += ".nupkg"; // file name full; // example: sinedustries.collections.1.0.0.nupkg
+
+                        aPackage = aDirVersion.FullName + Path.DirectorySeparatorChar + aPackage; // 2; path for package; // example: \\DEUS\packages\sinedudstries.collections\sinedustries.collections.1.0.0.nupkg
+
+                        if (File.Exists(aPackage)) // expected package exists
+                        {
+                            packagePaths.Add(aPackage); // add the package to paths
+                            NugetHelper.LogVerbose("{0}: Added package {1}", typeof(NugetPackageSource).Name, aPackage);
+                        }
+                        else // no find path
+                        {
+                            throw new FileNotFoundException("Could not find NuGet package: {0};", aPackage);
+                        }
+                    }
+                }
+
 
                 foreach (var packagePath in packagePaths)
                 {
@@ -293,7 +339,7 @@
                     {
                         // if all versions are being included, simply add it and move on
                         localPackages.Add(package);
-                        //LogVerbose("Adding {0} {1}", package.Id, package.Version);
+                        NugetHelper.LogVerbose("Adding {0} {1}", package.Id, package.Version);
                         continue;
                     }
 
@@ -489,6 +535,17 @@
             return updates;
         }
 
+        /// <summary>
+        /// Path to all the nuget packages in a folder;
+        /// </summary>
+        static public IEnumerable<string> GetPathsInFolder(string path, string searchTerm)
+        {
+            foreach (string pathPackage in Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm))) // here is where the files are got!
+            {
+                yield return pathPackage;
+            }
+        }
+
         private static void ComparePackageLists(List<NugetPackage> updates, List<NugetPackage> updatesReplacement, string errorMessageToDisplayIfListsDoNotMatch)
         {
             System.Text.StringBuilder matchingComparison = new System.Text.StringBuilder();
@@ -540,7 +597,7 @@
             {
                 List<NugetPackage> packageUpdates = new List<NugetPackage>();
                 string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
-                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
+                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange);
                 packageUpdates = FindPackagesById(id);
 
                 NugetPackage mostRecentPrerelease = includePrerelease ? packageUpdates.FindLast(p => p.IsPrerelease) : default(NugetPackage);

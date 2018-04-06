@@ -93,9 +93,9 @@
             {
                 return;
             }
-            
+
 #if UNITY_5_6_OR_NEWER
-            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+      DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown);
 #else
             DotNetVersion = PlayerSettings.apiCompatibilityLevel;
 #endif
@@ -307,7 +307,7 @@
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
                 int intDotNetVersion = (int)DotNetVersion; // c
-                //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
+                                                           //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
                 bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
                 var selectedDirectories = new List<string>();
 
@@ -981,8 +981,8 @@
             if (NugetConfigFile.Verbose)
             {
 #if UNITY_5_4_OR_NEWER
-                var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
-                Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+        var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
+        Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
 #else
                 var stackTraceLogType = Application.stackTraceLogType;
                 Application.stackTraceLogType = StackTraceLogType.None;
@@ -990,7 +990,7 @@
                 Debug.LogFormat(format, args);
 
 #if UNITY_5_4_OR_NEWER
-                Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
+        Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
 #else
                 Application.stackTraceLogType = stackTraceLogType;
 #endif
@@ -1004,6 +1004,8 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void Install(NugetPackage package, bool refreshAssets = true)
         {
+            //Debug.LogFormat("Installing: {0} {1}", package.Id, package.Version);
+
             try
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
@@ -1051,10 +1053,18 @@
                 {
                     if (package.PackageSource.IsLocalPath)
                     {
-                        LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
+                        string pathFull = package.PackageSource.ExpandedPath + Path.DirectorySeparatorChar + package.Id + Path.DirectorySeparatorChar + package.Version;
+                        LogVerbose("Caching local package; ID: {0} Version: {1}; Package Source: {2}; Package Path: {3}", package.Id, package.Version, package.PackageSource.ExpandedPath, pathFull);
 
                         // copy the .nupkg from the local path to the cache
-                        File.Copy(Path.Combine(package.PackageSource.ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)), cachedPackagePath, true);
+                        File.Copy(
+                          Path.Combine(
+                            package.PackageSource.ExpandedPath + Path.DirectorySeparatorChar + package.Id + Path.DirectorySeparatorChar + package.Version, // source
+                            string.Format("{0}.{1}.nupkg", package.Id, package.Version)
+                            ),
+                          cachedPackagePath,// cache
+                          true
+                        );
                     }
                     else
                     {
@@ -1095,6 +1105,8 @@
                     {
                         foreach (ZipEntry entry in zip)
                         {
+                            Debug.LogFormat("Zippy {0}", entry.FileName);
+
                             entry.Extract(baseDirectory, ExtractExistingFileAction.OverwriteSilently);
                             if (NugetConfigFile.ReadOnlyPackageFiles)
                             {
@@ -1202,6 +1214,7 @@
                 {
                     if (package != null)
                     {
+
                         EditorUtility.DisplayProgressBar("Restoring NuGet Packages", string.Format("Restoring {0} {1}", package.Id, package.Version), currentProgress);
 
                         if (!IsInstalled(package))
