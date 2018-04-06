@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
 
     /// <summary>
     /// Represents a package available from NuGet.
@@ -123,5 +124,60 @@
         {
             return obj.Id.GetHashCode() ^ obj.Version.GetHashCode();
         }
+
+        /// <summary>
+        /// Get path of this as local;
+        /// </summary>
+        public string PathLocalGet()
+        {
+            if (PackageSource.IsLocalPath) // local path
+            {
+                return 
+                    PackageSource.IsLocalPathAndVersion33 ? // if is 3.3+
+                    PathLocal33Get(PackageSource.ExpandedPath, Id, Version) : // return >= 3.3 
+                    PathLocalGet(PackageSource.ExpandedPath, Id, Version); // else return < 3.3
+            }
+            else // not local path
+            {
+                throw new Exception("Package source is not a local, but tried to get local path of a package inside of it;"); // TODO: more descriptive error
+            }
+        }
+
+        // static, paths
+
+        /// <summary>
+        /// Filename of a <see cref="NugetPackage"/>, excluding the extension;
+        /// </summary>
+        /// <example>sinedustries.collections.1.0.0</example>
+        /// <param name="id"><see cref="NugetPackageIdentifier.Id"/>; eg, "sinedustries.collections";</param>
+        /// <param name="version"><see cref="NugetPackageIdentifier.Version"/>; eg, "1.0.0";</param>
+        static public string FileNameWithoutExtensionGet(string id, string version)
+        => string.Format("{0}.{1}", id, version); // packageID + version; example: sinedustries.collections.1.0.0
+
+        /// <summary>
+        /// Filename of a <see cref="NugetPackage"/>, including the extension;
+        /// </summary>
+        /// <example>sinedustries.collections.1.0.0.nupkg</example>
+        /// <param name="id"><see cref="NugetPackageIdentifier.Id"/>; eg, "sinedustries.collections";</param>
+        /// <param name="version"><see cref="NugetPackageIdentifier.Version"/>; eg, "1.0.0";</param>
+        static public string FileNameGet(string id, string version)
+        => string.Format("{0}.{1}", FileNameWithoutExtensionGet(id, version), "nupkg"); // packageID + version;
+
+        /// <summary>
+        /// Get the full path to a <see cref="NugetPackage"/> in versions NuGet below API 3.3;
+        /// </summary>
+        static public string PathLocalGet(string sourceExpandedPath, string id, string version)
+        => Path.Combine(sourceExpandedPath, string.Format("./{0}.{1}.nupkg", id, version));
+
+        /// <summary>
+        /// Get the full path to a <see cref="NugetPackage"/> in versions NuGet API 3.3 or above;
+        /// </summary>
+        /// <param name="sourceExpandedPath">Path to source: eg, "\\DEUS\packages\";</param>
+        /// <param name="id"><see cref="NugetPackageIdentifier.Id"/>; eg, "sinedustries.collections";</param>
+        /// <param name="version"><see cref="NugetPackageIdentifier.Version"/>; eg, "1.0.0";</param>
+        /// <example>\\DEUS\packages\sinedudstries.collections\sinedustries.collections.1.0.0.nupkg</example>
+        static public string PathLocal33Get(string sourceExpandedPath, string id, string version)
+        => Path.Combine(sourceExpandedPath + Path.DirectorySeparatorChar + id + Path.DirectorySeparatorChar + version, FileNameGet(id, version));  // directory for 3.3+; // 
+        // https://docs.microsoft.com/en-us/nuget/hosting-packages/local-feeds
     }
 }
