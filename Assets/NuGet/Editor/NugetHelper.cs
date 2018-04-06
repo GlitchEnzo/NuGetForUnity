@@ -1004,8 +1004,6 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static void Install(NugetPackage package, bool refreshAssets = true)
         {
-            //Debug.LogFormat("Installing: {0} {1}", package.Id, package.Version);
-
             try
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
@@ -1059,8 +1057,8 @@
                         // copy the .nupkg from the local path to the cache
                         File.Copy(
                           Path.Combine(
-                            package.PackageSource.ExpandedPath + Path.DirectorySeparatorChar + package.Id + Path.DirectorySeparatorChar + package.Version, // source
-                            string.Format("{0}.{1}.nupkg", package.Id, package.Version)
+                            package.PackageSource.ExpandedPath + Path.DirectorySeparatorChar + package.Id + Path.DirectorySeparatorChar + package.Version, // directory
+                            string.Format("{0}.{1}.nupkg", package.Id, package.Version) // package
                             ),
                           cachedPackagePath,// cache
                           true
@@ -1105,8 +1103,6 @@
                     {
                         foreach (ZipEntry entry in zip)
                         {
-                            Debug.LogFormat("Zippy {0}", entry.FileName);
-
                             entry.Extract(baseDirectory, ExtractExistingFileAction.OverwriteSilently);
                             if (NugetConfigFile.ReadOnlyPackageFiles)
                             {
