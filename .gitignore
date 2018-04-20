@@ -69,10 +69,14 @@ $RECYCLE.BIN/
 # Ignore the NuGet Packages folder
 Packages/
 Packages.meta
+/Packager/Assets/packages.config
+/Packager/Assets/packages.config.meta
 
 # Ignore the NuGet config file
 /Assets/NuGet.config
 /Assets/NuGet.config.meta
+/Packager/Assets/NuGet.config
+/Packager/Assets/NuGet.config.meta
 
 # Ignore the bin folder
 CreateDLL/bin
