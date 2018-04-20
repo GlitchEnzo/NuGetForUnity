@@ -657,7 +657,23 @@
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
-            DeleteDirectory(packageInstallDirectory);
+
+            while (true)
+            {
+                DeleteDirectory(packageInstallDirectory);
+
+                if (Directory.Exists(packageInstallDirectory))
+                {
+                    string errorString
+                        = string.Format("Failed to fully uninstall package {0} {1}. Maybe you've got Visual Studio open and it's got a lock on the files? Track down the problem and we'll try again.", package.Id, package.Version);
+
+                    EditorUtility.DisplayDialog("Could Not Delete Package Folder", errorString, "OK");
+                }
+                else
+                {
+                    break;
+                }
+            }
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
             DeleteFile(metaFile);
@@ -1190,13 +1206,35 @@
 
             try
             {
-                float progressStep = 1.0f / PackagesConfigFile.Packages.Count;
+                float progressStep = 1.0f / (PackagesConfigFile.Packages.Count + installedPackages.Count);
                 float currentProgress = 0;
 
-                // copy the list since the InstallIdentifier operation below changes the actual installed packages list
+                // copy the lists since the Install and Uninstall operations below changes the actual installed packages list
                 var packagesToInstall = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
+                var candiadatePackagesForUninstall = new List<NugetPackage>(NugetHelper.installedPackages.Values);
 
-                LogVerbose("Restoring {0} packages.", packagesToInstall.Count);
+
+                LogVerbose("Removing up to {0} package(s).", candiadatePackagesForUninstall.Count);
+
+                foreach (var package in candiadatePackagesForUninstall)
+                {
+                    NugetPackageIdentifier packageIdentifier = new NugetPackageIdentifier(package.Id, package.Version);
+
+                    if (!PackagesConfigFile.Packages.Contains(packageIdentifier))
+                    {
+                        LogVerbose("---Uninstalling package which has a folder but isn't in the package config file: {0} {1}", package.Id, package.Version);
+                        Uninstall(packageIdentifier, false);
+                    }
+                    else
+                    {
+                        LogVerbose("---Not uninstalling package because it's still in the package config file: {0} {1}", package.Id, package.Version);
+                    }
+
+                    currentProgress += progressStep;
+                }
+
+
+                LogVerbose("Restoring up to {0} packages.", packagesToInstall.Count);
 
                 foreach (var package in packagesToInstall)
                 {

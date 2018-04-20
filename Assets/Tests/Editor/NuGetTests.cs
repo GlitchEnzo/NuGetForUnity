@@ -1,12 +1,18 @@
 ﻿using NUnit.Framework;
 using NugetForUnity;
 using System.IO;
+using System.Text.RegularExpressions;
+
+using UnityEngine;
+using UnityEngine.TestTools;
 
 public class NuGetTests
 {
     [Test]
     public void SimpleRestoreTest()
     {
+        LogAssert.Expect(LogType.Assert, new Regex(".*Removing .* because the asset does not exist.*"));
+
         NugetHelper.Restore();
     }
 
@@ -19,6 +25,8 @@ public class NuGetTests
     [Test]
     public void InstallJsonTest()
     {
+        LogAssert.Expect(LogType.Assert, new Regex(".*Removing .* because the asset does not exist.*"));
+
         // install a specific version
         var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
         NugetHelper.InstallIdentifier(json608);
@@ -135,6 +143,52 @@ public class NuGetTests
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
         Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
+    }
+
+    [Test]
+    public void InstallProtobufViaConfigFileModificationsTest()
+    {
+        var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668");
+
+        NugetHelper.UninstallAll();
+
+        if (NugetHelper.IsInstalled(protobuf))
+        {
+            Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
+        }
+
+        NugetHelper.PackagesConfigFile.AddPackage(protobuf);
+        NugetHelper.Restore();
+
+        Assert.IsTrue(NugetHelper.IsInstalled(protobuf), "The package was NOT installed: {0} {1}", protobuf.Id, protobuf.Version);
+
+        // uninstall the package
+        NugetHelper.UninstallAll();
+        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
+    }
+
+    [Test]
+    public void UninstallProtobufViaConfigFileModificationsTest()
+    {
+        var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668");
+
+        NugetHelper.UninstallAll();
+
+        if (NugetHelper.IsInstalled(protobuf))
+        {
+            Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
+        }
+
+        NugetHelper.PackagesConfigFile.AddPackage(protobuf);
+        NugetHelper.Restore();
+
+        Assert.IsTrue(NugetHelper.IsInstalled(protobuf), "The package was NOT installed: {0} {1}", protobuf.Id, protobuf.Version);
+
+        // uninstall the package
+        NugetHelper.PackagesConfigFile.RemovePackage(protobuf);
+        NugetHelper.Restore();
+
+        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
     [Test]
