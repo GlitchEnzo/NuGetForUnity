@@ -214,7 +214,7 @@
 #if UNITY_2017_1_OR_NEWER // UnityWebRequest is not available in Unity 5.2, which is the currently the earliest version supported by NuGetForUnity.
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
-                request.Send();
+                request.SendWebRequest();
 #else
             using (WWW request = new WWW(url))
             {
