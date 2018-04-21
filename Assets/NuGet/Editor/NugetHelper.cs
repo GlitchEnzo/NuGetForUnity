@@ -1285,7 +1285,50 @@
                 isInstalled = package.Version == installedPackage.Version;
             }
 
+            if (isInstalled)
+            {
+                isInstalled = IsFolderForPackageExists(package);
+            }
+
             return isInstalled;
+        }
+
+        /// <summary>
+        /// Checks if a given package is fully uninstalled -- to qualify, it must be both removed from our internal system
+        /// and its folder must be gone.
+        /// </summary>
+        /// <param name="package">The package to check if is fully uninstalled.</param>
+        /// <returns>True if the given package is fully uninstalled.  False if it is not.</returns>
+        internal static bool IsFullyUninstalled(NugetPackageIdentifier package)
+        {
+            if (IsInstalled(package))
+            {
+                return false;
+            }
+
+            if (IsFolderForPackageExists(package))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Checks if the folder containing a given installed package exists.
+        /// </summary>
+        /// <param name="package">The package to check if its folder exists.</param>
+        /// <returns>True if the given package has a corresponding existant folder.  False if it does not.</returns>
+        internal static bool IsFolderForPackageExists(NugetPackageIdentifier package)
+        {
+            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+
+            if (Directory.Exists(packageInstallDirectory))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

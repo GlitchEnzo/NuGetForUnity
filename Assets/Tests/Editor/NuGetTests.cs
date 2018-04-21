@@ -27,23 +27,32 @@ public class NuGetTests
     {
         LogAssert.Expect(LogType.Assert, new Regex(".*Removing .* because the asset does not exist.*"));
 
-        // install a specific version
+        NugetHelper.UninstallAll();
+
         var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is at least partially installed before we installed it: {0} {1}", json608.Id, json608.Version);
+
+        var json701 = new NugetPackageIdentifier("Newtonsoft.Json", "7.0.1");
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json701), "The package is at least partially installed before we installed it: {0} {1}", json701.Id, json701.Version);
+
+        // install a specific version
         NugetHelper.InstallIdentifier(json608);
         Assert.IsTrue(NugetHelper.IsInstalled(json608), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
 
         // install a newer version
-        var json701 = new NugetPackageIdentifier("Newtonsoft.Json", "7.0.1");
         NugetHelper.InstallIdentifier(json701);
         Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+
+        // The previous version should have been removed.
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is STILL at least partially installed: {0} {1}", json608.Id, json608.Version);
 
         // try to install an old version while a newer is already installed
         NugetHelper.InstallIdentifier(json608);
         Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is installed and should not have been: {0} {1}", json608.Id, json608.Version);
 
         NugetHelper.UninstallAll();
-        Assert.IsFalse(NugetHelper.IsInstalled(json608), "The package is STILL installed: {0} {1}", json608.Id, json608.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json701), "The package is STILL at least partially installed: {0} {1}", json701.Id, json701.Version);
     }
 
     [Test]
@@ -57,7 +66,7 @@ public class NuGetTests
 
         // uninstall the package
         NugetHelper.UninstallAll();
-        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(protobuf), "The package is STILL at least partially installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
     [Test]
@@ -85,16 +94,16 @@ public class NuGetTests
         NugetHelper.Uninstall(bootstrap337, false);
         NugetHelper.InstallIdentifier(bootstrap337);
 
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
         Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
 
         // confirm they are uninstalled
-        Assert.IsFalse(NugetHelper.IsInstalled(bootstrap337), "The package is STILL installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package is STILL installed: {0} {1}", jQuery191.Id, jQuery191.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery311), "The package is STILL installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(bootstrap337), "The package is STILL at least partially installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(jQuery191), "The package is STILL at least partially installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(jQuery311), "The package is STILL at least partially installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // turn cache back on
         NugetHelper.NugetConfigFile.InstallFromCache = true;
@@ -116,8 +125,8 @@ public class NuGetTests
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
 
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package is STILL installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(styleCopPlusId), "The package is STILL at least partially installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(styleCopId), "The package is STILL at least partially installed: {0} {1}", styleCopId.Id, styleCopId.Version);
     }
 
     [Test]
@@ -142,7 +151,7 @@ public class NuGetTests
 
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
-        Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(signalRClient), "The package is STILL at least partially installed: {0} {1}", signalRClient.Id, signalRClient.Version);
     }
 
     [Test]
@@ -152,10 +161,7 @@ public class NuGetTests
 
         NugetHelper.UninstallAll();
 
-        if (NugetHelper.IsInstalled(protobuf))
-        {
-            Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
-        }
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(protobuf), "The package is installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
 
         NugetHelper.PackagesConfigFile.AddPackage(protobuf);
         NugetHelper.Restore();
@@ -164,7 +170,7 @@ public class NuGetTests
 
         // uninstall the package
         NugetHelper.UninstallAll();
-        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(protobuf), "The package is STILL at least partially installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
     [Test]
@@ -176,7 +182,7 @@ public class NuGetTests
 
         if (NugetHelper.IsInstalled(protobuf))
         {
-            Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
+            Assert.IsTrue(NugetHelper.IsFullyUninstalled(protobuf), "The package is at least partially installed before we installed it: {0} {1}", protobuf.Id, protobuf.Version);
         }
 
         NugetHelper.PackagesConfigFile.AddPackage(protobuf);
@@ -188,7 +194,7 @@ public class NuGetTests
         NugetHelper.PackagesConfigFile.RemovePackage(protobuf);
         NugetHelper.Restore();
 
-        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(protobuf), "The package is STILL at least partially installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
     [Test]
