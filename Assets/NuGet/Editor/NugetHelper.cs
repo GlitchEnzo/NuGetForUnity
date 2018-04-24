@@ -271,6 +271,24 @@
         }
 
         /// <summary>
+        /// Let the Unity AssetDatabase know about all the files we just dumped into the Assets folder after installing a package.
+        /// </summary>
+        /// <param name="package">The NugetPackage to propagate to the AssetDatabase.</param>
+        private static void UpdateAssetDatabase(NugetPackageIdentifier package)
+        {
+            string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+
+            string pathRelativeToUnityProject;
+            bool isRelativePath;
+            GetPathRelativeToProjectFolder(packageInstallDirectory, out pathRelativeToUnityProject, out isRelativePath);
+
+            if (isRelativePath)
+            {
+                AssetDatabase.ImportAsset(pathRelativeToUnityProject, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ImportRecursive);
+            }
+        }
+
+        /// <summary>
         /// Cleans up a package after it has been installed.
         /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
@@ -520,10 +538,9 @@
                     }
                 }
 
-                // delete the package's StreamingAssets folder and .meta file
+                // delete the package's StreamingAssets folder
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/StreamingAssets");
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
-                DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
         }
 
@@ -575,47 +592,103 @@
 
         /// <summary>
         /// Recursively deletes the folder at the given path.
-        /// NOTE: Directory.Delete() doesn't delete Read-Only files, whereas this does.
+        /// Uses the Unity AssetDatabase if the directory is an asset in that database,
+        /// and Unity's `FileUtil.DeleteFileOrDirectory()` otherwise. Both seem to handle
+        /// read-only files okay.
         /// </summary>
         /// <param name="directoryPath">The path of the folder to delete.</param>
-        private static void DeleteDirectory(string directoryPath)
+        /// <returns>True if the directory was deleted using the Unity Asset database. False if it was
+        /// deleted by a filesystem operation, or not at all.</returns>
+        private static bool DeleteDirectory(string directoryPath)
         {
-            if (!Directory.Exists(directoryPath))
-                return;
-
-            var directoryInfo = new DirectoryInfo(directoryPath);
-
-            // delete any sub-folders first
-            foreach (var childInfo in directoryInfo.GetFileSystemInfos())
-            {
-                DeleteDirectory(childInfo.FullName);
-            }
-
-            // remove the read-only flag on all files
-            var files = directoryInfo.GetFiles();
-            foreach (var file in files)
-            {
-                file.Attributes = FileAttributes.Normal;
-            }
-
-            // remove the read-only flag on the directory
-            directoryInfo.Attributes = FileAttributes.Normal;
-
-            // recursively delete the directory
-            directoryInfo.Delete(true);
+            return DeleteFileOrDirectory(directoryPath);
         }
 
         /// <summary>
         /// Deletes a file at the given filepath.
         /// </summary>
         /// <param name="filePath">The filepath to the file to delete.</param>
-        private static void DeleteFile(string filePath)
+        /// <returns>True if the file was deleted using the Unity Asset database. False if it was
+        /// deleted by a filesystem operation, or not at all.</returns>
+        private static bool DeleteFile(string filePath)
         {
             if (File.Exists(filePath))
             {
-                File.SetAttributes(filePath, FileAttributes.Normal);
-                File.Delete(filePath);
+                return DeleteFileOrDirectory(filePath);
             }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Deletes the file or folder at the given path.
+        /// Uses the Unity AssetDatabase if the item to delete is an asset in that database,
+        /// and Unity's `FileUtil.DeleteFileOrDirectory()` otherwise. Both seem to handle
+        /// read-only files okay.
+        /// </summary>
+        /// <param name="directoryPath">The path of the folder to delete.</param>
+        private static bool DeleteFileOrDirectory(string pathToDelete)
+        {
+            string pathRelativeToUnityProject;
+            bool isRelativePath;
+            GetPathRelativeToProjectFolder(pathToDelete, out pathRelativeToUnityProject, out isRelativePath);
+
+            // If the directory is not inside of the Unity project, or it doesn't represent something the asset database knows about...
+            if (!isRelativePath || AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(pathRelativeToUnityProject) == null)
+            {
+                LogVerbose("Deleting '{0}' via FileUtil.", pathRelativeToUnityProject);
+
+                // ...use regular file deletion.
+                FileUtil.DeleteFileOrDirectory(pathRelativeToUnityProject);
+
+                // If there's a meta file, delete that as well.
+                string metaFilePath = pathRelativeToUnityProject + ".meta";
+                if (File.Exists(metaFilePath))
+                {
+                    LogVerbose("Deleting '{0}' via FileUtil.", pathRelativeToUnityProject);
+                    FileUtil.DeleteFileOrDirectory(metaFilePath);
+                }
+
+                return false;
+            }
+            else
+            {
+                LogVerbose("Deleting '{0}' via AssetDatabase.", pathRelativeToUnityProject);
+
+                // Delete via the asset database.
+                AssetDatabase.DeleteAsset(pathRelativeToUnityProject);
+
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(pathRelativeToUnityProject) != null)
+                {
+                    throw new Exception("Deletion failed! Asset is still in database!");
+                }
+
+                if (Directory.Exists(pathToDelete) || File.Exists(pathToDelete))
+                {
+                    throw new Exception("Deletion failed! Asset is still in filesystem!");
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Transforms a path into a path relative to the Unity project.
+        /// </summary>
+        /// <param name="inputPath">The path to transform into a relative path.</param>
+        /// <param name="outputPath">If `inputPath` is contained within the Unity project, returns the relative path.
+        /// Otherwise, just returns `inputPath`.</param>
+        /// <param name="returningRelativePath">Returns true if `inputPath` is contained within the Unity project and
+        /// `outputPath` is therefore a path relative to the Unity project. Returns false otherwise.</param>
+        private static void GetPathRelativeToProjectFolder(string inputPath, out string outputPath, out bool returningRelativePath)
+        {
+            Uri inputPathAsUri = new Uri(inputPath);
+            Uri unityProjectUri = new Uri(Application.dataPath);
+
+            Uri pathRelativeToUnityProjectUri = unityProjectUri.MakeRelativeUri(inputPathAsUri);
+            outputPath = pathRelativeToUnityProjectUri.OriginalString;
+
+            returningRelativePath = (pathRelativeToUnityProjectUri != inputPathAsUri);
         }
 
         /// <summary>
@@ -660,9 +733,9 @@
 
             while (true)
             {
-                DeleteDirectory(packageInstallDirectory);
+                bool usedUnityAssetDatabase = DeleteDirectory(packageInstallDirectory);
 
-                if (Directory.Exists(packageInstallDirectory))
+                if (!usedUnityAssetDatabase && Directory.Exists(packageInstallDirectory))
                 {
                     string errorString
                         = string.Format("Failed to fully uninstall package {0} {1}. Maybe you've got Visual Studio open and it's got a lock on the files? Track down the problem and we'll try again.", package.Id, package.Version);
@@ -671,12 +744,10 @@
                 }
                 else
                 {
+                    // It may take a moment for the filesystem to reflect that the deletion actually happened, but we can trust the Unity asset database.
                     break;
                 }
             }
-
-            string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
-            DeleteFile(metaFile);
 
             string toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}", package.Id, package.Version));
             DeleteDirectory(toolsInstallDirectory);
@@ -1130,6 +1201,8 @@
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
+
+                UpdateAssetDatabase(package);
 
                 // clean
                 Clean(package);

@@ -11,8 +11,6 @@ public class NuGetTests
     [Test]
     public void SimpleRestoreTest()
     {
-        LogAssert.Expect(LogType.Assert, new Regex(".*Removing .* because the asset does not exist.*"));
-
         NugetHelper.Restore();
     }
 
@@ -25,8 +23,6 @@ public class NuGetTests
     [Test]
     public void InstallJsonTest()
     {
-        LogAssert.Expect(LogType.Assert, new Regex(".*Removing .* because the asset does not exist.*"));
-
         NugetHelper.UninstallAll();
 
         var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
