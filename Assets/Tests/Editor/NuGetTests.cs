@@ -66,6 +66,34 @@ public class NuGetTests
     }
 
     [Test]
+    public void SimplerInstallJsonTest()
+    {
+        var json = new NugetPackageIdentifier("Newtonsoft.Json", "11.0.2");
+
+        // install the package
+        NugetHelper.InstallIdentifier(json);
+        Assert.IsTrue(NugetHelper.IsInstalled(json), "The package was NOT installed: {0} {1}", json.Id, json.Version);
+
+        // uninstall the package
+        NugetHelper.UninstallAll();
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json), "The package is STILL at least partially installed: {0} {1}", json.Id, json.Version);
+    }
+
+    [Test]
+    public void InstallSharpConfigTest()
+    {
+        var packageIdentifier = new NugetPackageIdentifier("sharpconfig", "3.2.8");
+
+        // install the package
+        NugetHelper.InstallIdentifier(packageIdentifier);
+        Assert.IsTrue(NugetHelper.IsInstalled(packageIdentifier), "The package was NOT installed: {0} {1}", packageIdentifier.Id, packageIdentifier.Version);
+
+        // uninstall the package
+        NugetHelper.UninstallAll();
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(packageIdentifier), "The package is STILL at least partially installed: {0} {1}", packageIdentifier.Id, packageIdentifier.Version);
+    }
+
+    [Test]
     public void InstallBootstrapCSSTest()
     {
         // disable the cache for now to force getting the lowest version of the dependency
