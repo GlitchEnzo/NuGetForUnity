@@ -284,88 +284,9 @@
 
             if (isRelativePath)
             {
-#if UNITY_ASSERTIONS
-                // Refreshing the asset database seems to trigger errors when certain kinds of files are present.
-//                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-#endif                
-
                 LogVerbose("Recursively importing '{0}' via AssetDatabase.", pathRelativeToUnityProject);
 
                 AssetDatabase.ImportAsset(pathRelativeToUnityProject, ImportAssetOptions.ImportRecursive);
-/*				
-                WaitForAssetImport(packageInstallDirectory);
-*/				
-
-#if UNITY_ASSERTIONS
-                // Refreshing the asset database seems to trigger errors when certain kinds of files are present.
-//                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
-#endif                
-            }
-        }
-
-        private static void WaitForAssetImport(string pathToWaitFor)
-        {
-            int numMsToWait = 1000;
-
-            string pathRelativeToUnityProject;
-            bool isPathInUnityAssetsFolder;
-            GetPathRelativeToProjectFolder(pathToWaitFor, out pathRelativeToUnityProject, out isPathInUnityAssetsFolder);
-
-            if (!isPathInUnityAssetsFolder)
-            {
-                return;
-            }
-
-            if (Directory.Exists(pathToWaitFor))
-            {
-                string[] subdirectoryPaths = Directory.GetDirectories(pathToWaitFor);
-
-                foreach (string subdirectoryPath in subdirectoryPaths)
-                {
-                    WaitForAssetImport(subdirectoryPath);
-                }
-
-                string[] filePaths = Directory.GetFiles(pathToWaitFor);
-
-                foreach (string filePath in filePaths)
-                {
-                    // Don't wait for files that won't be imported.
-                    if (string.Compare(Path.GetExtension(filePath), ".meta", StringComparison.InvariantCultureIgnoreCase) == 0 ||
-                        string.Compare(Path.GetExtension(filePath), ".pdb", StringComparison.InvariantCultureIgnoreCase) == 0 ||
-                        string.Compare(Path.GetExtension(filePath), ".mdb", StringComparison.InvariantCultureIgnoreCase) == 0)
-                    {
-                        continue;
-                    }
-
-                    string filePathRelativeToUnityProject;
-                    bool isFilePathInUnityAssetsFolder;
-                    GetPathRelativeToProjectFolder(filePath, out filePathRelativeToUnityProject, out isFilePathInUnityAssetsFolder);
-
-                    int waitCycles;
-                    bool success = false;
-                    for (waitCycles = 0; waitCycles < numMsToWait; ++waitCycles)
-                    {
-                        if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(filePathRelativeToUnityProject) != null)
-                        {
-                            success = true;
-                            break;
-                        }
-
-                        if (!File.Exists(filePath))
-                        {
-                            Debug.LogWarningFormat("WaitForAssetImport() -- File '{0}' was deleted while we were waiting for the import of '{1}'", filePath, pathToWaitFor);
-                            break;
-                        }
-
-                        AssetDatabase.ImportAsset(filePathRelativeToUnityProject);
-                        System.Threading.Thread.Sleep(1);
-                    }
-
-                    if (waitCycles > 0)
-                    {
-                        LogVerbose("WaitForAssetImport() -- Waited: {0} ms for file '{1}'. Success: {2}", waitCycles, filePath, success);
-                    }
-                }
             }
         }
 
@@ -719,36 +640,13 @@
             bool isPathInUnityAssetsFolder;
             GetPathRelativeToProjectFolder(pathToDelete, out pathRelativeToUnityProject, out isPathInUnityAssetsFolder);
 
-/*			
-            if (Directory.Exists(pathToDelete))
-            {
-                string[] subdirectoryPaths = Directory.GetDirectories(pathToDelete);
-
-                foreach (string subdirectoryPath in subdirectoryPaths)
-                {
-                    DeleteFileOrDirectory(subdirectoryPath);
-                }
-
-                string[] filePaths = Directory.GetFiles(pathToDelete);
-
-                foreach (string filePath in filePaths)
-                {
-                    if (isPathInUnityAssetsFolder && string.Compare(Path.GetExtension(filePath), ".meta", StringComparison.InvariantCultureIgnoreCase) == 0)
-                    {
-                        // Skip deleting meta files; they'll be deleted by the asset database.
-                        continue;
-                    }
-
-                    DeleteFileOrDirectory(filePath);
-                }
-            }
-*/
             // If the path is not inside of the Unity project, or it doesn't represent something the asset database knows about...
             if (!isPathInUnityAssetsFolder || AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(pathRelativeToUnityProject) == null)
             {
+                // ...use regular file deletion.
+
                 LogVerbose("Deleting '{0}' via FileUtil.", pathRelativeToUnityProject);
 
-                // ...use regular file deletion.
                 FileUtil.DeleteFileOrDirectory(pathRelativeToUnityProject);
 
                 // If there's a meta file, delete that as well.
@@ -763,11 +661,12 @@
             }
             else
             {
+                // Otherwise, delete via the asset database.
+
                 LogVerbose("Deleting '{0}' via AssetDatabase.", pathRelativeToUnityProject);
 
                 string metaFile = AssetDatabase.GetTextMetaFilePathFromAssetPath(pathRelativeToUnityProject);
 
-                // Delete via the asset database.
                 bool result = AssetDatabase.DeleteAsset(pathRelativeToUnityProject);
 
                 if (!result)
@@ -783,7 +682,7 @@
 
                         if (File.Exists(metaFile))
                         {
-                            Debug.LogErrorFormat("Metafile '{0}' still exists after FileUtil delete!", metaFile);
+                            Debug.LogErrorFormat("Meta file '{0}' still exists after FileUtil delete!", metaFile);
                         }
                     }
 
@@ -886,16 +785,7 @@
 
             if (refreshAssets)
             {
-#if UNITY_ASSERTIONS
-                // Refreshing the asset database seems to trigger errors when certain kinds of files are present.
-//                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-#endif                
                 AssetDatabase.Refresh();
-
-#if UNITY_ASSERTIONS
-                // Refreshing the asset database seems to trigger errors when certain kinds of files are present.
-//                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
-#endif
             }
         }
 
@@ -1350,15 +1240,6 @@
                     {
                         foreach (ZipEntry entry in zip)
                         {
-/*
-                            // Preemptively filter out files that we know the Unity Asset Database will choke on later.
-                            if (Path.GetFileName(entry.FileName) == ".rels" ||
-                                Path.GetFileName(entry.FileName) == "[Content_Types].xml")
-                            {
-                                LogVerbose("Skipping unzipping of ignored file: '{0}'", entry.FileName);
-                                continue;
-                            }
-*/
                             entry.Extract(baseDirectory, ExtractExistingFileAction.OverwriteSilently);
                             if (NugetConfigFile.ReadOnlyPackageFiles)
                             {
@@ -1379,8 +1260,6 @@
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Cleaning Package", 0.9f);
 
-                // ImportInstalledPackageIntoAssetDatabase(package);
-
                 // clean
                 Clean(package);
 
@@ -1397,17 +1276,7 @@
                 if (refreshAssets)
                 {
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
-
-#if UNITY_ASSERTIONS
-                    // Refreshing the asset database seems to trigger errors when certain kinds of files are present.
-//                    UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-#endif
                     AssetDatabase.Refresh();
-
-#if UNITY_ASSERTIONS
-//                    UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
-#endif
-
                     EditorUtility.ClearProgressBar();
                 }
             }
