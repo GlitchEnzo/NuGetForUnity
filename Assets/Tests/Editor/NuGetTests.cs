@@ -222,6 +222,42 @@ public class NuGetTests
     }
 
     [Test]
+    public void UpgradeJsonViaConfigFileModificationsTest()
+    {
+        NugetHelper.UninstallAll();
+
+        var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is at least partially installed before we installed it: {0} {1}", json608.Id, json608.Version);
+
+        var json701 = new NugetPackageIdentifier("Newtonsoft.Json", "7.0.1");
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json701), "The package is at least partially installed before we installed it: {0} {1}", json701.Id, json701.Version);
+
+        // install a specific version
+        NugetHelper.PackagesConfigFile.AddPackage(json608);
+        NugetHelper.Restore();
+        Assert.IsTrue(NugetHelper.IsInstalled(json608), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
+
+        // install a newer version
+        NugetHelper.PackagesConfigFile.RemovePackage(json608);
+        NugetHelper.PackagesConfigFile.AddPackage(json701);
+        NugetHelper.Restore();
+        Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+
+        // The previous version should have been removed.
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is STILL at least partially installed: {0} {1}", json608.Id, json608.Version);
+
+        // try to install an old version while a newer is already installed
+        NugetHelper.PackagesConfigFile.RemovePackage(json608);
+        NugetHelper.Restore();
+        Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json608), "The package is installed and should not have been: {0} {1}", json608.Id, json608.Version);
+
+        NugetHelper.PackagesConfigFile.RemovePackage(json701);
+        NugetHelper.Restore();
+        Assert.IsTrue(NugetHelper.IsFullyUninstalled(json701), "The package is STILL at least partially installed: {0} {1}", json701.Id, json701.Version);
+    }
+
+    [Test]
     [TestCase("1.0", "1.0")]
     [TestCase("1.0", "2.0")]
     [TestCase("(1.0,)", "2.0")]
