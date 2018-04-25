@@ -945,6 +945,33 @@
         }
 
         /// <summary>
+        /// Iterate through the folders in the repository path. If there are any folders that that don't contain a .nupkg file, clear them
+        /// away.
+        /// </summary>
+        public static void ClearInvalidPackageFolders()
+        {
+            LoadNugetConfigFile();
+
+            if (!Directory.Exists(NugetConfigFile.RepositoryPath))
+            {
+                return;
+            }
+
+            string[] directoryList = Directory.GetDirectories(NugetConfigFile.RepositoryPath);
+
+            foreach (string directory in directoryList)
+            {
+                string[] nupkgFiles = Directory.GetFiles(directory, "*.nupkg", SearchOption.AllDirectories);
+
+                if (nupkgFiles == null || nupkgFiles.Length == 0)
+                {
+                    Debug.LogWarningFormat("Found invalid package folder '{0}'; it contains no nupkg file. Deleting.", directory);
+                    DeleteDirectory(directory);
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
         /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
@@ -1439,6 +1466,8 @@
 
             try
             {
+                ClearInvalidPackageFolders();
+
                 float progressStep = 1.0f / (PackagesConfigFile.Packages.Count + installedPackages.Count);
                 float currentProgress = 0;
 
