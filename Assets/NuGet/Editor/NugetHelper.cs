@@ -95,7 +95,7 @@
             }
             
 #if UNITY_5_6_OR_NEWER
-            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #else
             DotNetVersion = PlayerSettings.apiCompatibilityLevel;
 #endif
