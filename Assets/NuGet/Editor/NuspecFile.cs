@@ -94,6 +94,28 @@
         public List<NuspecContentFile> Files { get; set; }
 
         /// <summary>
+        /// Add a "dependancy" node;
+        /// </summary>
+        private void addDependancy(XElement dependencyElement)
+        {
+            NugetPackageIdentifier dependency = new NugetPackageIdentifier();
+            dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
+            dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+            Dependencies.Add(dependency);
+        }
+
+        /// <summary>
+        /// Add all the "dependancy" nodes under <paramref name="dependenciesElement"/>;
+        /// </summary>
+        private void addDependancies(XElement dependenciesElement, string nuspecNamespace)
+        {
+            foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
+            {
+                addDependancy(dependencyElement);
+            }
+        }
+
+        /// <summary>
         /// Loads the .nuspec file inside the .nupkg file at the given filepath.
         /// </summary>
         /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
@@ -185,12 +207,17 @@
             var dependenciesElement = metadata.Element(XName.Get("dependencies", nuspecNamespace));
             if (dependenciesElement != null)
             {
-                foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
+                IEnumerable<XElement> groups = dependenciesElement.Elements(XName.Get("group", nuspecNamespace)); // get groups
+                if (groups.Count() > 0) // if there are groups
                 {
-                    NugetPackageIdentifier dependency = new NugetPackageIdentifier();
-                    dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
-                    dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
-                    nuspec.Dependencies.Add(dependency);
+                    foreach (var iGroup in groups) // add dependancy in game
+                    {
+                    nuspec.addDependancies(iGroup, nuspecNamespace);
+                    }
+                }
+                else // no groups; add children of "dependancies"
+                {
+                    nuspec.addDependancies(dependenciesElement, nuspecNamespace);
                 }
             }
 
