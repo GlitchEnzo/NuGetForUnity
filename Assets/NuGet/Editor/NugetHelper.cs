@@ -295,9 +295,6 @@
             // Unity has no use for the build directory
             DeleteDirectory(packageInstallDirectory + "/build");
 
-            // For now, delete Content.  We may use it later...
-            DeleteDirectory(packageInstallDirectory + "/Content");
-
             // For now, delete src.  We may use it later...
             DeleteDirectory(packageInstallDirectory + "/src");
 
