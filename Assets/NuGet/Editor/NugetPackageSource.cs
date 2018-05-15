@@ -113,7 +113,17 @@
 
             if (IsLocalPath)
             {
-                string localPackagePath = System.IO.Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                // determine local path
+                string localPackagePath;
+                if (IsLocalPathAndVersion33)
+                {
+                  localPackagePath = NugetPackage.PathLocal33Get(ExpandedPath, package.Id, package.Version);
+                }
+                else
+                {
+                  localPackagePath = NugetPackage.PathLocalGet(ExpandedPath, package.Id, package.Version);
+                }
+                
                 if (File.Exists(localPackagePath))
                 {
                     NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
