@@ -1315,6 +1315,12 @@
             public string Password;
         }
 
+        /// <summary>
+        /// Helper function to aquire a token to access VSTS hosted nuget feeds by using the CredentialProvider.VSS.exe
+        /// tool. Downloading it from the VSTS instance if needed.
+        /// </summary>
+        /// <param name="packageHost">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com</param>
+        /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
         private static string GetPasswordFromVSTSCredentialProvider(string packageHost)
         {
             string credentialProviderBundleFilename = "CredentialProviderBundle.zip";
