@@ -1310,11 +1310,9 @@
         [System.Serializable]
         private struct VSSCredentialResponse
         {
-#pragma warning disable 0649
             public string __VssPasswordWarning;
             public string Username;
             public string Password;
-#pragma warning restore 0649
         }
 
         private static string GetPasswordFromVSTSCredentialProvider(string packageHost)
