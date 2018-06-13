@@ -1304,20 +1304,32 @@
         }
 
         /// <summary>
-        /// Data class returned from the CredentialProvider.VSS.exe tool. The tool returns this datatype as a
-        /// JSON encoded string which can be decoded using Unity's JsonUtility.
+        /// Data class returned from nuget credential providers in a JSON format. As described here:
+        /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider
         /// </summary>
         [System.Serializable]
-        private struct VSSCredentialResponse
+        private struct CredentialProviderResponse
         {
-            public string __VssPasswordWarning;
             public string Username;
             public string Password;
         }
 
         /// <summary>
+        /// Possible response codes returned by a Nuget credential provider as described here:
+        /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider
+        /// </summary>
+        private enum CredentialProviderExitCode
+        {
+            Success = 0,
+            ProviderNotApplicable = 1,
+            Failure = 2
+        }
+
+        /// <summary>
         /// Helper function to aquire a token to access VSTS hosted nuget feeds by using the CredentialProvider.VSS.exe
         /// tool. Downloading it from the VSTS instance if needed.
+        /// See here for more info on nuget Credential Providers:
+        /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers
         /// </summary>
         /// <param name="packageHost">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
@@ -1325,11 +1337,32 @@
         {
             string credentialProviderBundleFilename = "CredentialProviderBundle.zip";
             string credentialProviderFilename = "credentialprovider.vss.exe";
-            string credentialProviderPath = Path.Combine(NugetConfigFile.RepositoryPath, credentialProviderFilename);
 
-            // Download CredentialProvider if it's not already installed
-            if (!File.Exists(credentialProviderPath))
+            // Build the list of possible locations to find the credential provider. In order it should be local app data, paths set on the
+            // environment varaible, and lastly look at the root of the pacakges save location.
+            List<string> possibleCredentialProviderPaths = new List<string>();
+            possibleCredentialProviderPaths.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget", "CredentialProviders"));
+            possibleCredentialProviderPaths.AddRange(Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH")?.Split(';') ?? new string[]{});
+            possibleCredentialProviderPaths.Add(NugetConfigFile.RepositoryPath);
+
+            // Search through all possible paths to find the credential provider.
+            string credentialProviderPath = "";
+            foreach (string possiblePath in possibleCredentialProviderPaths)
             {
+                string possiblePathWithFilename = Path.Combine(possiblePath, credentialProviderFilename);
+                if (File.Exists(possiblePathWithFilename))
+                {
+                    credentialProviderPath = possiblePathWithFilename;
+                    break;
+                }
+            }
+
+            // If the credential provider was not found then download it.
+            if (String.IsNullOrEmpty(credentialProviderPath))
+            {
+                // Fallback to looking in the root of the Packages folder for the credential provider, and if it's not there download it
+                credentialProviderPath = Path.Combine(NugetConfigFile.RepositoryPath, credentialProviderFilename);
+
                 HttpWebRequest credentialProviderRequest = (HttpWebRequest)WebRequest.Create("https://" + packageHost + "/_apis/public/nuget/client/CredentialProviderBundle.zip");
                 Stream credentialProviderDownloadStream = credentialProviderRequest.GetResponse().GetResponseStream();
 
@@ -1338,7 +1371,7 @@
                     CopyStream(credentialProviderDownloadStream, file);
                 }
 
-                // Unzip the bundle and extract thje credential provider executable
+                // Unzip the bundle and extract the credential provider executable
                 using (ZipFile zip = ZipFile.Read(credentialProviderBundleFilename))
                 {
                     foreach (ZipEntry entry in zip)
@@ -1369,9 +1402,9 @@
             process.WaitForExit();
 
             string output = process.StandardOutput.ReadToEnd();
-            if (!string.IsNullOrEmpty(output))
+            if ((CredentialProviderExitCode)process.ExitCode == CredentialProviderExitCode.Success && !string.IsNullOrEmpty(output))
             {
-                VSSCredentialResponse response = JsonUtility.FromJson<VSSCredentialResponse>(output);
+                CredentialProviderResponse response = JsonUtility.FromJson<CredentialProviderResponse>(output);
                 return response.Password;
             }
 
