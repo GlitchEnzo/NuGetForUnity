@@ -1341,8 +1341,14 @@
             // Build the list of possible locations to find the credential provider. In order it should be local app data, paths set on the
             // environment varaible, and lastly look at the root of the pacakges save location.
             List<string> possibleCredentialProviderPaths = new List<string>();
-            possibleCredentialProviderPaths.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget", "CredentialProviders"));
-            possibleCredentialProviderPaths.AddRange(Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH")?.Split(';') ?? new string[]{});
+            possibleCredentialProviderPaths.Add(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget"), "CredentialProviders"));
+
+            string environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
+            if (!String.IsNullOrEmpty(environmentCredentialProviderPaths))
+            {
+                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] {});
+            }
+
             possibleCredentialProviderPaths.Add(NugetConfigFile.RepositoryPath);
 
             // Search through all possible paths to find the credential provider.
