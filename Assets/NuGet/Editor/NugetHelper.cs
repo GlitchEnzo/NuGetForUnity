@@ -1169,7 +1169,7 @@
                 getRequest.ReadWriteTimeout = timeOut.Value;
             }
 
-            if (packageHost.EndsWith("pkgs.visualstudio.com") && password == null)
+            if (packageHost.EndsWith("pkgs.visualstudio.com") && string.IsNullOrEmpty(password))
             {
                 // The host is a VisualStudio feed (which requires authentication) but a password was not provided. Use the VSS credential provider to aquire a token and append
                 // it to the request.
