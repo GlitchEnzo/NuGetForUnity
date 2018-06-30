@@ -72,4 +72,3 @@ Packages.meta
 
 # Ignore the bin folder
 CreateDLL/bin
-*.suo
