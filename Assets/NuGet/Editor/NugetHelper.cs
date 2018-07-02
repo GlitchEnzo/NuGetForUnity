@@ -1073,8 +1073,15 @@
                 // install all dependencies
                 foreach (var dependency in package.Dependencies)
                 {
-                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    InstallIdentifier(dependency);
+                    if (!ignoreDependancyShould(dependency.Id)) // it not an ignored dependancy
+                    {
+                        LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                        InstallIdentifier(dependency);
+                    }
+                    else
+                    {
+                        LogVerbose("Ignoring Dependency: {0} {1}", dependency.Id, dependency.Version);
+                    }
                 }
 
                 // update packages.config
@@ -1330,5 +1337,11 @@
 
             return result;
         }
+
+        /// <summary>
+        /// Should ignore a dependancy?;
+        /// </summary>
+        static private bool ignoreDependancyShould(string packageID)
+        => NugetConfigFile.IgnoredDependencies.Contains(packageID);
     }
 }
