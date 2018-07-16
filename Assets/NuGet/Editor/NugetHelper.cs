@@ -95,7 +95,7 @@
             }
             
 #if UNITY_5_6_OR_NEWER
-            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(BuildTargetGroup.Unknown); 
+            DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #else
             DotNetVersion = PlayerSettings.apiCompatibilityLevel;
 #endif
@@ -315,9 +315,6 @@
             // Unity has no use for the build directory
             DeleteDirectory(packageInstallDirectory + "/build");
 
-            // For now, delete Content.  We may use it later...
-            DeleteDirectory(packageInstallDirectory + "/Content");
-
             // For now, delete src.  We may use it later...
             DeleteDirectory(packageInstallDirectory + "/src");
 
@@ -329,6 +326,8 @@
                 int intDotNetVersion = (int)DotNetVersion; // c
                 //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
                 bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+                bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0                
+
                 var selectedDirectories = new List<string>();
 
                 // go through the library folders in descending order (highest to lowest version)
@@ -339,7 +338,22 @@
 
                     // Select the highest .NET library available that is supported
                     // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                    if (using46 && directoryName == "net462")
+                    if (usingStandard2 && directoryName == "netstandard2.0")
+                    {
+                         selectedDirectories.Add(directory.FullName);
+                         break;
+                    }
+                    else if (usingStandard2 && directoryName == "netstandard1.6")
+                    {
+                         selectedDirectories.Add(directory.FullName);
+                         break;
+                    }
+                    else if (using46 && directoryName == "net462")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (usingStandard2 && directoryName == "netstandard1.5")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
@@ -349,7 +363,17 @@
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
+                    else if (usingStandard2 && directoryName == "netstandard1.4")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
                     else if (using46 && directoryName == "net46")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (usingStandard2 && directoryName == "netstandard1.3")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
@@ -364,7 +388,22 @@
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
+                    else if (usingStandard2 && directoryName == "netstandard1.2")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
                     else if (using46 && directoryName == "net45")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (usingStandard2 && directoryName == "netstandard1.1")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (usingStandard2 && directoryName == "netstandard1.0")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
