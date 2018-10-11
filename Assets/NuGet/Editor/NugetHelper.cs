@@ -11,6 +11,7 @@
     using UnityEditor;
     using UnityEngine;
     using Debug = UnityEngine.Debug;
+    using System.Security.Cryptography;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -1311,6 +1312,12 @@
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
+            bool fromCache = false;
+            if (ExistsInDiskCache(url)) {
+                url = "file:///" + GetFilePath(url);
+                fromCache = true;
+            }
+
             WWW request = new WWW(url);
             while (!request.isDone)
             {
@@ -1322,24 +1329,52 @@
                 }
             }
 
-            if (!timedout && !string.IsNullOrEmpty(request.error))
-            {
-                LogVerbose(request.error);
-            }
-
             Texture2D result = null;
 
-            if (!timedout && string.IsNullOrEmpty(request.error))
-            {
-                result = request.texture;
+            if (timedout) {
+                LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
+            }
+            else {
+                if (string.IsNullOrEmpty(request.error)) {
+                    result = request.textureNonReadable;
+                    LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
+                }
+                else
+                    LogVerbose("Request error: " + request.error);
             }
 
-            LogVerbose(
-                timedout ? "Downloading image {0} timed out! Took more than 750ms." : "Downloading image {0} took {1} ms",
-                url,
-                stopwatch.ElapsedMilliseconds);
+           
+            if (result != null && !fromCache) {
+                CacheTextureOnDisk(url, request.bytes);
+            }
 
+            request.Dispose();
             return result;
+        }
+
+        private static void CacheTextureOnDisk(string url, byte[] bytes) {
+            string diskPath = GetFilePath(url);
+            File.WriteAllBytes(diskPath, bytes);
+        }
+
+        private static bool ExistsInDiskCache(string url) {
+            return File.Exists(GetFilePath(url));
+        }
+
+        private static string GetFilePath(string url) {
+            return Path.Combine(Application.temporaryCachePath, GetHash(url));
+        }
+
+        private static string GetHash(string s) {
+            if (string.IsNullOrEmpty(s))
+                return null;
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+            byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
+            StringBuilder sBuilder = new StringBuilder();
+            for (int i = 0; i < data.Length; i++) {
+                sBuilder.Append(data[i].ToString("x2"));
+            }
+            return sBuilder.ToString();
         }
 
         /// <summary>
