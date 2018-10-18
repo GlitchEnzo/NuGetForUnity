@@ -50,6 +50,31 @@
         public List<NugetPackageIdentifier> Dependencies = new List<NugetPackageIdentifier>();
 
         /// <summary>
+        /// Gets or sets the url for the location of the package's source code.
+        /// </summary>
+        public string ProjectUrl;
+
+        /// <summary>
+        /// Gets or sets the url for the location of the package's source code.
+        /// </summary>
+        public string RepositoryUrl;
+
+        /// <summary>
+        /// Gets or sets the type of source control software that the package's source code resides in.
+        /// </summary>
+        public RepositoryType RepositoryType;
+
+        /// <summary>
+        /// Gets or sets the source control branch the package is from.
+        /// </summary>
+        public string RepositoryBranch;
+
+        /// <summary>
+        /// Gets or sets the source control commit the package is from.
+        /// </summary>
+        public string RepositoryCommit;
+
+        /// <summary>
         /// Checks to see if this <see cref="NugetPackage"/> is equal to the given one.
         /// </summary>
         /// <param name="other">The other <see cref="NugetPackage"/> to check equality with.</param>
@@ -74,12 +99,24 @@
             package.Description = nuspec.Description;
             package.ReleaseNotes = nuspec.ReleaseNotes;
             package.LicenseUrl = nuspec.LicenseUrl;
+            package.ProjectUrl = nuspec.ProjectUrl;
             //package.DownloadUrl = not in a nuspec
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
                 package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
             }
+
+            package.RepositoryUrl = nuspec.RepositoryUrl;
+
+            try
+            {
+                package.RepositoryType = (RepositoryType)Enum.Parse(typeof(RepositoryType), nuspec.RepositoryType, true);
+            }
+            catch (Exception) { }
+
+            package.RepositoryBranch = nuspec.RepositoryBranch;
+            package.RepositoryCommit = nuspec.RepositoryCommit;
 
             // if there is no title, just use the ID as the title
             if (string.IsNullOrEmpty(package.Title))

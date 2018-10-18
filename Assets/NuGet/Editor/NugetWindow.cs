@@ -127,6 +127,11 @@
         private Texture2D defaultIcon;
 
         /// <summary>
+        /// Used to keep track of which packages the user has opened the clone window on.
+        /// </summary>
+        private HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+
+        /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Manage NuGet Packages", false, 0)]
@@ -423,7 +428,12 @@
         /// </summary>
         protected void OnGUI()
         {
-            currentTab = GUILayout.Toolbar(currentTab, tabTitles);
+            int selectedTab = GUILayout.Toolbar(currentTab, tabTitles);
+
+            if (selectedTab != currentTab)
+                OnTabChanged();
+
+            currentTab = selectedTab;
 
             switch (currentTab)
             {
@@ -439,22 +449,32 @@
             }
         }
 
+        private void OnTabChanged()
+        {
+            openCloneWindows.Clear();
+        }
+
         /// <summary>
-        /// Creates the alternating background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
+        /// Creates a GUI style with a contrasting background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
         /// </summary>
-        /// <returns>The GUI style with the appropriate background color set.</returns>
-        private GUIStyle CreateColoredBackground()
+        /// <returns>A GUI style with the appropriate background color set.</returns>
+        private GUIStyle GetContrastStyle()
         {
             GUIStyle style = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                style.normal.background = MakeTex(20, 20, new Color(0.3f, 0.3f, 0.3f));
-            }
-            else
-            {
-                style.normal.background = MakeTex(20, 20, new Color(0.6f, 0.6f, 0.6f));
-            }
+            Color backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
+            style.normal.background = MakeTex(16, 16, backgroundColor); 
+            return style;
+        }
 
+        /// <summary>
+        /// Creates a GUI style with a background color the same as the editor's current background color.
+        /// </summary>
+        /// <returns>A GUI style with the appropriate background color set.</returns>
+        private GUIStyle GetBackgroundStyle()
+        {
+            GUIStyle style = new GUIStyle();
+            Color32 backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
+            style.normal.background = MakeTex(16, 16, backgroundColor); 
             return style;
         }
 
@@ -469,22 +489,11 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = CreateColoredBackground();
+            GUIStyle style = GetContrastStyle();
 
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                for (int i = 0; i < filteredUpdatePackages.Count; i++)
-                {
-                    // alternate the background color for each package
-                    if (i % 2 == 0)
-                        EditorGUILayout.BeginVertical();
-                    else
-                        EditorGUILayout.BeginVertical(style);
-
-                    DrawPackage(filteredUpdatePackages[i]);
-
-                    EditorGUILayout.EndVertical();
-                }
+                DrawPackages(filteredUpdatePackages);
             }
             else
             {
@@ -510,22 +519,9 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = CreateColoredBackground();
-
             if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
-                for (int i = 0; i < filteredInstalledPackages.Count; i++)
-                {
-                    // alternate the background color for each package
-                    if (i % 2 == 0)
-                        EditorGUILayout.BeginVertical();
-                    else
-                        EditorGUILayout.BeginVertical(style);
-
-                    DrawPackage(filteredInstalledPackages[i]);
-
-                    EditorGUILayout.EndVertical();
-                }
+                DrawPackages(filteredInstalledPackages);
             }
             else
             {
@@ -551,22 +547,9 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = CreateColoredBackground();
-
             if (availablePackages != null)
             {
-                for (int i = 0; i < availablePackages.Count; i++)
-                {
-                    // alternate the background color for each package
-                    if (i % 2 == 0)
-                        EditorGUILayout.BeginVertical();
-                    else
-                        EditorGUILayout.BeginVertical(style);
-
-                    DrawPackage(availablePackages[i]);
-
-                    EditorGUILayout.EndVertical();
-                }
+                DrawPackages(availablePackages);
             }
 
             GUIStyle showMoreStyle = new GUIStyle();
@@ -590,6 +573,24 @@
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawPackages(List<NugetPackage> packages)
+        {
+            GUIStyle backgroundStyle = GetBackgroundStyle();
+            GUIStyle contrastStyle = GetContrastStyle();
+
+            for (int i = 0; i < packages.Count; i++)
+            {
+                EditorGUILayout.BeginVertical(backgroundStyle);
+                DrawPackage(packages[i], backgroundStyle, contrastStyle);
+                EditorGUILayout.EndVertical();
+
+                // swap styles
+                GUIStyle tempStyle = backgroundStyle;
+                backgroundStyle = contrastStyle;
+                contrastStyle = tempStyle;
+            }
         }
 
         /// <summary>
@@ -784,7 +785,7 @@
         /// Draws the given <see cref="NugetPackage"/>.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
-        private void DrawPackage(NugetPackage package)
+        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
         {
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
@@ -884,10 +885,15 @@
                 {
                     // Show the package description
                     EditorStyles.label.wordWrap = true;
-                    //EditorStyles.label.fontStyle = FontStyle.Bold;
-                    //EditorGUILayout.LabelField(string.Format("Description:"));
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorGUILayout.LabelField(string.Format("{0}", package.Description));
+
+                    // Show project URL link
+                    if (!string.IsNullOrEmpty(package.ProjectUrl))
+                    {
+                        GUILayoutLink(package.ProjectUrl);
+                        GUILayout.Space(4f);
+                    }
 
                     // Show the package release notes
                     if (!string.IsNullOrEmpty(package.ReleaseNotes))
@@ -914,13 +920,115 @@
                         EditorStyles.label.fontStyle = FontStyle.Normal;
                     }
 
-                    // Show the license button
-                    if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                    // Create the style for putting a box around the 'Clone' button
+                    var cloneButtonBoxStyle = new GUIStyle("box");
+                    cloneButtonBoxStyle.stretchWidth = false;
+                    cloneButtonBoxStyle.margin.top = 0;
+                    cloneButtonBoxStyle.margin.bottom = 0;
+                    cloneButtonBoxStyle.padding.bottom = 4;
+
+                    var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle);
+                    normalButtonBoxStyle.normal.background = packageStyle.normal.background;
+
+                    bool showCloneWindow = openCloneWindows.Contains(package);
+                    cloneButtonBoxStyle.normal.background = showCloneWindow ? contrastStyle.normal.background : packageStyle.normal.background;
+
+                    // Create a simillar style for the 'Clone' window
+                    var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
+                    cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
+
+                    // Show button bar
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        if (GUILayout.Button("View License", GUILayout.Width(120)))
+                        if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
                         {
-                            Application.OpenURL(package.LicenseUrl);
+                            if (!string.IsNullOrEmpty(package.RepositoryUrl))
+                            {
+                                EditorGUILayout.BeginHorizontal(cloneButtonBoxStyle);
+                                {
+                                    var cloneButtonStyle = new GUIStyle(GUI.skin.button);
+                                    cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
+                                    if (GUILayout.Button("Clone", cloneButtonStyle, GUILayout.ExpandWidth(false)))
+                                    {
+                                        showCloneWindow = !showCloneWindow;
+                                    }
+
+                                    if (showCloneWindow)
+                                        openCloneWindows.Add(package);
+                                    else
+                                        openCloneWindows.Remove(package);
+                                }
+                                EditorGUILayout.EndHorizontal();
+                            }
                         }
+
+                        if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                        {
+                            // Creaete a box around the license button to keep it alligned with Clone button
+                            EditorGUILayout.BeginHorizontal(normalButtonBoxStyle);
+                            // Show the license button
+                            if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
+                            {
+                                Application.OpenURL(package.LicenseUrl);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    if (showCloneWindow)
+                    {
+                        EditorGUILayout.BeginVertical(cloneWindowStyle);
+                        {
+                            // Clone latest label
+                            EditorGUILayout.BeginHorizontal();
+                            GUILayout.Space(20f);
+                            EditorGUILayout.LabelField("clone latest");
+                            EditorGUILayout.EndHorizontal();
+
+                            // Clone latest row
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                {
+                                    GUI.FocusControl(package.Id + package.Version + "repoUrl");
+                                    GUIUtility.systemCopyBuffer = package.RepositoryUrl;
+                                }
+
+                                GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
+                                EditorGUILayout.TextField(package.RepositoryUrl);
+                            }
+                            EditorGUILayout.EndHorizontal();
+
+                            // Clone @ commit label
+                            GUILayout.Space(4f);
+                            EditorGUILayout.BeginHorizontal();
+                            GUILayout.Space(20f);
+                            EditorGUILayout.LabelField("clone @ commit");
+                            EditorGUILayout.EndHorizontal();
+
+                            // Clone @ commit row
+                            EditorGUILayout.BeginHorizontal();
+                            {
+                                // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
+                                string commands = string.Format("git clone {0} {1}{2}cd {1}{2}git reset --hard {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
+
+                                if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                {
+                                    GUI.FocusControl(package.Id + package.Version + "commands");
+
+                                    // Add a newline so the last command will execute when pasted to the CL
+                                    GUIUtility.systemCopyBuffer = (commands + Environment.NewLine);
+                                }
+
+                                EditorGUILayout.BeginVertical();
+                                GUI.SetNextControlName(package.Id + package.Version + "commands");
+                                EditorGUILayout.TextArea(commands);
+                                EditorGUILayout.EndVertical();
+                            }
+                            EditorGUILayout.EndHorizontal();
+                        }
+                        EditorGUILayout.EndVertical();
                     }
 
                     EditorGUILayout.Separator();
@@ -936,6 +1044,30 @@
                 }
             }
             EditorGUILayout.EndHorizontal();
+        }
+
+        public static void GUILayoutLink(string url)
+        {
+            GUIStyle hyperLinkStyle = new GUIStyle(GUI.skin.label);
+            hyperLinkStyle.stretchWidth = false;
+            hyperLinkStyle.richText = true;
+
+            string colorFormatString = "<color=#add8e6ff>{0}</color>";
+
+            string underline = new string('_', url.Length);
+
+            string formattedUrl = string.Format(colorFormatString, url);
+            string formattedUnderline = string.Format(colorFormatString, underline);
+            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
+            GUI.Label(urlRect, formattedUrl, hyperLinkStyle);
+            GUI.Label(urlRect, formattedUnderline, hyperLinkStyle);
+
+            EditorGUIUtility.AddCursorRect(urlRect, MouseCursor.Link);
+            if (urlRect.Contains(Event.current.mousePosition))
+            {
+                if (Event.current.type == EventType.MouseUp)
+                    Application.OpenURL(url);
+            }
         }
     }
 }
