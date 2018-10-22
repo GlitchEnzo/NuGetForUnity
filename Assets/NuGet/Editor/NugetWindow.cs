@@ -1011,7 +1011,7 @@
                             EditorGUILayout.BeginHorizontal();
                             {
                                 // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
-                                string commands = string.Format("git clone {0} {1}{2}cd {1}{2}git reset --hard {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
+                                string commands = string.Format("git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
 
                                 if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
                                 {
