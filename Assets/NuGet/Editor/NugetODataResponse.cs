@@ -60,6 +60,7 @@ namespace NugetForUnity
                 package.Description = entryProperties.GetProperty("Description");
                 package.ReleaseNotes = entryProperties.GetProperty("ReleaseNotes");
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
+                package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
 
                 string iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
