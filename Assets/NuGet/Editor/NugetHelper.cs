@@ -1268,6 +1268,8 @@
 
                     currentProgress += progressStep;
                 }
+
+                CheckForUnnecessaryPackages();
             }
             catch (Exception e)
             {
@@ -1281,6 +1283,28 @@
                 AssetDatabase.Refresh();
                 EditorUtility.ClearProgressBar();
             }
+        }
+
+        internal static void CheckForUnnecessaryPackages() {
+            var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
+            foreach (var folder in directories) {
+                var name = Path.GetFileName(folder);
+                var installed = false;
+                foreach (var package in PackagesConfigFile.Packages) {
+                    var packageName = string.Format("{0}.{1}", package.Id, package.Version);
+                    if (name == packageName) {
+                        installed = true;
+                        break;
+                    }
+                }
+                if (!installed) {
+                    LogVerbose("---DELETE unnecessary package {0}", name);
+
+                    DeleteDirectory(folder);
+                    DeleteFile(folder + ".meta");
+                }
+            }
+
         }
 
         /// <summary>
