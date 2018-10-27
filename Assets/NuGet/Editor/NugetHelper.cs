@@ -36,11 +36,8 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-#if UNITY_EDITOR_OSX
-        public static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/NuGet/Cache";
-#else
-        public static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\NuGet\\Cache";
-#endif
+        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),Path.Combine("NuGet","Cache"));
+        
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
         /// </summary>
@@ -211,35 +208,32 @@
 
             LogVerbose("Running: {0} \nArgs: {1}", files[0], arguments);
 
+            string fileName = string.Empty;
+            string commandLine = string.Empty;
+
 #if UNITY_EDITOR_OSX
-            var monoFile = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
-            //TODO:using unity mono to pack the Nuget package.
-            var commandLine = " " + files[0] + " " + arguments;
+            // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
+            fileName = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
+            commandLine = " " + files[0] + " " + arguments;
             LogVerbose("command: " + commandLine);
-            // You should install mono by yourself.
+#else
+            fileName = files[0];
+            commandLine = arguments;
+#endif
             Process process = Process.Start(
-                new ProcessStartInfo(monoFile, commandLine)
+                new ProcessStartInfo(fileName, commandLine)
                 {
                     RedirectStandardError = true,
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
+                    // WorkingDirectory = Path.GetDirectoryName(files[0]),
+                    
+                    // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
+                    // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
+                    StandardOutputEncoding = Encoding.GetEncoding(850)
                 });
-#else
-            Process process = new Process();
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.FileName = files[0];
-            process.StartInfo.Arguments = arguments;
-            process.StartInfo.CreateNoWindow = true;
-            //process.StartInfo.WorkingDirectory = Path.GetDirectoryName(files[0]);
-
-            // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
-            // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-            process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
-            process.Start();
-#endif
+            
             if (!process.WaitForExit(TimeOut))
             {
                 Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
