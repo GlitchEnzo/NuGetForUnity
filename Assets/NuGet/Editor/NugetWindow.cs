@@ -378,6 +378,7 @@
         private void UpdateInstalledPackages()
         {
             // load a list of install packages
+            NugetHelper.UpdateInstalledPackages();
             installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
             filteredInstalledPackages = installedPackages;
 

@@ -762,6 +762,14 @@
         /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
         public static Dictionary<string, NugetPackage> GetInstalledPackages()
         {
+            return installedPackages;
+        }
+
+        /// <summary>
+        /// Updates the dictionary of packages that are actually installed in the project based on the files that are currently installed.
+        /// </summary>
+        public static void UpdateInstalledPackages()
+        {
             LoadNugetConfigFile();
 
             Stopwatch stopwatch = new Stopwatch();
@@ -805,8 +813,6 @@
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
-
-            return installedPackages;
         }
 
         /// <summary>
@@ -1234,7 +1240,7 @@
         /// </summary>
         public static void Restore()
         {
-            GetInstalledPackages();
+            UpdateInstalledPackages();
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();

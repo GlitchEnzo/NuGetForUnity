@@ -198,6 +198,7 @@
                         // automatically fill in the dependencies based upon the "root" packages currently installed in the project
                         if (GUILayout.Button(new GUIContent("Automatically Fill Dependencies", "Populates the list of dependencies with the \"root\" NuGet packages currently installed in the project.")))
                         {
+                            NugetHelper.UpdateInstalledPackages();
                             List<NugetPackage> installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
 
                             // default all packages to being roots
