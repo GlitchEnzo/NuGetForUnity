@@ -32,12 +32,18 @@
         [SerializeField]
         private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
-        private static IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
+        private IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
 
-        /// <summary>
-        /// The filtered list of NugetPackages already installed.
-        /// </summary>
-        private List<NugetPackage> filteredInstalledPackages = new List<NugetPackage>();
+        private IEnumerable<NugetPackage> FilteredInstalledPackages
+        {
+            get
+            {
+                if (installedSearchTerm == "Search")
+                    return InstalledPackages;
+
+                return InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+            }
+        }
 
         /// <summary>
         /// The list of package updates available, based on the already installed packages.
@@ -89,6 +95,13 @@
         /// The search term to search the installed packages for.
         /// </summary>
         private string installedSearchTerm = "Search";
+
+        /// <summary>
+        /// The search term in progress while it is being typed into the search box.
+        /// We wait until the Enter key or Search button is pressed before searching in order
+        /// to match the way that the Online and Updates searches work.
+        /// </summary>
+        private string installedSearchTermEditBox = "Search";
 
         /// <summary>
         /// The search term to search the update packages for.
@@ -375,12 +388,6 @@
         {
             // load a list of install packages
             NugetHelper.UpdateInstalledPackages();
-            filteredInstalledPackages = InstalledPackages.ToList();
-
-            if (installedSearchTerm != "Search")
-            {
-                filteredInstalledPackages = filteredInstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
-            }
         }
 
         /// <summary>
@@ -515,6 +522,7 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
+            List<NugetPackage> filteredInstalledPackages = FilteredInstalledPackages.ToList();
             if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
                 DrawPackages(filteredInstalledPackages);
@@ -681,7 +689,7 @@
                 {
                     int oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
+                    installedSearchTermEditBox = EditorGUILayout.TextField(installedSearchTermEditBox, GUILayout.Height(30));
 
                     if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
                     {
@@ -696,10 +704,7 @@
                 // search only if the enter key is pressed
                 if (enterPressed)
                 {
-                    if (installedSearchTerm != "Search")
-                    {
-                        filteredInstalledPackages = InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
-                    }
+                    installedSearchTerm = installedSearchTermEditBox;
                 }
             }
             EditorGUILayout.EndVertical();
