@@ -32,19 +32,6 @@
         [SerializeField]
         private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
-        private IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
-
-        private IEnumerable<NugetPackage> FilteredInstalledPackages
-        {
-            get
-            {
-                if (installedSearchTerm == "Search")
-                    return InstalledPackages;
-
-                return InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
-            }
-        }
-
         /// <summary>
         /// The list of package updates available, based on the already installed packages.
         /// </summary>
@@ -139,6 +126,19 @@
         /// Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
         private HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+
+        private IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
+
+        private IEnumerable<NugetPackage> FilteredInstalledPackages
+        {
+            get
+            {
+                if (installedSearchTerm == "Search")
+                    return InstalledPackages;
+
+                return InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+            }
+        }
 
         /// <summary>
         /// Opens the NuGet Package Manager Window.
@@ -350,7 +350,7 @@
                     UpdateOnlinePackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                    UpdateInstalledPackages();
+                    NugetHelper.UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
                     UpdateUpdatePackages();
@@ -379,15 +379,6 @@
         private void UpdateOnlinePackages()
         {
             availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip);
-        }
-
-        /// <summary>
-        /// Updates the list of installed packages.
-        /// </summary>
-        private void UpdateInstalledPackages()
-        {
-            // load a list of install packages
-            NugetHelper.UpdateInstalledPackages();
         }
 
         /// <summary>
@@ -739,7 +730,7 @@
                     if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
                     {
                         NugetHelper.UpdateAll(updatePackages, InstalledPackages);
-                        UpdateInstalledPackages();
+                        NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
@@ -838,7 +829,7 @@
                     {
                         // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                         NugetHelper.Uninstall(package);
-                        UpdateInstalledPackages();
+                        NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
@@ -852,7 +843,7 @@
                             if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
-                                UpdateInstalledPackages();
+                                NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
@@ -862,7 +853,7 @@
                             if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
-                                UpdateInstalledPackages();
+                                NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
@@ -873,7 +864,7 @@
                         {
                             NugetHelper.InstallIdentifier(package);
                             AssetDatabase.Refresh();
-                            UpdateInstalledPackages();
+                            NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
