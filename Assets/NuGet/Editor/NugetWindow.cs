@@ -32,11 +32,7 @@
         [SerializeField]
         private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
-        /// <summary>
-        /// The list of NugetPackages already installed.
-        /// </summary>
-        [SerializeField]
-        private List<NugetPackage> installedPackages = new List<NugetPackage>();
+        private static IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
 
         /// <summary>
         /// The filtered list of NugetPackages already installed.
@@ -379,12 +375,11 @@
         {
             // load a list of install packages
             NugetHelper.UpdateInstalledPackages();
-            installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
-            filteredInstalledPackages = installedPackages;
+            filteredInstalledPackages = InstalledPackages.ToList();
 
             if (installedSearchTerm != "Search")
             {
-                filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+                filteredInstalledPackages = filteredInstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
             }
         }
 
@@ -394,7 +389,7 @@
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(installedPackages, showPrereleaseUpdates, showAllUpdateVersions);
+            updatePackages = NugetHelper.GetUpdates(InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
             filteredUpdatePackages = updatePackages;
 
             if (updatesSearchTerm != "Search")
@@ -703,7 +698,7 @@
                 {
                     if (installedSearchTerm != "Search")
                     {
-                        filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+                        filteredInstalledPackages = InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
                     }
                 }
             }
@@ -738,7 +733,7 @@
 
                     if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
                     {
-                        NugetHelper.UpdateAll(updatePackages, installedPackages);
+                        NugetHelper.UpdateAll(updatePackages, InstalledPackages);
                         UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
@@ -788,6 +783,7 @@
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
         private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
         {
+            IEnumerable<NugetPackage> installedPackages = InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
             EditorGUILayout.BeginHorizontal();

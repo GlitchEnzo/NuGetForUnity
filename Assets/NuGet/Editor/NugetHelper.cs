@@ -729,7 +729,7 @@
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
-        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> packagesToUpdate)
+        public static void UpdateAll(IEnumerable<NugetPackage> updates, IEnumerable<NugetPackage> packagesToUpdate)
         {
             float progressStep = 1.0f / updates.Count();
             float currentProgress = 0;
@@ -851,7 +851,7 @@
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(List<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
