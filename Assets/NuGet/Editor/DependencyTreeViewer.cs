@@ -68,7 +68,7 @@
                 EditorUtility.DisplayProgressBar("Building Dependency Tree", "Reading installed packages...", 0.5f);
 
                 NugetHelper.UpdateInstalledPackages();
-                installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
+                installedPackages = NugetHelper.InstalledPackages.ToList();
                 List<string> installedPackageNames = new List<string>();
 
                 foreach (NugetPackage package in installedPackages)

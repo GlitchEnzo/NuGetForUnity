@@ -127,16 +127,14 @@
         /// </summary>
         private HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
 
-        private IEnumerable<NugetPackage> InstalledPackages { get { return NugetHelper.GetInstalledPackages().Values; } }
-
         private IEnumerable<NugetPackage> FilteredInstalledPackages
         {
             get
             {
                 if (installedSearchTerm == "Search")
-                    return InstalledPackages;
+                    return NugetHelper.InstalledPackages;
 
-                return InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+                return NugetHelper.InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
             }
         }
 
@@ -387,7 +385,7 @@
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
+            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
             filteredUpdatePackages = updatePackages;
 
             if (updatesSearchTerm != "Search")
@@ -729,7 +727,7 @@
 
                     if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
                     {
-                        NugetHelper.UpdateAll(updatePackages, InstalledPackages);
+                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
                         NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
@@ -779,7 +777,7 @@
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
         private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
         {
-            IEnumerable<NugetPackage> installedPackages = InstalledPackages;
+            IEnumerable<NugetPackage> installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
             EditorGUILayout.BeginHorizontal();

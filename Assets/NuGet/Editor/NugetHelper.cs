@@ -760,10 +760,7 @@
         /// Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
         /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
-        public static Dictionary<string, NugetPackage> GetInstalledPackages()
-        {
-            return installedPackages;
-        }
+        public static IEnumerable<NugetPackage> InstalledPackages { get { return installedPackages.Values; } }
 
         /// <summary>
         /// Updates the dictionary of packages that are actually installed in the project based on the files that are currently installed.
