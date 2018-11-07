@@ -33,17 +33,6 @@
         private List<NugetPackage> availablePackages = new List<NugetPackage>();
 
         /// <summary>
-        /// The list of NugetPackages already installed.
-        /// </summary>
-        [SerializeField]
-        private List<NugetPackage> installedPackages = new List<NugetPackage>();
-
-        /// <summary>
-        /// The filtered list of NugetPackages already installed.
-        /// </summary>
-        private List<NugetPackage> filteredInstalledPackages = new List<NugetPackage>();
-
-        /// <summary>
         /// The list of package updates available, based on the already installed packages.
         /// </summary>
         [SerializeField]
@@ -95,6 +84,13 @@
         private string installedSearchTerm = "Search";
 
         /// <summary>
+        /// The search term in progress while it is being typed into the search box.
+        /// We wait until the Enter key or Search button is pressed before searching in order
+        /// to match the way that the Online and Updates searches work.
+        /// </summary>
+        private string installedSearchTermEditBox = "Search";
+
+        /// <summary>
         /// The search term to search the update packages for.
         /// </summary>
         private string updatesSearchTerm = "Search";
@@ -130,6 +126,17 @@
         /// Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
         private HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+
+        private IEnumerable<NugetPackage> FilteredInstalledPackages
+        {
+            get
+            {
+                if (installedSearchTerm == "Search")
+                    return NugetHelper.InstalledPackages;
+
+                return NugetHelper.InstalledPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
+            }
+        }
 
         /// <summary>
         /// Opens the NuGet Package Manager Window.
@@ -341,7 +348,7 @@
                     UpdateOnlinePackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                    UpdateInstalledPackages();
+                    NugetHelper.UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
                     UpdateUpdatePackages();
@@ -373,27 +380,12 @@
         }
 
         /// <summary>
-        /// Updates the list of installed packages.
-        /// </summary>
-        private void UpdateInstalledPackages()
-        {
-            // load a list of install packages
-            installedPackages = NugetHelper.GetInstalledPackages().Values.ToList();
-            filteredInstalledPackages = installedPackages;
-
-            if (installedSearchTerm != "Search")
-            {
-                filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
-            }
-        }
-
-        /// <summary>
         /// Updates the list of update packages.
         /// </summary>
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(installedPackages, showPrereleaseUpdates, showAllUpdateVersions);
+            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
             filteredUpdatePackages = updatePackages;
 
             if (updatesSearchTerm != "Search")
@@ -519,6 +511,7 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
+            List<NugetPackage> filteredInstalledPackages = FilteredInstalledPackages.ToList();
             if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
                 DrawPackages(filteredInstalledPackages);
@@ -685,7 +678,7 @@
                 {
                     int oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
+                    installedSearchTermEditBox = EditorGUILayout.TextField(installedSearchTermEditBox, GUILayout.Height(30));
 
                     if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
                     {
@@ -700,10 +693,7 @@
                 // search only if the enter key is pressed
                 if (enterPressed)
                 {
-                    if (installedSearchTerm != "Search")
-                    {
-                        filteredInstalledPackages = installedPackages.Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm)).ToList();
-                    }
+                    installedSearchTerm = installedSearchTermEditBox;
                 }
             }
             EditorGUILayout.EndVertical();
@@ -737,8 +727,8 @@
 
                     if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
                     {
-                        NugetHelper.UpdateAll(updatePackages, installedPackages);
-                        UpdateInstalledPackages();
+                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                        NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
@@ -787,6 +777,7 @@
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
         private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
         {
+            IEnumerable<NugetPackage> installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
             EditorGUILayout.BeginHorizontal();
@@ -836,7 +827,7 @@
                     {
                         // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                         NugetHelper.Uninstall(package);
-                        UpdateInstalledPackages();
+                        NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
@@ -850,7 +841,7 @@
                             if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
-                                UpdateInstalledPackages();
+                                NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
@@ -860,7 +851,7 @@
                             if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                             {
                                 NugetHelper.Update(installed, package);
-                                UpdateInstalledPackages();
+                                NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
@@ -871,7 +862,7 @@
                         {
                             NugetHelper.InstallIdentifier(package);
                             AssetDatabase.Refresh();
-                            UpdateInstalledPackages();
+                            NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }

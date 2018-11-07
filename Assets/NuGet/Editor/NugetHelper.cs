@@ -741,7 +741,7 @@
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
-        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> packagesToUpdate)
+        public static void UpdateAll(IEnumerable<NugetPackage> updates, IEnumerable<NugetPackage> packagesToUpdate)
         {
             float progressStep = 1.0f / updates.Count();
             float currentProgress = 0;
@@ -772,7 +772,12 @@
         /// Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
         /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
-        public static Dictionary<string, NugetPackage> GetInstalledPackages()
+        public static IEnumerable<NugetPackage> InstalledPackages { get { return installedPackages.Values; } }
+
+        /// <summary>
+        /// Updates the dictionary of packages that are actually installed in the project based on the files that are currently installed.
+        /// </summary>
+        public static void UpdateInstalledPackages()
         {
             LoadNugetConfigFile();
 
@@ -817,8 +822,6 @@
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
-
-            return installedPackages;
         }
 
         /// <summary>
@@ -857,7 +860,7 @@
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(List<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
@@ -1246,7 +1249,7 @@
         /// </summary>
         public static void Restore()
         {
-            GetInstalledPackages();
+            UpdateInstalledPackages();
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
