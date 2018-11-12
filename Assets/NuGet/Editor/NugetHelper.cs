@@ -1300,7 +1300,11 @@
             }
         }
 
-        internal static void CheckForUnnecessaryPackages() {
+        internal static void CheckForUnnecessaryPackages()
+        {
+            if (!Directory.Exists(NugetConfigFile.RepositoryPath))
+                return;
+
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
             foreach (var folder in directories) {
                 var name = Path.GetFileName(folder);
