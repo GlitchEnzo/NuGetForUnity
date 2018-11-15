@@ -729,11 +729,11 @@
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the assets inside Unity.  False to ignore them (for now).  Defaults to true.</param>
-        public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion, bool refreshAssets = true)
+        public static bool Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion, bool refreshAssets = true)
         {
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
-            InstallIdentifier(newVersion, refreshAssets);
+            return InstallIdentifier(newVersion, refreshAssets);
         }
 
         /// <summary>
@@ -1012,17 +1012,18 @@
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
             {
-                Install(foundPackage, refreshAssets);
+                return Install(foundPackage, refreshAssets);
             }
             else
             {
                 Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
+                return false;
             }
         }
 
@@ -1057,31 +1058,34 @@
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        public static void Install(NugetPackage package, bool refreshAssets = true)
+        public static bool Install(NugetPackage package, bool refreshAssets = true)
         {
+            NugetPackage installedPackage = null;
+            if (installedPackages.TryGetValue(package.Id, out installedPackage))
+            {
+                if (installedPackage < package)
+                {
+                    LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
+                    return Update(installedPackage, package, false);
+                }
+                else if (installedPackage > package)
+                {
+                    LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                }
+                else
+                {
+                    LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
+                }
+                return true;
+            }
+
+            bool installSuccess = false;
             try
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                NugetPackage installedPackage = null;
-                if (installedPackages.TryGetValue(package.Id, out installedPackage))
-                {
-                    if (installedPackage < package)
-                    {
-                        LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
-                        Update(installedPackage, package, false);
-                    }
-                    else if (installedPackage > package)
-                    {
-                        LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
-                    }
-                    else
-                    {
-                        LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
-                    }
-                    return;
-                }
+                
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
@@ -1090,7 +1094,11 @@
                 foreach (var dependency in package.Dependencies)
                 {
                     LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    InstallIdentifier(dependency);
+                    bool installed = InstallIdentifier(dependency);
+                    if (!installed)
+                    {
+                        throw new Exception(String.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
+                    }
                 }
 
                 // update packages.config
@@ -1175,11 +1183,13 @@
 
                 // update the installed packages list
                 installedPackages.Add(package.Id, package);
+                installSuccess = true;
             }
             catch (Exception e)
             {
                 WarnIfDotNetAuthenticationIssue(e);
-                Debug.LogErrorFormat("Unable to install package {0}\n{1}", package.Id, e.ToString());
+                Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e.ToString());
+                installSuccess = false;
             }
             finally
             {
@@ -1190,6 +1200,7 @@
                     EditorUtility.ClearProgressBar();
                 }
             }
+            return installSuccess;
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
