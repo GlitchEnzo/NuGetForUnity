@@ -970,27 +970,39 @@
             foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
                 var foundPackage = source.GetSpecificPackage(packageId);
-                if (foundPackage != null)
+                if (foundPackage == null)
                 {
-                    if (package == null)
-                    {
-                        // if another package hasn't been found yet, use the current found one
-                        LogVerbose("{0} {1} was found in {2}, and wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                        package = foundPackage;
-                    }
-                    else
-                    {
-                        // another package has been found previously, but neither match identically
-                        if (foundPackage < package)
-                        {
-                            // use the new package if it's closer to the desired version
-                            LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                            package = foundPackage;
-                        }
-                    }
+                    continue;
+                }
+
+                if (foundPackage.Version == packageId.Version)
+                {
+                    LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version);
+                    return foundPackage;
+                }
+
+                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                if (package == null)
+                {
+                    // if another package hasn't been found yet, use the current found one
+                    package = foundPackage;
+                }
+                // another package has been found previously, but neither match identically
+                else if (foundPackage > package)
+                {
+                    // use the new package if it's closer to the desired version
+                    package = foundPackage;
                 }
             }
-
+            if (package != null)
+            {
+                LogVerbose("{0} {1} not found, using {2}", packageId.Id, packageId.Version, package.Version);
+            }
+            else
+            {
+                LogVerbose("Failed to find {0} {1}", packageId.Id, packageId.Version);
+            }
+            
             return package;
         }
 
