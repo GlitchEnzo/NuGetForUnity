@@ -977,7 +977,7 @@
 
                 if (foundPackage.Version == packageId.Version)
                 {
-                    LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version);
+                    LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                     return foundPackage;
                 }
 
