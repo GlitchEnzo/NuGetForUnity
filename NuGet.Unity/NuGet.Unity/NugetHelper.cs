@@ -12,6 +12,8 @@
     using UnityEngine;
     using Debug = UnityEngine.Debug;
     using System.Security.Cryptography;
+    using ICSharpCode.SharpZipLib.Tar;
+    using ICSharpCode.SharpZipLib.GZip;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -590,9 +592,23 @@
 
             foreach(var packagePath in packagePaths)
             {
-                Debug.Log("NuGet: Importing unity package => " + packagePath);
+                LogVerbose("NuGet: Importing unity package => " + packagePath);
 
                 AssetDatabase.ImportPackage(packagePath, false);
+            }
+        }
+
+        public static void UninstallUnityPackagesWithinFolder(string folderPath)
+        {
+            var packages = GetUnityPackagesWithinFolderRecursive(folderPath);
+
+            foreach (string packagePath in packages)
+            {
+                string directory = Path.GetDirectoryName(packagePath);
+                string extractPath = Path.Combine(directory, Path.GetFileNameWithoutExtension(packagePath));
+
+                ExtractUnityPackage(packagePath, extractPath);
+                RemoveUnityAssetsFromUnityPackage(extractPath);
             }
         }
 
@@ -618,6 +634,62 @@
             }
 
             return unityPackages;
+        }
+
+        public static void ExtractUnityPackage(string archiveSource, string extractDirectory)
+        {
+            Debug.Log($"UnityArchiveUtility: Extracting package for removal... {archiveSource} to {extractDirectory}");
+
+            if (!Directory.Exists(extractDirectory))
+            {
+                Directory.CreateDirectory(extractDirectory);
+            }
+
+            Stream inStream = File.OpenRead(archiveSource);
+            Stream gzipStream = new GZipInputStream(inStream);
+
+            TarArchive tarArchive = TarArchive.CreateInputTarArchive(gzipStream);
+            tarArchive.ExtractContents(extractDirectory);
+            tarArchive.Close();
+
+            gzipStream.Close();
+            inStream.Close();
+        }
+
+        private static void RemoveUnityAssetsFromUnityPackage(string directoryPath)
+        {
+            foreach (string file in Directory.GetFiles(directoryPath))
+            {
+                if (file.EndsWith("asset.meta"))
+                {
+                    RemoveAssetWithMeta(file);
+                }
+            }
+
+            foreach (string directory in Directory.GetDirectories(directoryPath))
+            {
+                RemoveUnityAssetsFromUnityPackage(directory);
+            }
+        }
+
+        private static void RemoveAssetWithMeta(string assetMetaFile)
+        {
+            string contents = File.ReadAllText(assetMetaFile);
+            var guidVariables = contents.Split('\n').Where(meta => meta.Contains("guid"));
+
+            if (guidVariables.Count() > 0)
+            {
+                string meta = guidVariables.First();
+                string[] metaSplit = meta.Split(':');
+
+                string assetPath = AssetDatabase.GUIDToAssetPath(metaSplit[1].Trim());
+
+                if (!string.IsNullOrEmpty(assetPath))
+                {
+                    LogVerbose("NuGet: Uninstalling asset => " + assetPath);
+                    AssetDatabase.DeleteAsset(assetPath);
+                }
+            }
         }
 
         /// <summary>
@@ -750,6 +822,7 @@
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+            UninstallUnityPackagesWithinFolder(packageInstallDirectory);
             DeleteDirectory(packageInstallDirectory);
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
@@ -1233,9 +1306,6 @@
 
                 // clean
                 Clean(package);
-
-                Debug.Log(baseDirectory);
-                Debug.Log(NugetConfigFile.AutoImportUnityPackages);
 
                 // Auto-import unity packages...
                 if(NugetConfigFile.AutoImportUnityPackages)
