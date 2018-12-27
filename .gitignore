@@ -74,3 +74,4 @@ Packages.meta
 CreateDLL/bin
 bin
 *.suo
+NuGet.Unity/.vs/

@@ -35,6 +35,8 @@
 
             NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", NugetHelper.NugetConfigFile.ReadOnlyPackageFiles);
 
+            NugetHelper.NugetConfigFile.AutoImportUnityPackages = EditorGUILayout.Toggle("Auto-Import Unity Pacakges", NugetHelper.NugetConfigFile.AutoImportUnityPackages);
+
             NugetHelper.NugetConfigFile.Verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
 
             EditorGUILayout.LabelField("Package Sources:");
@@ -131,6 +133,8 @@
             {
                 NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSource("New Source", "source_path"));
             }
+
+
 
             EditorGUILayout.EndScrollView();
 

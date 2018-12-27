@@ -580,6 +580,47 @@
         }
 
         /// <summary>
+        /// Recursively searches within the target folder path for any *.unitypackages.
+        /// These will be imported.
+        /// </summary>
+        /// <param name="folderPath"></param>
+        public static void ImportUnityPackagesWithinFolder(string folderPath)
+        {
+            var packagePaths = GetUnityPackagesWithinFolderRecursive(folderPath);
+
+            foreach(var packagePath in packagePaths)
+            {
+                Debug.Log("NuGet: Importing unity package => " + packagePath);
+
+                AssetDatabase.ImportPackage(packagePath, false);
+            }
+        }
+
+        private static List<string> GetUnityPackagesWithinFolderRecursive(string directoryPath)
+        {
+            List<string> unityPackages = new List<string>();
+
+            if (!Directory.Exists(directoryPath))
+            {
+                Debug.LogError("uGet: Missing package directory for path: " + directoryPath);
+                return unityPackages;
+            }
+
+            foreach (string file in Directory.GetFiles(directoryPath, "*.unitypackage"))
+            {
+                unityPackages.Add(file);
+            }
+
+            foreach (string subfolder in Directory.GetDirectories(directoryPath))
+            {
+                var results = GetUnityPackagesWithinFolderRecursive(subfolder);
+                unityPackages.AddRange(results);
+            }
+
+            return unityPackages;
+        }
+
+        /// <summary>
         /// Calls "nuget.exe pack" to create a .nupkg file based on the given .nuspec file.
         /// </summary>
         /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.</param>
@@ -1161,10 +1202,10 @@
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Extracting Package", 0.6f);
 
+                string baseDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+
                 if (File.Exists(cachedPackagePath))
                 {
-                    string baseDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
-
                     // unzip the package
                     using (ZipFile zip = ZipFile.Read(cachedPackagePath))
                     {
@@ -1192,6 +1233,15 @@
 
                 // clean
                 Clean(package);
+
+                Debug.Log(baseDirectory);
+                Debug.Log(NugetConfigFile.AutoImportUnityPackages);
+
+                // Auto-import unity packages...
+                if(NugetConfigFile.AutoImportUnityPackages)
+                {
+                    ImportUnityPackagesWithinFolder(baseDirectory);
+                }
 
                 // update the installed packages list
                 installedPackages.Add(package.Id, package);

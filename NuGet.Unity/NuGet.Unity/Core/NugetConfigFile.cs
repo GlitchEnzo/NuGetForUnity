@@ -49,6 +49,8 @@
         /// </summary>
         public bool ReadOnlyPackageFiles { get; set; }
 
+        public bool AutoImportUnityPackages { get; set; }
+
         /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
@@ -108,6 +110,11 @@
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", "repositoryPath"));
             addElement.Add(new XAttribute("value", savedRepositoryPath));
+            config.Add(addElement);
+
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "AutoImportUnityPackages"));
+            addElement.Add(new XAttribute("value", AutoImportUnityPackages));
             config.Add(addElement);
 
             // save the default push source
@@ -278,6 +285,10 @@
                     else if (String.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.ReadOnlyPackageFiles = bool.Parse(value);
+                    }
+                    else if (string.Equals(key, "AutoImportUnityPackages", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.AutoImportUnityPackages = bool.Parse(value);
                     }
                 }
             }
