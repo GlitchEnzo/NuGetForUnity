@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.Unity", "NuGet.Unity\NuGet.Unity.csproj", "{C2DEF820-B540-431D-A149-BFF7A8D15411}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.Unity.UnitTests", "Nuget.Unity.UnitTests\NuGet.Unity.UnitTests.csproj", "{282902CD-5C65-43E1-84BF-7F979366FAE5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.Unity.Tests", "NuGet.Unity.Tests\NuGet.Unity.Tests.csproj", "{3A4D0613-CA2D-46B0-977D-B2A3CAE47000}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{C2DEF820-B540-431D-A149-BFF7A8D15411}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2DEF820-B540-431D-A149-BFF7A8D15411}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2DEF820-B540-431D-A149-BFF7A8D15411}.Release|Any CPU.Build.0 = Release|Any CPU
-		{282902CD-5C65-43E1-84BF-7F979366FAE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{282902CD-5C65-43E1-84BF-7F979366FAE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{282902CD-5C65-43E1-84BF-7F979366FAE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{282902CD-5C65-43E1-84BF-7F979366FAE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A4D0613-CA2D-46B0-977D-B2A3CAE47000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A4D0613-CA2D-46B0-977D-B2A3CAE47000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A4D0613-CA2D-46B0-977D-B2A3CAE47000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A4D0613-CA2D-46B0-977D-B2A3CAE47000}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

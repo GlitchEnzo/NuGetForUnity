@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("NuGet.Unity")]
+[assembly: AssemblyTitle("NuGet.Unity.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("NuGet.Unity")]
+[assembly: AssemblyProduct("NuGet.Unity.Tests")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,18 +20,17 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("c2def820-b540-431d-a149-bff7a8d15411")]
+[assembly: Guid("3a4d0613-ca2d-46b0-977d-b2a3cae47000")]
 
-// Version information for an assembly consists of the following three values:
+// Version information for an assembly consists of the following four values:
 //
-//      Library Version
 //      Major Version
-//      Minor Number
+//      Minor Version
+//      Build Number
+//      Revision
 //
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.1.0")]
-[assembly: AssemblyFileVersion("1.1.0")]
-
-[assembly: InternalsVisibleTo("NuGet.Unity.Tests")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
