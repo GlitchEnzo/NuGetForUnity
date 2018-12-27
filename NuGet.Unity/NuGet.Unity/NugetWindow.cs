@@ -141,7 +141,7 @@
         /// <summary>
         /// Opens the NuGet Package Manager Window.
         /// </summary>
-        [MenuItem("NuGet/Manage NuGet Packages", false, 0)]
+        [MenuItem("Window/NuGet/Manage NuGet Packages", false, 0)]
         protected static void DisplayNugetWindow()
         {
             GetWindow<NugetWindow>();
@@ -150,7 +150,7 @@
         /// <summary>
         /// Restores all packages defined in packages.config
         /// </summary>
-        [MenuItem("NuGet/Restore Packages", false, 1)]
+        [MenuItem("Window/NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
             NugetHelper.Restore();
@@ -159,7 +159,7 @@
         /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
-        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
+        [MenuItem("Window/NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
         protected static void DisplayVersion()
         {
             var assembly = System.Reflection.Assembly.GetAssembly(typeof(EditorWindow));
@@ -219,7 +219,7 @@
         /// <summary>
         /// Checks/launches the Releases page to update NuGetForUnity with a new version.
         /// </summary>
-        [MenuItem("NuGet/Check for Updates...", false, 10)]
+        [MenuItem("Window/NuGet/Check for Updates...", false, 10)]
         protected static void CheckForUpdates()
         {
             const string url = "https://github.com/GlitchEnzo/NuGetForUnity/releases";
