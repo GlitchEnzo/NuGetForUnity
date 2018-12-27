@@ -420,13 +420,38 @@
         /// </summary>
         protected void OnGUI()
         {
-            int selectedTab = GUILayout.Toolbar(currentTab, tabTitles);
+            DrawHeader();
+
+            GUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
+            int selectedTab = GUILayout.Toolbar(currentTab, tabTitles, EditorStyles.toolbarButton);
+            GUILayout.EndHorizontal();
+
+            DrawBodyContent();
 
             if (selectedTab != currentTab)
                 OnTabChanged();
 
             currentTab = selectedTab;
+        }
 
+        private void DrawHeader()
+        {
+            switch (currentTab)
+            {
+                case 0:
+                    DrawOnlineHeader();
+                    break;
+                case 1:
+                    DrawInstalledHeader();
+                    break;
+                case 2:
+                    DrawUpdatesHeader();
+                    break;
+            }
+        }
+
+        private void DrawBodyContent()
+        {
             switch (currentTab)
             {
                 case 0:
@@ -475,8 +500,6 @@
         /// </summary>
         private void DrawUpdates()
         {
-            DrawUpdatesHeader();
-
             // display all of the installed packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
@@ -505,8 +528,6 @@
         /// </summary>
         private void DrawInstalled()
         {
-            DrawInstalledHeader();
-
             // display all of the installed packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
@@ -534,8 +555,6 @@
         /// </summary>
         private void DrawOnline()
         {
-            DrawOnlineHeader();
-
             // display all of the packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
@@ -603,41 +622,39 @@
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                EditorGUILayout.BeginHorizontal();
+                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
                 {
-                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllOnlineVersions);
+                    int oldFontSize = GUI.skin.textField.fontSize;
+                    GUI.skin.textField.fontSize = 25;
+                    onlineSearchTerm = DrawSearchBar(onlineSearchTerm);
+
+                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
+                    {
+                        // the search button emulates the Enter key
+                        enterPressed = true;
+                    }
+
+                    GUILayout.FlexibleSpace();
+
+                    bool showAllVersionsTemp = GUILayout.Toggle(showAllOnlineVersions, "Show All Versions",  EditorStyles.toolbarButton);
                     if (showAllVersionsTemp != showAllOnlineVersions)
                     {
                         showAllOnlineVersions = showAllVersionsTemp;
                         UpdateOnlinePackages();
                     }
 
-                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+                    bool showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, "Show Prerelease",  EditorStyles.toolbarButton);
+                    if (showPrereleaseTemp != showOnlinePrerelease)
+                    {
+                        showOnlinePrerelease = showPrereleaseTemp;
+                        UpdateOnlinePackages();
+                    }
+
+                    if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60)))
                     {
                         Refresh(true);
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-
-                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showOnlinePrerelease);
-                if (showPrereleaseTemp != showOnlinePrerelease)
-                {
-                    showOnlinePrerelease = showPrereleaseTemp;
-                    UpdateOnlinePackages();
-                }
-
-                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
-                EditorGUILayout.BeginHorizontal();
-                {
-                    int oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, GUILayout.Height(30));
-
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
                     }
 
                     GUI.skin.textField.fontSize = oldFontSize;
@@ -674,13 +691,13 @@
             {
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
                 {
                     int oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    installedSearchTermEditBox = EditorGUILayout.TextField(installedSearchTermEditBox, GUILayout.Height(30));
+                    installedSearchTermEditBox = DrawSearchBar(installedSearchTermEditBox);
 
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
+                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
                     {
                         // the search button emulates the Enter key
                         enterPressed = true;
@@ -716,43 +733,41 @@
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                EditorGUILayout.BeginHorizontal();
+                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
                 {
-                    bool showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllUpdateVersions);
+                    int oldFontSize = GUI.skin.textField.fontSize;
+                    GUI.skin.textField.fontSize = 25;
+                    updatesSearchTerm = DrawSearchBar(updatesSearchTerm);
+
+                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
+                    {
+                        // the search button emulates the Enter key
+                        enterPressed = true;
+                    }
+
+                    GUILayout.FlexibleSpace();
+
+                    bool showAllVersionsTemp = GUILayout.Toggle(showAllUpdateVersions, "Show All Versions", EditorStyles.toolbarButton);
                     if (showAllVersionsTemp != showAllUpdateVersions)
                     {
                         showAllUpdateVersions = showAllVersionsTemp;
                         UpdateUpdatePackages();
                     }
 
-                    if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                    bool showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, "Show Prerelease", EditorStyles.toolbarButton);
+                    if (showPrereleaseTemp != showPrereleaseUpdates)
+                    {
+                        showPrereleaseUpdates = showPrereleaseTemp;
+                        UpdateUpdatePackages();
+                    }
+
+                    if (GUILayout.Button("Install All Updates", EditorStyles.toolbarButton, GUILayout.Width(150)))
                     {
                         NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
                         NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-
-                bool showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
-                if (showPrereleaseTemp != showPrereleaseUpdates)
-                {
-                    showPrereleaseUpdates = showPrereleaseTemp;
-                    UpdateUpdatePackages();
-                }
-
-                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
-                EditorGUILayout.BeginHorizontal();
-                {
-                    int oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GUILayout.Height(30));
-
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
                     }
 
                     GUI.skin.textField.fontSize = oldFontSize;
@@ -769,6 +784,19 @@
                 }
             }
             EditorGUILayout.EndVertical();
+        }
+
+        private string DrawSearchBar(string currentSearchValue)
+        {
+            GUILayout.BeginHorizontal(GUILayout.MinWidth(342));
+            var searchValue = EditorGUILayout.TextField(currentSearchValue, GUI.skin.FindStyle("ToolbarSeachTextField"));
+            if (GUILayout.Button(string.Empty, GUI.skin.FindStyle("ToolbarSeachCancelButton")))
+            {
+                searchValue = string.Empty;
+            }
+            GUILayout.EndHorizontal();
+
+            return searchValue;
         }
 
         /// <summary>
