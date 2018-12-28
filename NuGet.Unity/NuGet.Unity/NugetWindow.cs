@@ -112,6 +112,26 @@
         private int currentTab;
 
         /// <summary>
+        /// The currently selected feed.
+        /// </summary>
+        private int currentFeedIndex;
+
+        private GUIStyle cachedContrastStyle;
+
+        private GUIStyle cachedBackgroundStyle;
+
+        private GUIStyle cachedProjectUrlStyle;
+
+        private GUIStyle cachedShowMoreStyle;
+
+        private GUIStyle cachedHeaderStyle;
+
+        /// <summary>
+        /// The selected feed.
+        /// </summary>
+        private NugetPackageSource currentFeed;
+
+        /// <summary>
         /// The titles of the tabs in the window.
         /// </summary>
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
@@ -126,6 +146,8 @@
         /// Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
         private HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+        private NugetPackage selectedPackage;
+        private GUIStyle cachedDescriptionStyle;
 
         private IEnumerable<NugetPackage> FilteredInstalledPackages
         {
@@ -376,7 +398,7 @@
         /// </summary>
         private void UpdateOnlinePackages()
         {
-            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip);
+            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip, currentFeed);
         }
 
         /// <summary>
@@ -385,7 +407,7 @@
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
+            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions, string.Empty, string.Empty, currentFeed);
             filteredUpdatePackages = updatePackages;
 
             if (updatesSearchTerm != "Search")
@@ -452,6 +474,8 @@
 
         private void DrawBodyContent()
         {
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(position.width * .7f));
             switch (currentTab)
             {
                 case 0:
@@ -464,6 +488,19 @@
                     DrawUpdates();
                     break;
             }
+            GUILayout.EndVertical();
+
+            // Selected package...
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+
+            if(selectedPackage != null)
+            {
+                DrawPackageDetail(selectedPackage);
+            }
+
+            GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
         }
 
         private void OnTabChanged()
@@ -477,10 +514,14 @@
         /// <returns>A GUI style with the appropriate background color set.</returns>
         private GUIStyle GetContrastStyle()
         {
-            GUIStyle style = new GUIStyle();
-            Color backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
-            style.normal.background = MakeTex(16, 16, backgroundColor); 
-            return style;
+            if (cachedContrastStyle == null)
+            {
+                cachedContrastStyle = new GUIStyle();
+                Color backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
+                cachedContrastStyle.normal.background = MakeTex(16, 16, backgroundColor);
+            }
+
+            return cachedContrastStyle;
         }
 
         /// <summary>
@@ -489,10 +530,37 @@
         /// <returns>A GUI style with the appropriate background color set.</returns>
         private GUIStyle GetBackgroundStyle()
         {
-            GUIStyle style = new GUIStyle();
-            Color32 backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
-            style.normal.background = MakeTex(16, 16, backgroundColor); 
-            return style;
+            if (cachedBackgroundStyle == null)
+            {
+                cachedBackgroundStyle = new GUIStyle();
+                Color32 backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
+                cachedBackgroundStyle.normal.background = MakeTex(16, 16, backgroundColor);
+            }
+
+            return cachedBackgroundStyle;
+        }
+
+        private GUIStyle GetDescriptionStyle()
+        {
+            if (cachedDescriptionStyle == null)
+            {
+                cachedDescriptionStyle = new GUIStyle(EditorStyles.miniLabel);
+                cachedDescriptionStyle.wordWrap = true;
+            }
+
+            return cachedDescriptionStyle;
+        }
+
+        private GUIStyle GetProjectUrlStyle()
+        {
+            if(cachedProjectUrlStyle == null)
+            {
+                cachedProjectUrlStyle = new GUIStyle(GUI.skin.label);
+                cachedProjectUrlStyle.richText = true;
+                cachedProjectUrlStyle.wordWrap = true;
+            }
+
+            return cachedProjectUrlStyle;
         }
 
         /// <summary>
@@ -512,11 +580,7 @@
             }
             else
             {
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField("There are no updates available!", GUILayout.Height(20));
-                EditorStyles.label.fontSize = 10;
-                EditorStyles.label.fontStyle = FontStyle.Normal;
+                GUILayout.Label("There are no updates available!", EditorStyles.boldLabel, GUILayout.Height(20));
             }
 
             EditorGUILayout.EndVertical();
@@ -539,11 +603,7 @@
             }
             else
             {
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField("There are no packages installed!", GUILayout.Height(20));
-                EditorStyles.label.fontSize = 10;
-                EditorStyles.label.fontStyle = FontStyle.Normal;
+                GUILayout.Label("There are no packages installed!", EditorStyles.boldLabel, GUILayout.Height(20));
             }
 
             EditorGUILayout.EndVertical();
@@ -556,7 +616,7 @@
         private void DrawOnline()
         {
             // display all of the packages
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, false, false);
             EditorGUILayout.BeginVertical();
 
             if (availablePackages != null)
@@ -564,22 +624,12 @@
                 DrawPackages(availablePackages);
             }
 
-            GUIStyle showMoreStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
-
-            EditorGUILayout.BeginVertical(showMoreStyle);
+            EditorGUILayout.BeginVertical(GetShowMoreStyle());
             // allow the user to dislay more results
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
-                availablePackages.AddRange(NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip));
+                availablePackages.AddRange(NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip, currentFeed));
             }
             EditorGUILayout.EndVertical();
 
@@ -587,21 +637,48 @@
             EditorGUILayout.EndScrollView();
         }
 
+        private GUIStyle GetShowMoreStyle()
+        {
+            if (cachedShowMoreStyle == null)
+            {
+                cachedShowMoreStyle = new GUIStyle();
+
+                if (Application.HasProLicense())
+                {
+                    cachedShowMoreStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
+                }
+                else
+                {
+                    cachedShowMoreStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
+                }
+            }
+
+            return cachedShowMoreStyle;
+        }
+
         private void DrawPackages(List<NugetPackage> packages)
         {
-            GUIStyle backgroundStyle = GetBackgroundStyle();
-            GUIStyle contrastStyle = GetContrastStyle();
-
             for (int i = 0; i < packages.Count; i++)
             {
-                EditorGUILayout.BeginVertical(backgroundStyle);
-                DrawPackage(packages[i], backgroundStyle, contrastStyle);
+                var style = i % 2 == 0 ? GetContrastStyle() : GetBackgroundStyle();
+                EditorGUILayout.BeginVertical(style);
+                DrawPackage(packages[i], style);
                 EditorGUILayout.EndVertical();
+            }
+        }
 
-                // swap styles
-                GUIStyle tempStyle = backgroundStyle;
-                backgroundStyle = contrastStyle;
-                contrastStyle = tempStyle;
+        private void DrawPackageSourcePopup()
+        {
+            var names = from packageSource in NugetHelper.NugetConfigFile.PackageSources
+                        select packageSource.Name;
+
+            var selectedIndex = EditorGUILayout.Popup(currentFeedIndex, names.ToArray(), EditorStyles.toolbarPopup);
+
+            if (selectedIndex != currentFeedIndex)
+            {
+                currentFeedIndex = selectedIndex;
+                currentFeed = NugetHelper.NugetConfigFile.PackageSources[currentFeedIndex];
+                UpdateOnlinePackages();
             }
         }
 
@@ -610,66 +687,55 @@
         /// </summary>
         private void DrawOnlineHeader()
         {
-            GUIStyle headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-            EditorGUILayout.BeginVertical(headerStyle);
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
             {
-                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+                int oldFontSize = GUI.skin.textField.fontSize;
+                GUI.skin.textField.fontSize = 25;
 
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
+                DrawPackageSourcePopup();
+
+                onlineSearchTerm = DrawSearchBar(onlineSearchTerm);
+
+                if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
                 {
-                    int oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    onlineSearchTerm = DrawSearchBar(onlineSearchTerm);
-
-                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
-
-                    GUILayout.FlexibleSpace();
-
-                    bool showAllVersionsTemp = GUILayout.Toggle(showAllOnlineVersions, "Show All Versions",  EditorStyles.toolbarButton);
-                    if (showAllVersionsTemp != showAllOnlineVersions)
-                    {
-                        showAllOnlineVersions = showAllVersionsTemp;
-                        UpdateOnlinePackages();
-                    }
-
-                    bool showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, "Show Prerelease",  EditorStyles.toolbarButton);
-                    if (showPrereleaseTemp != showOnlinePrerelease)
-                    {
-                        showOnlinePrerelease = showPrereleaseTemp;
-                        UpdateOnlinePackages();
-                    }
-
-                    if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60)))
-                    {
-                        Refresh(true);
-                    }
-
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    // the search button emulates the Enter key
+                    enterPressed = true;
                 }
-                EditorGUILayout.EndHorizontal();
 
-                // search only if the enter key is pressed
-                if (enterPressed)
+                GUILayout.FlexibleSpace();
+
+                bool showAllVersionsTemp = GUILayout.Toggle(showAllOnlineVersions, "Show All Versions", EditorStyles.toolbarButton);
+                if (showAllVersionsTemp != showAllOnlineVersions)
                 {
-                    // reset the number to skip
-                    numberToSkip = 0;
+                    showAllOnlineVersions = showAllVersionsTemp;
                     UpdateOnlinePackages();
                 }
+
+                bool showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, "Show Prerelease", EditorStyles.toolbarButton);
+                if (showPrereleaseTemp != showOnlinePrerelease)
+                {
+                    showOnlinePrerelease = showPrereleaseTemp;
+                    UpdateOnlinePackages();
+                }
+
+                if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60)))
+                {
+                    Refresh(true);
+                }
+
+                GUI.skin.textField.fontSize = oldFontSize;
             }
-            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+
+            // search only if the enter key is pressed
+            if (enterPressed)
+            {
+                // reset the number to skip
+                numberToSkip = 0;
+                UpdateOnlinePackages();
+            }
         }
 
         /// <summary>
@@ -677,43 +743,29 @@
         /// </summary>
         private void DrawInstalledHeader()
         {
-            GUIStyle headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-            EditorGUILayout.BeginVertical(headerStyle);
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
             {
-                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+                int oldFontSize = GUI.skin.textField.fontSize;
+                GUI.skin.textField.fontSize = 25;
+                installedSearchTermEditBox = DrawSearchBar(installedSearchTermEditBox);
 
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
+                if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
                 {
-                    int oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    installedSearchTermEditBox = DrawSearchBar(installedSearchTermEditBox);
-
-                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
-
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    // the search button emulates the Enter key
+                    enterPressed = true;
                 }
-                EditorGUILayout.EndHorizontal();
 
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    installedSearchTerm = installedSearchTermEditBox;
-                }
+                GUI.skin.textField.fontSize = oldFontSize;
             }
-            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+
+            // search only if the enter key is pressed
+            if (enterPressed)
+            {
+                installedSearchTerm = installedSearchTermEditBox;
+            }
         }
 
         /// <summary>
@@ -721,69 +773,55 @@
         /// </summary>
         private void DrawUpdatesHeader()
         {
-            GUIStyle headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-            EditorGUILayout.BeginVertical(headerStyle);
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
             {
-                bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+                int oldFontSize = GUI.skin.textField.fontSize;
+                GUI.skin.textField.fontSize = 25;
+                updatesSearchTerm = DrawSearchBar(updatesSearchTerm);
 
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
+                if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
                 {
-                    int oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    updatesSearchTerm = DrawSearchBar(updatesSearchTerm);
-
-                    if (GUILayout.Button("Search", EditorStyles.toolbarButton, GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
-
-                    GUILayout.FlexibleSpace();
-
-                    bool showAllVersionsTemp = GUILayout.Toggle(showAllUpdateVersions, "Show All Versions", EditorStyles.toolbarButton);
-                    if (showAllVersionsTemp != showAllUpdateVersions)
-                    {
-                        showAllUpdateVersions = showAllVersionsTemp;
-                        UpdateUpdatePackages();
-                    }
-
-                    bool showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, "Show Prerelease", EditorStyles.toolbarButton);
-                    if (showPrereleaseTemp != showPrereleaseUpdates)
-                    {
-                        showPrereleaseUpdates = showPrereleaseTemp;
-                        UpdateUpdatePackages();
-                    }
-
-                    if (GUILayout.Button("Install All Updates", EditorStyles.toolbarButton, GUILayout.Width(150)))
-                    {
-                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
-                    }
-
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    // the search button emulates the Enter key
+                    enterPressed = true;
                 }
-                EditorGUILayout.EndHorizontal();
 
-                // search only if the enter key is pressed
-                if (enterPressed)
+                GUILayout.FlexibleSpace();
+
+                bool showAllVersionsTemp = GUILayout.Toggle(showAllUpdateVersions, "Show All Versions", EditorStyles.toolbarButton);
+                if (showAllVersionsTemp != showAllUpdateVersions)
                 {
-                    if (updatesSearchTerm != "Search")
-                    {
-                        filteredUpdatePackages = updatePackages.Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm)).ToList();
-                    }
+                    showAllUpdateVersions = showAllVersionsTemp;
+                    UpdateUpdatePackages();
+                }
+
+                bool showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, "Show Prerelease", EditorStyles.toolbarButton);
+                if (showPrereleaseTemp != showPrereleaseUpdates)
+                {
+                    showPrereleaseUpdates = showPrereleaseTemp;
+                    UpdateUpdatePackages();
+                }
+
+                if (GUILayout.Button("Install All Updates", EditorStyles.toolbarButton, GUILayout.Width(150)))
+                {
+                    NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                    NugetHelper.UpdateInstalledPackages();
+                    UpdateUpdatePackages();
+                }
+
+                GUI.skin.textField.fontSize = oldFontSize;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // search only if the enter key is pressed
+            if (enterPressed)
+            {
+                if (updatesSearchTerm != "Search")
+                {
+                    filteredUpdatePackages = updatePackages.Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm)).ToList();
                 }
             }
-            EditorGUILayout.EndVertical();
         }
 
         private string DrawSearchBar(string currentSearchValue)
@@ -803,283 +841,307 @@
         /// Draws the given <see cref="NugetPackage"/>.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage"/> to draw.</param>
-        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
+        private void DrawPackage(NugetPackage package, GUIStyle packageStyle)
+        {
+            GUILayout.BeginVertical();
+
+            DrawPackageNameAndIcon(package);
+            DrawPackageDescription(package);
+            DrawProjectUrl(package);
+
+            // Show button bar
+            /*
+            EditorGUILayout.BeginHorizontal();
+            {
+                if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
+                {
+                    if (!string.IsNullOrEmpty(package.RepositoryUrl))
+                    {
+                        // Create the style for putting a box around the 'Clone' button
+                        var cloneButtonBoxStyle = new GUIStyle("box");
+                        cloneButtonBoxStyle.stretchWidth = false;
+                        cloneButtonBoxStyle.margin.top = 0;
+                        cloneButtonBoxStyle.margin.bottom = 0;
+                        cloneButtonBoxStyle.padding.bottom = 4;
+
+                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle);
+                        normalButtonBoxStyle.normal.background = packageStyle.normal.background;
+
+                        bool showCloneWindow = openCloneWindows.Contains(package);
+                        cloneButtonBoxStyle.normal.background = packageStyle.normal.background;
+
+                        // Create a simillar style for the 'Clone' window
+                        var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
+                        cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
+
+                        EditorGUILayout.BeginHorizontal(cloneButtonBoxStyle);
+                        {
+                            var cloneButtonStyle = new GUIStyle(GUI.skin.button);
+                            cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
+                            if (GUILayout.Button("Clone", cloneButtonStyle, GUILayout.ExpandWidth(false)))
+                            {
+                                showCloneWindow = !showCloneWindow;
+                            }
+
+                            if (showCloneWindow)
+                                openCloneWindows.Add(package);
+                            else
+                                openCloneWindows.Remove(package);
+                        }
+                        EditorGUILayout.EndHorizontal();
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                {
+                    // Show the license button
+                    if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
+                    {
+                        Application.OpenURL(package.LicenseUrl);
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            */
+
+            /*
+            if (showCloneWindow)
+            {
+                EditorGUILayout.BeginVertical(cloneWindowStyle);
+                {
+                    // Clone latest label
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(20f);
+                    EditorGUILayout.LabelField("clone latest");
+                    EditorGUILayout.EndHorizontal();
+
+                    // Clone latest row
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                        {
+                            GUI.FocusControl(package.Id + package.Version + "repoUrl");
+                            GUIUtility.systemCopyBuffer = package.RepositoryUrl;
+                        }
+
+                        GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
+                        EditorGUILayout.TextField(package.RepositoryUrl);
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Clone @ commit label
+                    GUILayout.Space(4f);
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(20f);
+                    EditorGUILayout.LabelField("clone @ commit");
+                    EditorGUILayout.EndHorizontal();
+
+                    // Clone @ commit row
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
+                        string commands = string.Format("git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
+
+                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                        {
+                            GUI.FocusControl(package.Id + package.Version + "commands");
+
+                            // Add a newline so the last command will execute when pasted to the CL
+                            GUIUtility.systemCopyBuffer = (commands + Environment.NewLine);
+                        }
+
+                        EditorGUILayout.BeginVertical();
+                        GUI.SetNextControlName(package.Id + package.Version + "commands");
+                        EditorGUILayout.TextArea(commands);
+                        EditorGUILayout.EndVertical();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUILayout.EndVertical();
+            }
+            */
+
+            GUILayout.EndVertical();
+
+            var packageRect = GUILayoutUtility.GetLastRect();
+
+            if (Event.current.type == EventType.MouseDown && packageRect.Contains(Event.current.mousePosition))
+            {
+                SelectPackageForDetail(package);
+            }
+
+
+            NugetPackage installed = GetInstalledPacakge(package);
+
+            if (installed != null)
+            {
+                GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
+                labelStyle.alignment = TextAnchor.UpperRight;
+                GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
+            }
+        }
+
+        private static NugetPackage GetInstalledPacakge(NugetPackage package)
+        {
+            IEnumerable<NugetPackage> installedPackages = NugetHelper.InstalledPackages;
+            var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+            return installed;
+        }
+
+        private void DrawPackageDetail(NugetPackage package)
+        {
+            DrawPackageNameAndIcon(package);
+            DrawInstallUninstallPackageButtons(package);
+            DrawPackageDescription(package);
+            DrawReleaseNotes(package);
+            DrawPackageDependencies(package);
+            DrawProjectUrl(package);
+        }
+
+        private void SelectPackageForDetail(NugetPackage package)
+        {
+            selectedPackage = package;
+        }
+
+        private void DrawPackageNameAndIcon(NugetPackage package)
+        {
+            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
+            GUILayout.Space(34);
+            GUILayout.Label(string.Format("{1} [{0}]", package.Version, package.Title), EditorStyles.boldLabel, GUILayout.Height(24));
+            GUILayout.EndHorizontal();
+
+            var lastRect = GUILayoutUtility.GetLastRect();
+
+            const int iconSize = 24;
+            const int leftPadding = 5;
+
+            lastRect.x += leftPadding;
+            lastRect.y += 3;
+            lastRect.width = iconSize;
+            lastRect.height = iconSize;
+
+            if (package.Icon != null)
+            {
+                GUI.DrawTexture(lastRect, package.Icon, ScaleMode.StretchToFill);
+            }
+            else
+            {
+                GUI.DrawTexture(lastRect, defaultIcon, ScaleMode.StretchToFill);
+            }
+
+        }
+
+        private void DrawPackageDescription(NugetPackage package)
+        {
+            EditorStyles.miniBoldLabel.fontStyle = FontStyle.Bold;
+            GUILayout.Label("Description:", EditorStyles.miniBoldLabel);
+
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+            GUILayout.Label(string.Format("{0}", package.Description), GetDescriptionStyle());
+            GUILayout.EndVertical();
+        }
+
+        private static void DrawPackageDependencies(NugetPackage package)
+        {
+            if (package.Dependencies.Count > 0)
+            {
+                GUILayout.Label("Dependencies:", EditorStyles.miniBoldLabel);
+
+                StringBuilder builder = new StringBuilder();
+                foreach (var dependency in package.Dependencies)
+                {
+                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                }
+
+                GUILayout.BeginVertical(EditorStyles.helpBox);
+                GUILayout.Label(string.Format("Depends on:{0}", builder.ToString()), EditorStyles.miniLabel);
+                GUILayout.EndVertical();
+            }
+        }
+
+        private void DrawProjectUrl(NugetPackage package)
+        {
+            if (!string.IsNullOrEmpty(package.ProjectUrl))
+            {
+                GUILayoutLink(package.ProjectUrl);
+            }
+        }
+
+        private static void DrawReleaseNotes(NugetPackage package)
+        {
+            if (!string.IsNullOrEmpty(package.ReleaseNotes))
+            {
+                GUILayout.Label(string.Format("Release Notes:"), EditorStyles.miniBoldLabel);
+                GUILayout.BeginVertical(EditorStyles.helpBox);
+                GUILayout.Label(string.Format("{0}", package.ReleaseNotes), EditorStyles.miniLabel);
+                GUILayout.EndVertical();
+            }
+        }
+
+        private void DrawInstallUninstallPackageButtons(NugetPackage package)
         {
             IEnumerable<NugetPackage> installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
-            EditorGUILayout.BeginHorizontal();
+            if (installedPackages.Contains(package))
             {
-                // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
-                // Every time you use a Horizontal block, Unity appears to divide the space evenly.
-                // (i.e. 2 components have half of the window width, 3 components have a third of the window width, etc)
-                // GUILayoutUtility.GetRect is SUPPOSED to return a rect with the given height and width, but in the GUI layout.  It doesn't.
-                // We have to use GUILayoutUtility to get SOME rect properties, but then manually calculate others.
-                EditorGUILayout.BeginHorizontal();
+                // This specific version is installed
+                if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
                 {
-                    const int iconSize = 32;
-                    const int leftPadding = 5;
-                    Rect rect = GUILayoutUtility.GetRect(iconSize, iconSize);
-                    // only use GetRect's Y position.  It doesn't correctly set the width or X position.
-                    rect.x = leftPadding;
-                    rect.y += 3;
-                    rect.width = iconSize;
-                    rect.height = iconSize;
-
-                    if (package.Icon != null)
-                    {
-                        GUI.DrawTexture(rect, package.Icon, ScaleMode.StretchToFill);
-                    }
-                    else
-                    {
-                        GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
-                    }
-
-                    rect = GUILayoutUtility.GetRect(position.width / 2 - (iconSize + leftPadding), 20);
-                    rect.x = iconSize + leftPadding;
-                    rect.y += 10;
-
-                    EditorStyles.label.fontStyle = FontStyle.Bold;
-                    EditorStyles.label.fontSize = 14;
-                    ////EditorGUILayout.LabelField(string.Format("{1} [{0}]", package.Version, package.Id), GUILayout.Height(20), GUILayout.Width(position.width / 2 - 32));
-                    GUI.Label(rect, string.Format("{1} [{0}]", package.Version, package.Title), EditorStyles.label);
-                    EditorStyles.label.fontSize = 10;
-                    EditorStyles.label.fontStyle = FontStyle.Normal;
+                    // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
+                    NugetHelper.Uninstall(package);
+                    NugetHelper.UpdateInstalledPackages();
+                    UpdateUpdatePackages();
                 }
-                EditorGUILayout.EndHorizontal();
-
-                if (installedPackages.Contains(package))
+            }
+            else
+            {
+                if (installed != null)
                 {
-                    // This specific version is installed
-                    if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
+                    if (installed < package)
                     {
-                        // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
-                        NugetHelper.Uninstall(package);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
-                    }
-                }
-                else
-                {
-                    if (installed != null)
-                    {
-                        if (installed < package)
+                        // An older version is installed
+                        if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                         {
-                            // An older version is installed
-                            if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                        else if (installed > package)
-                        {
-                            // A newer version is installed
-                            if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
+                            NugetHelper.Update(installed, package);
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
                         }
                     }
-                    else
+                    else if (installed > package)
                     {
-                        if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
+                        // A newer version is installed
+                        if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
                         {
-                            NugetHelper.InstallIdentifier(package);
-                            AssetDatabase.Refresh();
+                            NugetHelper.Update(installed, package);
                             NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
                 }
-            }
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            {
-                EditorGUILayout.BeginVertical();
+                else
                 {
-                    // Show the package description
-                    EditorStyles.label.wordWrap = true;
-                    EditorStyles.label.fontStyle = FontStyle.Normal;
-                    EditorGUILayout.LabelField(string.Format("{0}", package.Description));
-
-                    // Show project URL link
-                    if (!string.IsNullOrEmpty(package.ProjectUrl))
+                    if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
                     {
-                        GUILayoutLink(package.ProjectUrl);
-                        GUILayout.Space(4f);
+                        NugetHelper.InstallIdentifier(package);
+                        AssetDatabase.Refresh();
+                        NugetHelper.UpdateInstalledPackages();
+                        UpdateUpdatePackages();
                     }
-
-                    // Show the package release notes
-                    if (!string.IsNullOrEmpty(package.ReleaseNotes))
-                    {
-                        EditorStyles.label.wordWrap = true;
-                        EditorStyles.label.fontStyle = FontStyle.Bold;
-                        EditorGUILayout.LabelField(string.Format("Release Notes:"));
-                        EditorStyles.label.fontStyle = FontStyle.Normal;
-                        EditorGUILayout.LabelField(string.Format("{0}", package.ReleaseNotes));
-                    }
-
-                    // Show the dependencies
-                    if (package.Dependencies.Count > 0)
-                    {
-                        EditorStyles.label.wordWrap = true;
-                        EditorStyles.label.fontStyle = FontStyle.Italic;
-                        StringBuilder builder = new StringBuilder();
-                        foreach (var dependency in package.Dependencies)
-                        {
-                            builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
-                        }
-                        EditorGUILayout.Space();
-                        EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
-                        EditorStyles.label.fontStyle = FontStyle.Normal;
-                    }
-
-                    // Create the style for putting a box around the 'Clone' button
-                    var cloneButtonBoxStyle = new GUIStyle("box");
-                    cloneButtonBoxStyle.stretchWidth = false;
-                    cloneButtonBoxStyle.margin.top = 0;
-                    cloneButtonBoxStyle.margin.bottom = 0;
-                    cloneButtonBoxStyle.padding.bottom = 4;
-
-                    var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle);
-                    normalButtonBoxStyle.normal.background = packageStyle.normal.background;
-
-                    bool showCloneWindow = openCloneWindows.Contains(package);
-                    cloneButtonBoxStyle.normal.background = showCloneWindow ? contrastStyle.normal.background : packageStyle.normal.background;
-
-                    // Create a simillar style for the 'Clone' window
-                    var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
-                    cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
-
-                    // Show button bar
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
-                        {
-                            if (!string.IsNullOrEmpty(package.RepositoryUrl))
-                            {
-                                EditorGUILayout.BeginHorizontal(cloneButtonBoxStyle);
-                                {
-                                    var cloneButtonStyle = new GUIStyle(GUI.skin.button);
-                                    cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
-                                    if (GUILayout.Button("Clone", cloneButtonStyle, GUILayout.ExpandWidth(false)))
-                                    {
-                                        showCloneWindow = !showCloneWindow;
-                                    }
-
-                                    if (showCloneWindow)
-                                        openCloneWindows.Add(package);
-                                    else
-                                        openCloneWindows.Remove(package);
-                                }
-                                EditorGUILayout.EndHorizontal();
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
-                        {
-                            // Creaete a box around the license button to keep it alligned with Clone button
-                            EditorGUILayout.BeginHorizontal(normalButtonBoxStyle);
-                            // Show the license button
-                            if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
-                            {
-                                Application.OpenURL(package.LicenseUrl);
-                            }
-                            EditorGUILayout.EndHorizontal();
-                        }
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    if (showCloneWindow)
-                    {
-                        EditorGUILayout.BeginVertical(cloneWindowStyle);
-                        {
-                            // Clone latest label
-                            EditorGUILayout.BeginHorizontal();
-                            GUILayout.Space(20f);
-                            EditorGUILayout.LabelField("clone latest");
-                            EditorGUILayout.EndHorizontal();
-
-                            // Clone latest row
-                            EditorGUILayout.BeginHorizontal();
-                            {
-                                if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
-                                {
-                                    GUI.FocusControl(package.Id + package.Version + "repoUrl");
-                                    GUIUtility.systemCopyBuffer = package.RepositoryUrl;
-                                }
-
-                                GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
-                                EditorGUILayout.TextField(package.RepositoryUrl);
-                            }
-                            EditorGUILayout.EndHorizontal();
-
-                            // Clone @ commit label
-                            GUILayout.Space(4f);
-                            EditorGUILayout.BeginHorizontal();
-                            GUILayout.Space(20f);
-                            EditorGUILayout.LabelField("clone @ commit");
-                            EditorGUILayout.EndHorizontal();
-
-                            // Clone @ commit row
-                            EditorGUILayout.BeginHorizontal();
-                            {
-                                // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
-                                string commands = string.Format("git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
-
-                                if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
-                                {
-                                    GUI.FocusControl(package.Id + package.Version + "commands");
-
-                                    // Add a newline so the last command will execute when pasted to the CL
-                                    GUIUtility.systemCopyBuffer = (commands + Environment.NewLine);
-                                }
-
-                                EditorGUILayout.BeginVertical();
-                                GUI.SetNextControlName(package.Id + package.Version + "commands");
-                                EditorGUILayout.TextArea(commands);
-                                EditorGUILayout.EndVertical();
-                            }
-                            EditorGUILayout.EndHorizontal();
-                        }
-                        EditorGUILayout.EndVertical();
-                    }
-
-                    EditorGUILayout.Separator();
-                    EditorGUILayout.Separator();
-                }
-                EditorGUILayout.EndVertical();
-
-                if (installed != null)
-                {
-                    GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
-                    labelStyle.alignment = TextAnchor.UpperRight;
-                    GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
                 }
             }
-            EditorGUILayout.EndHorizontal();
         }
 
-        public static void GUILayoutLink(string url)
+        public void GUILayoutLink(string url)
         {
-            GUIStyle hyperLinkStyle = new GUIStyle(GUI.skin.label);
-            hyperLinkStyle.stretchWidth = false;
-            hyperLinkStyle.richText = true;
-
-            string colorFormatString = "<color=#add8e6ff>{0}</color>";
+            string colorFormatString = "<color=blue>{0}</color>";
 
             string underline = new string('_', url.Length);
 
             string formattedUrl = string.Format(colorFormatString, url);
             string formattedUnderline = string.Format(colorFormatString, underline);
-            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
-            GUI.Label(urlRect, formattedUrl, hyperLinkStyle);
-            GUI.Label(urlRect, formattedUnderline, hyperLinkStyle);
+            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), GetProjectUrlStyle());
+            GUI.Label(urlRect, formattedUrl, GetProjectUrlStyle());
 
             EditorGUIUtility.AddCursorRect(urlRect, MouseCursor.Link);
             if (urlRect.Contains(Event.current.mousePosition))

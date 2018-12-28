@@ -957,13 +957,16 @@
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
+        /// <param name="nugetPackageSource">An optional source to search. Will search all enabled by default.</param>
         /// <returns>The list of available packages.</returns>
-        public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
+        public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0, NugetPackageSource nugetPackageSource = null)
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
+            var sources = (nugetPackageSource != null) ? new List<NugetPackageSource>(new NugetPackageSource[] { nugetPackageSource }) : packageSources;
+
             // Loop through all active sources and combine them into a single list
-            foreach (var source in packageSources.Where(s => s.IsEnabled))
+            foreach (var source in sources.Where(s => s.IsEnabled))
             {
                 var newPackages = source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
                 packages.AddRange(newPackages);
@@ -981,18 +984,22 @@
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
+        /// <param name="nugetPackageSource">An optional source to get updates. Wills earch all enabled by default.</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "", NugetPackageSource nugetPackageSource = null)
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
+            var sources = (nugetPackageSource != null) ? new List<NugetPackageSource>(new NugetPackageSource[] { nugetPackageSource }) : packageSources;
+
             // Loop through all active sources and combine them into a single list
-            foreach (var source in packageSources.Where(s => s.IsEnabled))
+            foreach (var source in sources.Where(s => s.IsEnabled))
             {
                 var newPackages = source.GetUpdates(packagesToUpdate, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
                 packages.AddRange(newPackages);
                 packages = packages.Distinct().ToList();
             }
+
 
             return packages;
         }
@@ -1003,7 +1010,7 @@
         /// </summary>
         /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId)
+        private static NugetPackage GetSpecificPackage(NugetPackageIdentifier packageId, NugetPackageSource nugetPackageSource = null)
         {
             // First look to see if the package is already installed
             NugetPackage package = GetInstalledPackage(packageId);
@@ -1017,7 +1024,7 @@
             if (package == null)
             {
                 // It's not in the cache, so we need to look in the active sources
-                package = GetOnlinePackage(packageId);
+                package = GetOnlinePackage(packageId, nugetPackageSource);
             }
 
             return package;
@@ -1084,12 +1091,14 @@
         /// </summary>
         /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> of the <see cref="NugetPackage"/> to find.</param>
         /// <returns>The best <see cref="NugetPackage"/> match, if there is one, otherwise null.</returns>
-        private static NugetPackage GetOnlinePackage(NugetPackageIdentifier packageId)
+        private static NugetPackage GetOnlinePackage(NugetPackageIdentifier packageId, NugetPackageSource nugetPackageSource = null)
         {
             NugetPackage package = null;
 
+            var sources = (nugetPackageSource != null) ? new List<NugetPackageSource>(new NugetPackageSource[]{ nugetPackageSource}) : packageSources;
+
             // Loop through all active sources and stop once the package is found
-            foreach (var source in packageSources.Where(s => s.IsEnabled))
+            foreach (var source in sources.Where(s => s.IsEnabled))
             {
                 var foundPackage = source.GetSpecificPackage(packageId);
                 if (foundPackage == null)
@@ -1116,6 +1125,7 @@
                     package = foundPackage;
                 }
             }
+
             if (package != null)
             {
                 LogVerbose("{0} {1} not found, using {2}", packageId.Id, packageId.Version, package.Version);
@@ -1146,9 +1156,9 @@
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true, NugetPackageSource nugetPackageSource = null)
         {
-            NugetPackage foundPackage = GetSpecificPackage(package);
+            NugetPackage foundPackage = GetSpecificPackage(package, nugetPackageSource);
 
             if (foundPackage != null)
             {
