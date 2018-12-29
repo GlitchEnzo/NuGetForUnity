@@ -849,61 +849,6 @@
             DrawPackageDescription(package);
             DrawProjectUrl(package);
 
-            // Show button bar
-            /*
-            EditorGUILayout.BeginHorizontal();
-            {
-                if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
-                {
-                    if (!string.IsNullOrEmpty(package.RepositoryUrl))
-                    {
-                        // Create the style for putting a box around the 'Clone' button
-                        var cloneButtonBoxStyle = new GUIStyle("box");
-                        cloneButtonBoxStyle.stretchWidth = false;
-                        cloneButtonBoxStyle.margin.top = 0;
-                        cloneButtonBoxStyle.margin.bottom = 0;
-                        cloneButtonBoxStyle.padding.bottom = 4;
-
-                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle);
-                        normalButtonBoxStyle.normal.background = packageStyle.normal.background;
-
-                        bool showCloneWindow = openCloneWindows.Contains(package);
-                        cloneButtonBoxStyle.normal.background = packageStyle.normal.background;
-
-                        // Create a simillar style for the 'Clone' window
-                        var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
-                        cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
-
-                        EditorGUILayout.BeginHorizontal(cloneButtonBoxStyle);
-                        {
-                            var cloneButtonStyle = new GUIStyle(GUI.skin.button);
-                            cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
-                            if (GUILayout.Button("Clone", cloneButtonStyle, GUILayout.ExpandWidth(false)))
-                            {
-                                showCloneWindow = !showCloneWindow;
-                            }
-
-                            if (showCloneWindow)
-                                openCloneWindows.Add(package);
-                            else
-                                openCloneWindows.Remove(package);
-                        }
-                        EditorGUILayout.EndHorizontal();
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
-                {
-                    // Show the license button
-                    if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
-                    {
-                        Application.OpenURL(package.LicenseUrl);
-                    }
-                }
-            }
-            EditorGUILayout.EndHorizontal();
-            */
-
             /*
             if (showCloneWindow)
             {
@@ -968,16 +913,56 @@
             if (Event.current.type == EventType.MouseDown && packageRect.Contains(Event.current.mousePosition))
             {
                 SelectPackageForDetail(package);
+                GUIUtility.ExitGUI();
             }
 
+            DrawCurrentInstalledVersion(package);
+        }
 
+        private void DrawCurrentInstalledVersion(NugetPackage package)
+        {
             NugetPackage installed = GetInstalledPacakge(package);
 
             if (installed != null)
             {
-                GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
-                labelStyle.alignment = TextAnchor.UpperRight;
-                GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
+                GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), EditorStyles.miniLabel, installButtonWidth);
+            }
+        }
+
+        private void DrawCloneButton(NugetPackage package)
+        {
+            if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
+            {
+                if (!string.IsNullOrEmpty(package.RepositoryUrl))
+                {
+                    bool showCloneWindow = openCloneWindows.Contains(package);
+  
+                    if (GUILayout.Button("Clone", EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
+                    {
+                        showCloneWindow = !showCloneWindow;
+                    }
+
+                    if (showCloneWindow)
+                    {
+                        openCloneWindows.Add(package);
+                    }
+                    else
+                    {
+                        openCloneWindows.Remove(package);
+                    }
+                }
+            }
+        }
+
+        private static void DrawLicenseButton(NugetPackage package)
+        {
+            if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+            {
+                // Show the license button
+                if (GUILayout.Button("View License", EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
+                {
+                    Application.OpenURL(package.LicenseUrl);
+                }
             }
         }
 
@@ -990,8 +975,13 @@
 
         private void DrawPackageDetail(NugetPackage package)
         {
-            DrawPackageNameAndIcon(package);
+            GUILayout.BeginHorizontal(EditorStyles.toolbarButton);
             DrawInstallUninstallPackageButtons(package);
+            DrawLicenseButton(package);
+            DrawCloneButton(package);
+            GUILayout.EndHorizontal();
+
+            DrawPackageNameAndIcon(package);
             DrawPackageDescription(package);
             DrawReleaseNotes(package);
             DrawPackageDependencies(package);
@@ -1086,7 +1076,7 @@
             if (installedPackages.Contains(package))
             {
                 // This specific version is installed
-                if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
+                if (GUILayout.Button("Uninstall", EditorStyles.toolbarButton, installButtonWidth, installButtonHeight))
                 {
                     // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                     NugetHelper.Uninstall(package);
@@ -1101,7 +1091,7 @@
                     if (installed < package)
                     {
                         // An older version is installed
-                        if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
+                        if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), EditorStyles.toolbarButton, installButtonWidth, installButtonHeight))
                         {
                             NugetHelper.Update(installed, package);
                             NugetHelper.UpdateInstalledPackages();
@@ -1111,7 +1101,7 @@
                     else if (installed > package)
                     {
                         // A newer version is installed
-                        if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
+                        if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), EditorStyles.toolbarButton, installButtonWidth, installButtonHeight))
                         {
                             NugetHelper.Update(installed, package);
                             NugetHelper.UpdateInstalledPackages();
@@ -1121,7 +1111,7 @@
                 }
                 else
                 {
-                    if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
+                    if (GUILayout.Button("Install", EditorStyles.toolbarButton, installButtonWidth, installButtonHeight))
                     {
                         NugetHelper.InstallIdentifier(package);
                         AssetDatabase.Refresh();
