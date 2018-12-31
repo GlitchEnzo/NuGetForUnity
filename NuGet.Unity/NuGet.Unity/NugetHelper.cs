@@ -316,18 +316,6 @@
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
 
-            var hasUnityLib = false;
-
-            // Since anything in /lib is added to the NuGet references in *.csproj, we offer an opportunity for the package to override with a /lib/unity.
-            // This keeps the using the package as a reference in a C# project clean.
-            if (Directory.Exists(packageInstallDirectory + "/lib/unity")
-                || Directory.Exists(packageInstallDirectory + "lib/net35-unity full v3.5")
-                || Directory.Exists(packageInstallDirectory + "lib/net35-unity subset v3.5"))
-            {
-                LogVerbose($"Using Unity override lib directory.");
-                hasUnityLib = true;
-            }
-
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
 
@@ -341,118 +329,120 @@
                 // go through the library folders in descending order (highest to lowest version)
                 var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).OrderByDescending(di => di.Name.ToLower());
 
-                if (hasUnityLib)
-                {
-                    // Keep all directories targeting Unity within a package
-                    selectedDirectories.Add(Path.Combine(libDirectory.FullName, "unity"));
-                    selectedDirectories.Add(Path.Combine(libDirectory.FullName, "net35-unity full v3.5"));
-                    selectedDirectories.Add(Path.Combine(libDirectory.FullName, "net35-unity subset v3.5"));
-                }
-                else
-                {
-                    foreach (var directory in libDirectories)
-                    {
-                        string directoryName = directory.Name.ToLower();
 
-                        // Select the highest .NET library available that is supported
-                        // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                        if (usingStandard2 && directoryName == "netstandard2.0")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.6")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net462")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.5")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net461")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.4")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net46")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.3")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net452")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net451")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.2")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net45")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.1")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (usingStandard2 && directoryName == "netstandard1.0")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && directoryName == "net403")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (using46 && (directoryName == "net40" || directoryName == "net4"))
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (directoryName == "net35")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (directoryName == "net20")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                        else if (directoryName == "net11")
-                        {
-                            selectedDirectories.Add(directory.FullName);
-                            break;
-                        }
-                    }
+            foreach (var directory in libDirectories)
+            {
+                string directoryName = directory.Name.ToLower();
+
+                // Unity folders take precendence...
+                if (directoryName == "unity" || 
+                        directoryName == "net35-unity full v3.5" ||
+                        directoryName == "net35-unity subset v3.5")
+                {
+                    selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "unity"));
+                    selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity full v3.5"));
+                    selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity subset v3.5"));
+
+                    break;
                 }
+                // Select the highest .NET library available that is supported
+                // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
+                else if (usingStandard2 && directoryName == "netstandard2.0")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.6")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net462")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.5")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net461")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.4")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net46")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.3")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net452")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net451")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.2")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net45")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.1")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (usingStandard2 && directoryName == "netstandard1.0")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && directoryName == "net403")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (using46 && (directoryName == "net40" || directoryName == "net4"))
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (directoryName == "net35")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (directoryName == "net20")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+                else if (directoryName == "net11")
+                {
+                    selectedDirectories.Add(directory.FullName);
+                    break;
+                }
+            }
 
                 // delete all of the libaries except for the selected one
                 foreach (var directory in libDirectories)
