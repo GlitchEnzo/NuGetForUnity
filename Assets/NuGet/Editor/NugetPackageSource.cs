@@ -13,6 +13,7 @@
     /// <summary>
     /// Represents a NuGet Package Source (a "server").
     /// </summary>
+    [Serializable]
     public class NugetPackageSource
     {
         /// <summary>

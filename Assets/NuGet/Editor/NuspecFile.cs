@@ -1,5 +1,6 @@
 ﻿namespace NugetForUnity
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -71,7 +72,7 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies { get; set; }
+        public Dictionary<string, NugetFrameworkGroup> Dependencies { get; set; }
 
         /// <summary>
         /// Gets or sets the release notes of the NuGet package.
@@ -112,6 +113,63 @@
         /// Gets or sets the list of content files listed in the .nuspec file.
         /// </summary>
         public List<NuspecContentFile> Files { get; set; }
+
+        public void AddDependancy(string targetFramework, NugetPackageIdentifier dependency)
+        {
+            if( targetFramework == null) { throw new ArgumentNullException("targetFramework"); }
+
+            NugetFrameworkGroup frameworkPackages;
+            if (!Dependencies.TryGetValue(targetFramework, out frameworkPackages))
+            {
+                frameworkPackages = new NugetFrameworkGroup()
+                {
+                    TargetFramework = targetFramework,
+                    Dependencies = new List<NugetPackageIdentifier>()
+                };
+
+                Dependencies.Add(targetFramework, frameworkPackages);
+            }
+
+            frameworkPackages.Dependencies.Add(dependency);
+        }
+
+        /// <summary>
+        /// Add a "dependancy" node;
+        /// </summary>
+        private void AddDependancy(string targetFramework, XElement dependencyElement)
+        {
+            NugetPackageIdentifier dependency = new NugetPackageIdentifier();
+            dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
+            dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+
+            AddDependancy(targetFramework, dependency);
+        }
+
+        /// <summary>
+        /// Add all the "dependancy" nodes under <paramref name="dependenciesElement"/>;
+        /// </summary>
+        private void AddDependancies(XElement dependenciesElement, string nuspecNamespace)
+        {
+            XAttribute targetFrameworkAttribute = dependenciesElement.Attribute(XName.Get("targetFramework"));
+            string targetFramework = targetFrameworkAttribute != null ? targetFrameworkAttribute.Value : string.Empty;
+
+            NugetFrameworkGroup frameworkPackages;
+            if (!Dependencies.TryGetValue(targetFramework, out frameworkPackages))
+            {
+                frameworkPackages = new NugetFrameworkGroup()
+                {
+                    TargetFramework = targetFramework,
+                    Dependencies = new List<NugetPackageIdentifier>()
+                };
+
+                Dependencies.Add(targetFramework, frameworkPackages);
+            }
+
+            foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
+            {
+                AddDependancy(targetFramework, dependencyElement);
+            }
+        }
 
         /// <summary>
         /// Loads the .nuspec file inside the .nupkg file at the given filepath.
@@ -211,16 +269,21 @@
                 nuspec.RepositoryCommit = (string)repositoryElement.Attribute(XName.Get("commit")) ?? string.Empty;
             }
 
-            nuspec.Dependencies = new List<NugetPackageIdentifier>();
+            nuspec.Dependencies = new Dictionary<string, NugetFrameworkGroup>();
             var dependenciesElement = metadata.Element(XName.Get("dependencies", nuspecNamespace));
             if (dependenciesElement != null)
             {
-                foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
+                IEnumerable<XElement> groups = dependenciesElement.Elements(XName.Get("group", nuspecNamespace)); // get groups
+                if (groups.Count() > 0) // if there are groups
                 {
-                    NugetPackageIdentifier dependency = new NugetPackageIdentifier();
-                    dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
-                    dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
-                    nuspec.Dependencies.Add(dependency);
+                    foreach (var iGroup in groups) // add dependancy in game
+                    {
+                        nuspec.AddDependancies(iGroup, nuspecNamespace);
+                    }
+                }
+                else // no groups; add children of "dependancies"
+                {
+                    nuspec.AddDependancies(dependenciesElement, nuspecNamespace);
                 }
             }
 
@@ -309,12 +372,26 @@
             {
                 //UnityEngine.Debug.Log("Saving dependencies!");
                 var dependenciesElement = new XElement("dependencies");
-                foreach (var dependency in Dependencies)
+                foreach (var kvp in Dependencies)
                 {
-                    var dependencyElement = new XElement("dependency");
-                    dependencyElement.Add(new XAttribute("id", dependency.Id));
-                    dependencyElement.Add(new XAttribute("version", dependency.Version));
-                    dependenciesElement.Add(dependencyElement);
+                    XElement dependencyGroupElement = dependenciesElement;
+
+                    NugetFrameworkGroup group = kvp.Value;
+                    if(group.TargetFramework != null )
+                    {
+                        var groupElement = new XElement("group");
+                        groupElement.SetAttributeValue(XName.Get("targetFramework"), group.TargetFramework);
+                        dependencyGroupElement = groupElement;
+                    }
+
+                    foreach( var dependency in group.Dependencies)
+                    {
+                        var dependencyElement = new XElement("dependency");
+                        dependencyElement.Add(new XAttribute("id", dependency.Id));
+                        dependencyElement.Add(new XAttribute("version", dependency.Version));
+                        dependencyGroupElement.Add(dependencyElement);
+                    }
+                    
                 }
                 metadata.Add(dependenciesElement);
             }

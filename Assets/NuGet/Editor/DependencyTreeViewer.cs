@@ -107,9 +107,13 @@
             // remove a package as a root if another package is dependent on it
             foreach (NugetPackage package in installedPackages)
             {
-                foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                var framework = NugetHelper.SelectDependencies(package);
+                if (framework != null)
                 {
-                    roots.RemoveAll(p => p.Id == dependency.Id);
+                    foreach (NugetPackageIdentifier dependency in framework.Dependencies)
+                    {
+                        roots.RemoveAll(p => p.Id == dependency.Id);
+                    }
                 }
             }
         }
@@ -149,16 +153,20 @@
                         NugetPackage selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            foreach (var dependency in package.Dependencies)
+                            var framework = NugetHelper.SelectDependencies(package);
+                            if (framework != null)
                             {
-                                if (dependency.Id == selectedPackage.Id)
+                                foreach (var dependency in framework.Dependencies)
                                 {
-                                    parentPackages.Add(package);
+                                    if (dependency.Id == selectedPackage.Id)
+                                    {
+                                        parentPackages.Add(package);
+                                    }
                                 }
                             }
                         }
                     }
-                    
+
                     EditorGUILayout.Space();
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 14;
@@ -183,7 +191,7 @@
                     EditorGUI.indentLevel--;
                     EditorGUILayout.EndScrollView();
                     break;
-            } 
+            }
         }
 
         private void DrawDepencency(NugetPackageIdentifier dependency)
@@ -207,11 +215,28 @@
 
                 if (expanded[package])
                 {
+                    var framework = NugetHelper.SelectDependencies(package);
+                    if (framework == null) { return; }
+
                     EditorGUI.indentLevel++;
-                    foreach (NugetPackageIdentifier dependency in package.Dependencies)
+
+                    bool doTargetFrameworkLabel = !string.IsNullOrEmpty(framework.TargetFramework);
+                    if (doTargetFrameworkLabel)
+                    {
+                        EditorGUILayout.LabelField(framework.TargetFramework);
+                        EditorGUI.indentLevel++;
+                    }
+
+                    foreach (NugetPackageIdentifier dependency in framework.Dependencies)
                     {
                         DrawDepencency(dependency);
                     }
+
+                    if (doTargetFrameworkLabel)
+                    {
+                        EditorGUI.indentLevel--;
+                    }
+
                     EditorGUI.indentLevel--;
                 }
             }

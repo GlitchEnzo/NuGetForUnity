@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Represents a package available from NuGet.
@@ -47,7 +48,12 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies = new List<NugetPackageIdentifier>();
+        public List<NugetFrameworkGroup> Dependencies = new List<NugetFrameworkGroup>();
+
+        public NugetFrameworkGroup FindDependencyGroup( string framework )
+        {
+            return this.Dependencies.FirstOrDefault(g => g.TargetFramework.Equals(framework, StringComparison.InvariantCultureIgnoreCase));
+        }
 
         /// <summary>
         /// Gets or sets the url for the location of the package's source code.
@@ -124,7 +130,7 @@
                 package.Title = package.Id;
             }
 
-            package.Dependencies = nuspec.Dependencies;
+            package.Dependencies = nuspec.Dependencies.Values.ToList();
 
             return package;
         }

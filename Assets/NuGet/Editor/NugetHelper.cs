@@ -12,6 +12,7 @@
     using UnityEngine;
     using Debug = UnityEngine.Debug;
     using System.Security.Cryptography;
+    using System.Text.RegularExpressions;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -36,8 +37,8 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),Path.Combine("NuGet","Cache"));
-        
+        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Path.Combine("NuGet", "Cache"));
+
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
         /// </summary>
@@ -94,7 +95,7 @@
             {
                 return;
             }
-            
+
 #if UNITY_5_6_OR_NEWER
             DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #else
@@ -228,12 +229,12 @@
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     // WorkingDirectory = Path.GetDirectoryName(files[0]),
-                    
+
                     // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
                     // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
                     StandardOutputEncoding = Encoding.GetEncoding(850)
                 });
-            
+
             if (!process.WaitForExit(TimeOut))
             {
                 Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
@@ -301,6 +302,8 @@
 
             // delete directories & files that NuGet normally deletes, but since we are installing "manually" they exist
             DeleteDirectory(packageInstallDirectory + "/_rels");
+            DeleteDirectory(packageInstallDirectory + "/runtimes");
+            DeleteDirectory(packageInstallDirectory + "/ref");
             DeleteDirectory(packageInstallDirectory + "/package");
             DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec");
             DeleteFile(packageInstallDirectory + "/[Content_Types].xml");
@@ -316,129 +319,23 @@
 
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                int intDotNetVersion = (int)DotNetVersion; // c
-                //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
-                bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
-                bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0                
+                var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).ToList();
+                var compatibleDirectoryNameList = SelectCompatibleFrameworks(libDirectories.Select(d => d.Name.ToLower()), false);
 
-                var selectedDirectories = new List<string>();
-
-                // go through the library folders in descending order (highest to lowest version)
-                var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).OrderByDescending(di => di.Name.ToLower());
-                foreach (var directory in libDirectories)
+                // If we have not selected unity frameworks then we want just the highest priority framework.
+                if (compatibleDirectoryNameList.Any() && !compatibleDirectoryNameList.First().Contains("unity"))
                 {
-                    string directoryName = directory.Name.ToLower();
-
-                    // Select the highest .NET library available that is supported
-                    // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                    if (usingStandard2 && directoryName == "netstandard2.0")
-                    {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.6")
-                    {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
-                    }
-                    else if (using46 && directoryName == "net462")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.5")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net461")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.4")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net46")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.3")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net452")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net451")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.2")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net45")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.1")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.0")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net403")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && (directoryName == "net40" || directoryName == "net4"))
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (
-                        directoryName == "unity" ||
-                        directoryName == "net35-unity full v3.5" ||
-                        directoryName == "net35-unity subset v3.5")
-                    {
-                        // Keep all directories targeting Unity within a package
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "unity"));
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity full v3.5"));
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity subset v3.5"));
-                        break;
-                    }
-                    else if (directoryName == "net35")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (directoryName == "net20")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (directoryName == "net11")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
+                    compatibleDirectoryNameList = compatibleDirectoryNameList.Take(1);
                 }
 
+                // Convert to a dictionary to make testing quicker
+                var compatibleDirectoryNameSet = compatibleDirectoryNameList.ToDictionary(k => k);
+
+                var selectedDirectories = libDirectories.Where(d => compatibleDirectoryNameSet.ContainsKey(d.Name.ToLower()));
+                if (libDirectories.Any() && !selectedDirectories.Any())
+                {
+                    LogVerbose("NuGet package {0} {1} has libs, but none compatible with current Unity target framework", package.Id, package.Version);
+                }
 
                 foreach (var dir in selectedDirectories)
                 {
@@ -448,7 +345,7 @@
                 // delete all of the libaries except for the selected one
                 foreach (var directory in libDirectories)
                 {
-                    if (!selectedDirectories.Contains(directory.FullName))
+                    if (!selectedDirectories.Contains(directory))
                     {
                         DeleteDirectory(directory.FullName);
                     }
@@ -1065,6 +962,123 @@
             }
         }
 
+        private static IEnumerable<string> SelectCompatibleFrameworks(IEnumerable<string> availableFrameworks, bool strictFrameworkVersion)
+        {
+            int intDotNetVersion = (int)DotNetVersion;
+            bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+            bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0
+
+            Regex[] frameworksCommon;
+            Version firstInvalidVersion;
+            Version firstValidVersion = new Version(0, 0);
+            if (usingStandard2)
+            {
+                frameworksCommon = new Regex[]
+                {
+                    new Regex(@"^\.NETStandard(\d+)\.(\d+)$", RegexOptions.IgnoreCase),
+                    new Regex(@"^netstandard(\d+)\.(\d+)$", RegexOptions.IgnoreCase),
+                };
+                firstInvalidVersion = new Version(2, 1);
+                if (strictFrameworkVersion)
+                {
+                    firstValidVersion = new Version(2, 0);
+                }
+            }
+            else
+            {
+                frameworksCommon = new Regex[]
+                {
+                    new Regex(@"^\.NETFramework(\d+)\.(\d+)\.?(\d+)?$", RegexOptions.IgnoreCase),
+                    new Regex(@"^net(\d)(\d)(\d)?$", RegexOptions.IgnoreCase),
+                    new Regex(@"^net(\d)(\d)-unity [full|subset] v3.5$", RegexOptions.IgnoreCase),
+                };
+
+                if (using46)
+                {
+                    firstInvalidVersion = new Version(4, 7);
+                    if (strictFrameworkVersion) { firstValidVersion = new Version(4, 6); }
+                }
+                else
+                {
+                    firstInvalidVersion = new Version(3, 6);
+                    if (strictFrameworkVersion) { firstValidVersion = new Version(3, 5); }
+                }
+            }
+
+            Func<GroupCollection, Version> GetVersion = (gc) =>
+            {
+                Func<int, int> GetGroupValue = i =>
+                {
+                    if (gc.Count < i + 1) { return -1; }
+                    if (string.IsNullOrEmpty(gc[i].Value)) { return -1; }
+                    return int.Parse(gc[i].Value);
+                };
+
+                int major = GetGroupValue(1);
+                int minor = GetGroupValue(2);
+                int revision = GetGroupValue(3);
+
+                if (revision != -1) { return new Version(major, minor, revision); }
+
+                return new Version(major, minor);
+            };
+
+
+            var matches = availableFrameworks
+                .SelectMany(g => frameworksCommon.Select(f => f.Matches(g)))
+                .ToList()
+                .Where(m => m.Count >= 1)
+                .Select(m => m[0].Groups)
+                .Where(g => g != null && g.Count >= 3)
+                .Where(g => { var v = GetVersion(g); return v < firstInvalidVersion && v >= firstValidVersion; });
+
+            IEnumerable<string> frameworks = matches
+                .OrderByDescending(g => GetVersion(g))
+                .ThenBy(g => g[0].Value.ToLower().Contains("unity") ? 1 : 0)
+                .Select(g => g[0].Value);
+
+            // If no group, then see if a global dependency group is specified
+            if (!frameworks.Any())
+            {
+                frameworks = availableFrameworks.Where(a => a == string.Empty);
+            }
+
+            return frameworks;
+        }
+
+
+        public static NugetFrameworkGroup SelectDependencies(NugetPackage package)
+        {
+            IEnumerable<string> frameworks = SelectCompatibleFrameworks(package.Dependencies.Select(g => g.TargetFramework), false);
+            if (!frameworks.Any()) { return null; }
+
+            // For dependencies we take the first preference
+            string bestFramework = frameworks.First();
+            return package.Dependencies.Find(g => g.TargetFramework == bestFramework);
+        }
+
+
+        private static void InstallDependencies(NugetPackage package)
+        {
+            NugetFrameworkGroup framework = SelectDependencies(package);
+            if (framework == null)
+            {
+                LogVerbose("Found no dependencies for {0} {1}", package.Id, package.Version);
+                return;
+            }
+
+            foreach (var dependency in framework.Dependencies)
+            {
+                LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                bool installed = InstallIdentifier(dependency);
+                if (!installed)
+                {
+                    throw new Exception(String.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
+                }
+            }
+
+        }
+
         /// <summary>
         /// Installs the given package.
         /// </summary>
@@ -1097,21 +1111,13 @@
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                
+
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
 
                 // install all dependencies
-                foreach (var dependency in package.Dependencies)
-                {
-                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    bool installed = InstallIdentifier(dependency);
-                    if (!installed)
-                    {
-                        throw new Exception(String.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
-                    }
-                }
+                InstallDependencies(package);
 
                 // update packages.config
                 PackagesConfigFile.AddPackage(package);
@@ -1201,6 +1207,8 @@
             {
                 WarnIfDotNetAuthenticationIssue(e);
                 Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e.ToString());
+
+                Uninstall(package);
                 installSuccess = false;
             }
             finally
@@ -1329,17 +1337,21 @@
                 return;
 
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
-            foreach (var folder in directories) {
+            foreach (var folder in directories)
+            {
                 var name = Path.GetFileName(folder);
                 var installed = false;
-                foreach (var package in PackagesConfigFile.Packages) {
+                foreach (var package in PackagesConfigFile.Packages)
+                {
                     var packageName = string.Format("{0}.{1}", package.Id, package.Version);
-                    if (name == packageName) {
+                    if (name == packageName)
+                    {
                         installed = true;
                         break;
                     }
                 }
-                if (!installed) {
+                if (!installed)
+                {
                     LogVerbose("---DELETE unnecessary package {0}", name);
 
                     DeleteDirectory(folder);
@@ -1379,7 +1391,8 @@
             stopwatch.Start();
 
             bool fromCache = false;
-            if (ExistsInDiskCache(url)) {
+            if (ExistsInDiskCache(url))
+            {
                 url = "file:///" + GetFilePath(url);
                 fromCache = true;
             }
@@ -1397,11 +1410,14 @@
 
             Texture2D result = null;
 
-            if (timedout) {
+            if (timedout)
+            {
                 LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
             }
-            else {
-                if (string.IsNullOrEmpty(request.error)) {
+            else
+            {
+                if (string.IsNullOrEmpty(request.error))
+                {
                     result = request.textureNonReadable;
                     LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
                 }
@@ -1409,8 +1425,9 @@
                     LogVerbose("Request error: " + request.error);
             }
 
-           
-            if (result != null && !fromCache) {
+
+            if (result != null && !fromCache)
+            {
                 CacheTextureOnDisk(url, request.bytes);
             }
 
@@ -1418,26 +1435,31 @@
             return result;
         }
 
-        private static void CacheTextureOnDisk(string url, byte[] bytes) {
+        private static void CacheTextureOnDisk(string url, byte[] bytes)
+        {
             string diskPath = GetFilePath(url);
             File.WriteAllBytes(diskPath, bytes);
         }
 
-        private static bool ExistsInDiskCache(string url) {
+        private static bool ExistsInDiskCache(string url)
+        {
             return File.Exists(GetFilePath(url));
         }
 
-        private static string GetFilePath(string url) {
+        private static string GetFilePath(string url)
+        {
             return Path.Combine(Application.temporaryCachePath, GetHash(url));
         }
 
-        private static string GetHash(string s) {
+        private static string GetHash(string s)
+        {
             if (string.IsNullOrEmpty(s))
                 return null;
             MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
             StringBuilder sBuilder = new StringBuilder();
-            for (int i = 0; i < data.Length; i++) {
+            for (int i = 0; i < data.Length; i++)
+            {
                 sBuilder.Append(data[i].ToString("x2"));
             }
             return sBuilder.ToString();
@@ -1486,7 +1508,7 @@
             string environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
             if (!String.IsNullOrEmpty(environmentCredentialProviderPaths))
             {
-                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] {});
+                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] { });
             }
 
             possibleCredentialProviderPaths.Add(NugetConfigFile.RepositoryPath);

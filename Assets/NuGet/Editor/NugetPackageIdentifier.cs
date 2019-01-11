@@ -5,6 +5,7 @@
     /// <summary>
     /// Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
     /// </summary>
+    [Serializable]
     public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackage>
     {
         /// <summary>

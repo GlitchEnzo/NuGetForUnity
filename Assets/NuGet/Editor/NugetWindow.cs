@@ -481,8 +481,6 @@
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            GUIStyle style = GetContrastStyle();
-
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
                 DrawPackages(filteredUpdatePackages);
@@ -771,6 +769,8 @@
             EditorGUILayout.EndVertical();
         }
 
+        private Dictionary<string, bool> packageDependencyFoldout = new Dictionary<string, bool>();
+
         /// <summary>
         /// Draws the given <see cref="NugetPackage"/>.
         /// </summary>
@@ -899,16 +899,41 @@
                     // Show the dependencies
                     if (package.Dependencies.Count > 0)
                     {
-                        EditorStyles.label.wordWrap = true;
-                        EditorStyles.label.fontStyle = FontStyle.Italic;
-                        StringBuilder builder = new StringBuilder();
-                        foreach (var dependency in package.Dependencies)
+                        string foldoutKey = string.Format("{0}.{1}", package.Id, package.Version);
+
+                        bool foldout;
+                        packageDependencyFoldout.TryGetValue(foldoutKey, out foldout);
+                        EditorStyles.foldout.fontSize = 10;
+                        EditorStyles.foldout.fontStyle = FontStyle.Bold;
+                        foldout = EditorGUILayout.Foldout(foldout, "Dependencies");
+                        packageDependencyFoldout[foldoutKey] = foldout;
+
+                        if (foldout)
                         {
-                            builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                            foreach (NugetFrameworkGroup group in package.Dependencies)
+                            {
+
+                                if (!string.IsNullOrEmpty(group.TargetFramework))
+                                {
+                                    EditorStyles.label.fontStyle = FontStyle.Normal;
+                                    EditorGUILayout.LabelField(group.TargetFramework);
+                                    EditorGUI.indentLevel++;
+                                }
+
+                                foreach (var dependency in group.Dependencies)
+                                {
+                                    EditorStyles.label.fontStyle = FontStyle.Italic;
+                                    EditorGUILayout.LabelField(string.Format("{0} {1};", dependency.Id, dependency.Version));
+                                }
+
+                                if (!string.IsNullOrEmpty(group.TargetFramework))
+                                {
+                                    EditorGUI.indentLevel--;
+                                }
+                            }
+
+                            EditorStyles.label.fontStyle = FontStyle.Normal;
                         }
-                        EditorGUILayout.Space();
-                        EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder.ToString()));
-                        EditorStyles.label.fontStyle = FontStyle.Normal;
                     }
 
                     // Create the style for putting a box around the 'Clone' button
