@@ -203,7 +203,15 @@
             }
             else
             {
-                Debug.LogErrorFormat("{0} {1} is not installed!", dependency.Id, dependency.Version);
+                var StateFieldLabel = new GUIStyle(EditorStyles.textField)
+                {
+                    normal = new GUIStyleState()
+                    {
+                        textColor = Color.red
+                    }
+                };
+
+                EditorGUILayout.LabelField(string.Format("{0} {1}", dependency.Id, dependency.Version), StateFieldLabel);
             }
         }
 
