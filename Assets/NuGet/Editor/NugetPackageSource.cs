@@ -423,6 +423,9 @@
 
                 foreach (var package in packageGroup)
                 {
+                    if (package.RepositoryUrl == "BuildIn")
+                        continue;
+
                     if (string.IsNullOrEmpty(packageIds))
                     {
                         packageIds += package.Id;

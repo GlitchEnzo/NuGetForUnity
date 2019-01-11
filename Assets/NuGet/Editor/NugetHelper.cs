@@ -44,6 +44,16 @@
         /// </summary>
         private const int TimeOut = 60000;
 
+        private static readonly NugetPackage[] BuildInPackages = new NugetPackage[] {
+            new NugetPackage() {
+                Id = "System.Runtime.InteropServices.RuntimeInformation",
+                Title = "System.Runtime.InteropServices.RuntimeInformation",
+                Description = "Provides APIs to query about runtime and OS information. \nBuilt in package",
+                RepositoryUrl = "BuildIn",
+                Version = "4.3.0"
+            }
+        };
+
         /// <summary>
         /// The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
@@ -718,6 +728,12 @@
             }
 
             stopwatch.Stop();
+
+            foreach (var buidlInPackage in BuildInPackages)
+            {
+                installedPackages.Add(buidlInPackage.Id, buidlInPackage);
+            }
+
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
         }
 

@@ -820,50 +820,53 @@
                 }
                 EditorGUILayout.EndHorizontal();
 
-                if (installedPackages.Contains(package))
+                if (installed == null || installed.RepositoryUrl != "BuildIn")
                 {
-                    // This specific version is installed
-                    if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
+                    if (installedPackages.Contains(package))
                     {
-                        // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
-                        NugetHelper.Uninstall(package);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
-                    }
-                }
-                else
-                {
-                    if (installed != null)
-                    {
-                        if (installed < package)
+                        // This specific version is installed
+                        if (GUILayout.Button("Uninstall", installButtonWidth, installButtonHeight))
                         {
-                            // An older version is installed
-                            if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                        else if (installed > package)
-                        {
-                            // A newer version is installed
-                            if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
+                            // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
+                            NugetHelper.Uninstall(package);
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
                         }
                     }
                     else
                     {
-                        if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
+                        if (installed != null)
                         {
-                            NugetHelper.InstallIdentifier(package);
-                            AssetDatabase.Refresh();
-                            NugetHelper.UpdateInstalledPackages();
-                            UpdateUpdatePackages();
+                            if (installed < package)
+                            {
+                                // An older version is installed
+                                if (GUILayout.Button(string.Format("Update to [{0}]", package.Version), installButtonWidth, installButtonHeight))
+                                {
+                                    NugetHelper.Update(installed, package);
+                                    NugetHelper.UpdateInstalledPackages();
+                                    UpdateUpdatePackages();
+                                }
+                            }
+                            else if (installed > package)
+                            {
+                                // A newer version is installed
+                                if (GUILayout.Button(string.Format("Downgrade to [{0}]", package.Version), installButtonWidth, installButtonHeight))
+                                {
+                                    NugetHelper.Update(installed, package);
+                                    NugetHelper.UpdateInstalledPackages();
+                                    UpdateUpdatePackages();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (GUILayout.Button("Install", installButtonWidth, installButtonHeight))
+                            {
+                                NugetHelper.InstallIdentifier(package);
+                                AssetDatabase.Refresh();
+                                NugetHelper.UpdateInstalledPackages();
+                                UpdateUpdatePackages();
+                            }
                         }
                     }
                 }
@@ -1056,7 +1059,10 @@
                 {
                     GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
                     labelStyle.alignment = TextAnchor.UpperRight;
-                    GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
+                    if(installed.RepositoryUrl == "BuildIn")
+                        GUILayout.Label("Build in package", labelStyle, installButtonWidth);
+                    else
+                        GUILayout.Label(string.Format("currently [{0}]  ", installed.Version), labelStyle, installButtonWidth);
                 }
             }
             EditorGUILayout.EndHorizontal();
