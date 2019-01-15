@@ -84,7 +84,7 @@ When a package is installed, the *packages.config* file in the project is automa
 
 ![](screenshots/menu_item.png?raw=true)
 
-Note: Depending on the size and number of packages you need to isntalled, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
+Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console.  Add the line `<add key="verbose" value="true" />` to the `<config>` element in the *NuGet.config* file.  You can disable verbose logging by either setting the value to false or completely deleting the line.
 
