@@ -53,6 +53,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\PackagesConfigFilePostProcessor.cs" />
     <Compile Include="DependencyTreeViewer.cs" />
     <Compile Include="Core\NugetConfigFile.cs" />
     <Compile Include="Core\NugetFrameworkGroup.cs" />

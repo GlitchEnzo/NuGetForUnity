@@ -30,10 +30,12 @@
         /// </summary>
         public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, "./NuGet.config");
 
+        public static readonly string PackagesFileName = "packages.config";
+
         /// <summary>
         /// The path to the packages.config file.
         /// </summary>
-        private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
+        public static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, PackagesFileName);
 
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
@@ -64,10 +66,14 @@
             {
                 if (packagesConfigFile == null)
                 {
-                    packagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
+                    LoadPackagesConfigFile();
                 }
 
                 return packagesConfigFile;
+            }
+            set
+            {
+                packagesConfigFile = value;
             }
         }
 
@@ -115,7 +121,15 @@
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
             Restore();
         }
+            
+        public static PackagesConfigFile LoadPackagesConfigFile()
+        {
+            packagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
 
+            return packagesConfigFile;
+        }
+
+    
         /// <summary>
         /// Loads the NuGet.config file.
         /// </summary>
