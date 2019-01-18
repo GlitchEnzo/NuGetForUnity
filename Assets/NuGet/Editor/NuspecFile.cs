@@ -89,6 +89,26 @@
         public string Tags { get; set; }
 
         /// <summary>
+        /// Gets or sets the url for the location of the package's source code.
+        /// </summary>
+        public string RepositoryUrl;
+
+        /// <summary>
+        /// Gets or sets the type of source control software that the package's source code resides in.
+        /// </summary>
+        public string RepositoryType;
+
+        /// <summary>
+        /// Gets or sets the source control branch the package is from.
+        /// </summary>
+        public string RepositoryBranch;
+
+        /// <summary>
+        /// Gets or sets the source control commit the package is from.
+        /// </summary>
+        public string RepositoryCommit;
+
+        /// <summary>
         /// Gets or sets the list of content files listed in the .nuspec file.
         /// </summary>
         public List<NuspecContentFile> Files { get; set; }
@@ -180,6 +200,16 @@
             nuspec.ReleaseNotes = (string)metadata.Element(XName.Get("releaseNotes", nuspecNamespace)) ?? string.Empty;
             nuspec.Copyright = (string)metadata.Element(XName.Get("copyright", nuspecNamespace));
             nuspec.Tags = (string)metadata.Element(XName.Get("tags", nuspecNamespace)) ?? string.Empty;
+
+            var repositoryElement = metadata.Element(XName.Get("repository", nuspecNamespace));
+
+            if (repositoryElement != null)
+            {
+                nuspec.RepositoryType = (string)repositoryElement.Attribute(XName.Get("type")) ?? string.Empty;
+                nuspec.RepositoryUrl = (string)repositoryElement.Attribute(XName.Get("url")) ?? string.Empty;
+                nuspec.RepositoryBranch = (string)repositoryElement.Attribute(XName.Get("branch")) ?? string.Empty;
+                nuspec.RepositoryCommit = (string)repositoryElement.Attribute(XName.Get("commit")) ?? string.Empty;
+            }
 
             nuspec.Dependencies = new List<NugetPackageIdentifier>();
             var dependenciesElement = metadata.Element(XName.Get("dependencies", nuspecNamespace));

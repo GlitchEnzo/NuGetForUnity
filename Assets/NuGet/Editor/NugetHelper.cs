@@ -36,8 +36,8 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        public static readonly string PackOutputDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\NuGet\\Cache";
-
+        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),Path.Combine("NuGet","Cache"));
+        
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
         /// </summary>
@@ -208,20 +208,32 @@
 
             LogVerbose("Running: {0} \nArgs: {1}", files[0], arguments);
 
-            Process process = new Process();
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.FileName = files[0];
-            process.StartInfo.Arguments = arguments;
-            process.StartInfo.CreateNoWindow = true;
-            //process.StartInfo.WorkingDirectory = Path.GetDirectoryName(files[0]);
+            string fileName = string.Empty;
+            string commandLine = string.Empty;
 
-            // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
-            // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-            process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
-            process.Start();
-
+#if UNITY_EDITOR_OSX
+            // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
+            fileName = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
+            commandLine = " " + files[0] + " " + arguments;
+            LogVerbose("command: " + commandLine);
+#else
+            fileName = files[0];
+            commandLine = arguments;
+#endif
+            Process process = Process.Start(
+                new ProcessStartInfo(fileName, commandLine)
+                {
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    // WorkingDirectory = Path.GetDirectoryName(files[0]),
+                    
+                    // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
+                    // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
+                    StandardOutputEncoding = Encoding.GetEncoding(850)
+                });
+            
             if (!process.WaitForExit(TimeOut))
             {
                 Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
@@ -717,11 +729,11 @@
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the assets inside Unity.  False to ignore them (for now).  Defaults to true.</param>
-        public static void Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion, bool refreshAssets = true)
+        public static bool Update(NugetPackageIdentifier currentVersion, NugetPackage newVersion, bool refreshAssets = true)
         {
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
-            InstallIdentifier(newVersion, refreshAssets);
+            return InstallIdentifier(newVersion, refreshAssets);
         }
 
         /// <summary>
@@ -729,7 +741,7 @@
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
-        public static void UpdateAll(IEnumerable<NugetPackage> updates, List<NugetPackage> packagesToUpdate)
+        public static void UpdateAll(IEnumerable<NugetPackage> updates, IEnumerable<NugetPackage> packagesToUpdate)
         {
             float progressStep = 1.0f / updates.Count();
             float currentProgress = 0;
@@ -760,7 +772,12 @@
         /// Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
         /// <returns>A dictionary of installed <see cref="NugetPackage"/>s.</returns>
-        public static Dictionary<string, NugetPackage> GetInstalledPackages()
+        public static IEnumerable<NugetPackage> InstalledPackages { get { return installedPackages.Values; } }
+
+        /// <summary>
+        /// Updates the dictionary of packages that are actually installed in the project based on the files that are currently installed.
+        /// </summary>
+        public static void UpdateInstalledPackages()
         {
             LoadNugetConfigFile();
 
@@ -805,8 +822,6 @@
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
-
-            return installedPackages;
         }
 
         /// <summary>
@@ -845,7 +860,7 @@
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public static List<NugetPackage> GetUpdates(List<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public static List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> packagesToUpdate, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
@@ -955,27 +970,39 @@
             foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
                 var foundPackage = source.GetSpecificPackage(packageId);
-                if (foundPackage != null)
+                if (foundPackage == null)
                 {
-                    if (package == null)
-                    {
-                        // if another package hasn't been found yet, use the current found one
-                        LogVerbose("{0} {1} was found in {2}, and wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                        package = foundPackage;
-                    }
-                    else
-                    {
-                        // another package has been found previously, but neither match identically
-                        if (foundPackage < package)
-                        {
-                            // use the new package if it's closer to the desired version
-                            LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
-                            package = foundPackage;
-                        }
-                    }
+                    continue;
+                }
+
+                if (foundPackage.Version == packageId.Version)
+                {
+                    LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
+                    return foundPackage;
+                }
+
+                LogVerbose("{0} {1} was found in {2}, but wanted {3}", foundPackage.Id, foundPackage.Version, source.Name, packageId.Version);
+                if (package == null)
+                {
+                    // if another package hasn't been found yet, use the current found one
+                    package = foundPackage;
+                }
+                // another package has been found previously, but neither match identically
+                else if (foundPackage > package)
+                {
+                    // use the new package if it's closer to the desired version
+                    package = foundPackage;
                 }
             }
-
+            if (package != null)
+            {
+                LogVerbose("{0} {1} not found, using {2}", packageId.Id, packageId.Version, package.Version);
+            }
+            else
+            {
+                LogVerbose("Failed to find {0} {1}", packageId.Id, packageId.Version);
+            }
+            
             return package;
         }
 
@@ -997,17 +1024,18 @@
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static void InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
             {
-                Install(foundPackage, refreshAssets);
+                return Install(foundPackage, refreshAssets);
             }
             else
             {
                 Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
+                return false;
             }
         }
 
@@ -1042,31 +1070,34 @@
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        public static void Install(NugetPackage package, bool refreshAssets = true)
+        public static bool Install(NugetPackage package, bool refreshAssets = true)
         {
+            NugetPackage installedPackage = null;
+            if (installedPackages.TryGetValue(package.Id, out installedPackage))
+            {
+                if (installedPackage < package)
+                {
+                    LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
+                    return Update(installedPackage, package, false);
+                }
+                else if (installedPackage > package)
+                {
+                    LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
+                }
+                else
+                {
+                    LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
+                }
+                return true;
+            }
+
+            bool installSuccess = false;
             try
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                NugetPackage installedPackage = null;
-                if (installedPackages.TryGetValue(package.Id, out installedPackage))
-                {
-                    if (installedPackage < package)
-                    {
-                        LogVerbose("{0} {1} is installed, but need {2} or greater. Updating to {3}", installedPackage.Id, installedPackage.Version, package.Version, package.Version);
-                        Update(installedPackage, package, false);
-                    }
-                    else if (installedPackage > package)
-                    {
-                        LogVerbose("{0} {1} is installed. {2} or greater is needed, so using installed version.", installedPackage.Id, installedPackage.Version, package.Version);
-                    }
-                    else
-                    {
-                        LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
-                    }
-                    return;
-                }
+                
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
@@ -1075,7 +1106,11 @@
                 foreach (var dependency in package.Dependencies)
                 {
                     LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    InstallIdentifier(dependency);
+                    bool installed = InstallIdentifier(dependency);
+                    if (!installed)
+                    {
+                        throw new Exception(String.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
+                    }
                 }
 
                 // update packages.config
@@ -1160,11 +1195,13 @@
 
                 // update the installed packages list
                 installedPackages.Add(package.Id, package);
+                installSuccess = true;
             }
             catch (Exception e)
             {
                 WarnIfDotNetAuthenticationIssue(e);
-                Debug.LogErrorFormat("Unable to install package {0}\n{1}", package.Id, e.ToString());
+                Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e.ToString());
+                installSuccess = false;
             }
             finally
             {
@@ -1175,6 +1212,7 @@
                     EditorUtility.ClearProgressBar();
                 }
             }
+            return installSuccess;
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
@@ -1234,7 +1272,7 @@
         /// </summary>
         public static void Restore()
         {
-            GetInstalledPackages();
+            UpdateInstalledPackages();
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -1285,7 +1323,11 @@
             }
         }
 
-        internal static void CheckForUnnecessaryPackages() {
+        internal static void CheckForUnnecessaryPackages()
+        {
+            if (!Directory.Exists(NugetConfigFile.RepositoryPath))
+                return;
+
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
             foreach (var folder in directories) {
                 var name = Path.GetFileName(folder);
