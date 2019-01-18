@@ -91,7 +91,10 @@
     </Compile>
     <Compile Include="..\Assets\NuGet\Editor\RepositoryType.cs">
       <Link>RepositoryType.cs</Link>
-    </Compile>
+    </Compile>  
+    <Compile Include="..\Assets\NuGet\Editor\NugetImageLoader.cs">
+      <Link>NugetImageLoader.cs</Link>
+    </Compile> 
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
