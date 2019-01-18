@@ -1,4 +1,6 @@
-﻿namespace NugetForUnity
+﻿using System;
+
+namespace NugetForUnity
 {
     using System.Collections.Generic;
     using System.IO;
@@ -30,6 +32,10 @@
         /// The API key used to verify an acceptable package being pushed to the server.
         /// </summary>
         private string apiKey = string.Empty;
+
+        private Texture2D icon;
+        private IDisposable currRequest;
+        private bool initied;
 
         /// <summary>
         /// Creates a new MyPackage.nuspec file.
@@ -181,6 +187,32 @@
                 nuspec.LicenseUrl = EditorGUILayout.TextField(new GUIContent("License URL", "The URL for the license of the package."), nuspec.LicenseUrl);
                 nuspec.ProjectUrl = EditorGUILayout.TextField(new GUIContent("Project URL", "The URL of the package project."), nuspec.ProjectUrl);
                 nuspec.IconUrl = EditorGUILayout.TextField(new GUIContent("Icon URL", "The URL for the icon of the package."), nuspec.IconUrl);
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    const int iconSize = 50;
+                    const int leftPadding = 5;
+                    var rect = GUILayoutUtility.GetRect(iconSize, iconSize);
+                    rect.x = leftPadding;
+                    rect.width = iconSize;
+                    rect.height = iconSize;
+
+                    if(icon!=null)
+                        GUI.DrawTexture(rect, icon, ScaleMode.StretchToFill);
+                }
+                EditorGUILayout.EndHorizontal();
+
+                if (!initied || GUI.changed) {
+                    initied = true;
+
+                    if (currRequest != null)
+                        currRequest.Dispose();
+
+                    currRequest = NugetImageLoader.TryDownloadImage(nuspec.IconUrl, tex => {
+                        icon = tex;
+                    });
+                }
+
                 nuspec.RequireLicenseAcceptance = EditorGUILayout.Toggle(new GUIContent("Require License Acceptance", "Does the package license need to be accepted before use?"), nuspec.RequireLicenseAcceptance);
                 nuspec.Description = EditorGUILayout.TextField(new GUIContent("Description", "The description of the package."), nuspec.Description);
                 nuspec.ReleaseNotes = EditorGUILayout.TextField(new GUIContent("Release Notes", "The release notes for this specific version of the package."), nuspec.ReleaseNotes);

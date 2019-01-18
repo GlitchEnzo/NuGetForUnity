@@ -78,7 +78,9 @@
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
-                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
+               NugetImageLoader.TryDownloadImage(nuspec.IconUrl, tex => {
+                   package.Icon = tex;
+               });
             }
 
             // if there is no title, just use the ID as the title

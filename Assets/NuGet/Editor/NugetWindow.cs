@@ -302,6 +302,7 @@
         private void OnEnable()
         {
             Refresh(false);
+            NugetImageLoader.OnCompleteLoad += Repaint;
         }
 
         private void Refresh(bool forceFullRefresh)
