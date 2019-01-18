@@ -121,14 +121,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        /// Called when enabling the window.
-        /// </summary>
-        private void OnFocus()
-        {
-            Reload();
-        }
-
-        /// <summary>
         /// Reloads the .nuspec file when the selection changes.
         /// </summary>
         void OnSelectionChange()
