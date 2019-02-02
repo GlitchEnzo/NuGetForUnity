@@ -179,6 +179,16 @@
         }
 
         /// <summary>
+        /// Finds all packages that include source code. We generate the
+        /// mdb with 'pdb2mdb' mono utility.
+        /// </summary>
+        [MenuItem("Window/NuGet/Generate Mdbs and Rebase", false, 2)]
+        protected static void GenerateMdb()
+        {
+            NugetHelper.GenerateMdbsAndRebaseForInstalledPackages();
+        }
+
+        /// <summary>
         /// Displays the version number of NuGetForUnity.
         /// </summary>
         [MenuItem("Window/NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
@@ -849,63 +859,6 @@
             DrawPackageDescription(package);
             DrawProjectUrl(package);
 
-            /*
-            if (showCloneWindow)
-            {
-                EditorGUILayout.BeginVertical(cloneWindowStyle);
-                {
-                    // Clone latest label
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Space(20f);
-                    EditorGUILayout.LabelField("clone latest");
-                    EditorGUILayout.EndHorizontal();
-
-                    // Clone latest row
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
-                        {
-                            GUI.FocusControl(package.Id + package.Version + "repoUrl");
-                            GUIUtility.systemCopyBuffer = package.RepositoryUrl;
-                        }
-
-                        GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
-                        EditorGUILayout.TextField(package.RepositoryUrl);
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    // Clone @ commit label
-                    GUILayout.Space(4f);
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Space(20f);
-                    EditorGUILayout.LabelField("clone @ commit");
-                    EditorGUILayout.EndHorizontal();
-
-                    // Clone @ commit row
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
-                        string commands = string.Format("git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",  package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
-
-                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
-                        {
-                            GUI.FocusControl(package.Id + package.Version + "commands");
-
-                            // Add a newline so the last command will execute when pasted to the CL
-                            GUIUtility.systemCopyBuffer = (commands + Environment.NewLine);
-                        }
-
-                        EditorGUILayout.BeginVertical();
-                        GUI.SetNextControlName(package.Id + package.Version + "commands");
-                        EditorGUILayout.TextArea(commands);
-                        EditorGUILayout.EndVertical();
-                    }
-                    EditorGUILayout.EndHorizontal();
-                }
-                EditorGUILayout.EndVertical();
-            }
-            */
-
             GUILayout.EndVertical();
 
             var packageRect = GUILayoutUtility.GetLastRect();
@@ -914,9 +867,66 @@
             {
                 SelectPackageForDetail(package);
                 GUIUtility.ExitGUI();
+
+                Repaint();
             }
 
             DrawCurrentInstalledVersion(package);
+        }
+
+        private static void DrawCloneWindow(NugetPackage package)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                // Clone latest label
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(20f);
+                EditorGUILayout.LabelField("clone latest");
+                EditorGUILayout.EndHorizontal();
+
+                // Clone latest row
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                    {
+                        GUI.FocusControl(package.Id + package.Version + "repoUrl");
+                        GUIUtility.systemCopyBuffer = package.RepositoryUrl;
+                    }
+
+                    GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
+                    EditorGUILayout.TextField(package.RepositoryUrl);
+                }
+                EditorGUILayout.EndHorizontal();
+
+                // Clone @ commit label
+                GUILayout.Space(4f);
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(20f);
+                EditorGUILayout.LabelField("clone @ commit");
+                EditorGUILayout.EndHorizontal();
+
+                // Clone @ commit row
+                EditorGUILayout.BeginHorizontal();
+                {
+                    // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
+                    string commands = string.Format("git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}", package.RepositoryUrl, package.Id, Environment.NewLine, package.RepositoryCommit);
+
+                    if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                    {
+                        GUI.FocusControl(package.Id + package.Version + "commands");
+
+                        // Add a newline so the last command will execute when pasted to the CL
+                        GUIUtility.systemCopyBuffer = (commands + Environment.NewLine);
+                    }
+
+                    EditorGUILayout.BeginVertical();
+                    GUI.SetNextControlName(package.Id + package.Version + "commands");
+                    EditorGUILayout.TextArea(commands);
+                    EditorGUILayout.EndVertical();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawCurrentInstalledVersion(NugetPackage package)
@@ -940,15 +950,20 @@
                     if (GUILayout.Button("Clone", EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
                     {
                         showCloneWindow = !showCloneWindow;
+
+                        if (showCloneWindow)
+                        {
+                            openCloneWindows.Add(package);
+                        }
+                        else
+                        {
+                            openCloneWindows.Remove(package);
+                        }
                     }
 
-                    if (showCloneWindow)
+                    if(showCloneWindow)
                     {
-                        openCloneWindows.Add(package);
-                    }
-                    else
-                    {
-                        openCloneWindows.Remove(package);
+                        DrawCloneWindow(package);
                     }
                 }
             }
