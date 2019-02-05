@@ -14,6 +14,7 @@
     using System.Security.Cryptography;
     using ICSharpCode.SharpZipLib.Tar;
     using ICSharpCode.SharpZipLib.GZip;
+    using NuGet.Unity;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -617,18 +618,37 @@
             }
         }
 
-        public static void GenerateMdbsAndRebaseForInstalledPackages()
+        public static void GenerateMdbsForInstalledPackages()
         {
             var index = 0;
             var total = InstalledPackages.Count();
 
             foreach(var package in InstalledPackages)
             {
-                EditorUtility.DisplayProgressBar("Mdb Generation and Rebase", $"Processing package: {package.Id}.{package.Version}", (float)index / total);
+                EditorUtility.DisplayProgressBar("Mdb Generation", $"Processing package: {package.Id}.{package.Version}", (float)index / total);
 
                 if(HasSourceCodeForPackage(package))
                 {
                     GenerateMdbForPackage(package);
+                }
+
+                index++;
+            }
+
+            EditorUtility.ClearProgressBar();
+        }
+
+        public static void RebaseForInstalledPackages()
+        {
+            var index = 0;
+            var total = InstalledPackages.Count();
+
+            foreach (var package in InstalledPackages)
+            {
+                EditorUtility.DisplayProgressBar("Mdb Rebase", $"Processing package: {package.Id}.{package.Version}", (float)index / total);
+
+                if (HasSourceCodeForPackage(package))
+                {
                     MdbRebaseForPackage(package);
                 }
 
@@ -655,7 +675,7 @@
 
             foreach(var dllPath in dlls)
             {
-                Pdb2Mdb(dllPath);
+                DebugSymbolUtility.GenerateMdbFromAssembly(dllPath);
             }
         }
 
@@ -669,10 +689,8 @@
 
             foreach(var mdbPath in mdbs)
             {
-                foreach (var sourceFile in sourceFiles)
-                {
-                    MdbRelocateForFile(mdbPath, sourceFile, sourceCodeDirectory);
-                }
+                Debug.Log(mdbPath);
+                DebugSymbolUtility.MdbRebase(mdbPath, sourceCodeDirectory, sourceFiles.ToArray());
             }
         }
 
@@ -706,112 +724,6 @@
 
             return filePaths;
         }
-
-
-        public static void Pdb2Mdb(string dllPath)
-        {
-            var osPlatform = Environment.OSVersion.Platform;
-            var mdbArgs = string.Empty;
-            var cmdPath = string.Empty;
-            var process = new Process();
-            var error = string.Empty;
-
-            switch (osPlatform)
-            {
-                case PlatformID.Win32S:
-                case PlatformID.Win32Windows:
-                case PlatformID.Win32NT:
-                case PlatformID.WinCE:
-                case PlatformID.Xbox:
-                    cmdPath = @"C:\Program Files\Mono\bin\pdb2mdb.bat";
-                    mdbArgs = dllPath;
-
-                    process.StartInfo = new ProcessStartInfo(cmdPath, $"\"{mdbArgs}\"");
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.Start();
-                    process.WaitForExit();
-
-                    error = process.StandardError.ReadToEnd();
-                    if(!string.IsNullOrEmpty(error))
-                    {
-                        Debug.LogError(error);
-                    }
-                    break;
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                    cmdPath = "/Library/Frameworks/Mono.framework/Versions/Current/bin/pdb2mdb";
-                    mdbArgs = dllPath;
-
-                    process.StartInfo = new ProcessStartInfo("/bin/bash", $"-C \"{cmdPath}\" {mdbArgs}");
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.Start();
-                    process.WaitForExit();
-                    error = process.StandardError.ReadToEnd();
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        Debug.LogError(error);
-                    }
-                    break;
-
-            }
-        }
-
-        public static void MdbRelocateForFile(string mdbPath, string relativeFilePath, string sourceInstallDirectory)
-        {
-            var escapedRelativeFilePath = relativeFilePath.Replace("\\", "\\\\");
-            var osPlatform = Environment.OSVersion.Platform;
-            var mdbArgs = string.Empty;
-            var cmdPath = string.Empty;
-            var process = new Process();
-            var error = string.Empty;
-
-            switch (osPlatform)
-            {
-                case PlatformID.Win32S:
-                case PlatformID.Win32Windows:
-                case PlatformID.Win32NT:
-                case PlatformID.WinCE:
-                case PlatformID.Xbox:
-                    cmdPath = @"C:\Program Files\Mono\bin\mdbrebase";
-                    mdbArgs = $@"-r -i=(\/?\\?.+)({escapedRelativeFilePath}) -o={sourceInstallDirectory}{relativeFilePath} -v {mdbPath}";
-
-                    process.StartInfo = new ProcessStartInfo("CMD.exe", $"/C \"{cmdPath}\" {mdbArgs}");
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.Start();
-                    process.WaitForExit();
-                    error = process.StandardError.ReadToEnd();
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        Debug.LogError(error);
-                    }
-                    break;
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                    cmdPath = "/Library/Frameworks/Mono.framework/Versions/Current/bin/mdbrebase";
-                    mdbArgs = $@"-r -i=(\/?\\?.+)({escapedRelativeFilePath}) -o={sourceInstallDirectory}{relativeFilePath} -v {mdbPath}";
-
-                    process.StartInfo = new ProcessStartInfo("/bin/bash", $"-C \"{cmdPath}\" {mdbArgs}");
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.Start();
-                    process.WaitForExit();
-                    error = process.StandardError.ReadToEnd();
-                    if (!string.IsNullOrEmpty(error))
-                    {
-                        Debug.LogError(error);
-                    }
-                    break;
-            }
-
-        }
-
        
         public static string FetchFirstFileWithExtension(string packageInstallDirectory, string extension)
         {

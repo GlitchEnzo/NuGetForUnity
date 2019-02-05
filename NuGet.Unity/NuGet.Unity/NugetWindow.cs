@@ -182,10 +182,16 @@
         /// Finds all packages that include source code. We generate the
         /// mdb with 'pdb2mdb' mono utility.
         /// </summary>
-        [MenuItem("Window/NuGet/Generate Mdbs and Rebase", false, 2)]
+        [MenuItem("Window/NuGet/Generate Mdbs", false, 2)]
         protected static void GenerateMdb()
         {
-            NugetHelper.GenerateMdbsAndRebaseForInstalledPackages();
+            NugetHelper.GenerateMdbsForInstalledPackages();
+        }
+
+        [MenuItem("Window/NuGet/Rebase Mdbs", false, 2)]
+        protected static void RebaseMdbs()
+        {
+            NugetHelper.RebaseForInstalledPackages();
         }
 
         /// <summary>
