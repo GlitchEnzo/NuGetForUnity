@@ -92,6 +92,12 @@
     <Compile Include="..\Assets\NuGet\Editor\RepositoryType.cs">
       <Link>RepositoryType.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\TargetFrameworkMonikerComparer.cs">
+      <Link>TargetFrameworkMonikerComparer.cs</Link>
+    </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\UnityProjectHelper.cs">
+      <Link>UnityProjectHelper.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
