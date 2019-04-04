@@ -311,6 +311,10 @@
             // For now, delete src.  We may use it later...
             DeleteDirectory(packageInstallDirectory + "/src");
 
+            // Since we don't automatically fix up the runtime dll platforms, remove them until we improve support
+            // for this newer feature of nuget packages.
+            DeleteDirectory(Path.Combine(packageInstallDirectory, "runtimes"));
+
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
 
