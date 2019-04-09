@@ -321,7 +321,7 @@
 
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                Debug.Log($"DotNetVersion: {DotNetVersion}");
+                //Debug.Log($"DotNetVersion: {DotNetVersion}");
 
                 // The DotNetVersion will be 0 because if the InitializeOnLoad not loaded again
                 if (DotNetVersion == 0)
