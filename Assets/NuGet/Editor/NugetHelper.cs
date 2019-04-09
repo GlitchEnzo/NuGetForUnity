@@ -36,8 +36,8 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),Path.Combine("NuGet","Cache"));
-        
+        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Path.Combine("NuGet", "Cache"));
+
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
         /// </summary>
@@ -94,9 +94,10 @@
             {
                 return;
             }
-            
+
 #if UNITY_5_6_OR_NEWER
             DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+            Debug.LogWarning(string.Format("The project's API version is {0} attention please the API version supproted you want to download the nuget package.", DotNetVersion));
 #else
             DotNetVersion = PlayerSettings.apiCompatibilityLevel;
 #endif
@@ -228,12 +229,12 @@
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     // WorkingDirectory = Path.GetDirectoryName(files[0]),
-                    
+
                     // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
                     // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
                     StandardOutputEncoding = Encoding.GetEncoding(850)
                 });
-            
+
             if (!process.WaitForExit(TimeOut))
             {
                 Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
@@ -320,10 +321,22 @@
 
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                int intDotNetVersion = (int)DotNetVersion; // c
+                Debug.Log($"DotNetVersion: {DotNetVersion}");
+
+                // The DotNetVersion will be 0 because if the InitializeOnLoad not loaded again
+                if (DotNetVersion == 0)
+                {
+#if UNITY_5_6_OR_NEWER
+                    DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+#else
+                    DotNetVersion = PlayerSettings.apiCompatibilityLevel;
+#endif
+                }
+
+                //int intDotNetVersion = (int)DotNetVersion; // c
                 //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
-                bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
-                bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0                
+                //bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+                //bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0                
 
                 var selectedDirectories = new List<string>();
 
@@ -335,82 +348,82 @@
 
                     // Select the highest .NET library available that is supported
                     // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                    if (usingStandard2 && directoryName == "netstandard2.0")
-                    {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.6")
-                    {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
-                    }
-                    else if (using46 && directoryName == "net462")
+                    if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard2.0")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.5")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.6")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net461")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net462")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.4")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.5")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net46")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net461")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.3")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.4")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net452")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net46")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net451")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.3")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.2")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net452")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net45")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net451")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.1")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.2")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.0")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net45")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && directoryName == "net403")
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.1")
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else if (using46 && (directoryName == "net40" || directoryName == "net4"))
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_Standard_2_0 && directoryName == "netstandard1.0")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && directoryName == "net403")
+                    {
+                        selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else if (DotNetVersion == ApiCompatibilityLevel.NET_4_6 && (directoryName == "net40" || directoryName == "net4"))
                     {
                         selectedDirectories.Add(directory.FullName);
                         break;
@@ -439,6 +452,13 @@
                     else if (directoryName == "net11")
                     {
                         selectedDirectories.Add(directory.FullName);
+                        break;
+                    }
+                    else
+                    {
+                        string versionName = GetNuGetVersionName(directoryName);
+                        // Current API version is NET_Standard_2_0; NET_Standard_4_5 is required to support this NuGet package.
+                        Debug.LogError(string.Format("Current API version is {0}; {1} is required to support this NuGet package.", DotNetVersion, versionName));
                         break;
                     }
                 }
@@ -581,6 +601,94 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
+        }
+
+        private static string GetNuGetVersionName(string directoryName)
+        {
+            string versionName = "";
+
+            if (directoryName == "netstandard2.0")
+            {
+                versionName = "NET_Standard_2_0";
+            }
+            else if (directoryName == "netstandard1.6")
+            {
+                versionName = "NET_Standard_1_6";
+            }
+            else if (directoryName == "net462")
+            {
+                versionName = "NET_4_6_2";
+            }
+            else if (directoryName == "netstandard1.5")
+            {
+                versionName = "NET_Standard_1_5";
+            }
+            else if (directoryName == "net461")
+            {
+                versionName = "NET_4_6_1";
+            }
+            else if (directoryName == "netstandard1.4")
+            {
+                versionName = "NET_Standard_1_4";
+            }
+            else if (directoryName == "net46")
+            {
+                versionName = "NET_4_6";
+            }
+            else if (directoryName == "netstandard1.3")
+            {
+                versionName = "NET_Standard_1_3";
+            }
+            else if (directoryName == "net452")
+            {
+                versionName = "NET_4_5_2";
+            }
+            else if (directoryName == "net451")
+            {
+                versionName = "NET_4_5_1";
+            }
+            else if (directoryName == "netstandard1.2")
+            {
+                versionName = "NET_Standard_1_2";
+            }
+            else if (directoryName == "net45")
+            {
+                versionName = "NET_4_5";
+            }
+            else if (directoryName == "netstandard1.1")
+            {
+                versionName = "NET_Standard_1_1";
+            }
+            else if (directoryName == "netstandard1.0")
+            {
+                versionName = "NET_Standard_1_0";
+            }
+            else if (directoryName == "net403")
+            {
+                versionName = "NET_4_0_3";
+            }
+            else if (directoryName == "net40" || directoryName == "net4")
+            {
+                versionName = (directoryName == "net40") ? "NET_4_0" : (directoryName == "net4") ? "NET_4" : "";
+            }
+            else if (directoryName == "unity" || directoryName == "net35-unity full v3.5" || directoryName == "net35-unity subset v3.5")
+            {
+                versionName = (directoryName == "unity") ? "UNITY" : (directoryName == "net35-unity full v3.5") ? "NET_3_5_UNITY_FULL" : (directoryName == "net35-unity subset v3.5") ? "NET_3_5_UNITY_SUBSET" : "";
+            }
+            else if (directoryName == "net35")
+            {
+                versionName = "NET_3_5";
+            }
+            else if (directoryName == "net20")
+            {
+                versionName = "NET_2_0";
+            }
+            else if (directoryName == "net11")
+            {
+                versionName = "NET_1_1";
+            }
+
+            return versionName;
         }
 
         /// <summary>
@@ -1006,7 +1114,7 @@
             {
                 LogVerbose("Failed to find {0} {1}", packageId.Id, packageId.Version);
             }
-            
+
             return package;
         }
 
@@ -1101,7 +1209,7 @@
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                
+
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
@@ -1169,8 +1277,11 @@
                 {
                     string baseDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
+
+                    ReadOptions options = new ReadOptions();
+                    options.Encoding = Encoding.UTF8;
                     // unzip the package
-                    using (ZipFile zip = ZipFile.Read(cachedPackagePath))
+                    using (ZipFile zip = ZipFile.Read(cachedPackagePath, options))
                     {
                         foreach (ZipEntry entry in zip)
                         {
@@ -1333,17 +1444,21 @@
                 return;
 
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
-            foreach (var folder in directories) {
+            foreach (var folder in directories)
+            {
                 var name = Path.GetFileName(folder);
                 var installed = false;
-                foreach (var package in PackagesConfigFile.Packages) {
+                foreach (var package in PackagesConfigFile.Packages)
+                {
                     var packageName = string.Format("{0}.{1}", package.Id, package.Version);
-                    if (name == packageName) {
+                    if (name == packageName)
+                    {
                         installed = true;
                         break;
                     }
                 }
-                if (!installed) {
+                if (!installed)
+                {
                     LogVerbose("---DELETE unnecessary package {0}", name);
 
                     DeleteDirectory(folder);
@@ -1383,7 +1498,8 @@
             stopwatch.Start();
 
             bool fromCache = false;
-            if (ExistsInDiskCache(url)) {
+            if (ExistsInDiskCache(url))
+            {
                 url = "file:///" + GetFilePath(url);
                 fromCache = true;
             }
@@ -1401,11 +1517,14 @@
 
             Texture2D result = null;
 
-            if (timedout) {
+            if (timedout)
+            {
                 LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
             }
-            else {
-                if (string.IsNullOrEmpty(request.error)) {
+            else
+            {
+                if (string.IsNullOrEmpty(request.error))
+                {
                     result = request.textureNonReadable;
                     LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
                 }
@@ -1413,8 +1532,9 @@
                     LogVerbose("Request error: " + request.error);
             }
 
-           
-            if (result != null && !fromCache) {
+
+            if (result != null && !fromCache)
+            {
                 CacheTextureOnDisk(url, request.bytes);
             }
 
@@ -1422,26 +1542,31 @@
             return result;
         }
 
-        private static void CacheTextureOnDisk(string url, byte[] bytes) {
+        private static void CacheTextureOnDisk(string url, byte[] bytes)
+        {
             string diskPath = GetFilePath(url);
             File.WriteAllBytes(diskPath, bytes);
         }
 
-        private static bool ExistsInDiskCache(string url) {
+        private static bool ExistsInDiskCache(string url)
+        {
             return File.Exists(GetFilePath(url));
         }
 
-        private static string GetFilePath(string url) {
+        private static string GetFilePath(string url)
+        {
             return Path.Combine(Application.temporaryCachePath, GetHash(url));
         }
 
-        private static string GetHash(string s) {
+        private static string GetHash(string s)
+        {
             if (string.IsNullOrEmpty(s))
                 return null;
             MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
             StringBuilder sBuilder = new StringBuilder();
-            for (int i = 0; i < data.Length; i++) {
+            for (int i = 0; i < data.Length; i++)
+            {
                 sBuilder.Append(data[i].ToString("x2"));
             }
             return sBuilder.ToString();
@@ -1490,7 +1615,7 @@
             string environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
             if (!String.IsNullOrEmpty(environmentCredentialProviderPaths))
             {
-                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] {});
+                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] { });
             }
 
             possibleCredentialProviderPaths.Add(NugetConfigFile.RepositoryPath);
