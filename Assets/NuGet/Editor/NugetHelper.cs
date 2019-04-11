@@ -447,13 +447,16 @@
                         selectedDirectories.Add(directory.FullName);
                         break;
                     }
-                    else
+                }
+                
+                // Checks if Api Compatibility Level in PlayerSettings matches the version requried for this NuGet package.                
+                if (libDirectories.Count() > 0 && selectedDirectories.Count == 0) {
+                    foreach (var directory in libDirectories)
                     {
-                        string versionName = GetNuGetVersionName(directoryName);
+                        string directoryName = directory.Name.ToLower();
                         // Current API version is NET_Standard_2_0; NET_Standard_4_5 is required to support this NuGet package.
-                        Debug.LogWarning(string.Format("Current API version is {0}; {1} is required to support this NuGet package.", DotNetVersion, versionName));
-                        break;
-                    }
+                        LogVerbose("Current API version is {0}; {1} is required to support this NuGet package.", DotNetVersion, directoryName);
+                    }                                            
                 }
 
 
