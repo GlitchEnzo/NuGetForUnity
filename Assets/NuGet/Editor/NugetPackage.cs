@@ -104,7 +104,9 @@
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
-                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
+               NugetImageLoader.TryDownloadImage(nuspec.IconUrl, tex => {
+                   package.Icon = tex;
+               });
             }
 
             package.RepositoryUrl = nuspec.RepositoryUrl;
