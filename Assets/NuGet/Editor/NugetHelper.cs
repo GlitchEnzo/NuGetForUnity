@@ -1251,11 +1251,18 @@
                 getRequest.ReadWriteTimeout = timeOut.Value;
             }
 
-            if (packageHost.EndsWith("pkgs.visualstudio.com") && string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(password))
             {
-                // The host is a VisualStudio feed (which requires authentication) but a password was not provided. Use the VSS credential provider to aquire a token and append
-                // it to the request.
-                password = GetPasswordFromVSTSCredentialProvider(packageHost);
+                bool isKnownAuthenticatedFeed =
+                    packageHost.EndsWith("pkgs.visualstudio.com") ||
+                    packageHost.EndsWith("pkgs.dev.azure.com");
+
+                if (isKnownAuthenticatedFeed)
+                {
+                    // The host is a VisualStudio feed (which requires authentication) but a password was not provided. Use the VSS credential provider to aquire a token and append
+                    // it to the request.
+                    password = GetPasswordFromCredentialProvider(packageHost);
+                }
             }
 
             if (password != null)
@@ -1477,7 +1484,7 @@
         /// </summary>
         /// <param name="packageHost">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
-        private static string GetPasswordFromVSTSCredentialProvider(string packageHost)
+        private static string GetPasswordFromCredentialProvider(string packageHost)
         {
             string credentialProviderBundleFilename = "CredentialProviderBundle.zip";
             string credentialProviderFilename = "credentialprovider.vss.exe";
