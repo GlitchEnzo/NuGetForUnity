@@ -70,13 +70,20 @@
                     EditorGUILayout.BeginHorizontal();
                     {
                         GUILayout.Space(29);
-                        EditorGUIUtility.labelWidth = 60;
-                        source.HasPassword = EditorGUILayout.Toggle("password", source.HasPassword);
+                        EditorGUIUtility.labelWidth = 75;
+                        EditorGUILayout.BeginVertical();
+                        source.HasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
                         if (source.HasPassword)
                         {
-                            EditorGUIUtility.labelWidth = 0;
-                            source.SavedPassword = EditorGUILayout.PasswordField(source.SavedPassword);
+                            source.UserName = EditorGUILayout.TextField("User Name", source.UserName);
+                            source.SavedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
                         }
+                        else
+                        {
+                            source.UserName = null;
+                        }
+                        EditorGUIUtility.labelWidth = 0;
+                        EditorGUILayout.EndVertical();
                     }
                     EditorGUILayout.EndHorizontal();
 

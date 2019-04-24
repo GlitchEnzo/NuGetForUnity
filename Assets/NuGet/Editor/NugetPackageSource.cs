@@ -36,6 +36,8 @@
             }
         }
 
+        public string UserName { get; set; }
+
         /// <summary>
         /// Gets or sets the password used to access the feed. Null indicates that no password is used.
         /// </summary>
@@ -135,7 +137,7 @@
 
                 try
                 {
-                    foundPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                    foundPackages = GetPackagesFromUrl(url, UserName, ExpandedPassword);
                 }
                 catch (System.Exception e)
                 {
@@ -244,7 +246,7 @@
 
             try
             {
-                return GetPackagesFromUrl(url, ExpandedPassword);
+                return GetPackagesFromUrl(url, UserName, ExpandedPassword);
             }
             catch (System.Exception e)
             {
@@ -331,7 +333,7 @@
         /// <param name="url"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        private List<NugetPackage> GetPackagesFromUrl(string url, string password)
+        private List<NugetPackage> GetPackagesFromUrl(string url, string username, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -349,7 +351,7 @@
             // add anonymous handler
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            Stream responseStream = NugetHelper.RequestUrl(url, password, timeOut: 5000);
+            Stream responseStream = NugetHelper.RequestUrl(url, username, password, timeOut: 5000);
             StreamReader streamReader = new StreamReader(responseStream);
 
             packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
@@ -445,7 +447,7 @@
 
                 try
                 {
-                    var newPackages = GetPackagesFromUrl(url, ExpandedPassword);
+                    var newPackages = GetPackagesFromUrl(url, UserName, ExpandedPassword);
                     updates.AddRange(newPackages);
                 }
                 catch (System.Exception e)
