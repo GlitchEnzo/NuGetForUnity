@@ -1156,12 +1156,9 @@
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
                         Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword, timeOut: null);
-                        if (objStream != null)
+                        using (Stream file = File.Create(cachedPackagePath))
                         {
-                            using (Stream file = File.Create(cachedPackagePath))
-                            {
-                                CopyStream(objStream, file);
-                            }
+                            CopyStream(objStream, file);
                         }
                     }
                 }
