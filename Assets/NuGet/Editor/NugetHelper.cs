@@ -12,6 +12,7 @@
     using UnityEngine;
     using Debug = UnityEngine.Debug;
     using System.Security.Cryptography;
+    using System.Text.RegularExpressions;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -36,8 +37,8 @@
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),Path.Combine("NuGet","Cache"));
-        
+        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Path.Combine("NuGet", "Cache"));
+
         /// <summary>
         /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
         /// </summary>
@@ -94,7 +95,7 @@
             {
                 return;
             }
-            
+
 #if UNITY_5_6_OR_NEWER
             DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #else
@@ -228,12 +229,12 @@
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     // WorkingDirectory = Path.GetDirectoryName(files[0]),
-                    
+
                     // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
                     // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
                     StandardOutputEncoding = Encoding.GetEncoding(850)
                 });
-            
+
             if (!process.WaitForExit(TimeOut))
             {
                 Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
@@ -337,13 +338,13 @@
                     // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
                     if (usingStandard2 && directoryName == "netstandard2.0")
                     {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
+                        selectedDirectories.Add(directory.FullName);
+                        break;
                     }
                     else if (usingStandard2 && directoryName == "netstandard1.6")
                     {
-                         selectedDirectories.Add(directory.FullName);
-                         break;
+                        selectedDirectories.Add(directory.FullName);
+                        break;
                     }
                     else if (using46 && directoryName == "net462")
                     {
@@ -1006,7 +1007,7 @@
             {
                 LogVerbose("Failed to find {0} {1}", packageId.Id, packageId.Version);
             }
-            
+
             return package;
         }
 
@@ -1101,7 +1102,7 @@
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 // look to see if the package (any version) is already installed
-                
+
 
                 if (refreshAssets)
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
@@ -1154,10 +1155,13 @@
                         if (refreshAssets)
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
 
-                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.ExpandedPassword, timeOut: null);
-                        using (Stream file = File.Create(cachedPackagePath))
+                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword, timeOut: null);
+                        if (objStream != null)
                         {
-                            CopyStream(objStream, file);
+                            using (Stream file = File.Create(cachedPackagePath))
+                            {
+                                CopyStream(objStream, file);
+                            }
                         }
                     }
                 }
@@ -1233,6 +1237,40 @@
 #endif
         }
 
+        private struct AuthenticatedFeed
+        {
+            public string AccountUrlPattern;
+            public string ProviderUrlTemplate;
+
+            public string GetAccount(string url)
+            {
+                Match match = Regex.Match(url, AccountUrlPattern, RegexOptions.IgnoreCase);
+                if (!match.Success) { return null; }
+
+                return match.Groups["account"].Value;
+            }
+
+            public string GetProviderUrl(string account)
+            {
+                return ProviderUrlTemplate.Replace("{account}", account);
+            }
+        }
+
+        // TODO: Move to ScriptableObjet
+        private static List<AuthenticatedFeed> knownAuthenticatedFeeds = new List<AuthenticatedFeed>()
+        {
+            new AuthenticatedFeed()
+            {
+                AccountUrlPattern = @"^https:\/\/(?<account>[a-zA-z0-9]+).pkgs.visualstudio.com",
+                ProviderUrlTemplate = "https://{account}.pkgs.visualstudio.com/_apis/public/nuget/client/CredentialProviderBundle.zip"
+            },
+            new AuthenticatedFeed()
+            {
+                AccountUrlPattern = @"^https:\/\/pkgs.dev.azure.com\/(?<account>[a-zA-z0-9]+)\/",
+                ProviderUrlTemplate = "https://pkgs.dev.azure.com/{account}/_apis/public/nuget/client/CredentialProviderBundle.zip"
+            }
+        };
+
         /// <summary>
         /// Get the specified URL from the web. Throws exceptions if the request fails.
         /// </summary>
@@ -1240,10 +1278,8 @@
         /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
         /// <returns>Stream containing the result.</returns>
-        public static Stream RequestUrl(string url, string password, int? timeOut)
+        public static Stream RequestUrl(string url, string userName, string password, int? timeOut)
         {
-            string packageHost = new Uri(url).Host;
-
             HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
             if (timeOut.HasValue)
             {
@@ -1253,15 +1289,11 @@
 
             if (string.IsNullOrEmpty(password))
             {
-                bool isKnownAuthenticatedFeed =
-                    packageHost.EndsWith("pkgs.visualstudio.com") ||
-                    packageHost.EndsWith("pkgs.dev.azure.com");
-
-                if (isKnownAuthenticatedFeed)
+                CredentialProviderResponse? creds = GetCredentialFromProvider(getRequest.RequestUri, true);
+                if (creds.HasValue)
                 {
-                    // The host is a VisualStudio feed (which requires authentication) but a password was not provided. Use the VSS credential provider to aquire a token and append
-                    // it to the request.
-                    password = GetPasswordFromCredentialProvider(packageHost);
+                    userName = creds.Value.Username;
+                    password = creds.Value.Password;
                 }
             }
 
@@ -1270,7 +1302,7 @@
                 // Send password as described by https://docs.microsoft.com/en-us/vsts/integrate/get-started/rest/basics.
                 // This works with Visual Studio Team Services, but hasn't been tested with other authentication schemes so there may be additional work needed if there
                 // are different kinds of authentication.
-                getRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", "", password))));
+                getRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password))));
             }
 
             LogVerbose("HTTP GET {0}", url);
@@ -1340,17 +1372,21 @@
                 return;
 
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
-            foreach (var folder in directories) {
+            foreach (var folder in directories)
+            {
                 var name = Path.GetFileName(folder);
                 var installed = false;
-                foreach (var package in PackagesConfigFile.Packages) {
+                foreach (var package in PackagesConfigFile.Packages)
+                {
                     var packageName = string.Format("{0}.{1}", package.Id, package.Version);
-                    if (name == packageName) {
+                    if (name == packageName)
+                    {
                         installed = true;
                         break;
                     }
                 }
-                if (!installed) {
+                if (!installed)
+                {
                     LogVerbose("---DELETE unnecessary package {0}", name);
 
                     DeleteDirectory(folder);
@@ -1390,7 +1426,8 @@
             stopwatch.Start();
 
             bool fromCache = false;
-            if (ExistsInDiskCache(url)) {
+            if (ExistsInDiskCache(url))
+            {
                 url = "file:///" + GetFilePath(url);
                 fromCache = true;
             }
@@ -1408,11 +1445,14 @@
 
             Texture2D result = null;
 
-            if (timedout) {
+            if (timedout)
+            {
                 LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
             }
-            else {
-                if (string.IsNullOrEmpty(request.error)) {
+            else
+            {
+                if (string.IsNullOrEmpty(request.error))
+                {
                     result = request.textureNonReadable;
                     LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
                 }
@@ -1420,8 +1460,9 @@
                     LogVerbose("Request error: " + request.error);
             }
 
-           
-            if (result != null && !fromCache) {
+
+            if (result != null && !fromCache)
+            {
                 CacheTextureOnDisk(url, request.bytes);
             }
 
@@ -1429,26 +1470,31 @@
             return result;
         }
 
-        private static void CacheTextureOnDisk(string url, byte[] bytes) {
+        private static void CacheTextureOnDisk(string url, byte[] bytes)
+        {
             string diskPath = GetFilePath(url);
             File.WriteAllBytes(diskPath, bytes);
         }
 
-        private static bool ExistsInDiskCache(string url) {
+        private static bool ExistsInDiskCache(string url)
+        {
             return File.Exists(GetFilePath(url));
         }
 
-        private static string GetFilePath(string url) {
+        private static string GetFilePath(string url)
+        {
             return Path.Combine(Application.temporaryCachePath, GetHash(url));
         }
 
-        private static string GetHash(string s) {
+        private static string GetHash(string s)
+        {
             if (string.IsNullOrEmpty(s))
                 return null;
             MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
             StringBuilder sBuilder = new StringBuilder();
-            for (int i = 0; i < data.Length; i++) {
+            for (int i = 0; i < data.Length; i++)
+            {
                 sBuilder.Append(data[i].ToString("x2"));
             }
             return sBuilder.ToString();
@@ -1476,6 +1522,59 @@
             Failure = 2
         }
 
+        private static void DownloadCredentialProviders(Uri feedUri)
+        {
+            foreach (var feed in NugetHelper.knownAuthenticatedFeeds)
+            {
+                string account = feed.GetAccount(feedUri.ToString());
+                if (string.IsNullOrEmpty(account)) { continue; }
+
+                string providerUrl = feed.GetProviderUrl(account);
+
+                HttpWebRequest credentialProviderRequest = (HttpWebRequest)WebRequest.Create(providerUrl);
+
+                try
+                {
+                    Stream credentialProviderDownloadStream = credentialProviderRequest.GetResponse().GetResponseStream();
+
+                    string tempFileName = Path.GetTempFileName();
+                    LogVerbose("Writing {0} to {1}", providerUrl, tempFileName);
+
+                    using (FileStream file = File.Create(tempFileName))
+                    {
+                        CopyStream(credentialProviderDownloadStream, file);
+                    }
+
+                    string providerDestination = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
+                    if (String.IsNullOrEmpty(providerDestination))
+                    {
+                        providerDestination = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget/CredentialProviders");
+                    }
+
+                    // Unzip the bundle and extract any credential provider exes
+                    using (ZipFile zip = ZipFile.Read(tempFileName))
+                    {
+                        foreach (ZipEntry entry in zip)
+                        {
+                            if (Regex.IsMatch(entry.FileName, @"^credentialprovider.+\.exe$", RegexOptions.IgnoreCase))
+                            {
+                                LogVerbose("Extracting {0} to {1}", entry.FileName, providerDestination);
+                                entry.Extract(providerDestination, ExtractExistingFileAction.OverwriteSilently);
+                            }
+                        }
+                    }
+
+                    // Delete the bundle
+                    File.Delete(tempFileName);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogErrorFormat("Failed to download credential provider from {0}: {1}", credentialProviderRequest.Address, e.Message);
+                }
+            }
+
+        }
+
         /// <summary>
         /// Helper function to aquire a token to access VSTS hosted nuget feeds by using the CredentialProvider.VSS.exe
         /// tool. Downloading it from the VSTS instance if needed.
@@ -1484,85 +1583,78 @@
         /// </summary>
         /// <param name="packageHost">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
-        private static string GetPasswordFromCredentialProvider(string packageHost)
+        private static CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri, bool downloadIfMissing)
         {
-            string credentialProviderBundleFilename = "CredentialProviderBundle.zip";
-            string credentialProviderFilename = "credentialprovider.vss.exe";
-
             // Build the list of possible locations to find the credential provider. In order it should be local app data, paths set on the
             // environment varaible, and lastly look at the root of the pacakges save location.
             List<string> possibleCredentialProviderPaths = new List<string>();
             possibleCredentialProviderPaths.Add(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget"), "CredentialProviders"));
 
             string environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
-            if (!String.IsNullOrEmpty(environmentCredentialProviderPaths))
+            if (!string.IsNullOrEmpty(environmentCredentialProviderPaths))
             {
-                possibleCredentialProviderPaths.AddRange(environmentCredentialProviderPaths.Split(';') ?? new string[] {});
+                possibleCredentialProviderPaths.AddRange(
+                    environmentCredentialProviderPaths.Split(new string[] { ";" }, StringSplitOptions.RemoveEmptyEntries) ?? Enumerable.Empty<string>());
             }
 
-            possibleCredentialProviderPaths.Add(NugetConfigFile.RepositoryPath);
+            // Try to find any nuget.exe in the package tools installation location
+            string toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
+            possibleCredentialProviderPaths.Add(toolsPackagesFolder);
 
             // Search through all possible paths to find the credential provider.
-            string credentialProviderPath = "";
+            var providerPaths = new List<string>();
             foreach (string possiblePath in possibleCredentialProviderPaths)
             {
-                string possiblePathWithFilename = Path.Combine(possiblePath, credentialProviderFilename);
-                if (File.Exists(possiblePathWithFilename))
+                if (Directory.Exists(possiblePath))
                 {
-                    credentialProviderPath = possiblePathWithFilename;
-                    break;
+                    providerPaths.AddRange(Directory.GetFiles(possiblePath, "credentialprovider*.exe", SearchOption.AllDirectories));
                 }
             }
 
-            // If the credential provider was not found then download it.
-            if (String.IsNullOrEmpty(credentialProviderPath))
+            foreach (var providerPath in providerPaths.Distinct())
             {
-                // Fallback to looking in the root of the Packages folder for the credential provider, and if it's not there download it
-                credentialProviderPath = Path.Combine(NugetConfigFile.RepositoryPath, credentialProviderFilename);
+                // Launch the credential provider executable and get the json encoded response from the std output
+                Process process = new Process();
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.StartInfo.FileName = providerPath;
+                process.StartInfo.Arguments = string.Format("-uri \"{0}\"", feedUri.ToString());
 
-                HttpWebRequest credentialProviderRequest = (HttpWebRequest)WebRequest.Create("https://" + packageHost + "/_apis/public/nuget/client/CredentialProviderBundle.zip");
-                Stream credentialProviderDownloadStream = credentialProviderRequest.GetResponse().GetResponseStream();
+                // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
+                // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
+                process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
+                process.Start();
+                process.WaitForExit();
 
-                using (Stream file = File.Create(credentialProviderBundleFilename))
+                string output = process.StandardOutput.ReadToEnd();
+                string errors = process.StandardError.ReadToEnd();
+
+                switch ((CredentialProviderExitCode)process.ExitCode)
                 {
-                    CopyStream(credentialProviderDownloadStream, file);
-                }
-
-                // Unzip the bundle and extract the credential provider executable
-                using (ZipFile zip = ZipFile.Read(credentialProviderBundleFilename))
-                {
-                    foreach (ZipEntry entry in zip)
-                    {
-                        if (entry.FileName.ToLower() == credentialProviderFilename)
+                    case CredentialProviderExitCode.ProviderNotApplicable: break; // Not the right provider
+                    case CredentialProviderExitCode.Failure: // Right provider, failure to get creds
                         {
-                            entry.Extract(NugetConfigFile.RepositoryPath, ExtractExistingFileAction.OverwriteSilently);
+                            Debug.LogErrorFormat("Failed to get credentials from {0}!\n\tOutput\n\t{1}\n\tErrors\n\t{2}", providerPath, output, errors);
+                            return null;
                         }
-                    }
+                    case CredentialProviderExitCode.Success:
+                        {
+                            return JsonUtility.FromJson<CredentialProviderResponse>(output);
+                        }
+                    default:
+                        {
+                            Debug.LogWarningFormat("Unrecognized exit code {0} from {1} {2}", process.ExitCode, providerPath, process.StartInfo.Arguments);
+                            break;
+                        }
                 }
-
-                // Delete the bundle
-                File.Delete(credentialProviderBundleFilename);
             }
 
-            // Launch the credential provider executable and get the json encoded response from the std output
-            Process process = new Process();
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.StartInfo.FileName = credentialProviderPath;
-            process.StartInfo.Arguments = "-uri " + "https://" + packageHost;
-
-            // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
-            // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-            process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
-            process.Start();
-            process.WaitForExit();
-
-            string output = process.StandardOutput.ReadToEnd();
-            if ((CredentialProviderExitCode)process.ExitCode == CredentialProviderExitCode.Success && !string.IsNullOrEmpty(output))
+            if(downloadIfMissing)
             {
-                CredentialProviderResponse response = JsonUtility.FromJson<CredentialProviderResponse>(output);
-                return response.Password;
+                DownloadCredentialProviders(feedUri);
+                return GetCredentialFromProvider(feedUri, false);
             }
 
             return null;

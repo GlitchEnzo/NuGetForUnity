@@ -88,6 +88,12 @@
                 {
                     XElement sourceElement = new XElement(source.Name);
                     packageSourceCredentials.Add(sourceElement);
+
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("key", "userName"));
+                    addElement.Add(new XAttribute("value", source.UserName ?? string.Empty));
+                    sourceElement.Add(addElement);
+
                     addElement = new XElement("add");
                     addElement.Add(new XAttribute("key", "clearTextPassword"));
                     addElement.Add(new XAttribute("value", source.SavedPassword));
@@ -230,7 +236,13 @@
                         var adds = sourceElement.Elements("add");
                         foreach (var add in adds)
                         {
-                            if (String.Equals(add.Attribute("key").Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
+                            if (string.Equals(add.Attribute("key").Value, "userName", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string userName = add.Attribute("value").Value;
+                                source.UserName = userName;
+                            }
+
+                            if (string.Equals(add.Attribute("key").Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
                             {
                                 string password = add.Attribute("value").Value;
                                 source.SavedPassword = password;
