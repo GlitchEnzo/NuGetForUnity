@@ -523,6 +523,8 @@
             }
         }
 
+        private delegate List<NugetPackage> FindPackagesByIdDelegate(NugetPackageIdentifier package);
+
         /// <summary>
         /// Some NuGet feeds such as Visual Studio Team Services do not implement the GetUpdates function.
         /// In that case this fallback function can be used to retrieve updates by using the FindPackagesById function.
@@ -535,15 +537,28 @@
         /// <returns>A list of all updates available.</returns>
         private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            FindPackagesByIdDelegate findPackagesByIdDelegate = FindPackagesById;
+
             Debug.Assert(string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
 
             List<NugetPackage> updates = new List<NugetPackage>();
+            List<IAsyncResult> asyncResults = new List<IAsyncResult>();
             foreach (NugetPackage installedPackage in installedPackages)
             {
-                List<NugetPackage> packageUpdates = new List<NugetPackage>();
                 string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
-                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
-                packageUpdates = FindPackagesById(id);
+                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange);
+
+                // Call FindPackagesById asynchronously so that we can load updates for all packages in parallel
+                // via simultaneous HTTP requests.
+                asyncResults.Add(findPackagesByIdDelegate.BeginInvoke(id, null, null));
+            }
+
+            foreach (IAsyncResult asyncResult in asyncResults)
+            {
+                List<NugetPackage> packageUpdates = findPackagesByIdDelegate.EndInvoke(asyncResult);
 
                 NugetPackage mostRecentPrerelease = includePrerelease ? packageUpdates.FindLast(p => p.IsPrerelease) : default(NugetPackage);
                 packageUpdates.RemoveAll(p => p.IsPrerelease && p != mostRecentPrerelease);
@@ -555,6 +570,8 @@
 
                 updates.AddRange(packageUpdates);
             }
+
+            NugetHelper.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
 
             return updates;
         }

@@ -13,6 +13,7 @@
     using Debug = UnityEngine.Debug;
     using System.Security.Cryptography;
     using System.Text.RegularExpressions;
+    using System.Threading;
 
     /// <summary>
     /// A set of helper methods that act as a wrapper around nuget.exe
@@ -79,6 +80,19 @@
         /// The dictionary of currently installed <see cref="NugetPackage"/>s keyed off of their ID string.
         /// </summary>
         private static Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
+
+        /// <summary>
+        /// The main Unity thread.
+        /// </summary>
+        private static Thread mainThread = Thread.CurrentThread;
+
+        // True if the current thread is the main Unity thread.
+        private static bool IsMainThread { get { return mainThread.Equals(Thread.CurrentThread); } }
+
+        /// <summary>
+        /// Cached value of Application.dataPath, available for use from a background thread.
+        /// </summary>
+        private static string applicationDataPath = Application.dataPath;
 
         /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
@@ -1053,20 +1067,28 @@
         {
             if (NugetConfigFile.Verbose)
             {
+                StackTraceLogType stackTraceLogType = StackTraceLogType.None;
+                if (IsMainThread) // GetStackTraceLogType can only be called from the main thread
+                {
 #if UNITY_5_4_OR_NEWER
-                var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
-                Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+                    stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
+                    Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
 #else
-                var stackTraceLogType = Application.stackTraceLogType;
-                Application.stackTraceLogType = StackTraceLogType.None;
+                    stackTraceLogType = Application.stackTraceLogType;
+                    Application.stackTraceLogType = StackTraceLogType.None;
 #endif
+                }
+
                 Debug.LogFormat(format, args);
 
+                if (IsMainThread)
+                {
 #if UNITY_5_4_OR_NEWER
-                Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
+                    Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
 #else
-                Application.stackTraceLogType = stackTraceLogType;
+                    Application.stackTraceLogType = stackTraceLogType;
 #endif
+                }
             }
         }
 
@@ -1595,7 +1617,7 @@
             }
 
             // Try to find any nuget.exe in the package tools installation location
-            string toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
+            string toolsPackagesFolder = Path.Combine(applicationDataPath, "../Packages");
             possibleCredentialProviderPaths.Add(toolsPackagesFolder);
 
             // Search through all possible paths to find the credential provider.
