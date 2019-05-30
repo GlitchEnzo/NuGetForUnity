@@ -95,6 +95,11 @@
         private static string applicationDataPath = Application.dataPath;
 
         /// <summary>
+        /// Cached value of Application.temporaryCachePath, available for use from a background thread.
+        /// </summary>
+        private static string applicationTemporaryCachePath = Application.temporaryCachePath;
+
+        /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
         /// </summary>
         internal static ApiCompatibilityLevel DotNetVersion;
@@ -1502,7 +1507,7 @@
 
         private static string GetFilePath(string url)
         {
-            return Path.Combine(Application.temporaryCachePath, GetHash(url));
+            return Path.Combine(applicationTemporaryCachePath, GetHash(url));
         }
 
         private static string GetHash(string s)
