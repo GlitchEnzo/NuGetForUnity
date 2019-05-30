@@ -40,9 +40,9 @@
         public NugetPackageSource PackageSource;
 
         /// <summary>
-        /// Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
+        /// Gets or sets the URL of the icon for the package.
         /// </summary>
-        public UnityEngine.Texture2D Icon;
+        public string IconUrl;
 
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
@@ -75,6 +75,30 @@
         public string RepositoryCommit;
 
         /// <summary>
+        /// Gets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
+        /// </summary>
+        public UnityEngine.Texture2D Icon
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(IconUrl))
+                    return null;
+
+                if (icon == null)
+                {
+                    // We load the actual Icon texture as it is first referenced.
+                    // This is done because package information is sometimes loaded on a background
+                    // thread that does not have the ability to create textures.
+                    icon = NugetHelper.DownloadImage(IconUrl);
+                    NugetHelper.LogVerbose("Loading icon from {0} {1}", IconUrl, icon != null ? "succeeded" : "failed");
+                }
+                return icon;
+            }
+        }
+
+        private UnityEngine.Texture2D icon;
+
+        /// <summary>
         /// Checks to see if this <see cref="NugetPackage"/> is equal to the given one.
         /// </summary>
         /// <param name="other">The other <see cref="NugetPackage"/> to check equality with.</param>
@@ -101,11 +125,7 @@
             package.LicenseUrl = nuspec.LicenseUrl;
             package.ProjectUrl = nuspec.ProjectUrl;
             //package.DownloadUrl = not in a nuspec
-
-            if (!string.IsNullOrEmpty(nuspec.IconUrl))
-            {
-                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
-            }
+            package.IconUrl = nuspec.IconUrl;
 
             package.RepositoryUrl = nuspec.RepositoryUrl;
 

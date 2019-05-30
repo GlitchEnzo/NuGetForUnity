@@ -62,11 +62,7 @@ namespace NugetForUnity
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
 
-                string iconUrl = entryProperties.GetProperty("IconUrl");
-                if (!string.IsNullOrEmpty(iconUrl))
-                {
-                    package.Icon = NugetHelper.DownloadImage(iconUrl);
-                }
+                package.IconUrl = entryProperties.GetProperty("IconUrl");
 
                 // if there is no title, just use the ID as the title
                 if (string.IsNullOrEmpty(package.Title))
