@@ -323,6 +323,11 @@
 
             try
             {
+                if (forceFullRefresh)
+                {
+                    NugetHelper.ClearCachedCredentials();
+                }
+
                 // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
                 NugetHelper.LoadNugetConfigFile();
 

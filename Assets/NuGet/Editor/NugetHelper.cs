@@ -81,6 +81,11 @@
         private static Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
 
         /// <summary>
+        /// The dictionary of cached credentials retrieved by credential providers, keyed by feed URI.
+        /// </summary>
+        private static Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri = new Dictionary<Uri, CredentialProviderResponse?>();
+
+        /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
         /// </summary>
         internal static ApiCompatibilityLevel DotNetVersion;
@@ -1286,7 +1291,7 @@
 
             if (string.IsNullOrEmpty(password))
             {
-                CredentialProviderResponse? creds = GetCredentialFromProvider(getRequest.RequestUri, true);
+                CredentialProviderResponse? creds = GetCredentialFromProvider(GetTruncatedFeedUri(getRequest.RequestUri));
                 if (creds.HasValue)
                 {
                     userName = creds.Value.Username;
@@ -1578,10 +1583,52 @@
         /// See here for more info on nuget Credential Providers:
         /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers
         /// </summary>
-        /// <param name="packageHost">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com</param>
+        /// <param name="feedUri">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com.</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
-        private static CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri, bool downloadIfMissing)
+        private static CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri)
         {
+            CredentialProviderResponse? response;
+            if (!cachedCredentialsByFeedUri.TryGetValue(feedUri, out response))
+            {
+                response = GetCredentialFromProvider_Uncached(feedUri, true);
+                cachedCredentialsByFeedUri[feedUri] = response;
+            }
+            return response;
+        }
+
+        /// <summary>
+        /// Given the URI of a nuget method, returns the URI of the feed itself without the method and query parameters.
+        /// </summary>
+        /// <param name="methodUri">URI of nuget method.</param>
+        /// <returns>URI of the feed without the method and query parameters.</returns>
+        private static Uri GetTruncatedFeedUri(Uri methodUri)
+        {
+            string truncatedUriString = methodUri.GetLeftPart(UriPartial.Path);
+            int lastSeparatorIndex = truncatedUriString.LastIndexOf('/');
+            if (lastSeparatorIndex != -1)
+            {
+                truncatedUriString = truncatedUriString.Substring(0, lastSeparatorIndex);
+            }
+            Uri truncatedUri = new Uri(truncatedUriString);
+            return truncatedUri;
+        }
+
+        /// <summary>
+        /// Clears static credentials previously cached by GetCredentialFromProvider.
+        /// </summary>
+        public static void ClearCachedCredentials()
+        {
+            cachedCredentialsByFeedUri.Clear();
+        }
+
+        /// <summary>
+        /// Internal function called by GetCredentialFromProvider to implement retrieving credentials. For performance reasons,
+        /// most functions should call GetCredentialFromProvider in order to take advantage of cached credentials.
+        /// </summary>
+        private static CredentialProviderResponse? GetCredentialFromProvider_Uncached(Uri feedUri, bool downloadIfMissing)
+        {
+            LogVerbose("Getting credential for {0}", feedUri);
+
             // Build the list of possible locations to find the credential provider. In order it should be local app data, paths set on the
             // environment varaible, and lastly look at the root of the pacakges save location.
             List<string> possibleCredentialProviderPaths = new List<string>();
@@ -1651,7 +1698,7 @@
             if(downloadIfMissing)
             {
                 DownloadCredentialProviders(feedUri);
-                return GetCredentialFromProvider(feedUri, false);
+                return GetCredentialFromProvider_Uncached(feedUri, false);
             }
 
             return null;

@@ -535,6 +535,8 @@
         /// <returns>A list of all updates available.</returns>
         private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             Debug.Assert(string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionContraints)); // These features are not supported by this version of GetUpdates.
 
             List<NugetPackage> updates = new List<NugetPackage>();
@@ -556,6 +558,7 @@
                 updates.AddRange(packageUpdates);
             }
 
+            NugetHelper.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
             return updates;
         }
     }
