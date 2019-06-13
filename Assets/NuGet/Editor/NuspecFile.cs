@@ -33,6 +33,11 @@
         public string Description { get; set; }
 
         /// <summary>
+        /// Gets or sets the description of the NuGet package.
+        /// </summary>
+        public string Summary { get; set; }
+
+        /// <summary>
         /// Gets or sets the authors of the NuGet package.
         /// </summary>
         public string Authors { get; set; }
@@ -197,6 +202,7 @@
             nuspec.IconUrl = (string)metadata.Element(XName.Get("iconUrl", nuspecNamespace)) ?? string.Empty;
             nuspec.RequireLicenseAcceptance = bool.Parse((string)metadata.Element(XName.Get("requireLicenseAcceptance", nuspecNamespace)) ?? "False");
             nuspec.Description = (string)metadata.Element(XName.Get("description", nuspecNamespace)) ?? string.Empty;
+            nuspec.Summary = (string)metadata.Element(XName.Get("summary", nuspecNamespace)) ?? string.Empty;
             nuspec.ReleaseNotes = (string)metadata.Element(XName.Get("releaseNotes", nuspecNamespace)) ?? string.Empty;
             nuspec.Copyright = (string)metadata.Element(XName.Get("copyright", nuspecNamespace));
             nuspec.Tags = (string)metadata.Element(XName.Get("tags", nuspecNamespace)) ?? string.Empty;

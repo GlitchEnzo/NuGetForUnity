@@ -68,6 +68,7 @@
             file.LicenseUrl = "http://your_license_url_here";
             file.ProjectUrl = "http://your_project_url_here";
             file.Description = "A description of what this packages is and does.";
+            file.Summary = "A short description of what this packages is and does.";
             file.ReleaseNotes = "Notes for this specific release";
             file.Copyright = "Copyright 2017";
             file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
@@ -183,6 +184,7 @@
                 nuspec.IconUrl = EditorGUILayout.TextField(new GUIContent("Icon URL", "The URL for the icon of the package."), nuspec.IconUrl);
                 nuspec.RequireLicenseAcceptance = EditorGUILayout.Toggle(new GUIContent("Require License Acceptance", "Does the package license need to be accepted before use?"), nuspec.RequireLicenseAcceptance);
                 nuspec.Description = EditorGUILayout.TextField(new GUIContent("Description", "The description of the package."), nuspec.Description);
+                nuspec.Summary = EditorGUILayout.TextField(new GUIContent("Summary", "The brief description of the package."), nuspec.Summary);
                 nuspec.ReleaseNotes = EditorGUILayout.TextField(new GUIContent("Release Notes", "The release notes for this specific version of the package."), nuspec.ReleaseNotes);
                 nuspec.Copyright = EditorGUILayout.TextField(new GUIContent("Copyright", "The copyright details for the package."), nuspec.Copyright);
                 nuspec.Tags = EditorGUILayout.TextField(new GUIContent("Tags", "The space-delimited list of tags and keywords that describe the package and aid discoverability of packages through search and filtering."), nuspec.Tags);
