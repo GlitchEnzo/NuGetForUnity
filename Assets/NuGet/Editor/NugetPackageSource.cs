@@ -351,14 +351,16 @@
             // add anonymous handler
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            Stream responseStream = NugetHelper.RequestUrl(url, username, password, timeOut: 5000);
-            StreamReader streamReader = new StreamReader(responseStream);
-
-            packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
-
-            foreach (var package in packages)
+            using (Stream responseStream = NugetHelper.RequestUrl(url, username, password, timeOut: 5000))
             {
-                package.PackageSource = this;
+                using (StreamReader streamReader = new StreamReader(responseStream))
+                {
+                    packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
+                    foreach (var package in packages)
+                    {
+                        package.PackageSource = this;
+                    }
+                }
             }
 
             stopwatch.Stop();
