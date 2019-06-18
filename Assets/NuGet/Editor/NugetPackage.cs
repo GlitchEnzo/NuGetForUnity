@@ -20,6 +20,11 @@
         public string Description;
 
         /// <summary>
+        /// Gets or sets the summary of the NuGet package.
+        /// </summary>
+        public string Summary;
+
+        /// <summary>
         /// Gets or sets the release notes of the NuGet package.
         /// </summary>
         public string ReleaseNotes;
@@ -33,6 +38,16 @@
         /// Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
         /// </summary>
         public string DownloadUrl;
+
+        /// <summary>
+        /// Gets or sets the DownloadCount.
+        /// </summary>
+        public int DownloadCount;
+
+        /// <summary>
+        /// Gets or sets the authors of the package.
+        /// </summary>
+        public string Authors;
 
         /// <summary>
         /// Gets or sets the <see cref="NugetPackageSource"/> that contains this package.
@@ -96,11 +111,12 @@
             package.Id = nuspec.Id;
             package.Version = nuspec.Version;
             package.Title = nuspec.Title;
+            package.Authors = nuspec.Authors;
             package.Description = nuspec.Description;
+            package.Summary = nuspec.Summary;
             package.ReleaseNotes = nuspec.ReleaseNotes;
             package.LicenseUrl = nuspec.LicenseUrl;
             package.ProjectUrl = nuspec.ProjectUrl;
-            //package.DownloadUrl = not in a nuspec
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {

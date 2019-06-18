@@ -58,9 +58,12 @@ namespace NugetForUnity
                 package.Title = entryProperties.GetProperty("Title");
                 package.Version = entryProperties.GetProperty("Version");
                 package.Description = entryProperties.GetProperty("Description");
+                package.Summary = entryProperties.GetProperty("Summary");
                 package.ReleaseNotes = entryProperties.GetProperty("ReleaseNotes");
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
+                package.Authors = entryProperties.GetProperty("Authors");
+                package.DownloadCount = int.Parse(entryProperties.GetProperty("DownloadCount"));
 
                 string iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
