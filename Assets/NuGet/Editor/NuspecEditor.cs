@@ -67,8 +67,8 @@
             file.Owners = "Your Name";
             file.LicenseUrl = "http://your_license_url_here";
             file.ProjectUrl = "http://your_project_url_here";
-            file.Description = "A description of what this packages is and does.";
-            file.Summary = "A short description of what this packages is and does.";
+            file.Description = "A description of what this package is and does.";
+            file.Summary = "A brief description of what this package is and does.";
             file.ReleaseNotes = "Notes for this specific release";
             file.Copyright = "Copyright 2017";
             file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
