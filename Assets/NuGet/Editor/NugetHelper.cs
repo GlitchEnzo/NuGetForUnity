@@ -1604,10 +1604,15 @@
         private static Uri GetTruncatedFeedUri(Uri methodUri)
         {
             string truncatedUriString = methodUri.GetLeftPart(UriPartial.Path);
-            int lastSeparatorIndex = truncatedUriString.LastIndexOf('/');
-            if (lastSeparatorIndex != -1)
+
+            // Pull off the function if there is one
+            if (truncatedUriString.EndsWith(")"))
             {
-                truncatedUriString = truncatedUriString.Substring(0, lastSeparatorIndex);
+                int lastSeparatorIndex = truncatedUriString.LastIndexOf('/');
+                if (lastSeparatorIndex != -1)
+                {
+                    truncatedUriString = truncatedUriString.Substring(0, lastSeparatorIndex);
+                }
             }
             Uri truncatedUri = new Uri(truncatedUriString);
             return truncatedUri;
