@@ -152,12 +152,17 @@
         [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
         protected static void DisplayVersion()
         {
+            // open the preferences window
+#if UNITY_2018_1_OR_NEWER
+            SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+#else
+
             var assembly = System.Reflection.Assembly.GetAssembly(typeof(EditorWindow));
             var preferencesWindow = assembly.GetType("UnityEditor.PreferencesWindow");
-            var preferencesWindowSection = assembly.GetType("UnityEditor.PreferencesWindow+Section"); // access nested class via + instead of .         
+            var preferencesWindowSection = assembly.GetType("UnityEditor.PreferencesWindow+Section"); // access nested class via + instead of .     
 
-            // open the preferences window
             EditorWindow preferencesEditorWindow = EditorWindow.GetWindowWithRect(preferencesWindow, new Rect(100f, 100f, 500f, 400f), true, "Unity Preferences");
+
             //preferencesEditorWindow.m_Parent.window.m_DontSaveToLayout = true; //<-- Unity's implementation also does this
 
             // Get the flag to see if custom sections have already been added
@@ -204,6 +209,7 @@
             //var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
             //object index = selectedSectionIndexGetter.Invoke(preferencesEditorWindow, null);
             //Debug.LogFormat("Selected Index = {0}", index);
+#endif
         }
 
         /// <summary>
@@ -847,7 +853,7 @@
                     GUILayout.Label(string.Format("Current Version {0}", installed.Version));
                 }
                 GUILayout.Label(string.Format("Version {0}", package.Version));
-                
+
 
                 if (installedPackages.Contains(package))
                 {
@@ -1111,7 +1117,7 @@
             string formattedUrl = string.Format(colorFormatString, url);
             string formattedUnderline = string.Format(colorFormatString, underline);
             var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
-        
+
             // Update rect for indentation
             {
                 var indentedUrlRect = EditorGUI.IndentedRect(urlRect);
