@@ -113,3 +113,11 @@ Alternatively, you can use a "local feed" which is just a folder on your hard-dr
 Be sure to set the proper URL/path in the *NuGet.config* file and you should be good to go!
 
 Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget-feeds](http://docs.nuget.org/create/hosting-your-own-nuget-feeds)
+
+# Restoring NuGet Packages over the Command Line
+For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line. On Windows, this can be done automatically by executing [RestoreNugetPackages.bat](https://github.com/GlitchEnzo/NuGetForUnity/blob/master/RestoreNugetPackages.bat) directly from within your Unity project directory, given that the NuGetForUnity Asset is already installed in your project.
+
+This can also be done manually over the command line as shown here:
+
+- Windows: `$ \progra~1\Unity\Editor\Unity.exe -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
+- Mac: `$ /Applications/Unity/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
