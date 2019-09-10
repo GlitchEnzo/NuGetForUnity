@@ -622,9 +622,7 @@
         /// <param name="destDirectoryPath">The filepath to the folder to copy to.</param>
         private static void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
         {
-            // Get the subdirectories for the specified directory.
             DirectoryInfo dir = new DirectoryInfo(sourceDirectoryPath);
-
             if (!dir.Exists)
             {
                 throw new DirectoryNotFoundException(
@@ -632,15 +630,14 @@
                     + sourceDirectoryPath);
             }
 
-            DirectoryInfo[] dirs = dir.GetDirectories();
-            // If the destination directory doesn't exist, create it.
+            // if the destination directory doesn't exist, create it
             if (!Directory.Exists(destDirectoryPath))
             {
                 LogVerbose("Creating new directory: {0}", destDirectoryPath);
                 Directory.CreateDirectory(destDirectoryPath);
             }
 
-            // Get the files in the directory and copy them to the new location.
+            // get the files in the directory and copy them to the new location
             FileInfo[] files = dir.GetFiles();
             foreach (FileInfo file in files)
             {
@@ -657,7 +654,8 @@
                 }
             }
 
-            // Copy sub-directories and their contents to new location.
+            // copy sub-directories and their contents to new location
+            DirectoryInfo[] dirs = dir.GetDirectories();
             foreach (DirectoryInfo subdir in dirs)
             {
                 string temppath = Path.Combine(destDirectoryPath, subdir.Name);
