@@ -458,7 +458,11 @@
                 // delete all of the libaries except for the selected one
                 foreach (var directory in libDirectories)
                 {
-                    if (!selectedDirectories.Contains(directory.FullName))
+                    bool validDirectory = selectedDirectories
+                        .Where(d => string.Compare(d, directory.FullName, ignoreCase: true) == 0)
+                        .Any();
+
+                    if (!validDirectory)
                     {
                         DeleteDirectory(directory.FullName);
                     }
