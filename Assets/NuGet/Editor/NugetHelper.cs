@@ -506,27 +506,7 @@
             {
                 string pluginsDirectory = Application.dataPath + "/Plugins/";
 
-                if (!Directory.Exists(pluginsDirectory))
-                {
-                    Directory.CreateDirectory(pluginsDirectory);
-                }
-
-                string[] files = Directory.GetFiles(packageInstallDirectory + "/unityplugin");
-                foreach (string file in files)
-                {
-                    string newFilePath = pluginsDirectory + Path.GetFileName(file);
-
-                    try
-                    {
-                        LogVerbose("Moving {0} to {1}", file, newFilePath);
-                        DeleteFile(newFilePath);
-                        File.Move(file, newFilePath);
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        Debug.LogWarningFormat("{0} couldn't be overwritten. It may be a native plugin already locked by Unity. Please close Unity and manually delete it.", newFilePath);
-                    }
-                }
+                DirectoryCopy(packageInstallDirectory + "/unityplugin", pluginsDirectory);
 
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/unityplugin");
 
@@ -633,6 +613,56 @@
             string arguments = string.Format("push \"{0}\" {1} -configfile \"{2}\"", packagePath, apiKey, NugetConfigFilePath);
 
             RunNugetProcess(arguments);
+        }
+
+        /// <summary>
+        /// Recursively copies all files and sub-directories from one directory to another.
+        /// </summary>
+        /// <param name="sourceDirectoryPath">The filepath to the folder to copy from.</param>
+        /// <param name="destDirectoryPath">The filepath to the folder to copy to.</param>
+        private static void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
+        {
+            // Get the subdirectories for the specified directory.
+            DirectoryInfo dir = new DirectoryInfo(sourceDirectoryPath);
+
+            if (!dir.Exists)
+            {
+                throw new DirectoryNotFoundException(
+                    "Source directory does not exist or could not be found: "
+                    + sourceDirectoryPath);
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+            // If the destination directory doesn't exist, create it.
+            if (!Directory.Exists(destDirectoryPath))
+            {
+                LogVerbose("Creating new directory: {0}", destDirectoryPath);
+                Directory.CreateDirectory(destDirectoryPath);
+            }
+
+            // Get the files in the directory and copy them to the new location.
+            FileInfo[] files = dir.GetFiles();
+            foreach (FileInfo file in files)
+            {
+                string newFilePath = Path.Combine(destDirectoryPath, file.Name);
+
+                try
+                {
+                    LogVerbose("Moving {0} to {1}", file.ToString(), newFilePath);
+                    file.CopyTo(newFilePath, true);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarningFormat("{0} couldn't be moved to {1}. It may be a native plugin already locked by Unity. Please trying closing Unity and manually moving it. \n{2}", file.ToString(), newFilePath, e.ToString());
+                }
+            }
+
+            // Copy sub-directories and their contents to new location.
+            foreach (DirectoryInfo subdir in dirs)
+            {
+                string temppath = Path.Combine(destDirectoryPath, subdir.Name);
+                DirectoryCopy(subdir.FullName, temppath);
+            }
         }
 
         /// <summary>
