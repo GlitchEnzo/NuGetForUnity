@@ -306,6 +306,7 @@
         /// <param name="notifyOfUpdate">Whether or not to log a warning of the update.</param>
         public static void DisableWSAPExportSetting(string filePath, bool notifyOfUpdate)
         {
+#if UNITY_2018_1_OR_NEWER
             filePath = Path.GetFullPath(filePath);
 
             string assetsLocalPath = filePath.Replace(Path.GetFullPath(Application.dataPath), "Assets");
@@ -326,8 +327,14 @@
                 {
                     Debug.LogWarning(string.Format("Disabling WSA platform on asset settings for {0}", filePath));
                 }
+                else
+                {
+                    LogVerbose("Disabling WSA platform on asset settings for {0}", filePath);
+                }
+
                 importer.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
             }
+#endif
         }
 
         /// <summary>
