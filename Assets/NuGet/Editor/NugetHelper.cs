@@ -1145,7 +1145,7 @@
         /// <param name="args">The arguments for the formattted message string.</param>
         public static void LogVerbose(string format, params object[] args)
         {
-            if (NugetConfigFile.Verbose)
+            if (NugetConfigFile == null || NugetConfigFile.Verbose)
             {
 #if UNITY_5_4_OR_NEWER
                 StackTraceLogType stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
