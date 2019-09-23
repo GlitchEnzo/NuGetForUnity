@@ -71,7 +71,7 @@
 
                 AssetDatabase.Refresh();
 
-                CheckImportSettings(filepath, false);
+                NugetHelper.DisableWSAPExportSetting(filepath, false);
             }
 
             XDocument packagesFile = XDocument.Load(filepath);
@@ -143,28 +143,7 @@
 
             packagesFile.Save(filepath);
 
-            CheckImportSettings(filepath, packageExists);
-        }
-
-        private static void CheckImportSettings(string filePath, bool notifyOfUpdate)
-        {
-            filePath = Path.GetFullPath(filePath);
-            PluginImporter importer = AssetImporter.GetAtPath(filePath.Replace(Path.GetFullPath(Application.dataPath), "Assets")) as PluginImporter;
-
-            if (importer == null)
-            {
-                Debug.LogError(string.Format("Couldn't get importer for '{0}'.", filePath));
-                return;
-            }
-
-            if (importer.GetCompatibleWithPlatform(BuildTarget.WSAPlayer))
-            {
-                if (notifyOfUpdate)
-                {
-                    Debug.LogWarning(string.Format("Disabling WSA platform on asset settings for {0}", filePath));
-                }
-                importer.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
-            }
+            NugetHelper.DisableWSAPExportSetting(filepath, packageExists);
         }
     }
 }

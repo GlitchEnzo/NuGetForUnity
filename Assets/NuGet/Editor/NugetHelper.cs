@@ -290,6 +290,32 @@
         }
 
         /// <summary>
+        /// Checks the file importer settings and disables the export to WSA Platform setting.
+        /// </summary>
+        /// <param name="filePath">The path to the .config file.</param>
+        /// <param name="notifyOfUpdate">Whether or not to log a warning of the update.</param>
+        public static void DisableWSAPExportSetting(string filePath, bool notifyOfUpdate)
+        {
+            filePath = Path.GetFullPath(filePath);
+            PluginImporter importer = AssetImporter.GetAtPath(filePath.Replace(Path.GetFullPath(Application.dataPath), "Assets")) as PluginImporter;
+
+            if (importer == null)
+            {
+                Debug.LogError(string.Format("Couldn't get importer for '{0}'.", filePath));
+                return;
+            }
+
+            if (importer.GetCompatibleWithPlatform(BuildTarget.WSAPlayer))
+            {
+                if (notifyOfUpdate)
+                {
+                    Debug.LogWarning(string.Format("Disabling WSA platform on asset settings for {0}", filePath));
+                }
+                importer.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
+            }
+        }
+
+        /// <summary>
         /// Cleans up a package after it has been installed.
         /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
