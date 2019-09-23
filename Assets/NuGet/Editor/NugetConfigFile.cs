@@ -188,6 +188,9 @@
 
             XDocument file = XDocument.Load(filePath);
 
+            // Force disable
+            NugetHelper.DisableWSAPExportSetting(filePath, false);
+
             // read the full list of package sources (some may be disabled below)
             XElement packageSources = file.Root.Element("packageSources");
             if (packageSources != null)

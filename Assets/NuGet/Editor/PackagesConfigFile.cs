@@ -70,11 +70,13 @@
                 configFile.Save(filepath);
 
                 AssetDatabase.Refresh();
-
-                NugetHelper.DisableWSAPExportSetting(filepath, false);
             }
 
             XDocument packagesFile = XDocument.Load(filepath);
+
+            // Force disable
+            NugetHelper.DisableWSAPExportSetting(filepath, false);
+
             foreach (XElement packageElement in packagesFile.Root.Elements())
             {
                 NugetPackage package = new NugetPackage
