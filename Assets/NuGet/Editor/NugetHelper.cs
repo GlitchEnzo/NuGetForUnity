@@ -306,7 +306,13 @@
         /// <param name="notifyOfUpdate">Whether or not to log a warning of the update.</param>
         public static void DisableWSAPExportSetting(string filePath, bool notifyOfUpdate)
         {
-#if UNITY_2018_1_OR_NEWER
+            string[] unityVersionParts = Application.unityVersion.Split('.');
+            int unityMajorVersion;
+            if (int.TryParse(unityVersionParts[0], out unityMajorVersion) && unityMajorVersion <= 2017)
+            {
+                return;
+            }
+
             filePath = Path.GetFullPath(filePath);
 
             string assetsLocalPath = filePath.Replace(Path.GetFullPath(Application.dataPath), "Assets");
@@ -334,7 +340,6 @@
 
                 importer.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
             }
-#endif
         }
 
         /// <summary>
