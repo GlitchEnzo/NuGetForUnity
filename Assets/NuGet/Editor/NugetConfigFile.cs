@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text;
     using System.Xml.Linq;
+    using UnityEditor;
 
     /// <summary>
     /// Represents a NuGet.config file that stores the NuGet settings.
@@ -155,8 +156,9 @@
 
             configFile.Add(configuration);
 
+            bool fileExists = File.Exists(filepath);
             // remove the read only flag on the file, if there is one.
-            if (File.Exists(filepath))
+            if (fileExists)
             {
                 FileAttributes attributes = File.GetAttributes(filepath);
 
@@ -168,6 +170,8 @@
             }
 
             configFile.Save(filepath);
+
+            NugetHelper.DisableWSAPExportSetting(filepath, fileExists);
         }
 
         /// <summary>
@@ -180,9 +184,12 @@
             NugetConfigFile configFile = new NugetConfigFile();
             configFile.PackageSources = new List<NugetPackageSource>();
             configFile.InstallFromCache = true;
-            configFile.ReadOnlyPackageFiles = true;
+            configFile.ReadOnlyPackageFiles = false;
 
             XDocument file = XDocument.Load(filePath);
+
+            // Force disable
+            NugetHelper.DisableWSAPExportSetting(filePath, false);
 
             // read the full list of package sources (some may be disabled below)
             XElement packageSources = file.Root.Element("packageSources");
@@ -321,6 +328,10 @@
 </configuration>";
 
             File.WriteAllText(filePath, contents, new UTF8Encoding());
+
+            AssetDatabase.Refresh();
+
+            NugetHelper.DisableWSAPExportSetting(filePath, false);
 
             return Load(filePath);
         }
