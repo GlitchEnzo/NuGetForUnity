@@ -377,6 +377,10 @@
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
             DeleteDirectory(packageInstallDirectory + "/docs");
 
+            // Delete ref folder, as it is just used for compile-time reference and does not contain implementations.
+            // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
+            DeleteDirectory(packageInstallDirectory + "/ref");
+
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
                 int intDotNetVersion = (int)DotNetVersion; // c
