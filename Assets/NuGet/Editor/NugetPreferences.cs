@@ -61,7 +61,7 @@
                         EditorGUILayout.BeginVertical();
                         {
                             source.Name = EditorGUILayout.TextField(source.Name);
-                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath);
+                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
                         }
                         EditorGUILayout.EndVertical();
                     }
