@@ -732,6 +732,11 @@
                         NugetHelper.UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
+
+                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+                    {
+                        Refresh(true);
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
 
