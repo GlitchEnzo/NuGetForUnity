@@ -11,7 +11,7 @@
         /// <summary>
         /// The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "1.2.3";
+        public const string NuGetForUnityVersion = "1.2.4";
 
         /// <summary>
         /// The current position of the scroll bar in the GUI.
@@ -61,7 +61,7 @@
                         EditorGUILayout.BeginVertical();
                         {
                             source.Name = EditorGUILayout.TextField(source.Name);
-                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath);
+                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
                         }
                         EditorGUILayout.EndVertical();
                     }
