@@ -62,7 +62,7 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies = new List<NugetPackageIdentifier>();
+        public List<NugetFrameworkGroup> Dependencies = new List<NugetFrameworkGroup>();
 
         /// <summary>
         /// Gets or sets the url for the location of the package's source code.

@@ -107,7 +107,8 @@
             // remove a package as a root if another package is dependent on it
             foreach (NugetPackage package in installedPackages)
             {
-                foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                foreach (NugetPackageIdentifier dependency in frameworkGroup.Dependencies)
                 {
                     roots.RemoveAll(p => p.Id == dependency.Id);
                 }
@@ -149,7 +150,8 @@
                         NugetPackage selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            foreach (var dependency in package.Dependencies)
+                            NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                            foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
                                 {
@@ -208,7 +210,9 @@
                 if (expanded[package])
                 {
                     EditorGUI.indentLevel++;
-                    foreach (NugetPackageIdentifier dependency in package.Dependencies)
+
+                    NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                    foreach (NugetPackageIdentifier dependency in frameworkGroup.Dependencies)
                     {
                         DrawDepencency(dependency);
                     }

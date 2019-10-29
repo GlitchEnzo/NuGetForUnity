@@ -11,11 +11,11 @@ namespace NugetForUnity
         /// <summary>
         /// Gets or sets the framework and version that this group targets.
         /// </summary>
-        public string TargetFramework { get; set; }
+        public string TargetFramework { get; set; } = "";
 
         /// <summary>
         /// Gets or sets the list of package dependencies that belong to this group.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies { get; set; }
+        public List<NugetPackageIdentifier> Dependencies { get; set; } = new List<NugetPackageIdentifier>();
     }
 }

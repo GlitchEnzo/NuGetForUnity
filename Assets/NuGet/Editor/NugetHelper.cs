@@ -109,7 +109,7 @@
 #if UNITY_5_6_OR_NEWER
                 DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #else
-            DotNetVersion = PlayerSettings.apiCompatibilityLevel;
+                DotNetVersion = PlayerSettings.apiCompatibilityLevel;
 #endif
 
                 // Load the NuGet.config file
@@ -243,7 +243,7 @@
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    // WorkingDirectory = Path.GetDirectoryName(files[0]),
+                    // WorkingDirectory = Path.GettargetFramework(files[0]),
 
                     // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
                     // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
@@ -383,133 +383,36 @@
 
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
-                int intDotNetVersion = (int)DotNetVersion; // c
-                //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
-                bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
-                bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0                
-
                 List<string> selectedDirectories = new List<string>();
 
                 // go through the library folders in descending order (highest to lowest version)
-                IOrderedEnumerable<DirectoryInfo> libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s)).OrderByDescending(di => di.Name.ToLower());
-                foreach (DirectoryInfo directory in libDirectories)
-                {
-                    string directoryName = directory.Name.ToLower();
+                IEnumerable<DirectoryInfo> libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s));
+                var targetFrameworks = libDirectories
+                    .Select(x => x.Name.ToLower());
 
-                    // Select the highest .NET library available that is supported
-                    // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-                    if (usingStandard2 && directoryName == "netstandard2.0")
+                string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+                if (bestTargetFramework != null)
+                {
+                    DirectoryInfo bestLibDirectory = libDirectories
+                        .First(x => x.Name.ToLower() == bestTargetFramework);
+
+                    if (bestTargetFramework == "unity" ||
+                        bestTargetFramework == "net35-unity full v3.5" ||
+                        bestTargetFramework == "net35-unity subset v3.5")
                     {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
+                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "unity"));
+                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "net35-unity full v3.5"));
+                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "net35-unity subset v3.5"));
                     }
-                    else if (usingStandard2 && directoryName == "netstandard1.6")
+                    else
                     {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net462")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.5")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net461")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.4")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net46")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.3")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net452")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net451")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.2")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net45")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.1")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (usingStandard2 && directoryName == "netstandard1.0")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && directoryName == "net403")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (using46 && (directoryName == "net40" || directoryName == "net4"))
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (
-                        directoryName == "unity" ||
-                        directoryName == "net35-unity full v3.5" ||
-                        directoryName == "net35-unity subset v3.5")
-                    {
-                        // Keep all directories targeting Unity within a package
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "unity"));
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity full v3.5"));
-                        selectedDirectories.Add(Path.Combine(directory.Parent.FullName, "net35-unity subset v3.5"));
-                        break;
-                    }
-                    else if (directoryName == "net35")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (directoryName == "net20")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
-                    }
-                    else if (directoryName == "net11")
-                    {
-                        selectedDirectories.Add(directory.FullName);
-                        break;
+                        selectedDirectories.Add(bestLibDirectory.FullName);
                     }
                 }
 
-
-                foreach (string dir in selectedDirectories)
+                foreach (string directory in selectedDirectories)
                 {
-                    LogVerbose("Using {0}", dir);
+                    LogVerbose("Using {0}", directory);
                 }
 
                 // delete all of the libaries except for the selected one
@@ -628,6 +531,132 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
+        }
+
+        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
+        {
+            var targetFrameworks = package.Dependencies
+                .Select(x => x.TargetFramework);
+
+            string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+            return package.Dependencies
+                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework)  ?? new NugetFrameworkGroup();
+        }
+
+        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
+        {
+            var targetFrameworks = nuspec.Dependencies
+                .Select(x => x.TargetFramework);
+
+            string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+            return nuspec.Dependencies
+                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
+        }
+
+        public static string GetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
+        {
+            int intDotNetVersion = (int)DotNetVersion; // c
+            //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
+            bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+            bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0
+
+            string[] ApplicableFrameworks = { "netstandard2.0", "netstandard1.6", "netstandard1.5", "netstandard1.4", "netstandard1.3", "netstandard1.2", "netstandard1.1", "netstandard1.0",
+                "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4", "net35", "net20", "net11",
+                "unity", "net35-unity full v3.5", "net35-unity subset v3.5", "" };
+
+            // Select the highest .NET library available that is supported
+            // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
+            return targetFrameworks
+                .Where(targetFramework => ApplicableFrameworks.Contains(targetFramework))
+                .OrderBy(targetFramework =>
+                {
+                    if (usingStandard2 && targetFramework == "netstandard2.0")
+                    {
+                        return 0;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.6")
+                    {
+                        return 1;
+                    }
+                    else if (using46 && targetFramework == "net462")
+                    {
+                        return 2;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.5")
+                    {
+                        return 3;
+                    }
+                    else if (using46 && targetFramework == "net461")
+                    {
+                        return 4;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.4")
+                    {
+                        return 5;
+                    }
+                    else if (using46 && targetFramework == "net46")
+                    {
+                        return 6;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.3")
+                    {
+                        return 7;
+                    }
+                    else if (using46 && targetFramework == "net452")
+                    {
+                        return 8;
+                    }
+                    else if (using46 && targetFramework == "net451")
+                    {
+                        return 9;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.2")
+                    {
+                        return 10;
+                    }
+                    else if (using46 && targetFramework == "net45")
+                    {
+                        return 11;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.1")
+                    {
+                        return 12;
+                    }
+                    else if (usingStandard2 && targetFramework == "netstandard1.0")
+                    {
+                        return 13;
+                    }
+                    else if (using46 && targetFramework == "net403")
+                    {
+                        return 14;
+                    }
+                    else if (using46 && (targetFramework == "net40" || targetFramework == "net4"))
+                    {
+                        return 15;
+                    }
+                    else if (
+                        targetFramework == "unity" ||
+                        targetFramework == "net35-unity full v3.5" ||
+                        targetFramework == "net35-unity subset v3.5")
+                    {
+                        return 16;
+                    }
+                    else if (targetFramework == "net35")
+                    {
+                        return 17;
+                    }
+                    else if (targetFramework == "net20")
+                    {
+                        return 18;
+                    }
+                    else if (targetFramework == "net11")
+                    {
+                        return 19;
+                    }
+
+                    return 20;
+                })
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -1207,8 +1236,11 @@
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Installing Dependencies", 0.1f);
                 }
 
-                // install all dependencies
-                foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                // install all dependencies for target framework
+                NugetFrameworkGroup frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
+
+                LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
+                foreach (var dependency in frameworkGroup.Dependencies)
                 {
                     LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
                     bool installed = InstallIdentifier(dependency);
@@ -1794,19 +1826,19 @@
                 {
                     case CredentialProviderExitCode.ProviderNotApplicable: break; // Not the right provider
                     case CredentialProviderExitCode.Failure: // Right provider, failure to get creds
-                    {
-                        Debug.LogErrorFormat("Failed to get credentials from {0}!\n\tOutput\n\t{1}\n\tErrors\n\t{2}", providerPath, output, errors);
-                        return null;
-                    }
+                        {
+                            Debug.LogErrorFormat("Failed to get credentials from {0}!\n\tOutput\n\t{1}\n\tErrors\n\t{2}", providerPath, output, errors);
+                            return null;
+                        }
                     case CredentialProviderExitCode.Success:
-                    {
-                        return JsonUtility.FromJson<CredentialProviderResponse>(output);
-                    }
+                        {
+                            return JsonUtility.FromJson<CredentialProviderResponse>(output);
+                        }
                     default:
-                    {
-                        Debug.LogWarningFormat("Unrecognized exit code {0} from {1} {2}", process.ExitCode, providerPath, process.StartInfo.Arguments);
-                        break;
-                    }
+                        {
+                            Debug.LogWarningFormat("Unrecognized exit code {0} from {1} {2}", process.ExitCode, providerPath, process.StartInfo.Arguments);
+                            break;
+                        }
                 }
             }
 

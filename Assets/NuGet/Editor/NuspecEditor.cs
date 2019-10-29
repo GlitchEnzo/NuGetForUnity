@@ -209,7 +209,8 @@
                             // remove a package as a root if another package is dependent on it
                             foreach (NugetPackage package in installedPackages)
                             {
-                                foreach (NugetPackageIdentifier dependency in package.Dependencies)
+                                NugetFrameworkGroup packageFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                                foreach (NugetPackageIdentifier dependency in packageFrameworkGroup.Dependencies)
                                 {
                                     roots.RemoveAll(p => p.Id == dependency.Id);
                                 }
@@ -218,14 +219,16 @@
                             // remove all existing dependencies from the .nuspec
                             nuspec.Dependencies.Clear();
 
-                            nuspec.Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
+                            nuspec.Dependencies.Add(new NugetFrameworkGroup());
+                            nuspec.Dependencies[0].Dependencies= roots.Cast<NugetPackageIdentifier>().ToList();
                         }
                     }
                     EditorGUILayout.EndHorizontal();
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
-                    foreach (var dependency in nuspec.Dependencies)
+                    NugetFrameworkGroup nuspecFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
+                    foreach (var dependency in nuspecFrameworkGroup.Dependencies)
                     {
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(75);
@@ -264,7 +267,7 @@
 
                     if (toDelete != null)
                     {
-                        nuspec.Dependencies.Remove(toDelete);
+                        nuspecFrameworkGroup.Dependencies.Remove(toDelete);
                     }
 
                     EditorGUILayout.BeginHorizontal();
@@ -273,7 +276,7 @@
 
                         if (GUILayout.Button("Add Dependency"))
                         {
-                            nuspec.Dependencies.Add(new NugetPackageIdentifier());
+                            nuspecFrameworkGroup.Dependencies.Add(new NugetPackageIdentifier());
                         }
                     }
                     EditorGUILayout.EndHorizontal();
