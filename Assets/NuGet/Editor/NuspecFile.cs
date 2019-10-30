@@ -16,6 +16,11 @@
     /// </remarks>
     public class NuspecFile
     {
+        public NuspecFile()
+        {
+            Dependencies = new List<NugetFrameworkGroup>();
+        }
+
         #region Required
         /// <summary>
         /// Gets or sets the ID of the NuGet package.
@@ -76,7 +81,7 @@
         /// <summary>
         /// Gets or sets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetFrameworkGroup> Dependencies { get; set; } = new List<NugetFrameworkGroup>();
+        public List<NugetFrameworkGroup> Dependencies { get; set; }
 
         /// <summary>
         /// Gets or sets the release notes of the NuGet package.

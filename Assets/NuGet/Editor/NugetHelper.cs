@@ -598,7 +598,7 @@
                     {
                         return 6;
                     }
-                    else if (usingStandard2 && targetFramework == "netstandard1.3")
+                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.3")
                     {
                         return 7;
                     }
@@ -610,7 +610,7 @@
                     {
                         return 9;
                     }
-                    else if (usingStandard2 && targetFramework == "netstandard1.2")
+                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.2")
                     {
                         return 10;
                     }
@@ -618,11 +618,11 @@
                     {
                         return 11;
                     }
-                    else if (usingStandard2 && targetFramework == "netstandard1.1")
+                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.1")
                     {
                         return 12;
                     }
-                    else if (usingStandard2 && targetFramework == "netstandard1.0")
+                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.0")
                     {
                         return 13;
                     }
