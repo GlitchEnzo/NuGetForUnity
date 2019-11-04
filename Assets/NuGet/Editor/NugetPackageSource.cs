@@ -275,6 +275,10 @@
             }
 
             string path = ExpandedPath;
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
+            }
 
             if (Directory.Exists(path))
             {
