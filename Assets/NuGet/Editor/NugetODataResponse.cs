@@ -106,7 +106,7 @@ namespace NugetForUnity
                         // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
                         // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
                         // so we need to only add valid dependencies and skip invalid ones
-                        if (string.IsNullOrEmpty(dependency.Id) && string.IsNullOrEmpty(dependency.Version))
+                        if (!string.IsNullOrEmpty(dependency.Id) && !string.IsNullOrEmpty(dependency.Version))
                         {
                             group.Dependencies.Add(dependency);
                         }
