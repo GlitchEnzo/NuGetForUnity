@@ -32,7 +32,13 @@
         {
             get
             {
-                return Environment.ExpandEnvironmentVariables(SavedPath);
+                string path = Environment.ExpandEnvironmentVariables(SavedPath);
+                if (!path.StartsWith("http") && path != "(Aggregate source)" && !Path.IsPathRooted(path))
+                {
+                    path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
+                }
+
+                return path;
             }
         }
 
@@ -275,10 +281,6 @@
             }
 
             string path = ExpandedPath;
-            if (!Path.IsPathRooted(path))
-            {
-                path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
-            }
 
             if (Directory.Exists(path))
             {
