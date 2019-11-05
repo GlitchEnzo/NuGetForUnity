@@ -254,6 +254,8 @@
                         dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
                         group.Dependencies.Add(dependency);
                     }
+
+                    nuspec.Dependencies.Add(group);
                 }
             }
 

@@ -87,32 +87,28 @@ namespace NugetForUnity
                     foreach (var dependencyString in dependencies)
                     {
                         string[] details = dependencyString.Split(':');
-                        var dependency = new NugetPackageIdentifier(details[0], details[1]);
-
-                        // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
-                        // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
-                        // so we need to only add valid dependencies and skip invalid ones
-                        if (string.IsNullOrEmpty(dependency.Id) && string.IsNullOrEmpty(dependency.Version))
-                        {
-                            continue;
-                        }
-
+                        
                         string framework = string.Empty;
                         if (details.Length > 2)
                         {
                             framework = details[2];
                         }
 
-                        if (dependencyGroups.TryGetValue(framework, out NugetFrameworkGroup group))
-                        {
-                            group.Dependencies.Add(dependency);
-                        }
-                        else
+                        NugetFrameworkGroup group;
+                        if (!dependencyGroups.TryGetValue(framework, out group))
                         {
                             group = new NugetFrameworkGroup();
                             group.TargetFramework = framework;
-                            group.Dependencies.Add(dependency);
                             dependencyGroups.Add(framework, group);
+                        }
+
+                        var dependency = new NugetPackageIdentifier(details[0], details[1]);
+                        // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
+                        // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
+                        // so we need to only add valid dependencies and skip invalid ones
+                        if (!string.IsNullOrEmpty(dependency.Id) && !string.IsNullOrEmpty(dependency.Version))
+                        {
+                            group.Dependencies.Add(dependency);
                         }
                     }
 
