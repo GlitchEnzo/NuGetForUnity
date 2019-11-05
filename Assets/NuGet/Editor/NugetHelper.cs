@@ -566,7 +566,7 @@
 
             // Select the highest .NET library available that is supported
             // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-            return targetFrameworks
+            string result = targetFrameworks
                 .Where(targetFramework => ApplicableFrameworks.Contains(targetFramework))
                 .OrderBy(targetFramework =>
                 {
@@ -657,6 +657,9 @@
                     return 20;
                 })
                 .FirstOrDefault();
+
+            LogVerbose("Selecting {0} as the best target framework for current settings", result);
+            return result;
         }
 
         /// <summary>
