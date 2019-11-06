@@ -575,7 +575,7 @@
             // Add empty tfm (default) as last priority
             frameworkGroups.Add(new[] { "" });
 
-            var getTfmPriority = (string tfm) =>
+            Func<string, int> getTfmPriority = (string tfm) =>
             {
                 for (int i = 0; i < frameworkGroups.Count; ++i)
                 {
@@ -1178,7 +1178,7 @@
                 }
 
                 // install all dependencies for target framework
-                NugetFrameworkGroup frameworkGroup = TryGetBestDependencyFrameworkGroupForCurrentSettings(package);
+                NugetFrameworkGroup frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
 
                 LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
                 foreach (var dependency in frameworkGroup.Dependencies)
