@@ -90,7 +90,17 @@
         /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
         /// </summary>
-        internal static ApiCompatibilityLevel DotNetVersion;
+        private static ApiCompatibilityLevel DotNetVersion
+        {
+            get
+            {
+#if UNITY_5_6_OR_NEWER
+                return PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+#else
+                return PlayerSettings.apiCompatibilityLevel;
+#endif
+            }
+        }
 
         /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
@@ -105,12 +115,6 @@
                 {
                     return;
                 }
-
-#if UNITY_5_6_OR_NEWER
-                DotNetVersion = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
-#else
-                DotNetVersion = PlayerSettings.apiCompatibilityLevel;
-#endif
 
                 // Load the NuGet.config file
                 LoadNugetConfigFile();
