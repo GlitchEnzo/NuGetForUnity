@@ -553,11 +553,63 @@
                 .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
         }
 
+        private struct UnityVersion : IComparable<UnityVersion>
+        {
+            public int Major;
+            public int Minor;
+            public int Revision;
+            public char Release;
+            public int Build;
+
+            public static UnityVersion Current = new UnityVersion(Application.unityVersion);
+
+            public UnityVersion(string version)
+            {
+                Match match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
+                if (!match.Success) { throw new ArgumentException("Invalid unity version"); }
+
+                Major = int.Parse(match.Groups[1].Value);
+                Minor = int.Parse(match.Groups[2].Value);
+                Revision = int.Parse(match.Groups[3].Value);
+                Release = match.Groups[4].Value[0];
+                Build = int.Parse(match.Groups[5].Value);
+            }
+
+            public static int Compare(UnityVersion a, UnityVersion b)
+            {
+
+                if (a.Major < b.Major) { return -1; }
+                if (a.Major > b.Major) { return 1; }
+
+                if (a.Minor < b.Minor) { return -1; }
+                if (a.Minor > b.Minor) { return 1; }
+
+                if (a.Revision < b.Revision) { return -1; }
+                if (a.Revision > b.Revision) { return 1; }
+
+                if (a.Release < b.Release) { return -1; }
+                if (a.Release > b.Release) { return 1; }
+
+                if (a.Build < b.Build) { return -1; }
+                if (a.Build > b.Build) { return 1; }
+
+                return 0;
+            }
+
+            public int CompareTo(UnityVersion other)
+            {
+                return Compare(this, other);
+            }
+        }
+
+        private struct PriorityFramework { public int Priority; public string Framework; }
         private static readonly string[] unityFrameworks = new string[] { "unity" };
         private static readonly string[] netStandardFrameworks = new string[] {
             "netstandard2.0", "netstandard1.6", "netstandard1.5", "netstandard1.4", "netstandard1.3", "netstandard1.2", "netstandard1.1", "netstandard1.0" };
-        private static readonly string[] net4Frameworks = new string[] { "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4" };
+        private static readonly string[] net4Unity2018Frameworks = new string[] { "net471", "net47" };
+        private static readonly string[] net4Unity2017Frameworks = new string[] { "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4" };
         private static readonly string[] net3Frameworks = new string[] { "net35-unity full v3.5", "net35-unity subset v3.5", "net35", "net20", "net11" };
+        private static readonly string[] defaultFrameworks = new string[] { string.Empty };
 
         public static string TryGetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
         {
@@ -568,12 +620,31 @@
 
             var frameworkGroups = new List<string[]> { unityFrameworks };
 
-            if (usingStandard2) { frameworkGroups.Add(netStandardFrameworks); }
-            else if (using46) { frameworkGroups.Add(net4Frameworks); }
-            else { frameworkGroups.Add(net3Frameworks); }
+            if (usingStandard2)
+            {
+                frameworkGroups.Add(netStandardFrameworks);
+            }
+            else if (using46)
+            {
+                if(UnityVersion.Current.Major >= 2018)
+                {
+                    frameworkGroups.Add(net4Unity2018Frameworks);
+                }
 
-            // Add empty tfm (default) as last priority
-            frameworkGroups.Add(new[] { "" });
+                if (UnityVersion.Current.Major >= 2017)
+                {
+                    frameworkGroups.Add(net4Unity2017Frameworks);
+                }
+
+                frameworkGroups.Add(net3Frameworks);
+                frameworkGroups.Add(netStandardFrameworks);
+            }
+            else
+            {
+                frameworkGroups.Add(net3Frameworks);
+            }
+
+            frameworkGroups.Add(defaultFrameworks);
 
             Func<string, int> getTfmPriority = (string tfm) =>
             {
@@ -592,8 +663,11 @@
             // Select the highest .NET library available that is supported
             // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
             string result = targetFrameworks
-                .Where(tfm => getTfmPriority(tfm) != int.MaxValue)
-                .OrderBy(tfm => getTfmPriority(tfm))
+                .Select(tfm => new PriorityFramework { Priority = getTfmPriority(tfm), Framework = tfm })
+                .Where(pfm => pfm.Priority != int.MaxValue)
+                .ToArray() // Ensure we don't search for priorities again when sorting
+                .OrderBy(pfm => pfm.Priority)
+                .Select(pfm => pfm.Framework)
                 .FirstOrDefault();
 
             LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
