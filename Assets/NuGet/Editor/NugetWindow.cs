@@ -978,7 +978,7 @@
                             EditorStyles.label.fontStyle = FontStyle.Italic;
                             StringBuilder builder = new StringBuilder();
 
-                            NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                            NugetFrameworkGroup frameworkGroup = NugetHelper.TryGetBestDependencyFrameworkGroupForCurrentSettings(package);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));

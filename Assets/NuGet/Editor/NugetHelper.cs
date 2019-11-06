@@ -390,7 +390,7 @@
                 var targetFrameworks = libDirectories
                     .Select(x => x.Name.ToLower());
 
-                string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+                string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
                 if (bestTargetFramework != null)
                 {
                     DirectoryInfo bestLibDirectory = libDirectories
@@ -533,132 +533,68 @@
             }
         }
 
-        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
+        public static NugetFrameworkGroup TryGetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
         {
             var targetFrameworks = package.Dependencies
                 .Select(x => x.TargetFramework);
 
-            string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+            string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
             return package.Dependencies
-                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework)  ?? new NugetFrameworkGroup();
+                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
         }
 
-        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
+        public static NugetFrameworkGroup TryGetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
         {
             var targetFrameworks = nuspec.Dependencies
                 .Select(x => x.TargetFramework);
 
-            string bestTargetFramework = GetBestTargetFrameworkForCurrentSettings(targetFrameworks);
+            string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
             return nuspec.Dependencies
                 .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
         }
 
-        public static string GetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
+        private static readonly string[] unityFrameworks = new string[] { "unity" };
+        private static readonly string[] netStandardFrameworks = new string[] {
+            "netstandard2.0", "netstandard1.6", "netstandard1.5", "netstandard1.4", "netstandard1.3", "netstandard1.2", "netstandard1.1", "netstandard1.0" };
+        private static readonly string[] net4Frameworks = new string[] { "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4" };
+        private static readonly string[] net3Frameworks = new string[] { "net35-unity full v3.5", "net35-unity subset v3.5", "net35", "net20", "net11" };
+
+        public static string TryGetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
         {
             int intDotNetVersion = (int)DotNetVersion; // c
             //bool using46 = DotNetVersion == ApiCompatibilityLevel.NET_4_6; // NET_4_6 option was added in Unity 5.6
             bool using46 = intDotNetVersion == 3; // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
             bool usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0
 
-            string[] ApplicableFrameworks = { "netstandard2.0", "netstandard1.6", "netstandard1.5", "netstandard1.4", "netstandard1.3", "netstandard1.2", "netstandard1.1", "netstandard1.0",
-                "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4", "net35", "net20", "net11",
-                "unity", "net35-unity full v3.5", "net35-unity subset v3.5", "" };
+            var frameworkGroups = new List<string[]> { unityFrameworks };
+
+            if (usingStandard2) { frameworkGroups.Add(netStandardFrameworks); }
+            else if (using46) { frameworkGroups.Add(net4Frameworks); }
+
+            frameworkGroups.Add(net3Frameworks);
+
+            var getTfmPriority = (string tfm) =>
+            {
+                for (int i = 0; i < frameworkGroups.Count; ++i)
+                {
+                    int index = Array.IndexOf(frameworkGroups[i], tfm);
+                    if (index >= 0)
+                    {
+                        return i * 1000 + index;
+                    }
+                }
+
+                return int.MaxValue;
+            };
 
             // Select the highest .NET library available that is supported
             // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
             string result = targetFrameworks
-                .Where(targetFramework => ApplicableFrameworks.Contains(targetFramework))
-                .OrderBy(targetFramework =>
-                {
-                    if (usingStandard2 && targetFramework == "netstandard2.0")
-                    {
-                        return 0;
-                    }
-                    else if (usingStandard2 && targetFramework == "netstandard1.6")
-                    {
-                        return 1;
-                    }
-                    else if (using46 && targetFramework == "net462")
-                    {
-                        return 2;
-                    }
-                    else if (usingStandard2 && targetFramework == "netstandard1.5")
-                    {
-                        return 3;
-                    }
-                    else if (using46 && targetFramework == "net461")
-                    {
-                        return 4;
-                    }
-                    else if (usingStandard2 && targetFramework == "netstandard1.4")
-                    {
-                        return 5;
-                    }
-                    else if (using46 && targetFramework == "net46")
-                    {
-                        return 6;
-                    }
-                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.3")
-                    {
-                        return 7;
-                    }
-                    else if (using46 && targetFramework == "net452")
-                    {
-                        return 8;
-                    }
-                    else if (using46 && targetFramework == "net451")
-                    {
-                        return 9;
-                    }
-                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.2")
-                    {
-                        return 10;
-                    }
-                    else if (using46 && targetFramework == "net45")
-                    {
-                        return 11;
-                    }
-                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.1")
-                    {
-                        return 12;
-                    }
-                    else if ((using46 || usingStandard2) && targetFramework == "netstandard1.0")
-                    {
-                        return 13;
-                    }
-                    else if (using46 && targetFramework == "net403")
-                    {
-                        return 14;
-                    }
-                    else if (using46 && (targetFramework == "net40" || targetFramework == "net4"))
-                    {
-                        return 15;
-                    }
-                    else if (
-                        targetFramework == "unity" ||
-                        targetFramework == "net35-unity full v3.5" ||
-                        targetFramework == "net35-unity subset v3.5")
-                    {
-                        return 16;
-                    }
-                    else if (targetFramework == "net35")
-                    {
-                        return 17;
-                    }
-                    else if (targetFramework == "net20")
-                    {
-                        return 18;
-                    }
-                    else if (targetFramework == "net11")
-                    {
-                        return 19;
-                    }
-
-                    return 20;
-                })
+                .Where(tfm => getTfmPriority(tfm) != int.MaxValue)
+                .OrderBy(tfm => getTfmPriority(tfm))
                 .FirstOrDefault();
 
-            LogVerbose("Selecting {0} as the best target framework for current settings", result);
+            LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
         }
 
@@ -1240,7 +1176,7 @@
                 }
 
                 // install all dependencies for target framework
-                NugetFrameworkGroup frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                NugetFrameworkGroup frameworkGroup = TryGetBestDependencyFrameworkGroupForCurrentSettings(package);
 
                 LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
                 foreach (var dependency in frameworkGroup.Dependencies)
