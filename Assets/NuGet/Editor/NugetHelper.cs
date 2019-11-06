@@ -533,7 +533,7 @@
             }
         }
 
-        public static NugetFrameworkGroup TryGetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
+        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
         {
             var targetFrameworks = package.Dependencies
                 .Select(x => x.TargetFramework);
@@ -543,7 +543,7 @@
                 .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
         }
 
-        public static NugetFrameworkGroup TryGetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
+        public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
         {
             var targetFrameworks = nuspec.Dependencies
                 .Select(x => x.TargetFramework);
@@ -570,8 +570,10 @@
 
             if (usingStandard2) { frameworkGroups.Add(netStandardFrameworks); }
             else if (using46) { frameworkGroups.Add(net4Frameworks); }
+            else { frameworkGroups.Add(net3Frameworks); }
 
-            frameworkGroups.Add(net3Frameworks);
+            // Add empty tfm (default) as last priority
+            frameworkGroups.Add(new[] { "" });
 
             var getTfmPriority = (string tfm) =>
             {

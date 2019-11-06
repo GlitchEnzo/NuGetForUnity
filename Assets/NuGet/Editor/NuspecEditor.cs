@@ -209,7 +209,7 @@
                             // remove a package as a root if another package is dependent on it
                             foreach (NugetPackage package in installedPackages)
                             {
-                                NugetFrameworkGroup packageFrameworkGroup = NugetHelper.TryGetBestDependencyFrameworkGroupForCurrentSettings(package);
+                                NugetFrameworkGroup packageFrameworkGroup = NugetHelper.GetBestTargetFrameworkForCurrentSettings(package);
                                 foreach (NugetPackageIdentifier dependency in packageFrameworkGroup.Dependencies)
                                 {
                                     roots.RemoveAll(p => p.Id == dependency.Id);
@@ -227,7 +227,7 @@
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
-                    NugetFrameworkGroup nuspecFrameworkGroup = NugetHelper.TryGetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
+                    NugetFrameworkGroup nuspecFrameworkGroup = NugetHelper.GetBestTargetFrameworkForCurrentSettings(nuspec);
                     foreach (var dependency in nuspecFrameworkGroup.Dependencies)
                     {
                         EditorGUILayout.BeginHorizontal();
