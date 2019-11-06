@@ -19,6 +19,7 @@
         public NuspecFile()
         {
             Dependencies = new List<NugetFrameworkGroup>();
+            Files = new List<NuspecContentFile>();
         }
 
         #region Required
@@ -121,7 +122,7 @@
         /// <summary>
         /// Gets or sets the list of content files listed in the .nuspec file.
         /// </summary>
-        public List<NuspecContentFile> Files { get; set; } = new List<NuspecContentFile>();
+        public List<NuspecContentFile> Files { get; set; }
 
         /// <summary>
         /// Loads the .nuspec file inside the .nupkg file at the given filepath.
