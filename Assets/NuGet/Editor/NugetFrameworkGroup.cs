@@ -8,6 +8,12 @@ namespace NugetForUnity
     /// </summary>
     public class NugetFrameworkGroup
     {
+        public NugetFrameworkGroup()
+        {
+            TargetFramework = "";
+            Dependencies = new List<NugetPackageIdentifier>();
+        }
+
         /// <summary>
         /// Gets or sets the framework and version that this group targets.
         /// </summary>
