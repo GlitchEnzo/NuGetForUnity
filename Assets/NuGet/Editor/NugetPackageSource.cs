@@ -537,20 +537,15 @@
             List<NugetPackage> updates = new List<NugetPackage>();
             foreach (NugetPackage installedPackage in installedPackages)
             {
-                List<NugetPackage> packageUpdates = new List<NugetPackage>();
                 string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
-                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange); 
-                packageUpdates = FindPackagesById(id);
+                NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange);
+                List<NugetPackage> packageUpdates = FindPackagesById(id);
 
-                NugetPackage mostRecentPrerelease = includePrerelease ? packageUpdates.FindLast(p => p.IsPrerelease) : default(NugetPackage);
-                packageUpdates.RemoveAll(p => p.IsPrerelease && p != mostRecentPrerelease);
+                if (!includePrerelease) { packageUpdates.RemoveAll(p => p.IsPrerelease); }
+                if( packageUpdates.Count == 0 ) { continue; }
 
-                if (!includeAllVersions && packageUpdates.Count > 0)
-                {
-                    packageUpdates.RemoveRange(0, packageUpdates.Count - 1);
-                }
-
-                updates.AddRange(packageUpdates);
+                int skip = includeAllVersions ? 0 : packageUpdates.Count - 1;
+                updates.AddRange(packageUpdates.Skip(skip));
             }
 
             NugetHelper.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
