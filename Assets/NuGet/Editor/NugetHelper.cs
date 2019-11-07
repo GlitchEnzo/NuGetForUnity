@@ -1028,7 +1028,6 @@
 
         /// <summary>
         /// Gets a NugetPackage from the NuGet server with the exact ID and Version given.
-        /// If an exact match isn't found, it selects the next closest version available.
         /// </summary>
         /// <param name="packageId">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
