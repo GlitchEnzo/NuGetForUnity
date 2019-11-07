@@ -460,17 +460,11 @@
                 }
             }
 
-            // sort alphabetically
+            // sort alphabetically, then by version descending
             updates.Sort(delegate (NugetPackage x, NugetPackage y)
             {
-                if (x.Id == null && y.Id == null)
-                    return 0;
-                else if (x.Id == null)
-                    return -1;
-                else if (y.Id == null)
-                    return 1;
-                else if (x.Id == y.Id)
-                    return x.Version.CompareTo(y.Version);
+                if (x.Id == y.Id)
+                    return -1 * x.CompareVersion(y.Version);
                 else
                     return x.Id.CompareTo(y.Id);
             });
