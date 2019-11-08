@@ -1,7 +1,7 @@
 param([string]$OutputDirectory = ".\bin")
 
 Import-Module UnitySetup -ErrorAction Stop -MinimumVersion 4.0.97
-Import-Module VSSetup -ErrorAction Stop -RequiredVersion 2.0.1.32208
+Import-Module VSSetup -ErrorAction Stop -MinimumVersion 2.0.1.32208
 
 Write-Host "Build NuGetForUnity " -ForegroundColor Green
 
