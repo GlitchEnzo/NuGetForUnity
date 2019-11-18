@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using NugetForUnity;
 using System.IO;
+using UnityEditor;
 
 public class NuGetTests
 {
@@ -123,7 +124,7 @@ public class NuGetTests
         var directory45 = Path.Combine(NugetHelper.NugetConfigFile.RepositoryPath, string.Format("{0}.{1}\\lib\\net45", signalRClient.Id, signalRClient.Version));
 
         // SignalR 2.2.2 only contains .NET 4.0 and .NET 4.5 libraries, so it should install .NET 4.5 when using .NET 4.6 in Unity, and be empty in other cases
-        if ((int)NugetHelper.DotNetVersion == 3) // 3 = NET_4_6
+        if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
         {
             Assert.IsTrue(Directory.Exists(directory45), "The directory does NOT exist: {0}", directory45);
         }
