@@ -139,6 +139,24 @@ public class NuGetTests
     }
 
     [Test]
+    [TestCase("1.0.0-rc1", "1.0.0")]
+    [TestCase("1.0.0-rc1", "1.0.0-rc2")]
+    [TestCase("1.2.3", "1.2.4")]
+    [TestCase("1.2.3", "1.3.0")]
+    [TestCase("1.2.3", "2.0.0")]
+    [TestCase("1.2.3-rc1", "1.2.4")]
+    [TestCase("1.2.3-rc1", "1.3.0")]
+    [TestCase("1.2.3-rc1", "2.0.0")]
+    public void VersionComparison(string smallerVersion, string greaterVersion)
+    {
+        var smallerPackage = new NugetPackage { Id = "TestPackage", Version = smallerVersion };
+        var greaterPackage = new NugetPackage { Id = "TestPackage", Version = greaterVersion };
+
+        Assert.IsTrue(smallerPackage.CompareTo(greaterPackage) < 0, "{0} was NOT smaller than {1}", smallerVersion, greaterVersion);
+        Assert.IsTrue(greaterPackage.CompareTo(smallerPackage) > 0, "{0} was NOT greater than {1}", greaterVersion, smallerVersion);
+    }
+
+    [Test]
     [TestCase("1.0", "1.0")]
     [TestCase("1.0", "2.0")]
     [TestCase("(1.0,)", "2.0")]
