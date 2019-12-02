@@ -335,7 +335,7 @@
             {
                 string[] splitStringsA = versionA.Split('-');
                 versionA = splitStringsA[0];
-                string prereleaseA = string.Empty;
+                string prereleaseA = "\uFFFF";
 
                 if (splitStringsA.Length > 1)
                 {
@@ -362,7 +362,7 @@
 
                 string[] splitStringsB = versionB.Split('-');
                 versionB = splitStringsB[0];
-                string prereleaseB = string.Empty;
+                string prereleaseB = "\uFFFF";
 
                 if (splitStringsB.Length > 1)
                 {
@@ -391,7 +391,7 @@
                 int minor = minorA < minorB ? -1 : minorA > minorB ? 1 : 0;
                 int patch = patchA < patchB ? -1 : patchA > patchB ? 1 : 0;
                 int build = buildA < buildB ? -1 : buildA > buildB ? 1 : 0;
-                int prerelease = string.Compare(prereleaseA, prereleaseB);
+                int prerelease = string.Compare(prereleaseA, prereleaseB, StringComparison.Ordinal);
 
                 if (major == 0)
                 {
