@@ -141,11 +141,13 @@
 
             EditorGUILayout.EndScrollView();
 
-            if (GUILayout.Button(string.Format("Save")))
+            if (GUILayout.Button(string.Format("Reset To Default")))
             {
-                NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+                NugetConfigFile.CreateDefaultFile(NugetHelper.NugetConfigFilePath);
                 NugetHelper.LoadNugetConfigFile();
             }
+
+            NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
         }
     }
 }
