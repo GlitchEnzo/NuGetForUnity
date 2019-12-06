@@ -24,6 +24,8 @@
         [PreferenceItem("NuGet For Unity")]
         public static void PreferencesGUI()
         {
+            bool preferencesChangedThisFrame = false;
+
             EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
 
             if (NugetHelper.NugetConfigFile == null)
@@ -31,11 +33,20 @@
                 NugetHelper.LoadNugetConfigFile();
             }
 
-            NugetHelper.NugetConfigFile.InstallFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
+            bool installFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
+            if (installFromCache != NugetHelper.NugetConfigFile.InstallFromCache)
+                preferencesChangedThisFrame = true;
+            NugetHelper.NugetConfigFile.InstallFromCache = installFromCache;
 
-            NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", NugetHelper.NugetConfigFile.ReadOnlyPackageFiles);
+            bool readOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", NugetHelper.NugetConfigFile.ReadOnlyPackageFiles);
+            if (readOnlyPackageFiles != NugetHelper.NugetConfigFile.ReadOnlyPackageFiles)
+                preferencesChangedThisFrame = true;
+            NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = readOnlyPackageFiles;
 
-            NugetHelper.NugetConfigFile.Verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
+            bool verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
+            if (verbose != NugetHelper.NugetConfigFile.Verbose)
+                preferencesChangedThisFrame = true;
+            NugetHelper.NugetConfigFile.Verbose = verbose;
 
             EditorGUILayout.LabelField("Package Sources:");
 
@@ -54,14 +65,24 @@
                         EditorGUILayout.BeginVertical(GUILayout.Width(20));
                         {
                             GUILayout.Space(10);
-                            source.IsEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                            bool isEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                            if (isEnabled != source.IsEnabled)
+                                preferencesChangedThisFrame = true;
+                            source.IsEnabled = isEnabled;
                         }
                         EditorGUILayout.EndVertical();
 
                         EditorGUILayout.BeginVertical();
                         {
-                            source.Name = EditorGUILayout.TextField(source.Name);
-                            source.SavedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
+                            string name = EditorGUILayout.TextField(source.Name);
+                            if (name != source.Name)
+                                preferencesChangedThisFrame = true;
+                            source.Name = name;
+
+                            string savedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
+                            if (savedPath != source.SavedPath)
+                                preferencesChangedThisFrame = true;
+                            source.SavedPath = savedPath;
                         }
                         EditorGUILayout.EndVertical();
                     }
@@ -72,11 +93,23 @@
                         GUILayout.Space(29);
                         EditorGUIUtility.labelWidth = 75;
                         EditorGUILayout.BeginVertical();
-                        source.HasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
+
+                        bool hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
+                        if (hasPassword != source.HasPassword)
+                            preferencesChangedThisFrame = true;
+
+                        source.HasPassword = hasPassword;
                         if (source.HasPassword)
                         {
-                            source.UserName = EditorGUILayout.TextField("User Name", source.UserName);
-                            source.SavedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
+                            string userName = EditorGUILayout.TextField("User Name", source.UserName);
+                            if (userName != source.UserName)
+                                preferencesChangedThisFrame = true;
+                            source.UserName = userName;
+
+                            string savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
+                            if (savedPassword != source.SavedPassword)
+                                preferencesChangedThisFrame = true;
+                            source.SavedPassword = savedPassword;
                         }
                         else
                         {
@@ -117,6 +150,7 @@
                     NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index - 1];
                     NugetHelper.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
                 }
+                preferencesChangedThisFrame = true;
             }
 
             if (sourceToMoveDown != null)
@@ -127,16 +161,19 @@
                     NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index + 1];
                     NugetHelper.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
                 }
+                preferencesChangedThisFrame = true;
             }
 
             if (sourceToRemove != null)
             {
                 NugetHelper.NugetConfigFile.PackageSources.Remove(sourceToRemove);
+                preferencesChangedThisFrame = true;
             }
 
             if (GUILayout.Button(string.Format("Add New Source")))
             {
                 NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSource("New Source", "source_path"));
+                preferencesChangedThisFrame = true;
             }
 
             EditorGUILayout.EndScrollView();
@@ -145,9 +182,13 @@
             {
                 NugetConfigFile.CreateDefaultFile(NugetHelper.NugetConfigFilePath);
                 NugetHelper.LoadNugetConfigFile();
+                preferencesChangedThisFrame = true;
             }
 
-            NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+            if (preferencesChangedThisFrame)
+            {
+                NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+            }
         }
     }
 }
