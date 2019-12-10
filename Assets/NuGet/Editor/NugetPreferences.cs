@@ -35,18 +35,24 @@
 
             bool installFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
             if (installFromCache != NugetHelper.NugetConfigFile.InstallFromCache)
+            {
                 preferencesChangedThisFrame = true;
-            NugetHelper.NugetConfigFile.InstallFromCache = installFromCache;
+                NugetHelper.NugetConfigFile.InstallFromCache = installFromCache;
+            }
 
             bool readOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", NugetHelper.NugetConfigFile.ReadOnlyPackageFiles);
             if (readOnlyPackageFiles != NugetHelper.NugetConfigFile.ReadOnlyPackageFiles)
+            {
                 preferencesChangedThisFrame = true;
-            NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = readOnlyPackageFiles;
+                NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = readOnlyPackageFiles;
+            }
 
             bool verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
             if (verbose != NugetHelper.NugetConfigFile.Verbose)
+            {
                 preferencesChangedThisFrame = true;
-            NugetHelper.NugetConfigFile.Verbose = verbose;
+                NugetHelper.NugetConfigFile.Verbose = verbose;
+            }
 
             EditorGUILayout.LabelField("Package Sources:");
 
@@ -67,8 +73,10 @@
                             GUILayout.Space(10);
                             bool isEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
                             if (isEnabled != source.IsEnabled)
+                            {
                                 preferencesChangedThisFrame = true;
-                            source.IsEnabled = isEnabled;
+                                source.IsEnabled = isEnabled;
+                            }
                         }
                         EditorGUILayout.EndVertical();
 
@@ -76,13 +84,17 @@
                         {
                             string name = EditorGUILayout.TextField(source.Name);
                             if (name != source.Name)
+                            {
                                 preferencesChangedThisFrame = true;
-                            source.Name = name;
+                                source.Name = name;
+                            }
 
                             string savedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
                             if (savedPath != source.SavedPath)
+                            {
                                 preferencesChangedThisFrame = true;
-                            source.SavedPath = savedPath;
+                                source.SavedPath = savedPath;
+                            }
                         }
                         EditorGUILayout.EndVertical();
                     }
@@ -96,20 +108,26 @@
 
                         bool hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
                         if (hasPassword != source.HasPassword)
+                        {
                             preferencesChangedThisFrame = true;
+                            source.HasPassword = hasPassword;
+                        }
 
-                        source.HasPassword = hasPassword;
                         if (source.HasPassword)
                         {
                             string userName = EditorGUILayout.TextField("User Name", source.UserName);
                             if (userName != source.UserName)
+                            {
                                 preferencesChangedThisFrame = true;
-                            source.UserName = userName;
+                                source.UserName = userName;
+                            }
 
                             string savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
                             if (savedPassword != source.SavedPassword)
+                            {
                                 preferencesChangedThisFrame = true;
-                            source.SavedPassword = savedPassword;
+                                source.SavedPassword = savedPassword;
+                            }
                         }
                         else
                         {
