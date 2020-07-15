@@ -346,6 +346,11 @@
             }
         }
 
+        private static bool FrameworkNamesAreEqual(string tfm1, string tfm2)
+        {
+            return tfm1.Equals(tfm2, StringComparison.InvariantCultureIgnoreCase);
+        }
+
         /// <summary>
         /// Cleans up a package after it has been installed.
         /// Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
@@ -398,7 +403,7 @@
                 if (bestTargetFramework != null)
                 {
                     DirectoryInfo bestLibDirectory = libDirectories
-                        .First(x => x.Name.ToLower() == bestTargetFramework);
+                        .First(x => FrameworkNamesAreEqual(x.Name, bestTargetFramework));
 
                     if (bestTargetFramework == "unity" ||
                         bestTargetFramework == "net35-unity full v3.5" ||
@@ -544,7 +549,7 @@
 
             string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
             return package.Dependencies
-                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
+                .FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ?? new NugetFrameworkGroup();
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
@@ -554,7 +559,7 @@
 
             string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
             return nuspec.Dependencies
-                .FirstOrDefault(x => x.TargetFramework == bestTargetFramework) ?? new NugetFrameworkGroup();
+                .FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ?? new NugetFrameworkGroup();
         }
 
         private struct UnityVersion : IComparable<UnityVersion>
@@ -609,7 +614,7 @@
         private struct PriorityFramework { public int Priority; public string Framework; }
         private static readonly string[] unityFrameworks = new string[] { "unity" };
         private static readonly string[] netStandardFrameworks = new string[] {
-            "netstandard2.0", "netstandard1.6", "netstandard1.5", "netstandard1.4", "netstandard1.3", "netstandard1.2", "netstandard1.1", "netstandard1.0" };
+            "netstandard20", "netstandard16", "netstandard15", "netstandard14", "netstandard13", "netstandard12", "netstandard11", "netstandard10" };
         private static readonly string[] net4Unity2018Frameworks = new string[] { "net471", "net47" };
         private static readonly string[] net4Unity2017Frameworks = new string[] { "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4" };
         private static readonly string[] net3Frameworks = new string[] { "net35-unity full v3.5", "net35-unity subset v3.5", "net35", "net20", "net11" };
@@ -630,7 +635,7 @@
             }
             else if (using46)
             {
-                if(UnityVersion.Current.Major >= 2018)
+                if (UnityVersion.Current.Major >= 2018)
                 {
                     frameworkGroups.Add(net4Unity2018Frameworks);
                 }
@@ -654,7 +659,13 @@
             {
                 for (int i = 0; i < frameworkGroups.Count; ++i)
                 {
-                    int index = Array.IndexOf(frameworkGroups[i], tfm);
+                    int index = Array.FindIndex(frameworkGroups[i], test =>
+                    {
+                        if (test.Equals(tfm, StringComparison.InvariantCultureIgnoreCase)) { return true; }
+                        if (test.Equals(tfm.Replace(".", string.Empty), StringComparison.InvariantCultureIgnoreCase)) { return true; }
+                        return false;
+                    });
+
                     if (index >= 0)
                     {
                         return i * 1000 + index;
