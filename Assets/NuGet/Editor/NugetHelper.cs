@@ -903,7 +903,7 @@
         /// <summary>
         /// Uninstalls all of the currently installed packages.
         /// </summary>
-        internal static void UninstallAll()
+        public static void UninstallAll()
         {
             foreach (NugetPackage package in installedPackages.Values.ToList())
             {
@@ -1241,7 +1241,7 @@
         /// </summary>
         /// <param name="package">The identifer of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        public static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             if (IsAlreadyImportedInEngine(package))
             {
@@ -1643,7 +1643,7 @@
         /// </summary>
         /// <param name="package">The package to check if is installed.</param>
         /// <returns>True if the given package is installed.  False if it is not.</returns>
-        internal static bool IsInstalled(NugetPackageIdentifier package)
+        public static bool IsInstalled(NugetPackageIdentifier package)
         {
             if (IsAlreadyImportedInEngine(package))
             {
