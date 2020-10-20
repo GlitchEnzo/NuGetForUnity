@@ -1,3 +1,5 @@
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/GlitchEnzo/nugetforunity)](https://ci.appveyor.com/project/GlitchEnzo/nugetforunity)
+
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
