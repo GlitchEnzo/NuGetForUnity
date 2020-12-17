@@ -399,8 +399,9 @@
                 var targetFrameworks = libDirectories
                     .Select(x => x.Name.ToLower());
 
+                var isAlreadyImported = IsAlreadyImportedInEngine(package);
                 string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
-                if (bestTargetFramework != null)
+                if (!isAlreadyImported && (bestTargetFramework != null))
                 {
                     DirectoryInfo bestLibDirectory = libDirectories
                         .First(x => FrameworkNamesAreEqual(x.Name, bestTargetFramework));
@@ -540,6 +541,46 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
+        }
+
+        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package) {
+            var alreadyImportedLibs = GetAlreadyImportedLibs();
+            var isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
+            LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            return isAlreadyImported;
+        }
+
+        private static HashSet<string> GetAlreadyImportedLibs() {
+            var lookupPaths = GetAllLookupPaths();
+            var libNames = lookupPaths
+                .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
+                .Select(Path.GetFileName)
+                .Select(p => Path.ChangeExtension(p, null));
+            var result = new HashSet<string>(libNames);
+            LogVerbose("Already imported libs: {0}", string.Join(", ", result));
+            return result;
+        }
+
+        private static string[] GetAllLookupPaths() {
+            var executablePath = EditorApplication.applicationPath;
+            var roots = new[] {
+                // MacOS directory layout
+                Path.Combine(executablePath, "Contents"),
+                // Windows directory layout
+                Path.Combine(Directory.GetParent(executablePath).FullName, "Data")
+            };
+            var relativePaths = new[] {
+                Path.Combine("NetStandard",  "compat", "2.0.0", "shims", "netstandard"),
+                Path.Combine("MonoBleedingEdge", "lib", "mono", "4.7.1-api")
+            };
+            var allPossiblePaths = roots
+                .SelectMany(root => relativePaths
+                    .Select(relativePath => Path.Combine(root, relativePath)));
+            var existingPaths = allPossiblePaths
+                .Where(Directory.Exists)
+                .ToArray();
+            LogVerbose("All existing path to dependency lookup are: {0}", string.Join(", ", existingPaths));
+            return existingPaths;
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
