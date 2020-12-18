@@ -570,8 +570,8 @@
                 Path.Combine(Directory.GetParent(executablePath).FullName, "Data")
             };
             var relativePaths = new[] {
-                Path.Combine("NetStandard",  "compat", "2.0.0", "shims", "netstandard"),
-                Path.Combine("MonoBleedingEdge", "lib", "mono", "4.7.1-api")
+                Path.Combine("NetStandard",  "compat"),
+                Path.Combine("MonoBleedingEdge", "lib", "mono")
             };
             var allPossiblePaths = roots
                 .SelectMany(root => relativePaths
