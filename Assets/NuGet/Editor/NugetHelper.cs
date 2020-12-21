@@ -1274,6 +1274,11 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static bool Install(NugetPackage package, bool refreshAssets = true)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                Debug.LogWarningFormat("Package {0} is already imported in engine", package);
+                return true;
+            }
             NugetPackage installedPackage = null;
             if (installedPackages.TryGetValue(package.Id, out installedPackage))
             {
