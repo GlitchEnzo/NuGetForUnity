@@ -561,7 +561,7 @@
                     .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
                     .Select(Path.GetFileName)
                     .Select(p => Path.ChangeExtension(p, null));
-                var alreadyImportedLibs = new HashSet<string>(libNames);
+                alreadyImportedLibs = new HashSet<string>(libNames);
                 LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             }
 
