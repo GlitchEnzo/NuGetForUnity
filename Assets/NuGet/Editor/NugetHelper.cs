@@ -399,7 +399,7 @@
                 var targetFrameworks = libDirectories
                     .Select(x => x.Name.ToLower());
 
-                var isAlreadyImported = IsAlreadyImportedInEngine(package);
+                bool isAlreadyImported = IsAlreadyImportedInEngine(package);
                 string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
                 if (!isAlreadyImported && (bestTargetFramework != null))
                 {
@@ -543,25 +543,33 @@
             }
         }
 
-        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package) {
-            var alreadyImportedLibs = GetAlreadyImportedLibs();
-            var isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
+        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package)
+        {
+            HashSet<string> alreadyImportedLibs = GetAlreadyImportedLibs();
+            bool isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
             LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
             return isAlreadyImported;
         }
 
-        private static HashSet<string> GetAlreadyImportedLibs() {
-            var lookupPaths = GetAllLookupPaths();
-            var libNames = lookupPaths
-                .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
-                .Select(Path.GetFileName)
-                .Select(p => Path.ChangeExtension(p, null));
-            var result = new HashSet<string>(libNames);
-            LogVerbose("Already imported libs: {0}", string.Join(", ", result));
-            return result;
+        private static HashSet<string> alreadyImportedLibs = null;
+        private static HashSet<string> GetAlreadyImportedLibs()
+        {
+            if (alreadyImportedLibs == null)
+            {
+                string[] lookupPaths = GetAllLookupPaths();
+                IEnumerable<string> libNames = lookupPaths
+                    .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
+                    .Select(Path.GetFileName)
+                    .Select(p => Path.ChangeExtension(p, null));
+                var alreadyImportedLibs = new HashSet<string>(libNames);
+                LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
+            }
+
+            return alreadyImportedLibs;
         }
 
-        private static string[] GetAllLookupPaths() {
+        private static string[] GetAllLookupPaths()
+        {
             var executablePath = EditorApplication.applicationPath;
             var roots = new[] {
                 // MacOS directory layout
@@ -1276,9 +1284,10 @@
         {
             if (IsAlreadyImportedInEngine(package))
             {
-                Debug.LogWarningFormat("Package {0} is already imported in engine", package);
+                LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
             }
+
             NugetPackage installedPackage = null;
             if (installedPackages.TryGetValue(package.Id, out installedPackage))
             {
