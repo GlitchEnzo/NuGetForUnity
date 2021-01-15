@@ -399,8 +399,9 @@
                 var targetFrameworks = libDirectories
                     .Select(x => x.Name.ToLower());
 
+                bool isAlreadyImported = IsAlreadyImportedInEngine(package);
                 string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
-                if (bestTargetFramework != null)
+                if (!isAlreadyImported && (bestTargetFramework != null))
                 {
                     DirectoryInfo bestLibDirectory = libDirectories
                         .First(x => FrameworkNamesAreEqual(x.Name, bestTargetFramework));
@@ -540,6 +541,54 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
+        }
+
+        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package)
+        {
+            HashSet<string> alreadyImportedLibs = GetAlreadyImportedLibs();
+            bool isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
+            LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            return isAlreadyImported;
+        }
+
+        private static HashSet<string> alreadyImportedLibs = null;
+        private static HashSet<string> GetAlreadyImportedLibs()
+        {
+            if (alreadyImportedLibs == null)
+            {
+                string[] lookupPaths = GetAllLookupPaths();
+                IEnumerable<string> libNames = lookupPaths
+                    .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
+                    .Select(Path.GetFileName)
+                    .Select(p => Path.ChangeExtension(p, null));
+                var alreadyImportedLibs = new HashSet<string>(libNames);
+                LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
+            }
+
+            return alreadyImportedLibs;
+        }
+
+        private static string[] GetAllLookupPaths()
+        {
+            var executablePath = EditorApplication.applicationPath;
+            var roots = new[] {
+                // MacOS directory layout
+                Path.Combine(executablePath, "Contents"),
+                // Windows directory layout
+                Path.Combine(Directory.GetParent(executablePath).FullName, "Data")
+            };
+            var relativePaths = new[] {
+                Path.Combine("NetStandard",  "compat"),
+                Path.Combine("MonoBleedingEdge", "lib", "mono")
+            };
+            var allPossiblePaths = roots
+                .SelectMany(root => relativePaths
+                    .Select(relativePath => Path.Combine(root, relativePath)));
+            var existingPaths = allPossiblePaths
+                .Where(Directory.Exists)
+                .ToArray();
+            LogVerbose("All existing path to dependency lookup are: {0}", string.Join(", ", existingPaths));
+            return existingPaths;
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
@@ -1233,6 +1282,12 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static bool Install(NugetPackage package, bool refreshAssets = true)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                LogVerbose("Package {0} is already imported in engine, skipping install.", package);
+                return true;
+            }
+
             NugetPackage installedPackage = null;
             if (installedPackages.TryGetValue(package.Id, out installedPackage))
             {
