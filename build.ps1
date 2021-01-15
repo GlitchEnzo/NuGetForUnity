@@ -30,7 +30,7 @@ if ( !$msbuild -or $msbuild -eq "" ) {
 $ReferencePath = "$unityPath\Editor\Data\Managed\"
 Write-Host "Building CreateDLL MSBuildPath=$msbuild ReferencePath=$ReferencePath" -ForegroundColor Green
 
-& $msbuild ".\CreateDLL\" /nologo /m /t:restore,rebuild /p:AppxBundle=Always /p:Platform='Any CPU' /p:Configuration=Release /p:ReferencePath=$ReferencePath | Out-Host
+& $msbuild ".\CreateDLL\" /nologo /m "/t:restore,rebuild" /p:AppxBundle=Always /p:Platform='Any CPU' /p:Configuration=Release /p:ReferencePath=$ReferencePath | Out-Host
 if ( $LASTEXITCODE -ne 0 ) { 
     throw "MSBuild failed with $LASTEXITCODE" 
 }
@@ -41,10 +41,10 @@ Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.dll" ".\Packager\Assets\NuGet\E
 Copy-Item ".\CreateDLL\bin\Release\DotNetZip.dll" ".\Packager\Assets\NuGet\Editor"
 
 # Launch Unity to export the NuGetForUnity package
-Start-UnityEditor -Project ".\Packager" -BatchMode -Quit -Wait -ExportPackage "Assets/NuGet .\NuGetForUnity.unitypackage" -LogFile ".\Packager\NuGetForUnity.unitypackage.log"
+Start-UnityEditor -Project ".\Packager" -BatchMode -Quit -Wait -ExecuteMethod "NugetForUnity.Export.Execute" -LogFile ".\Packager\NuGetForUnity.unitypackage.log"
 
 # Copy artifacts to output directory
-if ( !(Test-Path $OutputDirectory) ) { New-Item -ItemType Directory $OutputDirectory  }
+if ( !(Test-Path $OutputDirectory) ) { New-Item -ItemType Directory $OutputDirectory }
 Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.*" $OutputDirectory
 Copy-Item ".\CreateDLL\bin\Release\DotNetZip.*" $OutputDirectory
 Copy-Item ".\Packager\NuGetForUnity.unitypackage*" $OutputDirectory
