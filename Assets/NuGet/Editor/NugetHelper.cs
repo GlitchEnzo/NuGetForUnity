@@ -1,10 +1,10 @@
 ﻿namespace NugetForUnity
 {
-    using Ionic.Zip;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
+    using System.IO.Compression;
     using System.Linq;
     using System.Net;
     using System.Security.Cryptography;
@@ -1391,21 +1391,26 @@
                     string baseDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
                     // unzip the package
-                    using (ZipFile zip = ZipFile.Read(cachedPackagePath))
+                    using (ZipArchive zip = ZipFile.OpenRead(cachedPackagePath))
                     {
-                        foreach (ZipEntry entry in zip)
+                        foreach (ZipArchiveEntry entry in zip.Entries)
                         {
-                            entry.Extract(baseDirectory, ExtractExistingFileAction.OverwriteSilently);
+                            string filePath = Path.Combine(baseDirectory, entry.FullName);
+                            string directory = Path.GetDirectoryName(filePath);
+                            Directory.CreateDirectory(directory);
+
+                            entry.ExtractToFile(filePath, overwrite: true);
+
                             if (NugetConfigFile.ReadOnlyPackageFiles)
                             {
-                                FileInfo extractedFile = new FileInfo(Path.Combine(baseDirectory, entry.FileName));
+                                FileInfo extractedFile = new FileInfo(filePath);
                                 extractedFile.Attributes |= FileAttributes.ReadOnly;
                             }
                         }
                     }
 
                     // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}/{0}.{1}.nupkg", package.Id, package.Version)), true);
+                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, string.Format("{0}.{1}.nupkg", package.Id, package.Version)), true);
                 }
                 else
                 {
@@ -1778,14 +1783,18 @@
                     }
 
                     // Unzip the bundle and extract any credential provider exes
-                    using (ZipFile zip = ZipFile.Read(tempFileName))
+                    using (ZipArchive zip = ZipFile.OpenRead(tempFileName))
                     {
-                        foreach (ZipEntry entry in zip)
+                        foreach (ZipArchiveEntry entry in zip.Entries)
                         {
-                            if (Regex.IsMatch(entry.FileName, @"^credentialprovider.+\.exe$", RegexOptions.IgnoreCase))
+                            if (Regex.IsMatch(entry.FullName, @"^credentialprovider.+\.exe$", RegexOptions.IgnoreCase))
                             {
-                                LogVerbose("Extracting {0} to {1}", entry.FileName, providerDestination);
-                                entry.Extract(providerDestination, ExtractExistingFileAction.OverwriteSilently);
+                                LogVerbose("Extracting {0} to {1}", entry.FullName, providerDestination);
+                                string filePath = Path.Combine(providerDestination, entry.FullName);
+                                string directory = Path.GetDirectoryName(filePath);
+                                Directory.CreateDirectory(directory);
+
+                                entry.ExtractToFile(filePath, overwrite: true);
                             }
                         }
                     }

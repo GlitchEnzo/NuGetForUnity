@@ -75,3 +75,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Pp]ackages.meta
 /[Aa]ssets/[Pp]ackages/
 
+/[Bb]in/
+
+*.log

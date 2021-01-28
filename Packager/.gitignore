@@ -74,3 +74,6 @@ crashlytics-build.properties
 # NugetForUnity Packages folder
 /[Aa]ssets/[Pp]ackages.meta
 /[Aa]ssets/[Pp]ackages/
+
+# Imported during build
+[Aa]ssets/NuGet/Editor/NugetForUnity.dll
