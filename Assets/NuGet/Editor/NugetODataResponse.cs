@@ -47,7 +47,16 @@ namespace NugetForUnity
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
-            var packageEntries = document.Root.Elements(XName.Get("entry", AtomNamespace));
+            IEnumerable<XElement> packageEntries;
+            if (document.Root.Name.Equals(XName.Get("entry", AtomNamespace)))
+            {
+                packageEntries = Enumerable.Repeat(document.Root, 1);
+            }
+            else
+            {
+                packageEntries = document.Root.Elements(XName.Get("entry", AtomNamespace));
+            }
+                
             foreach (var entry in packageEntries)
             {
                 NugetPackage package = new NugetPackage();

@@ -175,7 +175,37 @@
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
-            return FindPackagesById(package).FirstOrDefault();
+            if (package.HasVersionRange)
+            {
+                return FindPackagesById(package).FirstOrDefault();
+            }
+
+            if (IsLocalPath)
+            {
+                string localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                if (File.Exists(localPackagePath))
+                {
+                    NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    return localPackage;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                string url = string.Format("{0}Packages(Id='{1}',Version='{2}')", ExpandedPath, package.Id, package.Version);
+                try
+                {
+                    return GetPackagesFromUrl(url, UserName, ExpandedPassword).First();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogErrorFormat("Unable to retrieve package from {0}\n{1}", url, e.ToString());
+                    return null;
+                }
+            }
         }
 
         /// <summary>
