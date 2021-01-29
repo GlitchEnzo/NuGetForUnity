@@ -75,6 +75,5 @@ crashlytics-build.properties
 /[Aa]ssets/[Pp]ackages.meta
 /[Aa]ssets/[Pp]ackages/
 
-/[Bb]in/
-
-*.log
+# Imported during build
+[Aa]ssets/NuGet/Editor/NugetForUnity.dll
