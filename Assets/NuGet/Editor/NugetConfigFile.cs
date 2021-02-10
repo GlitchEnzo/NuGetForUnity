@@ -318,6 +318,7 @@
 @"<?xml version=""1.0"" encoding=""utf-8""?>
 <configuration>
     <packageSources>
+       <clear/>
        <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
     </packageSources>
     <disabledPackageSources />
