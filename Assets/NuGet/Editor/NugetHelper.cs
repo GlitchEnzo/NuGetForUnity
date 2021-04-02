@@ -1236,6 +1236,12 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                LogVerbose("Package {0} is already imported in engine, skipping install.", package);
+                return true;
+            }
+
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
@@ -1629,6 +1635,11 @@
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         internal static bool IsInstalled(NugetPackageIdentifier package)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                return true;
+            }
+
             bool isInstalled = false;
             NugetPackage installedPackage = null;
 
