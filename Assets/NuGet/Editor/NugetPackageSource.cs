@@ -133,8 +133,7 @@
             else
             {
                 // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
-                // Note: without $orderby=Version, the Version filter below will not work
-                string url = string.Format("{0}FindPackagesById()?id='{1}'&$orderby=Version asc", ExpandedPath, package.Id);
+                string url = string.Format("{0}FindPackagesById()?id='{1}'", ExpandedPath, package.Id);
                 
                 // Are we looking for a specific package?
                 if (!package.HasVersionRange)
