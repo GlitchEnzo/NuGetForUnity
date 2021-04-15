@@ -5,7 +5,7 @@
     /// <summary>
     /// Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
     /// </summary>
-    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackage>
+    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
     {
         /// <summary>
         /// Gets or sets the ID of the NuGet package.
@@ -98,7 +98,7 @@
                 return string.Compare(first.Id, second.Id) < 0;
             }
 
-            return CompareVersions(first.Version, second.Version) < 0;
+            return first.CompareVersion(second.Version) < 0;
         }
 
         /// <summary>
@@ -114,7 +114,7 @@
                 return string.Compare(first.Id, second.Id) > 0;
             }
 
-            return CompareVersions(first.Version, second.Version) > 0;
+            return first.CompareVersion(second.Version) > 0;
         }
 
         /// <summary>
@@ -130,7 +130,7 @@
                 return string.Compare(first.Id, second.Id) <= 0;
             }
 
-            return CompareVersions(first.Version, second.Version) <= 0;
+            return first.CompareVersion(second.Version) <= 0;
         }
 
         /// <summary>
@@ -146,7 +146,7 @@
                 return string.Compare(first.Id, second.Id) >= 0;
             }
 
-            return CompareVersions(first.Version, second.Version) >= 0;
+            return first.CompareVersion(second.Version) >= 0;
         }
 
         /// <summary>
@@ -244,7 +244,14 @@
         /// <returns>True if the given version is in the range, otherwise false.</returns>
         public bool InRange(string otherVersion)
         {
-            return CompareVersion(otherVersion) == 0;
+            int comparison = CompareVersion(otherVersion);
+            if (comparison == 0) { return true; }
+
+            // if it has no version range specified (ie only a single version number) NuGet's specs
+            // state that that is the minimum version number, inclusive
+            if (!HasVersionRange && comparison < 0) { return true; }
+
+            return false;
         }
 
         /// <summary>
@@ -257,9 +264,7 @@
         {
             if (!HasVersionRange)
             {
-                // if it has no version range specified (ie only a single version number) NuGet's specs state that that is the minimum version number, inclusive
-                int compare = CompareVersions(Version, otherVersion);
-                return compare <= 0 ? 0 : compare;
+                return CompareVersions(Version, otherVersion);
             }
 
             if (!string.IsNullOrEmpty(MinimumVersion))
@@ -429,14 +434,14 @@
             }
         }
 
-        public int CompareTo(NugetPackage other)
+        public int CompareTo(NugetPackageIdentifier other)
         {
             if (this.Id != other.Id)
             {
                 return string.Compare(this.Id, other.Id);
             }
 
-            return CompareVersions(this.Version, other.Version);
+            return CompareVersion(other.Version);
         }
     }
 }

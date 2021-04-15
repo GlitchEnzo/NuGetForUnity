@@ -1236,6 +1236,12 @@
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                LogVerbose("Package {0} is already imported in engine, skipping install.", package);
+                return true;
+            }
+
             NugetPackage foundPackage = GetSpecificPackage(package);
 
             if (foundPackage != null)
@@ -1600,12 +1606,13 @@
             string[] directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
             foreach (string folder in directories)
             {
-                string name = Path.GetFileName(folder);
+                string pkgPath = Path.Combine(folder, $"{Path.GetFileName(folder)}.nupkg");
+                NugetPackage package = NugetPackage.FromNupkgFile(pkgPath);
+
                 bool installed = false;
-                foreach (NugetPackageIdentifier package in PackagesConfigFile.Packages)
+                foreach (NugetPackageIdentifier packageId in PackagesConfigFile.Packages)
                 {
-                    string packageName = string.Format("{0}.{1}", package.Id, package.Version);
-                    if (name == packageName)
+                    if (packageId.CompareTo(package) == 0)
                     {
                         installed = true;
                         break;
@@ -1613,7 +1620,7 @@
                 }
                 if (!installed)
                 {
-                    LogVerbose("---DELETE unnecessary package {0}", name);
+                    LogVerbose("---DELETE unnecessary package {0}", folder);
 
                     DeleteDirectory(folder);
                     DeleteFile(folder + ".meta");
@@ -1629,12 +1636,17 @@
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         internal static bool IsInstalled(NugetPackageIdentifier package)
         {
+            if (IsAlreadyImportedInEngine(package))
+            {
+                return true;
+            }
+
             bool isInstalled = false;
             NugetPackage installedPackage = null;
 
             if (installedPackages.TryGetValue(package.Id, out installedPackage))
             {
-                isInstalled = package.Version == installedPackage.Version;
+                isInstalled = package.CompareVersion(installedPackage.Version) == 0;
             }
 
             return isInstalled;
