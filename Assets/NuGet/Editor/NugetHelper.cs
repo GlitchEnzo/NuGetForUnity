@@ -1404,6 +1404,7 @@
                             string filePath = Path.Combine(baseDirectory, entry.FullName);
                             string directory = Path.GetDirectoryName(filePath);
                             Directory.CreateDirectory(directory);
+                            if (Directory.Exists(filePath)) continue;
 
                             entry.ExtractToFile(filePath, overwrite: true);
 
