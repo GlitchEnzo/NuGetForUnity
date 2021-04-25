@@ -617,6 +617,16 @@
                     {
                         Refresh(true);
                     }
+
+                    if(GUILayout.Button("Preferences", GUILayout.Width(80)))
+                    {
+#if UNITY_2018_3_OR_NEWER
+                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");                 
+#else
+                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
+#endif
+                        GetWindow<NugetWindow>().Close();
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -674,6 +684,20 @@
             EditorGUILayout.BeginVertical(headerStyle);
             {
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+                    {
+#if UNITY_2018_3_OR_NEWER
+                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+#else
+                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
+#endif
+                        GetWindow<NugetWindow>().Close();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
 
                 EditorGUILayout.BeginHorizontal();
                 {
@@ -736,6 +760,16 @@
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
                     {
                         Refresh(true);
+                    }
+
+                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+                    {
+#if UNITY_2018_3_OR_NEWER
+                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+#else
+                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
+#endif
+                        GetWindow<NugetWindow>().Close();
                     }
                 }
                 EditorGUILayout.EndHorizontal();
