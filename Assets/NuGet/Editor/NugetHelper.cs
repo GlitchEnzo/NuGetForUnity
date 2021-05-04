@@ -1469,6 +1469,7 @@
                 }
 
                 meta.SetCompatibleWithAnyPlatform(false);
+                meta.SetCompatibleWithEditor(false);
                 foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
                 {
                     meta.SetExcludeFromAnyPlatform((BuildTarget) platform, false);

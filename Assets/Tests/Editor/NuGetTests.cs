@@ -155,6 +155,7 @@ public class NuGetTests
         var meta = AssetImporter.GetAtPath(path) as PluginImporter;
         Assert.IsNotNull(meta, "Get meta file");
         Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Not compatible any platform");
+        Assert.IsFalse(meta.GetCompatibleWithEditor(), "Not compatible editor");
         foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
         {
             Assert.IsFalse(meta.GetExcludeFromAnyPlatform((BuildTarget) platform),
