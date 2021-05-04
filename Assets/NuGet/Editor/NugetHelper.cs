@@ -1448,10 +1448,34 @@
                 {
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
                     AssetDatabase.Refresh();
+                    ModifyImportSettingsIfRoslynAnalyzer(package.Id, package.Version);
                     EditorUtility.ClearProgressBar();
                 }
             }
             return installSuccess;
+        }
+
+        private static void ModifyImportSettingsIfRoslynAnalyzer(string id, string version)
+        {
+            var dir = $"Assets/Packages/{id}.{version}";
+            foreach (var analyzer in Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories)
+                .Where(x => x.Contains("/analyzers/")))
+            {
+                var meta = AssetImporter.GetAtPath(analyzer) as PluginImporter;
+                if (meta == null)
+                {
+                    Debug.LogWarning($".meta file not found: {analyzer}");
+                    continue;
+                }
+
+                meta.SetCompatibleWithAnyPlatform(false);
+                foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
+                {
+                    meta.SetExcludeFromAnyPlatform((BuildTarget) platform, false);
+                }
+
+                AssetDatabase.SetLabels(meta, new[] {"RoslynAnalyzer"});
+            }
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
