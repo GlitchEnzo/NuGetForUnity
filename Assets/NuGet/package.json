@@ -1,0 +1,7 @@
+{
+  "name": "com.glitchenzo.nugetforunity",
+  "displayName": "NuGetForUnity",
+  "version": "3.0.2",
+  "unity": "2018.4",
+  "description": "A NuGet Package Manager for Unity"
+}
