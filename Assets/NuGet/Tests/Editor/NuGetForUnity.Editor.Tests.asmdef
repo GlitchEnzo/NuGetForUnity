@@ -1,7 +1,7 @@
 {
-    "name": "NuGetForUnity.Tests",
+    "name": "NuGetForUnity.Editor.Tests",
     "references": [
-        "NuGetForUnity"
+        "NuGetForUnity.Editor"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"
