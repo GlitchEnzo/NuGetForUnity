@@ -36,12 +36,14 @@ namespace FreakshowStudio.NugetForUnity.Editor
         /// <summary>
         /// The path to the nuget.config file.
         /// </summary>
-        public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, "./NuGet.config");
+        public static readonly string NugetConfigFilePath =
+            Path.Combine(Application.dataPath, "NuGet", "NuGet.config");
 
         /// <summary>
         /// The path to the packages.config file.
         /// </summary>
-        private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
+        private static readonly string PackagesConfigFilePath = Path.Combine(
+            Application.dataPath, "NuGet", "packages.config");
 
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
