@@ -1,0 +1,10 @@
+{
+  "name": "com.freakshowstudio.nuget",
+  "displayName": "NuGet For Unity",
+  "version": "1.0.0",
+  "unity": "2019.1",
+  "description": "Manage NuGet packages inside Unity",
+  "keywords": [],
+  "category": "Scripting",
+  "dependencies": { }
+}

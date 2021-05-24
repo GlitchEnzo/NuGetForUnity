@@ -1,0 +1,18 @@
+{
+    "name": "com.freakshowstudio.NugetForUnity.Tests.Editor",
+    "rootNamespace": "FreakshowStudio.NugetForUnity",
+    "references": [
+        "GUID:cb746a141b2346608cf29834c9094893"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
