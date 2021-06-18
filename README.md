@@ -1,3 +1,12 @@
+- [What is NuGetForUnity?](#what-is-nugetforunity)
+- [How do I install NuGetForUnity?](#how-do-i-install-nugetforunity)
+- [How do I use NuGetForUnity?](#how-do-i-use-nugetforunity)
+- [How does NuGetForUnity work?](#how-does-nugetforunity-work)
+- [How do I create my own NuGet packages from within Unity?](#how-do-i-create-my-own-nuget-packages-from-within-unity)
+- [How do I create my own NuGet server to host NuGet packages?](#how-do-i-create-my-own-nuget-server-to-host-nuget-packages)
+- [Restoring NuGet Packages over the Command Line](#restoring-nuget-packages-over-the-command-line)
+- [Generate Code-Documentation](#generate-code-documentation)
+
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
@@ -121,3 +130,20 @@ This can also be done manually over the command line as shown here:
 
 - Windows: `$ \progra~1\Unity\Editor\Unity.exe -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
 - Mac: `$ /Applications/Unity/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
+
+# Generate Code-Documentation
+
+0. Install [Doxygen](https://www.doxygen.nl)
+1. Open your Terminal and change directory to the project root directory
+2. Type `doxygen Doxyfile` and hit enter
+3. Output should be in `./docs`
+   - For HTML Output open `./docs/html/index.html` in a webbrowser of your choice
+
+For example:
+```console
+$ cd /mnt/d/Users/Enough7/Dev/repos/NugetForUnity
+$ doxygen Doxyfile
+Searching for include files...
+Searching for example files...
+...
+```
