@@ -88,7 +88,7 @@ namespace NuGet.Editor.Util
         /// <summary>
         /// The dictionary of cached credentials retrieved by credential providers, keyed by feed URI.
         /// </summary>
-        private static Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri = new Dictionary<Uri, CredentialProviderResponse?>();
+        private static Dictionary<Uri, NugetHelper.CredentialProviderResponse?> cachedCredentialsByFeedUri = new Dictionary<Uri, NugetHelper.CredentialProviderResponse?>();
 
         /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
@@ -104,6 +104,8 @@ namespace NuGet.Editor.Util
 #endif
             }
         }
+
+        private static NugetFileHelper fileHelper = new NugetFileHelper();
 
         /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
@@ -368,30 +370,30 @@ namespace NuGet.Editor.Util
             FixSpaces(packageInstallDirectory);
 
             // delete a remnant .meta file that may exist from packages created by Unity
-            DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec.meta");
+            fileHelper.DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec.meta");
 
             // delete directories & files that NuGet normally deletes, but since we are installing "manually" they exist
-            DeleteDirectory(packageInstallDirectory + "/_rels");
-            DeleteDirectory(packageInstallDirectory + "/package");
-            DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec");
-            DeleteFile(packageInstallDirectory + "/[Content_Types].xml");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/_rels");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/package");
+            fileHelper.DeleteFile(packageInstallDirectory + "/" + package.Id + ".nuspec");
+            fileHelper.DeleteFile(packageInstallDirectory + "/[Content_Types].xml");
 
             // Unity has no use for the build directory
-            DeleteDirectory(packageInstallDirectory + "/build");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/build");
 
             // For now, delete src.  We may use it later...
-            DeleteDirectory(packageInstallDirectory + "/src");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/src");
 
             // Since we don't automatically fix up the runtime dll platforms, remove them until we improve support
             // for this newer feature of nuget packages.
-            DeleteDirectory(Path.Combine(packageInstallDirectory, "runtimes"));
+            fileHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "runtimes"));
 
             // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
-            DeleteDirectory(packageInstallDirectory + "/docs");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/docs");
 
             // Delete ref folder, as it is just used for compile-time reference and does not contain implementations.
             // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
-            DeleteDirectory(packageInstallDirectory + "/ref");
+            fileHelper.DeleteDirectory(packageInstallDirectory + "/ref");
 
             if (Directory.Exists(packageInstallDirectory + "/lib"))
             {
@@ -437,7 +439,7 @@ namespace NuGet.Editor.Util
 
                     if (!validDirectory)
                     {
-                        DeleteDirectory(directory.FullName);
+                        fileHelper.DeleteDirectory(directory.FullName);
                     }
                 }
             }
@@ -453,13 +455,13 @@ namespace NuGet.Editor.Util
                 Directory.CreateDirectory(toolsInstallDirectory);
 
                 // delete the final directory to prevent the Move operation from throwing exceptions.
-                DeleteDirectory(toolsInstallDirectory);
+                fileHelper.DeleteDirectory(toolsInstallDirectory);
 
                 Directory.Move(packageInstallDirectory + "/tools", toolsInstallDirectory);
             }
 
             // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
-            DeleteAllFiles(packageInstallDirectory, "*.pdb");
+            fileHelper.DeleteAllFiles(packageInstallDirectory, "*.pdb");
 
             // if there are native DLLs, copy them to the Unity project root (1 up from Assets)
             if (Directory.Exists(packageInstallDirectory + "/output"))
@@ -469,13 +471,13 @@ namespace NuGet.Editor.Util
                 {
                     string newFilePath = Directory.GetCurrentDirectory() + "/" + Path.GetFileName(file);
                     LogVerbose("Moving {0} to {1}", file, newFilePath);
-                    DeleteFile(newFilePath);
+                    fileHelper.DeleteFile(newFilePath);
                     File.Move(file, newFilePath);
                 }
 
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/output");
 
-                DeleteDirectory(packageInstallDirectory + "/output");
+                fileHelper.DeleteDirectory(packageInstallDirectory + "/output");
             }
 
             // if there are Unity plugin DLLs, copy them to the Unity Plugins folder (Assets/Plugins)
@@ -483,11 +485,11 @@ namespace NuGet.Editor.Util
             {
                 string pluginsDirectory = Application.dataPath + "/Plugins/";
 
-                DirectoryCopy(packageInstallDirectory + "/unityplugin", pluginsDirectory);
+                fileHelper.DirectoryCopy(packageInstallDirectory + "/unityplugin", pluginsDirectory);
 
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/unityplugin");
 
-                DeleteDirectory(packageInstallDirectory + "/unityplugin");
+                fileHelper.DeleteDirectory(packageInstallDirectory + "/unityplugin");
             }
 
             // if there are Unity StreamingAssets, copy them to the Unity StreamingAssets folder (Assets/StreamingAssets)
@@ -509,7 +511,7 @@ namespace NuGet.Editor.Util
                     try
                     {
                         LogVerbose("Moving {0} to {1}", file, newFilePath);
-                        DeleteFile(newFilePath);
+                        fileHelper.DeleteFile(newFilePath);
                         File.Move(file, newFilePath);
                     }
                     catch (Exception e)
@@ -529,7 +531,7 @@ namespace NuGet.Editor.Util
                         LogVerbose("Moving {0} to {1}", directory, newDirectoryPath);
                         if (Directory.Exists(newDirectoryPath))
                         {
-                            DeleteDirectory(newDirectoryPath);
+                            fileHelper.DeleteDirectory(newDirectoryPath);
                         }
                         Directory.Move(directory, newDirectoryPath);
                     }
@@ -541,8 +543,8 @@ namespace NuGet.Editor.Util
 
                 // delete the package's StreamingAssets folder and .meta file
                 LogVerbose("Deleting {0}", packageInstallDirectory + "/StreamingAssets");
-                DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
-                DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
+                fileHelper.DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
+                fileHelper.DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
         }
 
@@ -614,7 +616,7 @@ namespace NuGet.Editor.Util
                 .FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ?? new NugetFrameworkGroup();
         }
 
-        private struct UnityVersion : IComparable<UnityVersion>
+        private struct UnityVersion : IComparable<NugetHelper.UnityVersion>
         {
             public int Major;
             public int Minor;
@@ -622,7 +624,7 @@ namespace NuGet.Editor.Util
             public char Release;
             public int Build;
 
-            public static UnityVersion Current = new UnityVersion(Application.unityVersion);
+            public static NugetHelper.UnityVersion Current = new NugetHelper.UnityVersion(Application.unityVersion);
 
             public UnityVersion(string version)
             {
@@ -636,7 +638,7 @@ namespace NuGet.Editor.Util
                 Build = int.Parse(match.Groups[5].Value);
             }
 
-            public static int Compare(UnityVersion a, UnityVersion b)
+            public static int Compare(NugetHelper.UnityVersion a, NugetHelper.UnityVersion b)
             {
 
                 if (a.Major < b.Major) { return -1; }
@@ -657,7 +659,7 @@ namespace NuGet.Editor.Util
                 return 0;
             }
 
-            public int CompareTo(UnityVersion other)
+            public int CompareTo(NugetHelper.UnityVersion other)
             {
                 return Compare(this, other);
             }
@@ -730,7 +732,7 @@ namespace NuGet.Editor.Util
             // Select the highest .NET library available that is supported
             // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
             string result = targetFrameworks
-                .Select(tfm => new PriorityFramework { Priority = getTfmPriority(tfm), Framework = tfm })
+                .Select(tfm => new NugetHelper.PriorityFramework { Priority = getTfmPriority(tfm), Framework = tfm })
                 .Where(pfm => pfm.Priority != int.MaxValue)
                 .ToArray() // Ensure we don't search for priorities again when sorting
                 .OrderBy(pfm => pfm.Priority)
@@ -788,115 +790,6 @@ namespace NuGet.Editor.Util
         }
 
         /// <summary>
-        /// Recursively copies all files and sub-directories from one directory to another.
-        /// </summary>
-        /// <param name="sourceDirectoryPath">The filepath to the folder to copy from.</param>
-        /// <param name="destDirectoryPath">The filepath to the folder to copy to.</param>
-        private static void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
-        {
-            DirectoryInfo dir = new DirectoryInfo(sourceDirectoryPath);
-            if (!dir.Exists)
-            {
-                throw new DirectoryNotFoundException(
-                    "Source directory does not exist or could not be found: "
-                    + sourceDirectoryPath);
-            }
-
-            // if the destination directory doesn't exist, create it
-            if (!Directory.Exists(destDirectoryPath))
-            {
-                LogVerbose("Creating new directory: {0}", destDirectoryPath);
-                Directory.CreateDirectory(destDirectoryPath);
-            }
-
-            // get the files in the directory and copy them to the new location
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                string newFilePath = Path.Combine(destDirectoryPath, file.Name);
-
-                try
-                {
-                    LogVerbose("Moving {0} to {1}", file.ToString(), newFilePath);
-                    file.CopyTo(newFilePath, true);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarningFormat("{0} couldn't be moved to {1}. It may be a native plugin already locked by Unity. Please trying closing Unity and manually moving it. \n{2}", file.ToString(), newFilePath, e.ToString());
-                }
-            }
-
-            // copy sub-directories and their contents to new location
-            DirectoryInfo[] dirs = dir.GetDirectories();
-            foreach (DirectoryInfo subdir in dirs)
-            {
-                string temppath = Path.Combine(destDirectoryPath, subdir.Name);
-                DirectoryCopy(subdir.FullName, temppath);
-            }
-        }
-
-        /// <summary>
-        /// Recursively deletes the folder at the given path.
-        /// NOTE: Directory.Delete() doesn't delete Read-Only files, whereas this does.
-        /// </summary>
-        /// <param name="directoryPath">The path of the folder to delete.</param>
-        private static void DeleteDirectory(string directoryPath)
-        {
-            if (!Directory.Exists(directoryPath))
-            {
-                return;
-            }
-
-            DirectoryInfo directoryInfo = new DirectoryInfo(directoryPath);
-
-            // delete any sub-folders first
-            foreach (FileSystemInfo childInfo in directoryInfo.GetFileSystemInfos())
-            {
-                DeleteDirectory(childInfo.FullName);
-            }
-
-            // remove the read-only flag on all files
-            FileInfo[] files = directoryInfo.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                file.Attributes = FileAttributes.Normal;
-            }
-
-            // remove the read-only flag on the directory
-            directoryInfo.Attributes = FileAttributes.Normal;
-
-            // recursively delete the directory
-            directoryInfo.Delete(true);
-        }
-
-        /// <summary>
-        /// Deletes a file at the given filepath.
-        /// </summary>
-        /// <param name="filePath">The filepath to the file to delete.</param>
-        private static void DeleteFile(string filePath)
-        {
-            if (File.Exists(filePath))
-            {
-                File.SetAttributes(filePath, FileAttributes.Normal);
-                File.Delete(filePath);
-            }
-        }
-
-        /// <summary>
-        /// Deletes all files in the given directory or in any sub-directory, with the given extension.
-        /// </summary>
-        /// <param name="directoryPath">The path to the directory to delete all files of the given extension from.</param>
-        /// <param name="extension">The extension of the files to delete, in the form "*.ext"</param>
-        private static void DeleteAllFiles(string directoryPath, string extension)
-        {
-            string[] files = Directory.GetFiles(directoryPath, extension, SearchOption.AllDirectories);
-            foreach (string file in files)
-            {
-                DeleteFile(file);
-            }
-        }
-
-        /// <summary>
         /// Uninstalls all of the currently installed packages.
         /// </summary>
         internal static void UninstallAll()
@@ -921,13 +814,13 @@ namespace NuGet.Editor.Util
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
             string packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
-            DeleteDirectory(packageInstallDirectory);
+            fileHelper.DeleteDirectory(packageInstallDirectory);
 
             string metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
-            DeleteFile(metaFile);
+            fileHelper.DeleteFile(metaFile);
 
             string toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}", package.Id, package.Version));
-            DeleteDirectory(toolsInstallDirectory);
+            fileHelper.DeleteDirectory(toolsInstallDirectory);
 
             installedPackages.Remove(package.Id);
 
@@ -1491,14 +1384,14 @@ namespace NuGet.Editor.Util
         }
 
         // TODO: Move to ScriptableObjet
-        private static List<AuthenticatedFeed> knownAuthenticatedFeeds = new List<AuthenticatedFeed>()
+        private static List<NugetHelper.AuthenticatedFeed> knownAuthenticatedFeeds = new List<NugetHelper.AuthenticatedFeed>()
         {
-            new AuthenticatedFeed()
+            new NugetHelper.AuthenticatedFeed()
             {
                 AccountUrlPattern = @"^https:\/\/(?<account>[a-zA-z0-9]+).pkgs.visualstudio.com",
                 ProviderUrlTemplate = "https://{account}.pkgs.visualstudio.com/_apis/public/nuget/client/CredentialProviderBundle.zip"
             },
-            new AuthenticatedFeed()
+            new NugetHelper.AuthenticatedFeed()
             {
                 AccountUrlPattern = @"^https:\/\/pkgs.dev.azure.com\/(?<account>[a-zA-z0-9]+)\/",
                 ProviderUrlTemplate = "https://pkgs.dev.azure.com/{account}/_apis/public/nuget/client/CredentialProviderBundle.zip"
@@ -1523,7 +1416,7 @@ namespace NuGet.Editor.Util
 
             if (string.IsNullOrEmpty(password))
             {
-                CredentialProviderResponse? creds = GetCredentialFromProvider(GetTruncatedFeedUri(getRequest.RequestUri));
+                NugetHelper.CredentialProviderResponse? creds = GetCredentialFromProvider(GetTruncatedFeedUri(getRequest.RequestUri));
                 if (creds.HasValue)
                 {
                     userName = creds.Value.Username;
@@ -1626,8 +1519,8 @@ namespace NuGet.Editor.Util
                 {
                     LogVerbose("---DELETE unnecessary package {0}", folder);
 
-                    DeleteDirectory(folder);
-                    DeleteFile(folder + ".meta");
+                    fileHelper.DeleteDirectory(folder);
+                    fileHelper.DeleteFile(folder + ".meta");
                 }
             }
 
@@ -1771,7 +1664,7 @@ namespace NuGet.Editor.Util
 
         private static void DownloadCredentialProviders(Uri feedUri)
         {
-            foreach (AuthenticatedFeed feed in NugetHelper.knownAuthenticatedFeeds)
+            foreach (NugetHelper.AuthenticatedFeed feed in NugetHelper.knownAuthenticatedFeeds)
             {
                 string account = feed.GetAccount(feedUri.ToString());
                 if (string.IsNullOrEmpty(account)) { continue; }
@@ -1834,9 +1727,9 @@ namespace NuGet.Editor.Util
         /// </summary>
         /// <param name="feedUri">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com.</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
-        private static CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri)
+        private static NugetHelper.CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri)
         {
-            CredentialProviderResponse? response;
+            NugetHelper.CredentialProviderResponse? response;
             if (!cachedCredentialsByFeedUri.TryGetValue(feedUri, out response))
             {
                 response = GetCredentialFromProvider_Uncached(feedUri, true);
@@ -1879,7 +1772,7 @@ namespace NuGet.Editor.Util
         /// Internal function called by GetCredentialFromProvider to implement retrieving credentials. For performance reasons,
         /// most functions should call GetCredentialFromProvider in order to take advantage of cached credentials.
         /// </summary>
-        private static CredentialProviderResponse? GetCredentialFromProvider_Uncached(Uri feedUri, bool downloadIfMissing)
+        private static NugetHelper.CredentialProviderResponse? GetCredentialFromProvider_Uncached(Uri feedUri, bool downloadIfMissing)
         {
             LogVerbose("Getting credential for {0}", feedUri);
 
@@ -1941,7 +1834,7 @@ namespace NuGet.Editor.Util
                         }
                     case CredentialProviderExitCode.Success:
                         {
-                            return JsonUtility.FromJson<CredentialProviderResponse>(output);
+                            return JsonUtility.FromJson<NugetHelper.CredentialProviderResponse>(output);
                         }
                     default:
                         {
