@@ -90,6 +90,7 @@ namespace NuGet.Editor.Models
         /// </summary>
         public string RepositoryCommit;
 
+  
         /// <summary>
         /// Checks to see if this <see cref="NugetPackage"/> is equal to the given one.
         /// </summary>
@@ -105,7 +106,7 @@ namespace NuGet.Editor.Models
         /// </summary>
         /// <param name="nuspec">The <see cref="NuspecFile"/> to use to create the <see cref="NugetPackage"/>.</param>
         /// <returns>The newly created <see cref="NugetPackage"/>.</returns>
-        public static NugetPackage FromNuspec(NuspecFile nuspec)
+        public static NugetPackage FromNuspec(NuspecFile nuspec, IDownloadHelper downloadHelper)
         {
             NugetPackage package = new NugetPackage();
 
@@ -121,7 +122,7 @@ namespace NuGet.Editor.Models
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
-                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
+                package.Icon = downloadHelper.DownloadImage(nuspec.IconUrl);
             }
 
             package.RepositoryUrl = nuspec.RepositoryUrl;
@@ -151,9 +152,9 @@ namespace NuGet.Editor.Models
         /// </summary>
         /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
         /// <returns>The <see cref="NugetPackage"/> loaded from the .nupkg file.</returns>
-        public static NugetPackage FromNupkgFile(string nupkgFilepath)
+        public static NugetPackage FromNupkgFile(string nupkgFilepath, IDownloadHelper downloadHelper)
         {
-            NugetPackage package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath));
+            NugetPackage package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), downloadHelper);
             package.DownloadUrl = nupkgFilepath;
             return package;
         }

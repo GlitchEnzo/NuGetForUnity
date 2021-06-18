@@ -17,6 +17,7 @@ namespace NuGet.Editor.Models
 
         private static string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
 
+
         /// <summary>
         /// Gets the string value of a NuGet metadata property from the given properties element and property name.
         /// </summary>
@@ -44,7 +45,7 @@ namespace NuGet.Editor.Models
         /// </summary>
         /// <param name="document">The <see cref="XDocument"/> that is the OData XML response from the NuGet server.</param>
         /// <returns>The list of <see cref="NugetPackage"/>s read from the given XML.</returns>
-        public static List<NugetPackage> Parse(XDocument document)
+        public static List<NugetPackage> Parse(XDocument document, IDownloadHelper downloadHelper)
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
@@ -78,7 +79,7 @@ namespace NuGet.Editor.Models
                 string iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
-                    package.Icon = NugetHelper.DownloadImage(iconUrl);
+                    package.Icon = downloadHelper.DownloadImage(iconUrl);
                 }
 
                 // if there is no title, just use the ID as the title

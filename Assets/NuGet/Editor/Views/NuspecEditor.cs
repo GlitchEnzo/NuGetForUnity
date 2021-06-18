@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using NuGet.Editor.Models;
+using NuGet.Editor.Nuget;
 using NuGet.Editor.Util;
 using UnityEditor;
 using UnityEngine;
@@ -32,6 +33,8 @@ namespace NuGet.Editor.Views
         /// The API key used to verify an acceptable package being pushed to the server.
         /// </summary>
         private string apiKey = string.Empty;
+
+        private NugetCLI nugetCLI = new NugetCLI();
 
         /// <summary>
         /// Creates a new MyPackage.nuspec file.
@@ -295,7 +298,7 @@ namespace NuGet.Editor.Views
 
                 if (GUILayout.Button(string.Format("Pack {0}.nupkg", Path.GetFileNameWithoutExtension(filepath))))
                 {
-                    NugetHelper.Pack(filepath);
+                    nugetCLI.Pack(filepath);
                 }
 
                 EditorGUILayout.Separator();
@@ -304,7 +307,7 @@ namespace NuGet.Editor.Views
 
                 if (GUILayout.Button(string.Format("Push to Server")))
                 {
-                    NugetHelper.Push(nuspec, filepath, apiKey);
+                    nugetCLI.Push(nuspec, filepath, apiKey);
                 }
             }
         }

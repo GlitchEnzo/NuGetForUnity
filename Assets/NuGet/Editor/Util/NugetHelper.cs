@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using NuGet.Editor.Models;
 using NuGet.Editor.Nuget;
+using NuGet.Editor.Services;
 using UnityEditor;
 using UnityEngine;
 
@@ -42,12 +43,10 @@ namespace NuGet.Editor.Util
         /// <summary>
         /// The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        public static readonly string PackOutputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Path.Combine("NuGet", "Cache"));
-
-        /// <summary>
-        /// The amount of time, in milliseconds, before the nuget.exe process times out and is killed.
-        /// </summary>
-        private const int TimeOut = 60000;
+        public static readonly string PackOutputDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+            Path.Combine("NuGet", "Cache")
+            );
 
         /// <summary>
         /// The loaded NuGet.config file that holds the settings for NuGet.
@@ -88,7 +87,7 @@ namespace NuGet.Editor.Util
         /// <summary>
         /// The dictionary of cached credentials retrieved by credential providers, keyed by feed URI.
         /// </summary>
-        private static Dictionary<Uri, NugetHelper.CredentialProviderResponse?> cachedCredentialsByFeedUri = new Dictionary<Uri, NugetHelper.CredentialProviderResponse?>();
+        private static Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri = new Dictionary<Uri, CredentialProviderResponse?>();
 
         /// <summary>
         /// The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
@@ -105,7 +104,11 @@ namespace NuGet.Editor.Util
             }
         }
 
-        private static NugetFileHelper fileHelper = new NugetFileHelper();
+        private static IFileHelper fileHelper = new FileHelper();
+
+        private static IDownloadHelper downloadHelper = new DownloadHelper(fileHelper);
+
+        private static INugetService nugetService = new NugetService();
 
         /// <summary>
         /// Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
@@ -146,13 +149,13 @@ namespace NuGet.Editor.Util
         {
             if (File.Exists(NugetConfigFilePath))
             {
-                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+                NugetConfigFile = nugetService.Load(NugetConfigFilePath);
             }
             else
             {
                 Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
 
-                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
+                NugetConfigFile = nugetService.CreateDefaultFile(NugetConfigFilePath);
                 AssetDatabase.Refresh();
             }
 
@@ -197,84 +200,6 @@ namespace NuGet.Editor.Util
                 {
                     packageSources.Add(NugetConfigFile.ActivePackageSource);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Runs nuget.exe using the given arguments.
-        /// </summary>
-        /// <param name="arguments">The arguments to run nuget.exe with.</param>
-        /// <param name="logOuput">True to output debug information to the Unity console.  Defaults to true.</param>
-        /// <returns>The string of text that was output from nuget.exe following its execution.</returns>
-        private static void RunNugetProcess(string arguments, bool logOuput = true)
-        {
-            // Try to find any nuget.exe in the package tools installation location
-            string toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
-
-            // create the folder to prevent an exception when getting the files
-            Directory.CreateDirectory(toolsPackagesFolder);
-
-            string[] files = Directory.GetFiles(toolsPackagesFolder, "nuget.exe", SearchOption.AllDirectories);
-            if (files.Length > 1)
-            {
-                Debug.LogWarningFormat("More than one nuget.exe found. Using first one.");
-            }
-            else if (files.Length < 1)
-            {
-                Debug.LogWarningFormat("No nuget.exe found! Attemping to install the NuGet.CommandLine package.");
-                InstallIdentifier(new NugetPackageIdentifier("NuGet.CommandLine", "2.8.6"));
-                files = Directory.GetFiles(toolsPackagesFolder, "nuget.exe", SearchOption.AllDirectories);
-                if (files.Length < 1)
-                {
-                    Debug.LogErrorFormat("nuget.exe still not found. Quiting...");
-                    return;
-                }
-            }
-
-            LogVerbose("Running: {0} \nArgs: {1}", files[0], arguments);
-
-            string fileName = string.Empty;
-            string commandLine = string.Empty;
-
-#if UNITY_EDITOR_OSX
-            // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
-            fileName = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
-            commandLine = " " + files[0] + " " + arguments;
-            LogVerbose("command: " + commandLine);
-#else
-            fileName = files[0];
-            commandLine = arguments;
-#endif
-            Process process = Process.Start(
-                new ProcessStartInfo(fileName, commandLine)
-                {
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    // WorkingDirectory = Path.GettargetFramework(files[0]),
-
-                    // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
-                    // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-                    StandardOutputEncoding = Encoding.GetEncoding(850)
-                });
-
-            if (!process.WaitForExit(TimeOut))
-            {
-                Debug.LogWarning("NuGet took too long to finish.  Killing operation.");
-                process.Kill();
-            }
-
-            string error = process.StandardError.ReadToEnd();
-            if (!string.IsNullOrEmpty(error))
-            {
-                Debug.LogError(error);
-            }
-
-            string output = process.StandardOutput.ReadToEnd();
-            if (logOuput && !string.IsNullOrEmpty(output))
-            {
-                Debug.Log(output);
             }
         }
 
@@ -561,7 +486,7 @@ namespace NuGet.Editor.Util
         {
             if (alreadyImportedLibs == null)
             {
-                string[] lookupPaths = GetAllLookupPaths();
+                IEnumerable<string> lookupPaths = GetAllLookupPaths();
                 IEnumerable<string> libNames = lookupPaths
                     .SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
                     .Select(Path.GetFileName)
@@ -573,23 +498,23 @@ namespace NuGet.Editor.Util
             return alreadyImportedLibs;
         }
 
-        private static string[] GetAllLookupPaths()
+        private static IEnumerable<string> GetAllLookupPaths()
         {
-            var executablePath = EditorApplication.applicationPath;
-            var roots = new[] {
+            string executablePath = EditorApplication.applicationPath;
+            string[] roots = new[] {
                 // MacOS directory layout
                 Path.Combine(executablePath, "Contents"),
                 // Windows directory layout
                 Path.Combine(Directory.GetParent(executablePath).FullName, "Data")
             };
-            var relativePaths = new[] {
+            string[] relativePaths = new[] {
                 Path.Combine("NetStandard",  "compat"),
                 Path.Combine("MonoBleedingEdge", "lib", "mono")
             };
-            var allPossiblePaths = roots
+            IEnumerable<string> allPossiblePaths = roots
                 .SelectMany(root => relativePaths
                     .Select(relativePath => Path.Combine(root, relativePath)));
-            var existingPaths = allPossiblePaths
+            string[] existingPaths = allPossiblePaths
                 .Where(Directory.Exists)
                 .ToArray();
             LogVerbose("All existing path to dependency lookup are: {0}", string.Join(", ", existingPaths));
@@ -614,55 +539,6 @@ namespace NuGet.Editor.Util
             string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
             return nuspec.Dependencies
                 .FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ?? new NugetFrameworkGroup();
-        }
-
-        private struct UnityVersion : IComparable<NugetHelper.UnityVersion>
-        {
-            public int Major;
-            public int Minor;
-            public int Revision;
-            public char Release;
-            public int Build;
-
-            public static NugetHelper.UnityVersion Current = new NugetHelper.UnityVersion(Application.unityVersion);
-
-            public UnityVersion(string version)
-            {
-                Match match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
-                if (!match.Success) { throw new ArgumentException("Invalid unity version"); }
-
-                Major = int.Parse(match.Groups[1].Value);
-                Minor = int.Parse(match.Groups[2].Value);
-                Revision = int.Parse(match.Groups[3].Value);
-                Release = match.Groups[4].Value[0];
-                Build = int.Parse(match.Groups[5].Value);
-            }
-
-            public static int Compare(NugetHelper.UnityVersion a, NugetHelper.UnityVersion b)
-            {
-
-                if (a.Major < b.Major) { return -1; }
-                if (a.Major > b.Major) { return 1; }
-
-                if (a.Minor < b.Minor) { return -1; }
-                if (a.Minor > b.Minor) { return 1; }
-
-                if (a.Revision < b.Revision) { return -1; }
-                if (a.Revision > b.Revision) { return 1; }
-
-                if (a.Release < b.Release) { return -1; }
-                if (a.Release > b.Release) { return 1; }
-
-                if (a.Build < b.Build) { return -1; }
-                if (a.Build > b.Build) { return 1; }
-
-                return 0;
-            }
-
-            public int CompareTo(NugetHelper.UnityVersion other)
-            {
-                return Compare(this, other);
-            }
         }
 
         private struct PriorityFramework { public int Priority; public string Framework; }
@@ -741,52 +617,6 @@ namespace NuGet.Editor.Util
 
             LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
-        }
-
-        /// <summary>
-        /// Calls "nuget.exe pack" to create a .nupkg file based on the given .nuspec file.
-        /// </summary>
-        /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.</param>
-        public static void Pack(string nuspecFilePath)
-        {
-            if (!Directory.Exists(PackOutputDirectory))
-            {
-                Directory.CreateDirectory(PackOutputDirectory);
-            }
-
-            // Use -NoDefaultExcludes to allow files and folders that start with a . to be packed into the package
-            // This is done because if you want a file/folder in a Unity project, but you want Unity to ignore it, it must start with a .
-            // This is especially useful for .cs and .js files that you don't want Unity to compile as game scripts
-            string arguments = string.Format("pack \"{0}\" -OutputDirectory \"{1}\" -NoDefaultExcludes", nuspecFilePath, PackOutputDirectory);
-
-            RunNugetProcess(arguments);
-        }
-
-        /// <summary>
-        /// Calls "nuget.exe push" to push a .nupkf file to the the server location defined in the NuGet.config file.
-        /// Note: This differs slightly from NuGet's Push command by automatically calling Pack if the .nupkg doesn't already exist.
-        /// </summary>
-        /// <param name="nuspec">The NuspecFile which defines the package to push.  Only the ID and Version are used.</param>
-        /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.  This is required by NuGet's Push command.</param>
-        /// /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
-        public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
-        {
-            string packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
-            if (!File.Exists(packagePath))
-            {
-                LogVerbose("Attempting to Pack.");
-                Pack(nuspecFilePath);
-
-                if (!File.Exists(packagePath))
-                {
-                    Debug.LogErrorFormat("NuGet package not found: {0}", packagePath);
-                    return;
-                }
-            }
-
-            string arguments = string.Format("push \"{0}\" {1} -configfile \"{2}\"", packagePath, apiKey, NugetConfigFilePath);
-
-            RunNugetProcess(arguments);
         }
 
         /// <summary>
@@ -900,7 +730,7 @@ namespace NuGet.Editor.Util
                 string[] nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
                 foreach (string nupkgFile in nupkgFiles)
                 {
-                    NugetPackage package = NugetPackage.FromNupkgFile(nupkgFile);
+                    NugetPackage package = NugetPackage.FromNupkgFile(nupkgFile, downloadHelper);
                     if (!installedPackages.ContainsKey(package.Id))
                     {
                         installedPackages.Add(package.Id, package);
@@ -915,7 +745,7 @@ namespace NuGet.Editor.Util
                 string[] nuspecFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nuspec", SearchOption.AllDirectories);
                 foreach (string nuspecFile in nuspecFiles)
                 {
-                    NugetPackage package = NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile));
+                    NugetPackage package = NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile), downloadHelper);
                     if (!installedPackages.ContainsKey(package.Id))
                     {
                         installedPackages.Add(package.Id, package);
@@ -1056,7 +886,7 @@ namespace NuGet.Editor.Util
                 if (File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Found exact package in the cache: {0}", cachedPackagePath);
-                    package = NugetPackage.FromNupkgFile(cachedPackagePath);
+                    package = NugetPackage.FromNupkgFile(cachedPackagePath, downloadHelper);
                 }
             }
 
@@ -1110,19 +940,6 @@ namespace NuGet.Editor.Util
             }
 
             return package;
-        }
-
-        /// <summary>
-        /// Copies the contents of input to output. Doesn't close either stream.
-        /// </summary>
-        private static void CopyStream(Stream input, Stream output)
-        {
-            byte[] buffer = new byte[8 * 1024];
-            int len;
-            while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                output.Write(buffer, 0, len);
-            }
         }
 
         /// <summary>
@@ -1275,10 +1092,10 @@ namespace NuGet.Editor.Util
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
                         }
 
-                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword, timeOut: null);
+                        Stream objStream = downloadHelper.RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword, timeOut: null);
                         using (Stream file = File.Create(cachedPackagePath))
                         {
-                            CopyStream(objStream, file);
+                            downloadHelper.CopyStream(objStream, file);
                         }
                     }
                 }
@@ -1399,45 +1216,6 @@ namespace NuGet.Editor.Util
         };
 
         /// <summary>
-        /// Get the specified URL from the web. Throws exceptions if the request fails.
-        /// </summary>
-        /// <param name="url">URL that will be loaded.</param>
-        /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
-        /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
-        /// <returns>Stream containing the result.</returns>
-        public static Stream RequestUrl(string url, string userName, string password, int? timeOut)
-        {
-            HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
-            if (timeOut.HasValue)
-            {
-                getRequest.Timeout = timeOut.Value;
-                getRequest.ReadWriteTimeout = timeOut.Value;
-            }
-
-            if (string.IsNullOrEmpty(password))
-            {
-                NugetHelper.CredentialProviderResponse? creds = GetCredentialFromProvider(GetTruncatedFeedUri(getRequest.RequestUri));
-                if (creds.HasValue)
-                {
-                    userName = creds.Value.Username;
-                    password = creds.Value.Password;
-                }
-            }
-
-            if (password != null)
-            {
-                // Send password as described by https://docs.microsoft.com/en-us/vsts/integrate/get-started/rest/basics.
-                // This works with Visual Studio Team Services, but hasn't been tested with other authentication schemes so there may be additional work needed if there
-                // are different kinds of authentication.
-                getRequest.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password))));
-            }
-
-            LogVerbose("HTTP GET {0}", url);
-            Stream objStream = getRequest.GetResponse().GetResponseStream();
-            return objStream;
-        }
-
-        /// <summary>
         /// Restores all packages defined in packages.config.
         /// </summary>
         public static void Restore()
@@ -1504,7 +1282,7 @@ namespace NuGet.Editor.Util
             foreach (string folder in directories)
             {
                 string pkgPath = Path.Combine(folder, $"{Path.GetFileName(folder)}.nupkg");
-                NugetPackage package = NugetPackage.FromNupkgFile(pkgPath);
+                NugetPackage package = NugetPackage.FromNupkgFile(pkgPath, downloadHelper);
 
                 bool installed = false;
                 foreach (NugetPackageIdentifier packageId in PackagesConfigFile.Packages)
@@ -1549,119 +1327,6 @@ namespace NuGet.Editor.Util
             return isInstalled;
         }
 
-        /// <summary>
-        /// Downloads an image at the given URL and converts it to a Unity Texture2D.
-        /// </summary>
-        /// <param name="url">The URL of the image to download.</param>
-        /// <returns>The image as a Unity Texture2D object.</returns>
-        public static Texture2D DownloadImage(string url)
-        {
-            bool timedout = false;
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            bool fromCache = false;
-            if (ExistsInDiskCache(url))
-            {
-                url = "file:///" + GetFilePath(url);
-                fromCache = true;
-            }
-
-            WWW request = new WWW(url);
-            while (!request.isDone)
-            {
-                if (stopwatch.ElapsedMilliseconds >= 750)
-                {
-                    request.Dispose();
-                    timedout = true;
-                    break;
-                }
-            }
-
-            Texture2D result = null;
-
-            if (timedout)
-            {
-                LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(request.error))
-                {
-                    result = request.textureNonReadable;
-                    LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
-                }
-                else
-                {
-                    LogVerbose("Request error: " + request.error);
-                }
-            }
-
-
-            if (result != null && !fromCache)
-            {
-                CacheTextureOnDisk(url, request.bytes);
-            }
-
-            request.Dispose();
-            return result;
-        }
-
-        private static void CacheTextureOnDisk(string url, byte[] bytes)
-        {
-            string diskPath = GetFilePath(url);
-            File.WriteAllBytes(diskPath, bytes);
-        }
-
-        private static bool ExistsInDiskCache(string url)
-        {
-            return File.Exists(GetFilePath(url));
-        }
-
-        private static string GetFilePath(string url)
-        {
-            return Path.Combine(Application.temporaryCachePath, GetHash(url));
-        }
-
-        private static string GetHash(string s)
-        {
-            if (string.IsNullOrEmpty(s))
-            {
-                return null;
-            }
-
-            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-            byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
-            StringBuilder sBuilder = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
-            {
-                sBuilder.Append(data[i].ToString("x2"));
-            }
-            return sBuilder.ToString();
-        }
-
-        /// <summary>
-        /// Data class returned from nuget credential providers in a JSON format. As described here:
-        /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider
-        /// </summary>
-        [System.Serializable]
-        private struct CredentialProviderResponse
-        {
-            public string Username;
-            public string Password;
-        }
-
-        /// <summary>
-        /// Possible response codes returned by a Nuget credential provider as described here:
-        /// https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider
-        /// </summary>
-        private enum CredentialProviderExitCode
-        {
-            Success = 0,
-            ProviderNotApplicable = 1,
-            Failure = 2
-        }
-
         private static void DownloadCredentialProviders(Uri feedUri)
         {
             foreach (NugetHelper.AuthenticatedFeed feed in NugetHelper.knownAuthenticatedFeeds)
@@ -1682,7 +1347,7 @@ namespace NuGet.Editor.Util
 
                     using (FileStream file = File.Create(tempFileName))
                     {
-                        CopyStream(credentialProviderDownloadStream, file);
+                        downloadHelper.CopyStream(credentialProviderDownloadStream, file);
                     }
 
                     string providerDestination = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
@@ -1727,9 +1392,9 @@ namespace NuGet.Editor.Util
         /// </summary>
         /// <param name="feedUri">The hostname where the VSTS instance is hosted (such as microsoft.pkgs.visualsudio.com.</param>
         /// <returns>The password in the form of a token, or null if the password could not be aquired</returns>
-        private static NugetHelper.CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri)
+        public static CredentialProviderResponse? GetCredentialFromProvider(Uri feedUri)
         {
-            NugetHelper.CredentialProviderResponse? response;
+            CredentialProviderResponse? response;
             if (!cachedCredentialsByFeedUri.TryGetValue(feedUri, out response))
             {
                 response = GetCredentialFromProvider_Uncached(feedUri, true);
@@ -1743,7 +1408,7 @@ namespace NuGet.Editor.Util
         /// </summary>
         /// <param name="methodUri">URI of nuget method.</param>
         /// <returns>URI of the feed without the method and query parameters.</returns>
-        private static Uri GetTruncatedFeedUri(Uri methodUri)
+        public static Uri GetTruncatedFeedUri(Uri methodUri)
         {
             string truncatedUriString = methodUri.GetLeftPart(UriPartial.Path);
 
@@ -1772,7 +1437,7 @@ namespace NuGet.Editor.Util
         /// Internal function called by GetCredentialFromProvider to implement retrieving credentials. For performance reasons,
         /// most functions should call GetCredentialFromProvider in order to take advantage of cached credentials.
         /// </summary>
-        private static NugetHelper.CredentialProviderResponse? GetCredentialFromProvider_Uncached(Uri feedUri, bool downloadIfMissing)
+        private static CredentialProviderResponse? GetCredentialFromProvider_Uncached(Uri feedUri, bool downloadIfMissing)
         {
             LogVerbose("Getting credential for {0}", feedUri);
 
@@ -1834,7 +1499,7 @@ namespace NuGet.Editor.Util
                         }
                     case CredentialProviderExitCode.Success:
                         {
-                            return JsonUtility.FromJson<NugetHelper.CredentialProviderResponse>(output);
+                            return JsonUtility.FromJson<CredentialProviderResponse>(output);
                         }
                     default:
                         {

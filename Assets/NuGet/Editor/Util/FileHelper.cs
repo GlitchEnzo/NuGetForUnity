@@ -1,17 +1,19 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 
 namespace NuGet.Editor.Util
 {
-    public class NugetFileHelper
+    public class FileHelper : IFileHelper
     {
         /// <summary>
         /// Recursively copies all files and sub-directories from one directory to another.
         /// </summary>
         /// <param name="sourceDirectoryPath">The filepath to the folder to copy from.</param>
         /// <param name="destDirectoryPath">The filepath to the folder to copy to.</param>
-        internal void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
+        public void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
         {
             DirectoryInfo dir = new DirectoryInfo(sourceDirectoryPath);
             if (!dir.Exists)
@@ -59,7 +61,7 @@ namespace NuGet.Editor.Util
         /// NOTE: Directory.Delete() doesn't delete Read-Only files, whereas this does.
         /// </summary>
         /// <param name="directoryPath">The path of the folder to delete.</param>
-        internal void DeleteDirectory(string directoryPath)
+        public void DeleteDirectory(string directoryPath)
         {
             if (!Directory.Exists(directoryPath))
             {
@@ -92,7 +94,7 @@ namespace NuGet.Editor.Util
         /// Deletes a file at the given filepath.
         /// </summary>
         /// <param name="filePath">The filepath to the file to delete.</param>
-        internal void DeleteFile(string filePath)
+        public void DeleteFile(string filePath)
         {
             if (File.Exists(filePath))
             {
@@ -106,13 +108,46 @@ namespace NuGet.Editor.Util
         /// </summary>
         /// <param name="directoryPath">The path to the directory to delete all files of the given extension from.</param>
         /// <param name="extension">The extension of the files to delete, in the form "*.ext"</param>
-        internal void DeleteAllFiles(string directoryPath, string extension)
+        public void DeleteAllFiles(string directoryPath, string extension)
         {
             string[] files = Directory.GetFiles(directoryPath, extension, SearchOption.AllDirectories);
             foreach (string file in files)
             {
                 DeleteFile(file);
             }
+        }
+
+        public void CacheTextureOnDisk(string url, byte[] bytes)
+        {
+            string diskPath = GetFilePath(url);
+            File.WriteAllBytes(diskPath, bytes);
+        }
+
+        public bool ExistsInDiskCache(string url)
+        {
+            return File.Exists(GetFilePath(url));
+        }
+
+        public string GetFilePath(string url)
+        {
+            return Path.Combine(Application.temporaryCachePath, GetHash(url));
+        }
+
+        private string GetHash(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return null;
+            }
+
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+            byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(s));
+            StringBuilder sBuilder = new StringBuilder();
+            for (int i = 0; i < data.Length; i++)
+            {
+                sBuilder.Append(data[i].ToString("x2"));
+            }
+            return sBuilder.ToString();
         }
     }
 }

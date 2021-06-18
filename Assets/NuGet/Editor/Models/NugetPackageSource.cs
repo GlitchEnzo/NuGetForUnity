@@ -91,6 +91,8 @@ namespace NuGet.Editor.Models
         /// </summary>
         public bool IsEnabled { get; set; }
 
+         static IDownloadHelper downloadHelper = new DownloadHelper(new FileHelper());
+
         /// <summary>
         /// Initializes a new instance of the <see cref="NugetPackageSource"/> class.
         /// </summary>
@@ -120,7 +122,7 @@ namespace NuGet.Editor.Models
                     string localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                     if (File.Exists(localPackagePath))
                     {
-                        NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                        NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath, downloadHelper);
                         foundPackages = new List<NugetPackage> { localPackage };
                     }
                     else { foundPackages = new List<NugetPackage>(); }
@@ -185,7 +187,7 @@ namespace NuGet.Editor.Models
                 string localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
                 if (File.Exists(localPackagePath))
                 {
-                    NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath, downloadHelper);
                     return localPackage;
                 }
                 else
@@ -287,7 +289,13 @@ namespace NuGet.Editor.Models
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
-        private List<NugetPackage> GetLocalPackages(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
+        private List<NugetPackage> GetLocalPackages(
+            string searchTerm = "", 
+            bool includeAllVersions = false, 
+            bool includePrerelease = false, 
+            int numberToGet = 15, 
+            int numberToSkip = 0
+            )
         {
             List<NugetPackage> localPackages = new List<NugetPackage>();
 
@@ -303,9 +311,9 @@ namespace NuGet.Editor.Models
             {
                 string[] packagePaths = Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm));
 
-                foreach (var packagePath in packagePaths)
+                foreach (string packagePath in packagePaths)
                 {
-                    var package = NugetPackage.FromNupkgFile(packagePath);
+                    NugetPackage package = NugetPackage.FromNupkgFile(packagePath, downloadHelper);
                     package.PackageSource = this;
 
                     if (package.IsPrerelease && !includePrerelease)
@@ -322,7 +330,7 @@ namespace NuGet.Editor.Models
                         continue;
                     }
 
-                    var existingPackage = localPackages.FirstOrDefault(x => x.Id == package.Id);
+                    NugetPackage existingPackage = localPackages.FirstOrDefault(x => x.Id == package.Id);
                     if (existingPackage != null)
                     {
                         // there is already a package with the same ID in the list
@@ -374,11 +382,11 @@ namespace NuGet.Editor.Models
             // add anonymous handler
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            using (Stream responseStream = NugetHelper.RequestUrl(url, username, password, timeOut: 5000))
+            using (Stream responseStream = downloadHelper.RequestUrl(url, username, password, timeOut: 5000))
             {
                 using (StreamReader streamReader = new StreamReader(responseStream))
                 {
-                    packages = NugetODataResponse.Parse(XDocument.Load(streamReader));
+                    packages = NugetODataResponse.Parse(XDocument.Load(streamReader), downloadHelper);
                     foreach (var package in packages)
                     {
                         package.PackageSource = this;

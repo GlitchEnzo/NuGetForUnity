@@ -1,5 +1,6 @@
 ﻿using NuGet.Editor.Models;
 using NuGet.Editor.Nuget;
+using NuGet.Editor.Services;
 using NuGet.Editor.Util;
 using UnityEditor;
 using UnityEngine;
@@ -20,6 +21,12 @@ namespace NuGet.Editor.Views
         /// The current position of the scroll bar in the GUI.
         /// </summary>
         private static Vector2 scrollPosition;
+
+        private static INugetService nugetService = new NugetService();
+
+        private static IFileHelper fileHelper = new FileHelper();
+        
+        private static IDownloadHelper downloadHelper = new DownloadHelper(fileHelper);
 
         /// <summary>
         /// Draws the preferences GUI inside the Unity preferences window in the Editor.
@@ -201,14 +208,14 @@ namespace NuGet.Editor.Views
 
             if (GUILayout.Button(string.Format("Reset To Default")))
             {
-                NugetConfigFile.CreateDefaultFile(NugetHelper.NugetConfigFilePath);
+                nugetService.CreateDefaultFile(NugetHelper.NugetConfigFilePath);
                 NugetHelper.LoadNugetConfigFile();
                 preferencesChangedThisFrame = true;
             }
 
             if (preferencesChangedThisFrame)
             {
-                NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+                nugetService.Save(NugetHelper.NugetConfigFilePath);
             }
         }
     }

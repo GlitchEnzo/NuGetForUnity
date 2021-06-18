@@ -65,7 +65,7 @@ Click the **Update** button to uninstall the current package and install the new
 NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to.  By default, this server is set to the nuget.org package source.  
 
 *The default NuGet.config file:*
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
