@@ -1,8 +1,11 @@
-﻿namespace NugetForUnity
-{
-    using UnityEditor;
-    using UnityEngine;
+﻿using NuGet.Editor.Models;
+using NuGet.Editor.Nuget;
+using NuGet.Editor.Util;
+using UnityEditor;
+using UnityEngine;
 
+namespace NuGet.Editor.Views
+{
     /// <summary>
     /// Handles the displaying, editing, and saving of the preferences for NuGet For Unity.
     /// </summary>

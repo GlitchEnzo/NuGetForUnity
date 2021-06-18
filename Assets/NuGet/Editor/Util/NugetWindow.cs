@@ -1,15 +1,17 @@
-﻿namespace NugetForUnity
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-    using System.Text.RegularExpressions;
-    using UnityEditor;
-    using UnityEngine;
-    using UnityEngine.Networking;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using NuGet.Editor.Models;
+using NuGet.Editor.Views;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.Networking;
 
+namespace NuGet.Editor.Util
+{
     /// <summary>
     /// Represents the NuGet Package Manager Window in the Unity Editor.
     /// </summary>

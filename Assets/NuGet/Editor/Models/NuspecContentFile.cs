@@ -1,4 +1,4 @@
-﻿namespace NugetForUnity
+﻿namespace NuGet.Editor.Models
 {
     /// <summary>
     /// Represents a file entry inside a .nuspec file.

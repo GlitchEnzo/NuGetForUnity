@@ -1,10 +1,12 @@
-﻿namespace NugetForUnity
-{
-    using System.Collections.Generic;
-    using System.Linq;
-    using UnityEditor;
-    using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Linq;
+using NuGet.Editor.Models;
+using NuGet.Editor.Util;
+using UnityEditor;
+using UnityEngine;
 
+namespace NuGet.Editor.Views
+{
     /// <summary>
     /// A viewer for all of the packages and their dependencies currently installed in the project.
     /// </summary>

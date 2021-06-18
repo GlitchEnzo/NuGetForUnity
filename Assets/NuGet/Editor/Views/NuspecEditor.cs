@@ -1,11 +1,13 @@
-﻿namespace NugetForUnity
-{
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using UnityEditor;
-    using UnityEngine;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NuGet.Editor.Models;
+using NuGet.Editor.Util;
+using UnityEditor;
+using UnityEngine;
 
+namespace NuGet.Editor.Views
+{
     /// <summary>
     /// Represents a custom editor inside the Unity editor that allows easy editting of a .nuspec file.
     /// </summary>

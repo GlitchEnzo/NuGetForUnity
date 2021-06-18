@@ -1,13 +1,14 @@
-﻿namespace NugetForUnity
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Xml.Linq;
+using NuGet.Editor.Util;
+
+namespace NuGet.Editor.Models
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Linq;
-    using System.Net;
-    using System.Xml;
-    using System.Xml.Linq;
     using Debug = UnityEngine.Debug;
 
     /// <summary>

@@ -1,11 +1,12 @@
-﻿namespace NugetForUnity
-{
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Xml.Linq;
-    using UnityEditor;
-    using UnityEngine;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Xml.Linq;
+using NuGet.Editor.Util;
+using UnityEditor;
+using UnityEngine;
 
+namespace NuGet.Editor.Models
+{
     /// <summary>
     /// Represents a package.config file that holds the NuGet package dependencies for the project.
     /// </summary>

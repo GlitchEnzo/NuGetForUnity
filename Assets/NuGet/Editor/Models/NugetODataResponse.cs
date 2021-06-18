@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using NuGet.Editor.Util;
 
-namespace NugetForUnity
+namespace NuGet.Editor.Models
 {
     /// <summary>
     /// Provides helper methods for parsing a NuGet server OData response.

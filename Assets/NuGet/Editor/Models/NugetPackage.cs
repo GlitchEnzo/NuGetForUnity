@@ -1,8 +1,9 @@
-﻿namespace NugetForUnity
-{
-    using System;
-    using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using NuGet.Editor.Util;
 
+namespace NuGet.Editor.Models
+{
     /// <summary>
     /// Represents a package available from NuGet.
     /// </summary>

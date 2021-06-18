@@ -1,17 +1,20 @@
-﻿namespace NugetForUnity
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using NuGet.Editor.Models;
+using NuGet.Editor.Nuget;
+using UnityEditor;
+using UnityEngine;
+
+namespace NuGet.Editor.Util
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.IO.Compression;
-    using System.Linq;
-    using System.Net;
-    using System.Security.Cryptography;
-    using System.Text;
-    using System.Text.RegularExpressions;
-    using UnityEditor;
-    using UnityEngine;
     using Debug = UnityEngine.Debug;
 
     /// <summary>

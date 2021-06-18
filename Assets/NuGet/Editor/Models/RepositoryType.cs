@@ -1,4 +1,4 @@
-﻿namespace NugetForUnity
+﻿namespace NuGet.Editor.Models
 {
     public enum RepositoryType
     {
