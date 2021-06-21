@@ -2,6 +2,7 @@
 - [How do I install NuGetForUnity?](#how-do-i-install-nugetforunity)
 - [How do I use NuGetForUnity?](#how-do-i-use-nugetforunity)
 - [How does NuGetForUnity work?](#how-does-nugetforunity-work)
+  - [Verbose Logging & Caching](#verbose-logging--caching)
 - [How do I create my own NuGet packages from within Unity?](#how-do-i-create-my-own-nuget-packages-from-within-unity)
 - [How do I create my own NuGet server to host NuGet packages?](#how-do-i-create-my-own-nuget-server-to-host-nuget-packages)
 - [Restoring NuGet Packages over the Command Line](#restoring-nuget-packages-over-the-command-line)
@@ -93,8 +94,9 @@ When a package is installed, the *packages.config* file in the project is automa
 
 ![](screenshots/menu_item.png?raw=true)
 
-Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
+**Note:** Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
+## Verbose Logging & Caching
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console.  Add the line `<add key="verbose" value="true" />` to the `<config>` element in the *NuGet.config* file.  You can disable verbose logging by either setting the value to false or completely deleting the line.
 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
