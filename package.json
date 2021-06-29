@@ -1,0 +1,15 @@
+{
+  "name": "org.nuget",
+  "displayName": "NuGetForUnity",
+  "version": "3.0.2",
+  "unity": "2021.1",
+  "description": "A NuGet Package Manager for Unity",
+  "keywords": [
+    "webrtc",
+    "web"
+  ],
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "2.0.0"
+  },
+  "type": "tool"
+}

@@ -78,3 +78,4 @@ crashlytics-build.properties
 /[Bb]in/
 
 *.log
+.idea/**
