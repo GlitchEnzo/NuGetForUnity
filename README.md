@@ -8,7 +8,9 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 ![](screenshots/online.png?raw=true)
 
 # How do I install NuGetForUnity?
-Install the provided Unity package into your Unity project.  Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).
+~~Install the provided Unity package into your Unity project.  Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).~~
+
+On Package Manager tab, click the [+] icon and "Add package from git URL" and insert this:<br>[https://github.com/badjano/NuGetForUnity.git](https://github.com/badjano/NuGetForUnity.git)
 
 # How do I use NuGetForUnity?
 To launch, select **NuGet → Manage NuGet Packages**
@@ -80,7 +82,7 @@ See more information about *NuGet.config* files here: [https://docs.nuget.org/co
 
 NuGetForUnity installs packages into the local repository path defined in the *NuGet.config* file (`repositoryPath`).  By default, this is set to the `Assets/Packages` folder.  In the *NuGet.config* file, this can either be a full path, or it can be a relative path based on the project's Assets folder.  Note:  You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
 
-When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet → Restore Packages** menu item. 
+When a package is installed, the *packages.config* file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed.  This allows for the packages to be restored from scratch at any point.  The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project.  It can be run manually by selecting the **NuGet → Restore Packages** menu item.
 
 ![](screenshots/menu_item.png?raw=true)
 
