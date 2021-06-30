@@ -14,7 +14,7 @@ namespace NuGet.Editor.Models
     /// <summary>
     /// Represents a NuGet Package Source (a "server").
     /// </summary>
-    public class NugetPackageSource
+    public class NugetPackageSource: INugetPackageSource 
     {
         /// <summary>
         /// Gets or sets the name of the package source.
@@ -111,7 +111,7 @@ namespace NuGet.Editor.Models
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        public List<NugetPackage> FindPackagesById(NugetPackageIdentifier package)
+        public virtual IEnumerable<NugetPackage> FindPackagesById(NugetPackageIdentifier package)
         {
             List<NugetPackage> foundPackages = null;
 
@@ -119,13 +119,16 @@ namespace NuGet.Editor.Models
             {
                 if (!package.HasVersionRange)
                 {
-                    string localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                    string localPackagePath = Path.Combine(ExpandedPath, $"./{package.Id}.{package.Version}.nupkg");
                     if (File.Exists(localPackagePath))
                     {
                         NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath, downloadHelper);
                         foundPackages = new List<NugetPackage> { localPackage };
                     }
-                    else { foundPackages = new List<NugetPackage>(); }
+                    else
+                    {
+                        foundPackages = new List<NugetPackage>();
+                    }
                 }
                 else
                 {
@@ -136,7 +139,7 @@ namespace NuGet.Editor.Models
             else
             {
                 // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
-                string url = string.Format("{0}FindPackagesById()?id='{1}'", ExpandedPath, package.Id);
+                string url = $"{ExpandedPath}FindPackagesById()?id='{package.Id}'";
                 
                 // Are we looking for a specific package?
                 if (!package.HasVersionRange)
@@ -146,12 +149,12 @@ namespace NuGet.Editor.Models
 
                 try
                 {
-                    foundPackages = GetPackagesFromUrl(url, UserName, ExpandedPassword);
+                    foundPackages = GetPackagesFromUrl(url, UserName, ExpandedPassword).ToList();
                 }
                 catch (Exception e)
                 {
                     foundPackages = new List<NugetPackage>();
-                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                    Debug.LogErrorFormat($"Unable to retrieve package from {url}\n{e.ToString()}");
                 }
             }
 
@@ -175,7 +178,7 @@ namespace NuGet.Editor.Models
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier"/> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        public NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
+        public virtual NugetPackage GetSpecificPackage(NugetPackageIdentifier package)
         {
             if (package.HasVersionRange)
             {
@@ -184,27 +187,25 @@ namespace NuGet.Editor.Models
 
             if (IsLocalPath)
             {
-                string localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                string localPackagePath = Path.Combine(ExpandedPath, $"./{package.Id}.{package.Version}.nupkg");
                 if (File.Exists(localPackagePath))
                 {
                     NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath, downloadHelper);
                     return localPackage;
                 }
-                else
-                {
-                    return null;
-                }
+
+                return null;
             }
             else
             {
-                string url = string.Format("{0}Packages(Id='{1}',Version='{2}')", ExpandedPath, package.Id, package.Version);
+                string url = $"{ExpandedPath}Packages(Id='{package.Id}',Version='{package.Version}')";
                 try
                 {
                     return GetPackagesFromUrl(url, UserName, ExpandedPassword).First();
                 }
                 catch (Exception e)
                 {
-                    Debug.LogErrorFormat("Unable to retrieve package from {0}\n{1}", url, e.ToString());
+                    Debug.LogErrorFormat($"Unable to retrieve package from {url}\n{e.ToString()}");
                     return null;
                 }
             }
@@ -222,7 +223,13 @@ namespace NuGet.Editor.Models
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
-        public List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
+        public virtual IEnumerable<NugetPackage> Search(
+            string searchTerm = "", 
+            bool includeAllVersions = false, 
+            bool includePrerelease = false, 
+            int numberToGet = 15, 
+            int numberToSkip = 0
+        )
         {
             if (IsLocalPath)
             {
@@ -364,7 +371,7 @@ namespace NuGet.Editor.Models
         /// <param name="url"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        private List<NugetPackage> GetPackagesFromUrl(string url, string username, string password)
+        private IEnumerable<NugetPackage> GetPackagesFromUrl(string url, string username, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
@@ -407,7 +414,11 @@ namespace NuGet.Editor.Models
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <returns>A list of all updates available.</returns>
-        private List<NugetPackage> GetLocalUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false)
+        private IEnumerable<NugetPackage> GetLocalUpdates(
+            IEnumerable<NugetPackage> installedPackages, 
+            bool includePrerelease = false, 
+            bool includeAllVersions = false
+        )
         {
             List<NugetPackage> updates = new List<NugetPackage>();
 
@@ -438,7 +449,13 @@ namespace NuGet.Editor.Models
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        public List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        public virtual IEnumerable<NugetPackage> GetUpdates(
+            IEnumerable<NugetPackage> installedPackages, 
+            bool includePrerelease = false, 
+            bool includeAllVersions = false, 
+            string targetFrameworks = "", 
+            string versionContraints = ""
+        )
         {
             if (IsLocalPath)
             {
@@ -518,7 +535,11 @@ namespace NuGet.Editor.Models
             return updates;
         }
 
-        private static void ComparePackageLists(List<NugetPackage> updates, List<NugetPackage> updatesReplacement, string errorMessageToDisplayIfListsDoNotMatch)
+        private static void ComparePackageLists(
+            List<NugetPackage> updates, 
+            List<NugetPackage> updatesReplacement, 
+            string errorMessageToDisplayIfListsDoNotMatch
+        )
         {
             System.Text.StringBuilder matchingComparison = new System.Text.StringBuilder();
             System.Text.StringBuilder missingComparison = new System.Text.StringBuilder();
@@ -560,7 +581,13 @@ namespace NuGet.Editor.Models
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
         /// <param name="versionContraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
-        private List<NugetPackage> GetUpdatesFallback(IEnumerable<NugetPackage> installedPackages, bool includePrerelease = false, bool includeAllVersions = false, string targetFrameworks = "", string versionContraints = "")
+        private IEnumerable<NugetPackage> GetUpdatesFallback(
+            IEnumerable<NugetPackage> installedPackages, 
+            bool includePrerelease = false, 
+            bool includeAllVersions = false, 
+            string targetFrameworks = "", 
+            string versionContraints = ""
+        )
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -571,7 +598,7 @@ namespace NuGet.Editor.Models
             {
                 string versionRange = string.Format("({0},)", installedPackage.Version); // Minimum of Current ID (exclusive) with no maximum (exclusive).
                 NugetPackageIdentifier id = new NugetPackageIdentifier(installedPackage.Id, versionRange);
-                List<NugetPackage> packageUpdates = FindPackagesById(id);
+                List<NugetPackage> packageUpdates = FindPackagesById(id).ToList();
 
                 if (!includePrerelease) { packageUpdates.RemoveAll(p => p.IsPrerelease); }
                 if( packageUpdates.Count == 0 ) { continue; }

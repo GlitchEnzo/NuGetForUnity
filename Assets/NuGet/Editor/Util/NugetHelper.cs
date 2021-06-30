@@ -5,7 +5,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using NuGet.Editor.Models;
@@ -523,7 +522,7 @@ namespace NuGet.Editor.Util
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
         {
-            var targetFrameworks = package.Dependencies
+            IEnumerable<string> targetFrameworks = package.Dependencies
                 .Select(x => x.TargetFramework);
 
             string bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
@@ -773,14 +772,26 @@ namespace NuGet.Editor.Util
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
-        public static List<NugetPackage> Search(string searchTerm = "", bool includeAllVersions = false, bool includePrerelease = false, int numberToGet = 15, int numberToSkip = 0)
+        public static List<NugetPackage> Search(
+            string searchTerm = "", 
+            bool includeAllVersions = false, 
+            bool includePrerelease = false, 
+            int numberToGet = 15, 
+            int numberToSkip = 0
+        )
         {
             List<NugetPackage> packages = new List<NugetPackage>();
 
             // Loop through all active sources and combine them into a single list
             foreach (NugetPackageSource source in packageSources.Where(s => s.IsEnabled))
             {
-                List<NugetPackage> newPackages = source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+                IEnumerable<NugetPackage> newPackages = source.Search(
+                    searchTerm, 
+                    includeAllVersions, 
+                    includePrerelease, 
+                    numberToGet, 
+                    numberToSkip
+                );
                 packages.AddRange(newPackages);
                 packages = packages.Distinct().ToList();
             }
@@ -804,7 +815,7 @@ namespace NuGet.Editor.Util
             // Loop through all active sources and combine them into a single list
             foreach (NugetPackageSource source in packageSources.Where(s => s.IsEnabled))
             {
-                List<NugetPackage> newPackages = source.GetUpdates(packagesToUpdate, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                IEnumerable<NugetPackage> newPackages = source.GetUpdates(packagesToUpdate, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
                 packages.AddRange(newPackages);
                 packages = packages.Distinct().ToList();
             }

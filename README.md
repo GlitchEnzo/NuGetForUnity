@@ -7,6 +7,12 @@
 - [How do I create my own NuGet server to host NuGet packages?](#how-do-i-create-my-own-nuget-server-to-host-nuget-packages)
 - [Restoring NuGet Packages over the Command Line](#restoring-nuget-packages-over-the-command-line)
 - [Generate Code-Documentation](#generate-code-documentation)
+- [NuGet.Client](#nugetclient)
+  - [Overview](#overview)
+  - [Package Creation](#package-creation)
+- [Helpful Links](#helpful-links)
+  - [Regarding NuGet V3](#regarding-nuget-v3)
+  - [Regarding `async` & `await` in edit-mode](#regarding-async--await-in-edit-mode)
 
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
@@ -149,3 +155,31 @@ Searching for include files...
 Searching for example files...
 ...
 ```
+
+# NuGet.Client
+This repository uses [Nuget.Client](https://github.com/NuGet/NuGet.Client) for Nugets V3-Server-API
+## Overview
+As Dave Glick stated in 
+> Despite the large number of packages, only a handful should really be considered "primary" and the rest are just dependencies.
+
+- [NuGet.PackageManagement](https://www.nuget.org/packages/NuGet.PackageManagement) provides the overall management of packages, package sources, projects, etc.
+- [NuGet.Protocol](https://www.nuget.org/packages/NuGet.Protocol/) provide implementations of the NuGet communications protocols so that you can talk to v2 or v3 feed endpoints.
+- [NuGet.ProjectManagement](https://www.nuget.org/packages/NuGet.ProjectManagement/) provides the abstractions for representing a given project system and includes some fundamental implementations such as folder-based projects (more on projects below).
+- [NuGet.Packaging](https://www.nuget.org/packages/NuGet.Packaging/) reads .nuspec and .nupkg files.
+
+## Package Creation
+Packages can be created with a [PackageBuilder](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/PackageCreation/Authoring/PackageBuilder.cs). A Package is basically an Implementation of [IPackageMetadata](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/PackageCreation/Authoring/IPackageMetadata.cs)
+
+# Helpful Links
+## Regarding NuGet V3
+- [NuGet Client SDK](https://docs.microsoft.com/en-us/nuget/reference/nuget-client-sdk)
+- [NuGet Samples](https://github.com/NuGet/Samples)
+  - especially [NuGetProtocolSamples](https://github.com/NuGet/Samples/tree/main/NuGetProtocolSamples)
+- [Dave Glick - Exploring the NuGet v3 Libraries](https://daveaglick.com/posts/exploring-the-nuget-v3-libraries-part-1)
+  - At some point probably outdated
+- [Revisiting the NuGet v3 Libraries](https://martinbjorkstrom.com/posts/2018-09-19-revisiting-nuget-client-libraries)
+  - Follow-up to `Dave Glick - Exploring the NuGet v3 Libraries`-series
+  - At some point probably outdated
+
+## Regarding `async` & `await` in edit-mode
+It seems like it is not possible by default, so you should not use something like `.GetResourceAsync<PackageSearchResource>()` in `NuGet.Protocol.Core.Types.SourceRepository` use `.GetResource<PackageSearchResource>()` instead.

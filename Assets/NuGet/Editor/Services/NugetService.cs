@@ -3,10 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
+using App;
+using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Editor.Converter;
 using NuGet.Editor.Models;
 using NuGet.Editor.Nuget;
 using NuGet.Editor.Util;
+using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
 using UnityEditor;
 
 namespace NuGet.Editor.Services
@@ -162,9 +169,46 @@ namespace NuGet.Editor.Services
             if (packageSources != null)
             {
                 IEnumerable<XElement> adds = packageSources.Elements("add");
+                ApiUriRegex apiUriRegex = new ApiUriRegex();
                 foreach (XElement add in adds)
                 {
-                    configFile.PackageSources.Add(new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value));
+                    string sourceName = add.Attribute("key").Value;
+                    string sourcePath = add.Attribute("value").Value;
+                    bool isGreaterV2ApiPath = apiUriRegex.IsGreaterThanV2(sourcePath);
+                    if (isGreaterV2ApiPath)
+                    {
+                        string source = "https://<address>/api/v4/projects/3259/packages/nuget/index.json"; // TODO
+                        PackageSource packageSource = new PackageSource(source);
+                        packageSource.Credentials = new PackageSourceCredential(
+                            source,
+                            "username",
+                            "password",// TODO
+                            true,
+                            null
+                        );
+                        
+                        NugetApi api = new NugetApi(
+                            NullLogger.Instance, 
+                            CancellationToken.None, 
+                            new SourceCacheContext(), 
+                            Repository.Factory.GetCoreV3(packageSource)
+                        );
+                        IFileHelper fileHelper = new FileHelper();
+                        IDownloadHelper downloadHelper = new DownloadHelper(fileHelper);
+                        configFile.PackageSources.Add(
+                            new NugetPackageSourceV3(
+                                sourceName, 
+                                sourcePath, 
+                                api,
+                                new PackageMetaDataToNugetPackageConverter(downloadHelper), 
+                                new PackageMetaDataToNugetPackageConverter(downloadHelper)
+                            )
+                        );
+                    }
+                    else
+                    {
+                        configFile.PackageSources.Add(new NugetPackageSource(sourceName, sourcePath));
+                    }
                 }
             }
 
@@ -302,5 +346,6 @@ namespace NuGet.Editor.Services
 
             return Load(filePath);
         }
+        
     }
 }

@@ -4,11 +4,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using NuGet.Editor.Models;
 using NuGet.Editor.Views;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
+using Debug = UnityEngine.Debug;
 
 namespace NuGet.Editor.Util
 {
@@ -348,13 +351,13 @@ namespace NuGet.Editor.Util
                     // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
-                    UpdateOnlinePackages();
+                    RefreshOnlinePackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
                     NugetHelper.UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
-                    UpdateUpdatePackages();
+                    RefreshUpdatePackages();
 
                     // load the default icon from the Resources folder
                     defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
@@ -373,19 +376,25 @@ namespace NuGet.Editor.Util
                 NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
             }
         }
-
+        
         /// <summary>
         /// Updates the list of available packages by running a search with the server using the currently set parameters (# to get, # to skip, etc).
         /// </summary>
-        private void UpdateOnlinePackages()
+        private void RefreshOnlinePackages()
         {
-            availablePackages = NugetHelper.Search(onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip);
+            availablePackages = NugetHelper.Search(
+                onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty, 
+                showAllOnlineVersions, 
+                showOnlinePrerelease, 
+                numberToGet, 
+                numberToSkip
+            );
         }
 
         /// <summary>
         /// Updates the list of update packages.
         /// </summary>
-        private void UpdateUpdatePackages()
+        private void RefreshUpdatePackages()
         {
             // get any available updates for the installed packages
             updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
@@ -393,7 +402,11 @@ namespace NuGet.Editor.Util
 
             if (updatesSearchTerm != "Search")
             {
-                filteredUpdatePackages = updatePackages.Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm)).ToList();
+                filteredUpdatePackages = updatePackages.Where(
+                        x => x.Id.ToLower().Contains(updatesSearchTerm) 
+                             || x.Title.ToLower().Contains(updatesSearchTerm)
+                    )
+                    .ToList();
             }
         }
 
@@ -612,7 +625,7 @@ namespace NuGet.Editor.Util
                     if (showAllVersionsTemp != showAllOnlineVersions)
                     {
                         showAllOnlineVersions = showAllVersionsTemp;
-                        UpdateOnlinePackages();
+                        RefreshOnlinePackages();
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -626,7 +639,7 @@ namespace NuGet.Editor.Util
                 if (showPrereleaseTemp != showOnlinePrerelease)
                 {
                     showOnlinePrerelease = showPrereleaseTemp;
-                    UpdateOnlinePackages();
+                    RefreshOnlinePackages();
                 }
 
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
@@ -652,7 +665,7 @@ namespace NuGet.Editor.Util
                 {
                     // reset the number to skip
                     numberToSkip = 0;
-                    UpdateOnlinePackages();
+                    RefreshOnlinePackages();
                 }
             }
             EditorGUILayout.EndVertical();
@@ -725,14 +738,14 @@ namespace NuGet.Editor.Util
                     if (showAllVersionsTemp != showAllUpdateVersions)
                     {
                         showAllUpdateVersions = showAllVersionsTemp;
-                        UpdateUpdatePackages();
+                        RefreshUpdatePackages();
                     }
 
                     if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
                     {
                         NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
                         NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        RefreshUpdatePackages();
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -746,7 +759,7 @@ namespace NuGet.Editor.Util
                 if (showPrereleaseTemp != showPrereleaseUpdates)
                 {
                     showPrereleaseUpdates = showPrereleaseTemp;
-                    UpdateUpdatePackages();
+                    RefreshUpdatePackages();
                 }
 
                 bool enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
@@ -870,7 +883,7 @@ namespace NuGet.Editor.Util
                         // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time? 
                         NugetHelper.Uninstall(package);
                         NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        RefreshUpdatePackages();
                     }
                 }
                 else
@@ -884,7 +897,7 @@ namespace NuGet.Editor.Util
                             {
                                 NugetHelper.Update(installed, package);
                                 NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
+                                RefreshUpdatePackages();
                             }
                         }
                         else if (installed > package)
@@ -894,7 +907,7 @@ namespace NuGet.Editor.Util
                             {
                                 NugetHelper.Update(installed, package);
                                 NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
+                                RefreshUpdatePackages();
                             }
                         }
                     }
@@ -905,7 +918,7 @@ namespace NuGet.Editor.Util
                             NugetHelper.InstallIdentifier(package);
                             AssetDatabase.Refresh();
                             NugetHelper.UpdateInstalledPackages();
-                            UpdateUpdatePackages();
+                            RefreshUpdatePackages();
                         }
                     }
                 }

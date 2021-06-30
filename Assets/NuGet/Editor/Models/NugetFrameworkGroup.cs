@@ -8,12 +8,6 @@ namespace NuGet.Editor.Models
     /// </summary>
     public class NugetFrameworkGroup
     {
-        public NugetFrameworkGroup()
-        {
-            TargetFramework = "";
-            Dependencies = new List<NugetPackageIdentifier>();
-        }
-
         /// <summary>
         /// Gets or sets the framework and version that this group targets.
         /// </summary>
@@ -23,5 +17,18 @@ namespace NuGet.Editor.Models
         /// Gets or sets the list of package dependencies that belong to this group.
         /// </summary>
         public List<NugetPackageIdentifier> Dependencies { get; set; }
+        
+        
+        public NugetFrameworkGroup()
+        {
+            TargetFramework = "";
+            Dependencies = new List<NugetPackageIdentifier>();
+        }
+
+        public NugetFrameworkGroup(string targetFramework, List<NugetPackageIdentifier> dependencies)
+        {
+            TargetFramework = targetFramework;
+            Dependencies = dependencies;
+        }
     }
 }

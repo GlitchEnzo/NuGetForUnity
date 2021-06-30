@@ -53,7 +53,7 @@ namespace NuGet.Editor.Models
         /// <summary>
         /// Gets or sets the <see cref="NugetPackageSource"/> that contains this package.
         /// </summary>
-        public NugetPackageSource PackageSource;
+        public INugetPackageSource PackageSource;
 
         /// <summary>
         /// Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D"/>. 
