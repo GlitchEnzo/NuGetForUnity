@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
-using NugetForUnity;
 using System.IO;
+using NuGet.Editor.Models;
+using NuGet.Editor.Util;
 using UnityEditor;
 
 public class NuGetTests

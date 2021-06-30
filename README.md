@@ -1,3 +1,19 @@
+- [What is NuGetForUnity?](#what-is-nugetforunity)
+- [How do I install NuGetForUnity?](#how-do-i-install-nugetforunity)
+- [How do I use NuGetForUnity?](#how-do-i-use-nugetforunity)
+- [How does NuGetForUnity work?](#how-does-nugetforunity-work)
+  - [Verbose Logging & Caching](#verbose-logging--caching)
+- [How do I create my own NuGet packages from within Unity?](#how-do-i-create-my-own-nuget-packages-from-within-unity)
+- [How do I create my own NuGet server to host NuGet packages?](#how-do-i-create-my-own-nuget-server-to-host-nuget-packages)
+- [Restoring NuGet Packages over the Command Line](#restoring-nuget-packages-over-the-command-line)
+- [Generate Code-Documentation](#generate-code-documentation)
+- [NuGet.Client](#nugetclient)
+  - [Overview](#overview)
+  - [Package Creation](#package-creation)
+- [Helpful Links](#helpful-links)
+  - [Regarding NuGet V3](#regarding-nuget-v3)
+  - [Regarding `async` & `await` in edit-mode](#regarding-async--await-in-edit-mode)
+
 # What is NuGetForUnity?
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor.  NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users.  NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
@@ -56,7 +72,7 @@ Click the **Update** button to uninstall the current package and install the new
 NuGetForUnity loads the *NuGet.config* file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to.  By default, this server is set to the nuget.org package source.  
 
 *The default NuGet.config file:*
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
@@ -84,8 +100,9 @@ When a package is installed, the *packages.config* file in the project is automa
 
 ![](screenshots/menu_item.png?raw=true)
 
-Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
+**Note:** Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
+## Verbose Logging & Caching
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console.  Add the line `<add key="verbose" value="true" />` to the `<config>` element in the *NuGet.config* file.  You can disable verbose logging by either setting the value to false or completely deleting the line.
 
 The *.nupkg* files downloaded from the NuGet server are cached locally in the current user's Application Data folder.  (`C:\Users\[username]\AppData\Local\NuGet\Cache`).  Packages previously installed are installed via the cache folder instead of downloading it from the server again.
@@ -121,3 +138,48 @@ This can also be done manually over the command line as shown here:
 
 - Windows: `$ \progra~1\Unity\Editor\Unity.exe -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
 - Mac: `$ /Applications/Unity/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
+
+# Generate Code-Documentation
+
+0. Install [Doxygen](https://www.doxygen.nl)
+1. Open your Terminal and change directory to the project root directory
+2. Type `doxygen Doxyfile` and hit enter
+3. Output should be in `./docs`
+   - For HTML Output open `./docs/html/index.html` in a webbrowser of your choice
+
+For example:
+```console
+$ cd /mnt/d/Users/Enough7/Dev/repos/NugetForUnity
+$ doxygen Doxyfile
+Searching for include files...
+Searching for example files...
+...
+```
+
+# NuGet.Client
+This repository uses [Nuget.Client](https://github.com/NuGet/NuGet.Client) for Nugets V3-Server-API
+## Overview
+As Dave Glick stated in 
+> Despite the large number of packages, only a handful should really be considered "primary" and the rest are just dependencies.
+
+- [NuGet.PackageManagement](https://www.nuget.org/packages/NuGet.PackageManagement) provides the overall management of packages, package sources, projects, etc.
+- [NuGet.Protocol](https://www.nuget.org/packages/NuGet.Protocol/) provide implementations of the NuGet communications protocols so that you can talk to v2 or v3 feed endpoints.
+- [NuGet.ProjectManagement](https://www.nuget.org/packages/NuGet.ProjectManagement/) provides the abstractions for representing a given project system and includes some fundamental implementations such as folder-based projects (more on projects below).
+- [NuGet.Packaging](https://www.nuget.org/packages/NuGet.Packaging/) reads .nuspec and .nupkg files.
+
+## Package Creation
+Packages can be created with a [PackageBuilder](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/PackageCreation/Authoring/PackageBuilder.cs). A Package is basically an Implementation of [IPackageMetadata](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/PackageCreation/Authoring/IPackageMetadata.cs)
+
+# Helpful Links
+## Regarding NuGet V3
+- [NuGet Client SDK](https://docs.microsoft.com/en-us/nuget/reference/nuget-client-sdk)
+- [NuGet Samples](https://github.com/NuGet/Samples)
+  - especially [NuGetProtocolSamples](https://github.com/NuGet/Samples/tree/main/NuGetProtocolSamples)
+- [Dave Glick - Exploring the NuGet v3 Libraries](https://daveaglick.com/posts/exploring-the-nuget-v3-libraries-part-1)
+  - At some point probably outdated
+- [Revisiting the NuGet v3 Libraries](https://martinbjorkstrom.com/posts/2018-09-19-revisiting-nuget-client-libraries)
+  - Follow-up to `Dave Glick - Exploring the NuGet v3 Libraries`-series
+  - At some point probably outdated
+
+## Regarding `async` & `await` in edit-mode
+It seems like it is not possible by default, so you should not use something like `.GetResourceAsync<PackageSearchResource>()` in `NuGet.Protocol.Core.Types.SourceRepository` use `.GetResource<PackageSearchResource>()` instead.
