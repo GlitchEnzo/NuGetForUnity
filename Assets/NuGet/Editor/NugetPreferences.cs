@@ -54,6 +54,13 @@
                 NugetHelper.NugetConfigFile.Verbose = verbose;
             }
 
+            int timeout = EditorGUILayout.IntField("Web Request Timeout", NugetHelper.NugetConfigFile.RequestTimeout);
+            if (timeout != NugetHelper.NugetConfigFile.RequestTimeout)
+            {
+                preferencesChangedThisFrame = true;
+                NugetHelper.NugetConfigFile.RequestTimeout = timeout;
+            }
+
             EditorGUILayout.LabelField("Package Sources:");
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);

@@ -373,7 +373,7 @@
             // add anonymous handler
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
 
-            using (Stream responseStream = NugetHelper.RequestUrl(url, username, password, timeOut: 5000))
+            using (Stream responseStream = NugetHelper.RequestUrl(url, username, password))
             {
                 using (StreamReader streamReader = new StreamReader(responseStream))
                 {

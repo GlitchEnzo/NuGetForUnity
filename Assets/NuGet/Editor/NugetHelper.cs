@@ -1379,7 +1379,7 @@
                             EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Downloading Package", 0.3f);
                         }
 
-                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword, timeOut: null);
+                        Stream objStream = RequestUrl(package.DownloadUrl, package.PackageSource.UserName, package.PackageSource.ExpandedPassword);
                         using (Stream file = File.Create(cachedPackagePath))
                         {
                             CopyStream(objStream, file);
@@ -1507,15 +1507,14 @@
         /// </summary>
         /// <param name="url">URL that will be loaded.</param>
         /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
-        /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
         /// <returns>Stream containing the result.</returns>
-        public static Stream RequestUrl(string url, string userName, string password, int? timeOut)
+        public static Stream RequestUrl(string url, string userName, string password)
         {
             HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
-            if (timeOut.HasValue)
+            if (NugetConfigFile.RequestTimeout > 0)
             {
-                getRequest.Timeout = timeOut.Value;
-                getRequest.ReadWriteTimeout = timeOut.Value;
+                getRequest.Timeout = NugetConfigFile.RequestTimeout;
+                getRequest.ReadWriteTimeout = NugetConfigFile.RequestTimeout;
             }
 
             if (string.IsNullOrEmpty(password))

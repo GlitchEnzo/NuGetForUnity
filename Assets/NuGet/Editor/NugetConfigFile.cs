@@ -51,6 +51,11 @@
         public bool ReadOnlyPackageFiles { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating desired webrequest timeout in milliseconds.
+        /// </summary>
+        public int RequestTimeout { get; set; }
+
+        /// <summary>
         /// The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         private string savedRepositoryPath;
@@ -150,6 +155,14 @@
                 config.Add(addElement);
             }
 
+            if (RequestTimeout > 0)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "RequestTimeout"));
+                addElement.Add(new XAttribute("value", RequestTimeout.ToString()));
+                config.Add(addElement);
+            }
+
             XElement configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
@@ -188,6 +201,7 @@
             configFile.PackageSources = new List<NugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
+            configFile.RequestTimeout = 5000;
 
             XDocument file = XDocument.Load(filePath);
 
@@ -300,6 +314,10 @@
                     else if (String.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.ReadOnlyPackageFiles = bool.Parse(value);
+                    }
+                    else if (String.Equals(key, "RequestTimeout", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.RequestTimeout = int.Parse(value);
                     }
                 }
             }
