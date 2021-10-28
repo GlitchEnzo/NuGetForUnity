@@ -1099,6 +1099,26 @@ public class NuGetTests
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
+    [Test]
+    [TestCase("win7-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win7-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("win-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
+    [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
+    public void NativeSettingsTest(string key, BuildTarget buildTarget)
+    {
+        Settings.CreateDefault(NugetHelper.SettingsFilePath);
+
+        // Call load settings directly to ensure we're testing the deserialised file
+        var settings = Settings.Load(NugetHelper.SettingsFilePath);
+        var nativeRuntimes = settings.NativeRuntimesMappings;
+
+        Assert.IsTrue(nativeRuntimes.ContainsKey(key), $"Native mappings is missing {key}");
+        Assert.IsTrue(nativeRuntimes[key].Contains(buildTarget),
+            $"Native mapping for {key} is missing build target {buildTarget}");
+    }
+
     private static void IgnorePackagesConfigImportError()
     {
         LogAssert.Expect(LogType.Error, new Regex("NuGetForUnity: failed to process: .*packages.config' \\(ConfigurationFile\\)"));
