@@ -1,3 +1,4 @@
+﻿using UnityEngine;
 using System.Xml;
 
 namespace NugetForUnity
@@ -190,7 +191,7 @@ namespace NugetForUnity
             configFile.PackageSources = new List<NugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
-
+            
             XDocument file = XDocument.Load(filePath);
 
             // Force disable
@@ -305,8 +306,8 @@ namespace NugetForUnity
                     }
                 }
             }
-
-            return configFile;
+            
+           return configFile;
         }
 
         /// <summary>

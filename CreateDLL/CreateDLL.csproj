@@ -87,11 +87,17 @@
     <Compile Include="..\Assets\NuGet\Editor\NuspecFile.cs">
       <Link>NuspecFile.cs</Link>
     </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\Settings.cs">
+      <Link>Settings.cs</Link>
+    </Compile>
     <Compile Include="..\Assets\NuGet\Editor\PackagesConfigFile.cs">
       <Link>PackagesConfigFile.cs</Link>
     </Compile>
     <Compile Include="..\Assets\NuGet\Editor\RepositoryType.cs">
       <Link>RepositoryType.cs</Link>
+    </Compile>
+    <Compile Include="..\Assets\NuGet\Editor\MetaFileHandler.cs">
+      <Link>MetaFileHandler.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
