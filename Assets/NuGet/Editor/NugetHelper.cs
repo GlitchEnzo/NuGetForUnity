@@ -1492,7 +1492,7 @@
         {
             new AuthenticatedFeed()
             {
-                AccountUrlPattern = @"^https:\/\/(?<account>[a-zA-z0-9]+).pkgs.visualstudio.com",
+                AccountUrlPattern = @"^https:\/\/(?<account>[-a-zA-z0-9]+).pkgs.visualstudio.com",
                 ProviderUrlTemplate = "https://{account}.pkgs.visualstudio.com/_apis/public/nuget/client/CredentialProviderBundle.zip"
             },
             new AuthenticatedFeed()
