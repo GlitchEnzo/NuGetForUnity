@@ -110,6 +110,13 @@
             insideInitializeOnLoad = true;
             try
             {
+                if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
+                {
+                    return;
+                }
+
+                SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
+                
                 // if we are entering playmode, don't do anything
                 if (EditorApplication.isPlayingOrWillChangePlaymode)
                 {
