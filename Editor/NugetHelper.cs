@@ -110,6 +110,13 @@
             insideInitializeOnLoad = true;
             try
             {
+                if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
+                {
+                    return;
+                }
+
+                SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
+                
                 // if we are entering playmode, don't do anything
                 if (EditorApplication.isPlayingOrWillChangePlaymode)
                 {
@@ -1492,12 +1499,12 @@
         {
             new AuthenticatedFeed()
             {
-                AccountUrlPattern = @"^https:\/\/(?<account>[a-zA-z0-9]+).pkgs.visualstudio.com",
+                AccountUrlPattern = @"^https:\/\/(?<account>[-a-zA-Z0-9]+)\.pkgs\.visualstudio\.com",
                 ProviderUrlTemplate = "https://{account}.pkgs.visualstudio.com/_apis/public/nuget/client/CredentialProviderBundle.zip"
             },
             new AuthenticatedFeed()
             {
-                AccountUrlPattern = @"^https:\/\/pkgs.dev.azure.com\/(?<account>[a-zA-z0-9]+)\/",
+                AccountUrlPattern = @"^https:\/\/pkgs\.dev\.azure\.com\/(?<account>[-a-zA-Z0-9]+)\/",
                 ProviderUrlTemplate = "https://pkgs.dev.azure.com/{account}/_apis/public/nuget/client/CredentialProviderBundle.zip"
             }
         };
