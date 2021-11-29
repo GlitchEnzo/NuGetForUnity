@@ -1,7 +1,9 @@
 ﻿using NUnit.Framework;
 using NugetForUnity;
 using System.IO;
+using System.Linq;
 using UnityEditor;
+using UnityEngine;
 
 public class NuGetTests
 {
@@ -189,5 +191,35 @@ public class NuGetTests
         var id = new NugetPackageIdentifier("TestPackage", versionRange);
 
         Assert.IsFalse(id.InRange(version), "{0} WAS in range of {1}!", version, versionRange);
+    }
+
+    [Test]
+    [TestCase("Illegal space")]
+    [TestCase("Illegal@at")]
+    [TestCase("SimpleName")]
+    public void PackageSourceCredentialsTest(string name)
+    {
+        var resourcesFolder = Path.Combine(Directory.GetCurrentDirectory().ToString(), "Assets/Tests/Resources");
+        var path = Path.Combine(resourcesFolder, "NuGet.config");
+
+        var username = "username";
+        var password = "password";
+        
+        NugetConfigFile file = NugetConfigFile.CreateDefaultFile(path);
+
+        NugetPackageSource inputSource = new NugetPackageSource(name, "localhost")
+        {
+            UserName = username,
+            SavedPassword = password
+        };
+        
+        file.PackageSources.Add(inputSource);
+        file.Save(path);
+
+        var loaded = NugetConfigFile.Load(path);
+        var parsedSource = loaded.PackageSources.Find(p => p.Name == name);
+        Assert.That(parsedSource.HasPassword, Is.True);
+        Assert.That(parsedSource.UserName, Is.EqualTo(username));
+        Assert.That(parsedSource.SavedPassword, Is.EqualTo(password));
     }
 }
