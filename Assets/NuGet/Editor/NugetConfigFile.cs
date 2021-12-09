@@ -1,4 +1,6 @@
-﻿namespace NugetForUnity
+using System.Xml;
+
+namespace NugetForUnity
 {
     using System;
     using System.Collections.Generic;
@@ -87,7 +89,7 @@
 
                 if (source.HasPassword)
                 {
-                    XElement sourceElement = new XElement(source.Name);
+                    XElement sourceElement = new XElement(XmlConvert.EncodeName(source.Name) ?? string.Empty);
                     packageSourceCredentials.Add(sourceElement);
 
                     addElement = new XElement("add");
@@ -239,7 +241,7 @@
             {
                 foreach (var sourceElement in packageSourceCredentials.Elements())
                 {
-                    string name = sourceElement.Name.LocalName;
+                    string name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
                     var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
                     if (source != null)
                     {
