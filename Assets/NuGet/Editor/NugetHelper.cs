@@ -1519,6 +1519,7 @@
         public static Stream RequestUrl(string url, string userName, string password, int? timeOut)
         {
             HttpWebRequest getRequest = (HttpWebRequest)WebRequest.Create(url);
+            getRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.None;
             if (timeOut.HasValue)
             {
                 getRequest.Timeout = timeOut.Value;
