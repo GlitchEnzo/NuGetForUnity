@@ -1458,10 +1458,19 @@
         private static void ModifyImportSettingsIfRoslynAnalyzer(string id, string version)
         {
             var dir = Path.Combine(NugetConfigFile.RepositoryPath, $"{id}.{version}");
+            if (!Directory.Exists(dir))
+            {
+                Debug.LogError($"Directory {dir} not found.");
+                return;
+            }
+
             foreach (var analyzer in Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories)
                 .Where(x => x.Contains("/analyzers/")))
             {
-                var meta = AssetImporter.GetAtPath(analyzer) as PluginImporter;
+                // Trigger Unity to create the meta file, the path for ImportAsset MUST be relative to the project path
+                var projectRelativePath = analyzer.Substring(new DirectoryInfo(Application.dataPath).Parent.FullName.Length + 1);
+                AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceSynchronousImport);
+                var meta = AssetImporter.GetAtPath(projectRelativePath) as PluginImporter;
                 if (meta == null)
                 {
                     Debug.LogWarning($".meta file not found: {analyzer}");
