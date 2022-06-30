@@ -1457,7 +1457,7 @@
 
         private static void ModifyImportSettingsIfRoslynAnalyzer(string id, string version)
         {
-            var dir = $"Assets/Packages/{id}.{version}";
+            var dir = Path.Combine(NugetConfigFile.RepositoryPath, $"{id}.{version}");
             foreach (var analyzer in Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories)
                 .Where(x => x.Contains("/analyzers/")))
             {
