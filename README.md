@@ -8,9 +8,30 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 ![](screenshots/online.png?raw=true)
 
 # How do I install NuGetForUnity?
+
+### Install via .unitypackage file
 Install the provided Unity package into your Unity project.  Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).
 
 Download the `*.unitypackage` file. Right-click on it in File Explorer and choose "Open in Unity."
+
+### Install via Package Manager
+#### Unity 2019.3 or newer
+1. Open Package Manager window (Window | Package Manager)
+1. Click `+` button on the upper-left of a window, and select "Add package from git URL..."
+1. Enter the following URL and click `Add` button
+```
+https://github.com/GlitchEnzo/NuGetForUnity.git?path=/Assets/NuGet
+```
+
+#### Unity 2019.2 or earlier
+1. Close Unity Editor
+1. Open Packages/manifest.json by any Text editor
+1. Insert the following line after `"dependencies": {`, and save the file.
+```
+"com.glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/Assets/NuGet",
+```
+1. Reopen Unity project in Unity Editor
+
 
 # How do I use NuGetForUnity?
 To launch, select **NuGet → Manage NuGet Packages**
