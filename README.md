@@ -14,6 +14,8 @@ On Package Manager tab, click the [+] icon and "Add package from git URL" and in
 
 Download the `*.unitypackage` file. Right-click on it in File Explorer and choose "Open in Unity."
 
+Download the `*.unitypackage` file. Right-click on it in File Explorer and choose "Open in Unity."
+
 # How do I use NuGetForUnity?
 To launch, select **NuGet → Manage NuGet Packages**
 
