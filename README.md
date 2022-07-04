@@ -12,6 +12,8 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 
 On Package Manager tab, click the [+] icon and "Add package from git URL" and insert this:<br>[https://github.com/badjano/NuGetForUnity.git](https://github.com/badjano/NuGetForUnity.git)
 
+Download the `*.unitypackage` file. Right-click on it in File Explorer and choose "Open in Unity."
+
 # How do I use NuGetForUnity?
 To launch, select **NuGet → Manage NuGet Packages**
 
