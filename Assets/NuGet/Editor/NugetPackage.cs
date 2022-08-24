@@ -42,7 +42,7 @@
         /// <summary>
         /// Gets or sets the DownloadCount.
         /// </summary>
-        public int DownloadCount;
+        public long DownloadCount;
 
         /// <summary>
         /// Gets or sets the authors of the package.
