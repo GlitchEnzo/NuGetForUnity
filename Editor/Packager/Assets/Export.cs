@@ -11,7 +11,7 @@ namespace NugetForUnity
         public static void Execute()
         {
             AssetDatabase.ExportPackage(
-                new string[] { "Assets/Nuget" },
+                new string[] { "Packages\\NuGetForUnity\\Editor\\Packager\\Assets\\NuGet" },
                 "NugetForUnity.unitypackage",
                 ExportPackageOptions.Recurse);
         }
