@@ -12,6 +12,9 @@
     using System.Text.RegularExpressions;
     using UnityEditor;
     using UnityEngine;
+#if UNITY_2017_1_OR_NEWER
+    using UnityEngine.Networking;
+#endif
     using Debug = UnityEngine.Debug;
 
     /// <summary>
@@ -1678,8 +1681,18 @@
                 url = "file:///" + GetFilePath(url);
                 fromCache = true;
             }
-
+#if UNITY_2017_1_OR_NEWER
+            UnityWebRequest request = UnityWebRequest.Get(url);
+            DownloadHandlerTexture downloadHandler = new DownloadHandlerTexture(false);
+            request.downloadHandler = downloadHandler;
+#endif
+#if UNITY_2017_2_OR_NEWER // UnityWebRequest is not available in Unity 5.2, which is the currently the earliest version supported by NuGetForUnity.
+            request.SendWebRequest();
+#elif UNITY_2017_1
+            request.Send();
+#else
             WWW request = new WWW(url);
+#endif
             while (!request.isDone)
             {
                 if (stopwatch.ElapsedMilliseconds >= 750)
@@ -1700,7 +1713,11 @@
             {
                 if (string.IsNullOrEmpty(request.error))
                 {
+#if UNITY_2017_1_OR_NEWER
+                    result = downloadHandler.texture;
+#else
                     result = request.textureNonReadable;
+#endif
                     LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
                 }
                 else
@@ -1712,7 +1729,11 @@
 
             if (result != null && !fromCache)
             {
+#if UNITY_2017_1_OR_NEWER
+                CacheTextureOnDisk(url, downloadHandler.data);
+#else
                 CacheTextureOnDisk(url, request.bytes);
+#endif
             }
 
             request.Dispose();

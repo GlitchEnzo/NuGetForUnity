@@ -219,7 +219,11 @@
         protected static void CheckForUpdates()
         {
             const string url = "https://github.com/GlitchEnzo/NuGetForUnity/releases";
-#if UNITY_2017_1_OR_NEWER // UnityWebRequest is not available in Unity 5.2, which is the currently the earliest version supported by NuGetForUnity.
+#if UNITY_2017_2_OR_NEWER // UnityWebRequest is not available in Unity 5.2, which is the currently the earliest version supported by NuGetForUnity.
+            using (UnityWebRequest request = UnityWebRequest.Get(url))
+            {
+                request.SendWebRequest();
+#elif UNITY_2017_1
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
                 request.Send();
@@ -239,7 +243,12 @@
                 string latestVersionDownloadUrl = null;
 
                 string response = null;
-#if UNITY_2017_1_OR_NEWER
+#if UNITY_2020_2_OR_NEWER
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    response = request.downloadHandler.text;
+                }
+#elif UNITY_2017_1_OR_NEWER
                 if (!request.isNetworkError && !request.isHttpError)
                 {
                     response = request.downloadHandler.text;
