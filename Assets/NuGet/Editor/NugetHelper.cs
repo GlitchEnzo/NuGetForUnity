@@ -541,6 +541,13 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
+
+            // if there are roslyn analyzers we need to modify its import settings
+            var analyzersDirectory = Path.Combine(packageInstallDirectory, "analyzers");
+            if (Directory.Exists(analyzersDirectory))
+            {
+                ModifyImportSettingsOfRoslynAnalyzers(analyzersDirectory);
+            }
         }
 
         private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package)
@@ -1448,32 +1455,23 @@
                 {
                     EditorUtility.DisplayProgressBar(string.Format("Installing {0} {1}", package.Id, package.Version), "Importing Package", 0.95f);
                     AssetDatabase.Refresh();
-                    ModifyImportSettingsIfRoslynAnalyzer(package.Id, package.Version);
                     EditorUtility.ClearProgressBar();
                 }
             }
             return installSuccess;
         }
 
-        private static void ModifyImportSettingsIfRoslynAnalyzer(string id, string version)
+        private static void ModifyImportSettingsOfRoslynAnalyzers(string analyzersDirectory)
         {
-            var dir = Path.Combine(NugetConfigFile.RepositoryPath, $"{id}.{version}");
-            if (!Directory.Exists(dir))
+            foreach (var analyzer in Directory.GetFiles(analyzersDirectory, "*.dll", SearchOption.AllDirectories))
             {
-                Debug.LogError($"Directory {dir} not found.");
-                return;
-            }
-
-            foreach (var analyzer in Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories)
-                .Where(x => x.Contains("/analyzers/")))
-            {
-                // Trigger Unity to create the meta file, the path for ImportAsset MUST be relative to the project path
-                var projectRelativePath = analyzer.Substring(new DirectoryInfo(Application.dataPath).Parent.FullName.Length + 1);
+                // Trigger Unity to create the .meta file, the path for ImportAsset MUST be relative to the project path
+                var projectRelativePath = GetProjectRelativePath(analyzer);
                 AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceSynchronousImport);
                 var meta = AssetImporter.GetAtPath(projectRelativePath) as PluginImporter;
                 if (meta == null)
                 {
-                    Debug.LogWarning($".meta file not found: {analyzer}");
+                    Debug.LogWarning($"no .meta file found for: '{analyzer}'");
                     continue;
                 }
 
@@ -1481,16 +1479,33 @@
                 meta.SetCompatibleWithEditor(false);
                 foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
                 {
-                    meta.SetExcludeFromAnyPlatform((BuildTarget) platform, false);
+                    meta.SetExcludeFromAnyPlatform((BuildTarget)platform, false);
                 }
 
-                AssetDatabase.SetLabels(meta, new[] {"RoslynAnalyzer"});
+                AssetDatabase.SetLabels(meta, new[] { "RoslynAnalyzer" });
             }
+        }
+
+        private static string GetProjectRelativePath(string path)
+        {
+            if (path == null)
+            {
+                return null;
+            }
+
+            // Path.GetRelativePath is only available in newer .net versions so we need to implement it our self
+            path = Path.GetFullPath(path);
+            var projectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath)).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!path.StartsWith(projectPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+
+            return path.Substring(projectPath.Length);
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
         {
-#if !NET_4_6
             WebException webException = e as WebException;
             HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
             if (webResponse != null && webResponse.StatusCode == HttpStatusCode.BadRequest && webException.Message.Contains("Authentication information is not given in the correct format"))
@@ -1499,7 +1514,6 @@
                 // Inform users when this occurs.
                 Debug.LogError("Authentication failed. This can occur due to a known issue in .NET 3.5. This can be fixed by changing Scripting Runtime to Experimental (.NET 4.6 Equivalent) in Player Settings.");
             }
-#endif
         }
 
         private struct AuthenticatedFeed
