@@ -17,6 +17,8 @@ jobs:
   buildOnLinux:
     name: Build on linux
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.generateVersion.outputs.version }}
 
     steps:
       - name: Checkout action file
@@ -49,10 +51,33 @@ jobs:
         with:
           version: ${{ steps.generateVersion.outputs.version }}
 
-      - name: Copy DLL
-        run: cp "./CreateDLL/bin/Release/NuGetForUnity.dll" "./Packager/Assets/NuGet/Editor"
+      - name: Upload NuGetForUnity.dll
+        uses: actions/upload-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: ./CreateDLL/bin/Release/NuGetForUnity.dll
 
-      - name: Unity - Builder
+  packageOnLinux:
+    name: Create .unitypackage on linux
+    runs-on: ubuntu-latest
+    needs: [buildOnLinux]
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Download NuGetForUnity.dll
+        uses: actions/download-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: "./Packager/Assets/NuGet/Editor"
+
+      - name: Unity - Packager (build .unitypackage)
         uses: game-ci/unity-builder@v2.1.2
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -69,12 +94,12 @@ jobs:
           buildMethod: NugetForUnity.Export.Execute
           # custom versioning
           versioning: "Custom"
-          version: ${{ steps.generateVersion.outputs.version }}
+          version: ${{ needs.buildOnLinux.outputs.version }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetForUnity.${{ steps.generateVersion.outputs.version }}.unitypackage
+          name: NuGetForUnity.${{ needs.buildOnLinux.outputs.version }}.unitypackage
           path: ./Packager/NugetForUnity.unitypackage
 
   testUbuntu:
@@ -98,3 +123,51 @@ jobs:
         with:
           projectPath: .
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  runTestProjectsOnLinux:
+    name: Run test projects on linux
+    runs-on: ubuntu-latest
+    needs: [buildOnLinux]
+    strategy:
+      fail-fast: false
+      matrix:
+        projectPath:
+          - TestProjects/ImportAndUseNuGetPackages
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Download NuGetForUnity.dll
+        uses: actions/download-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: "${{ matrix.projectPath }}/Assets/NuGet/Editor"
+
+      - name: Restore NuGet packages using NuGetForUnity
+        uses: ./.github/actions/nuget-restore
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ matrix.projectPath }}
+
+      - name: Unity - Build project ${{ matrix.projectPath }}
+        uses: game-ci/unity-builder@v2.1.2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          # Platform that the build should target.
+          targetPlatform: StandaloneWindows64
+          # Relative path to the project to be built.
+          projectPath: ${{ matrix.projectPath }}
+          # disable versioning
+          versioning: "None"
