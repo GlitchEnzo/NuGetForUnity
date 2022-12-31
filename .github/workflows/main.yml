@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "master" ]
     tags: [ "v*" ]
-  pull_request:
+  pull_request_target:
     branches: [ "master" ]
     
 permissions:
@@ -19,10 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        lfs: true
+    - uses: ./.github/actions/checkout
 
     - name: Generate Version Number
       id: generateVersion
@@ -50,7 +47,7 @@ jobs:
       run: cp "./CreateDLL/bin/Release/NuGetForUnity.dll" "./Packager/Assets/NuGet/Editor"
         
     - name: Unity - Builder
-      uses: game-ci/unity-builder@v2
+      uses: game-ci/unity-builder@v2.1.2
       env:          
         UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -78,13 +75,10 @@ jobs:
     name: Test on linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          lfs: true
+      - uses: ./.github/actions/checkout
         
       - name: Unity - Run tests
-        uses: game-ci/unity-test-runner@v2
+        uses: game-ci/unity-test-runner@v2.1.1
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
