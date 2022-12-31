@@ -5,11 +5,11 @@ inputs:
     description: The version number
     required: true
 runs:
-  using: 'docker'
-  image: 'docker://unityci/editor:2018.4.30f1-windows-mono-1'
+  using: "docker"
+  image: "docker://unityci/editor:2018.4.30f1-windows-mono-1"
   args:
     - bash
-    - '-c'
+    - "-c"
     - >-
       wget --no-check-certificate -v --secure-protocol=TLSv1_2 https://dot.net/v1/dotnet-install.sh &&
       source ./dotnet-install.sh &&
