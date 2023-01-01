@@ -1,0 +1,37 @@
+name: Checkout
+description: Checkout the source code. For pull requests it checks out the merged code.
+runs:
+  using: composite
+  steps:
+    - name: Checkout normal
+      uses: actions/checkout@v3
+      if: github.event_name != 'pull_request_target'
+      with:
+        fetch-depth: 0
+        lfs: true
+
+    - name: Checkout merged PR
+      uses: actions/checkout@v3
+      if: github.event_name == 'pull_request_target'
+      with:
+        ref: refs/pull/${{ github.event.number }}/merge
+        fetch-depth: 0
+        lfs: true
+
+    - name: Get changed files in the .github folder
+      if: github.event_name == 'pull_request_target'
+      id: changedWorkflowFiles
+      uses: tj-actions/changed-files@v35
+      with:
+        files: |
+          .github/**
+
+    - name: Fail if any workflow file is changed
+      if: |
+        github.event_name == 'pull_request_target' &&
+        steps.changedWorkflowFiles.outputs.any_changed == 'true'
+      shell: bash
+      run: |
+        echo "One or more files in the .github folder has changed."
+        echo "List all the files that have changed: ${{ steps.changedWorkflowFiles.outputs.all_changed_files }}"
+        exit 1

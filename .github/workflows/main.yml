@@ -1,0 +1,173 @@
+name: Build and Test
+
+on:
+  push:
+    branches: ["master"]
+    tags: ["v*"]
+  pull_request_target:
+    branches: ["master"]
+
+permissions:
+  actions: read
+  checks: write
+  contents: read
+  statuses: write
+
+jobs:
+  buildOnLinux:
+    name: Build on linux
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.generateVersion.outputs.version }}
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Generate Version Number
+        id: generateVersion
+        shell: pwsh
+        run: |
+          $describe = git describe --long --tags --always
+          if ($describe -match '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<offset>\d+)-g(?<hash>[a-f0-9]+)$') { 
+            if ([int]::Parse($Matches.offset) -eq 0) { 
+              $version = "$($Matches.major).$($Matches.minor).$($Matches.patch)"
+            } else { 
+              $version = "$($Matches.major).$($Matches.minor).$([int]::Parse($Matches.patch) + 1)-dev.$($Matches.offset)+$($Matches.hash)"
+            }
+          } else { 
+            $version = "0.0.0-dev.$(git rev-list HEAD --count)+$describe"
+          }
+          Write-Host "Generated version number: $version"
+          echo "version=$($version)" >> $Env:GITHUB_OUTPUT
+
+      - name: Create DLL
+        uses: ./.github/actions/create-dll
+        with:
+          version: ${{ steps.generateVersion.outputs.version }}
+
+      - name: Upload NuGetForUnity.dll
+        uses: actions/upload-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: ./CreateDLL/bin/Release/NuGetForUnity.dll
+
+  packageOnLinux:
+    name: Create .unitypackage on linux
+    runs-on: ubuntu-latest
+    needs: [buildOnLinux]
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Download NuGetForUnity.dll
+        uses: actions/download-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: "./Packager/Assets/NuGet/Editor"
+
+      - name: Unity - Packager (build .unitypackage)
+        uses: game-ci/unity-builder@v2.1.2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          # Platform that the build should target.
+          targetPlatform: StandaloneWindows64
+          # Version of unity to use for building the project. Use "auto" to get from your ProjectSettings/ProjectVersion.txt
+          unityVersion: auto
+          # Relative path to the project to be built.
+          projectPath: ./Packager
+          # Path to a Namespace.Class.StaticMethod to run to perform the build.
+          buildMethod: NugetForUnity.Export.Execute
+          # custom versioning
+          versioning: "Custom"
+          version: ${{ needs.buildOnLinux.outputs.version }}
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: NuGetForUnity.${{ needs.buildOnLinux.outputs.version }}.unitypackage
+          path: ./Packager/NugetForUnity.unitypackage
+
+  testUbuntu:
+    name: Test on linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Unity - Run tests
+        uses: game-ci/unity-test-runner@v2.1.1
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  runTestProjectsOnLinux:
+    name: Run test projects on linux
+    runs-on: ubuntu-latest
+    needs: [buildOnLinux]
+    strategy:
+      fail-fast: false
+      matrix:
+        projectPath:
+          - TestProjects/ImportAndUseNuGetPackages
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Download NuGetForUnity.dll
+        uses: actions/download-artifact@v3
+        with:
+          name: NuGetForUnity.dll
+          path: "${{ matrix.projectPath }}/Assets/NuGet/Editor"
+
+      - name: Restore NuGet packages using NuGetForUnity
+        uses: ./.github/actions/nuget-restore
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ matrix.projectPath }}
+
+      - name: Unity - Build project ${{ matrix.projectPath }}
+        uses: game-ci/unity-builder@v2.1.2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          # Platform that the build should target.
+          targetPlatform: StandaloneWindows64
+          # Relative path to the project to be built.
+          projectPath: ${{ matrix.projectPath }}
+          # disable versioning
+          versioning: "None"

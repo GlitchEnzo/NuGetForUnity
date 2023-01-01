@@ -185,6 +185,7 @@
                 if (File.Exists(localPackagePath))
                 {
                     NugetPackage localPackage = NugetPackage.FromNupkgFile(localPackagePath);
+                    localPackage.PackageSource = this;
                     return localPackage;
                 }
                 else

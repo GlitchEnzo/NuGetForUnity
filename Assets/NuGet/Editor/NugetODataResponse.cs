@@ -72,7 +72,7 @@ namespace NugetForUnity
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
                 package.Authors = entryProperties.GetProperty("Authors");
-                package.DownloadCount = int.Parse(entryProperties.GetProperty("DownloadCount"));
+                package.DownloadCount = long.Parse(entryProperties.GetProperty("DownloadCount"));
 
                 string iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
