@@ -1,4 +1,8 @@
-﻿namespace NugetForUnity
+﻿using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+
+namespace NugetForUnity
 {
     using System;
     using System.Collections.Generic;
@@ -57,6 +61,11 @@
         private static PackagesConfigFile packagesConfigFile;
 
         /// <summary>
+        /// Gets the absolute path to the Unity-Project root directory.
+        /// </summary>
+        internal static string AbsoluteProjectPath { get; }
+
+        /// <summary>
         /// Gets the loaded packages.config file that hold the dependencies for the project.
         /// </summary>
         public static PackagesConfigFile PackagesConfigFile
@@ -107,6 +116,7 @@
         /// </summary>
         static NugetHelper()
         {
+            AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
             insideInitializeOnLoad = true;
             try
             {
@@ -569,6 +579,9 @@
                     .Select(Path.GetFileName)
                     .Select(p => Path.ChangeExtension(p, null));
                 alreadyImportedLibs = new HashSet<string>(libNames);
+
+                // workaround not sure why but it reported as missing when not added as NuGet package
+                alreadyImportedLibs.Remove("System.Runtime.CompilerServices.Unsafe");
                 LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             }
 
@@ -1461,9 +1474,36 @@
             return installSuccess;
         }
 
+        /// <summary>
+        /// Makes a given path relative to the current Unity-Projects directory.
+        /// </summary>
+        /// <param name="path">The path to make relative.</param>
+        /// <returns>The relative path.</returns>
+        internal static string GetProjectRelativePath(string path)
+        {
+            return GetRelativePath(AbsoluteProjectPath, path);
+        }
+
+        private static string GetRelativePath(string relativeTo, string path)
+        {
+            // Path.GetRelativePath is only available in newer .net versions so we need to implement it our self
+            if (path == null)
+            {
+                return null;
+            }
+
+            path = Path.GetFullPath(path);
+            relativeTo = Path.GetFullPath(relativeTo).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!path.StartsWith(relativeTo, StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+
+            return path.Substring(relativeTo.Length);
+        }
+
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
         {
-#if !NET_4_6
             WebException webException = e as WebException;
             HttpWebResponse webResponse = webException != null ? webException.Response as HttpWebResponse : null;
             if (webResponse != null && webResponse.StatusCode == HttpStatusCode.BadRequest && webException.Message.Contains("Authentication information is not given in the correct format"))
@@ -1472,7 +1512,6 @@
                 // Inform users when this occurs.
                 Debug.LogError("Authentication failed. This can occur due to a known issue in .NET 3.5. This can be fixed by changing Scripting Runtime to Experimental (.NET 4.6 Equivalent) in Player Settings.");
             }
-#endif
         }
 
         private struct AuthenticatedFeed

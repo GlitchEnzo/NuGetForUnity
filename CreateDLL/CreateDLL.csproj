@@ -6,13 +6,13 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CreateDLL</RootNamespace>
-    <AssemblyName>NuGetForUnity</AssemblyName>
+    <AssemblyName>NugetForUnity</AssemblyName>
     <TargetFramework>netstandard2.0</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <EnableDefaultItems>false</EnableDefaultItems>
     <AssemblySearchPaths> $(AssemblySearchPaths); $(ReferencePath); </AssemblySearchPaths>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>    
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -38,50 +38,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Assets\NuGet\Editor\DependencyTreeViewer.cs">
-      <Link>DependencyTreeViewer.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetConfigFile.cs">
-      <Link>NugetConfigFile.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetFrameworkGroup.cs">
-      <Link>NugetFrameworkGroup.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetHelper.cs">
-      <Link>NugetHelper.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetODataResponse.cs">
-      <Link>NugetODataResponse.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetPackage.cs">
-      <Link>NugetPackage.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetPackageIdentifier.cs">
-      <Link>NugetPackageIdentifier.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetPackageSource.cs">
-      <Link>NugetPackageSource.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetPreferences.cs">
-      <Link>NugetPreferences.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NugetWindow.cs">
-      <Link>NugetWindow.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NuspecContentFile.cs">
-      <Link>NuspecContentFile.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NuspecEditor.cs">
-      <Link>NuspecEditor.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\NuspecFile.cs">
-      <Link>NuspecFile.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\PackagesConfigFile.cs">
-      <Link>PackagesConfigFile.cs</Link>
-    </Compile>
-    <Compile Include="..\Assets\NuGet\Editor\RepositoryType.cs">
-      <Link>RepositoryType.cs</Link>
+    <Compile Include="..\Assets\NuGet\Editor\**\*.cs">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
