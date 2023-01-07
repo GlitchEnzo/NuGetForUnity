@@ -55,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: NuGetForUnity.dll
-          path: ./CreateDLL/bin/Release/NuGetForUnity.dll
+          path: ./CreateDLL/bin/Release/NugetForUnity.dll
 
   packageOnLinux:
     name: Create .unitypackage on linux
