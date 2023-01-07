@@ -811,7 +811,7 @@
                     {
                         GUI.DrawTexture(rect, package.Icon, ScaleMode.StretchToFill);
                     }
-                    else
+                    else if (defaultIcon != null)
                     {
                         GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
                     }

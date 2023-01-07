@@ -1,4 +1,8 @@
-﻿namespace NugetForUnity
+﻿using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+
+namespace NugetForUnity
 {
     using System;
     using System.Collections.Generic;
@@ -57,6 +61,11 @@
         private static PackagesConfigFile packagesConfigFile;
 
         /// <summary>
+        /// Gets the absolute path to the Unity-Project root directory.
+        /// </summary>
+        internal static string AbsoluteProjectPath { get; }
+
+        /// <summary>
         /// Gets the loaded packages.config file that hold the dependencies for the project.
         /// </summary>
         public static PackagesConfigFile PackagesConfigFile
@@ -107,6 +116,7 @@
         /// </summary>
         static NugetHelper()
         {
+            AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
             insideInitializeOnLoad = true;
             try
             {
@@ -548,13 +558,6 @@
                 DeleteDirectory(packageInstallDirectory + "/StreamingAssets");
                 DeleteFile(packageInstallDirectory + "/StreamingAssets.meta");
             }
-
-            // if there are roslyn analyzers we need to modify its import settings
-            var analyzersDirectory = Path.Combine(packageInstallDirectory, "analyzers");
-            if (Directory.Exists(analyzersDirectory))
-            {
-                ModifyImportSettingsOfRoslynAnalyzers(analyzersDirectory);
-            }
         }
 
         private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package)
@@ -576,6 +579,9 @@
                     .Select(Path.GetFileName)
                     .Select(p => Path.ChangeExtension(p, null));
                 alreadyImportedLibs = new HashSet<string>(libNames);
+
+                // workaround not sure why but it reported as missing when not added as NuGet package
+                alreadyImportedLibs.Remove("System.Runtime.CompilerServices.Unsafe");
                 LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             }
 
@@ -1468,47 +1474,32 @@
             return installSuccess;
         }
 
-        private static void ModifyImportSettingsOfRoslynAnalyzers(string analyzersDirectory)
+        /// <summary>
+        /// Makes a given path relative to the current Unity-Projects directory.
+        /// </summary>
+        /// <param name="path">The path to make relative.</param>
+        /// <returns>The relative path.</returns>
+        internal static string GetProjectRelativePath(string path)
         {
-            foreach (var analyzer in Directory.GetFiles(analyzersDirectory, "*.dll", SearchOption.AllDirectories))
-            {
-                // Trigger Unity to create the .meta file, the path for ImportAsset MUST be relative to the project path
-                var projectRelativePath = GetProjectRelativePath(analyzer);
-                AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceSynchronousImport);
-                var meta = AssetImporter.GetAtPath(projectRelativePath) as PluginImporter;
-                if (meta == null)
-                {
-                    Debug.LogWarning($"no .meta file found for: '{analyzer}'");
-                    continue;
-                }
-
-                meta.SetCompatibleWithAnyPlatform(false);
-                meta.SetCompatibleWithEditor(false);
-                foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
-                {
-                    meta.SetExcludeFromAnyPlatform((BuildTarget)platform, false);
-                }
-
-                AssetDatabase.SetLabels(meta, new[] { "RoslynAnalyzer" });
-            }
+            return GetRelativePath(AbsoluteProjectPath, path);
         }
 
-        private static string GetProjectRelativePath(string path)
+        private static string GetRelativePath(string relativeTo, string path)
         {
+            // Path.GetRelativePath is only available in newer .net versions so we need to implement it our self
             if (path == null)
             {
                 return null;
             }
 
-            // Path.GetRelativePath is only available in newer .net versions so we need to implement it our self
             path = Path.GetFullPath(path);
-            var projectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath)).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            if (!path.StartsWith(projectPath, StringComparison.OrdinalIgnoreCase))
+            relativeTo = Path.GetFullPath(relativeTo).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!path.StartsWith(relativeTo, StringComparison.OrdinalIgnoreCase))
             {
                 return path;
             }
 
-            return path.Substring(projectPath.Length);
+            return path.Substring(relativeTo.Length);
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)

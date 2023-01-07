@@ -281,11 +281,10 @@ namespace NugetForUnity
 
                         if (!Path.IsPathRooted(configFile.RepositoryPath))
                         {
-                            string repositoryPath = Path.Combine(UnityEngine.Application.dataPath, configFile.RepositoryPath);
-                            repositoryPath = Path.GetFullPath(repositoryPath);
-
-                            configFile.RepositoryPath = repositoryPath;
+                            configFile.RepositoryPath = Path.Combine(UnityEngine.Application.dataPath, configFile.RepositoryPath);
                         }
+
+                        configFile.RepositoryPath = Path.GetFullPath(configFile.RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
                     }
                     else if (String.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
                     {

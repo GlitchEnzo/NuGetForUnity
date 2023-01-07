@@ -39,6 +39,10 @@ if ( $LASTEXITCODE -ne 0 ) {
 # Copy .dlls from the build into the Packager folder
 Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.dll" ".\Packager\Assets\NuGet\Editor"
 
+# Copy .ddl from the build into the test-projects
+Get-ChildItem -path ".\TestProjects\*\Assets\NuGet\Editor" -Directory | 
+    ForEach-Object {  Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.dll" $_.FullName }
+
 # Launch Unity to export the NuGetForUnity package
 Start-UnityEditor -Project ".\Packager" -BatchMode -Quit -Wait -ExecuteMethod "NugetForUnity.Export.Execute" -LogFile ".\Packager\NuGetForUnity.unitypackage.log"
 

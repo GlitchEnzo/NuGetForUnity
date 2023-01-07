@@ -42,6 +42,52 @@ public class NuGetTests
         Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
     }
 
+
+    [Test]
+    public void InstallRoslynAnalyzerTest()
+    {
+        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2");
+        if (NugetHelper.NugetConfigFile == null)
+        {
+            NugetHelper.LoadNugetConfigFile();
+        }
+
+        // install the package
+        NugetHelper.InstallIdentifier(analyzer);
+        try
+        {
+            AssetDatabase.Refresh();
+            var path = $"Assets/Packages/{analyzer.Id}.{analyzer.Version}/analyzers/dotnet/cs/ErrorProne.NET.Core.dll";
+            var meta = AssetImporter.GetAtPath(path) as PluginImporter;
+            meta.SaveAndReimport();
+            AssetDatabase.Refresh();
+
+            Assert.IsTrue(NugetHelper.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id,
+                analyzer.Version);
+
+            // Verify analyzer dll import settings
+            meta = AssetImporter.GetAtPath(path) as PluginImporter;
+            Assert.IsNotNull(meta, "Get meta file");
+            Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Not compatible any platform");
+            Assert.IsFalse(meta.GetCompatibleWithEditor(), "Not compatible editor");
+            foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
+            {
+                Assert.IsFalse(meta.GetExcludeFromAnyPlatform((BuildTarget)platform),
+                    $"Not compatible {Enum.GetName(typeof(BuildTarget), platform)}");
+            }
+
+            Assert.IsTrue(AssetDatabase.GetLabels(meta).Contains("RoslynAnalyzer"), "Set RoslynAnalyzer label");
+
+        }
+        finally
+        {
+            // uninstall the package
+            NugetHelper.UninstallAll();
+            Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id,
+                analyzer.Version);
+        }
+    }
+
     [Test]
     public void InstallProtobufTest()
     {
@@ -139,36 +185,6 @@ public class NuGetTests
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
         Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
-    }
-
-    [Test]
-    public void InstallRoslynAnalyzerTest()
-    {
-        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2");
-
-        // install the package
-        NugetHelper.InstallIdentifier(analyzer);
-        Assert.IsTrue(NugetHelper.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id,
-            analyzer.Version);
-
-        // Verify analyzer dll import settings
-        var path = $"Assets/Packages/{analyzer.Id}.{analyzer.Version}/analyzers/dotnet/cs/ErrorProne.NET.Core.dll";
-        var meta = AssetImporter.GetAtPath(path) as PluginImporter;
-        Assert.IsNotNull(meta, "Get meta file");
-        Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Not compatible any platform");
-        Assert.IsFalse(meta.GetCompatibleWithEditor(), "Not compatible editor");
-        foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
-        {
-            Assert.IsFalse(meta.GetExcludeFromAnyPlatform((BuildTarget) platform),
-                $"Not compatible {Enum.GetName(typeof(BuildTarget), platform)}");
-        }
-
-        Assert.IsTrue(AssetDatabase.GetLabels(meta).Contains("RoslynAnalyzer"), "Set RoslynAnalyzer label");
-
-        // uninstall the package
-        NugetHelper.UninstallAll();
-        Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id,
-            analyzer.Version);
     }
 
     [Test]
