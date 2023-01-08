@@ -1,10 +1,9 @@
 ﻿using System;
-using NUnit.Framework;
-using NugetForUnity;
 using System.IO;
 using System.Linq;
+using NugetForUnity;
+using NUnit.Framework;
 using UnityEditor;
-using UnityEngine;
 
 public class NuGetTests
 {
@@ -42,7 +41,6 @@ public class NuGetTests
         Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
     }
 
-
     [Test]
     public void InstallRoslynAnalyzerTest()
     {
@@ -62,8 +60,7 @@ public class NuGetTests
             meta.SaveAndReimport();
             AssetDatabase.Refresh();
 
-            Assert.IsTrue(NugetHelper.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id,
-                analyzer.Version);
+            Assert.IsTrue(NugetHelper.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id, analyzer.Version);
 
             // Verify analyzer dll import settings
             meta = AssetImporter.GetAtPath(path) as PluginImporter;
@@ -72,19 +69,18 @@ public class NuGetTests
             Assert.IsFalse(meta.GetCompatibleWithEditor(), "Not compatible editor");
             foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
             {
-                Assert.IsFalse(meta.GetExcludeFromAnyPlatform((BuildTarget)platform),
+                Assert.IsFalse(
+                    meta.GetExcludeFromAnyPlatform((BuildTarget)platform),
                     $"Not compatible {Enum.GetName(typeof(BuildTarget), platform)}");
             }
 
             Assert.IsTrue(AssetDatabase.GetLabels(meta).Contains("RoslynAnalyzer"), "Set RoslynAnalyzer label");
-
         }
         finally
         {
             // uninstall the package
             NugetHelper.UninstallAll();
-            Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id,
-                analyzer.Version);
+            Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id, analyzer.Version);
         }
     }
 
@@ -170,7 +166,9 @@ public class NuGetTests
         NugetHelper.InstallIdentifier(signalRClient);
         Assert.IsTrue(NugetHelper.IsInstalled(signalRClient), "The package was NOT installed: {0} {1}", signalRClient.Id, signalRClient.Version);
 
-        var directory45 = Path.Combine(NugetHelper.NugetConfigFile.RepositoryPath, string.Format("{0}.{1}\\lib\\net45", signalRClient.Id, signalRClient.Version));
+        var directory45 = Path.Combine(
+            NugetHelper.NugetConfigFile.RepositoryPath,
+            string.Format("{0}.{1}\\lib\\net45", signalRClient.Id, signalRClient.Version));
 
         // SignalR 2.2.2 only contains .NET 4.0 and .NET 4.5 libraries, so it should install .NET 4.5 when using .NET 4.6 in Unity, and be empty in other cases
         if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
@@ -246,20 +244,16 @@ public class NuGetTests
     [TestCase("SimpleName")]
     public void PackageSourceCredentialsTest(string name)
     {
-        var resourcesFolder = Path.Combine(Directory.GetCurrentDirectory().ToString(), "Assets/Tests/Resources");
+        var resourcesFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets/Tests/Resources");
         var path = Path.Combine(resourcesFolder, "NuGet.config");
 
         var username = "username";
         var password = "password";
-        
-        NugetConfigFile file = NugetConfigFile.CreateDefaultFile(path);
 
-        NugetPackageSource inputSource = new NugetPackageSource(name, "localhost")
-        {
-            UserName = username,
-            SavedPassword = password
-        };
-        
+        var file = NugetConfigFile.CreateDefaultFile(path);
+
+        var inputSource = new NugetPackageSource(name, "localhost") { UserName = username, SavedPassword = password };
+
         file.PackageSources.Add(inputSource);
         file.Save(path);
 

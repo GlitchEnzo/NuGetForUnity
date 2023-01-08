@@ -5,19 +5,19 @@ using System.Xml.Linq;
 namespace NugetForUnity
 {
     /// <summary>
-    /// Provides helper methods for parsing a NuGet server OData response.
-    /// OData is a superset of the Atom API.
+    ///     Provides helper methods for parsing a NuGet server OData response.
+    ///     OData is a superset of the Atom API.
     /// </summary>
     public static class NugetODataResponse
     {
-        private static string AtomNamespace = "http://www.w3.org/2005/Atom";
+        private static readonly string AtomNamespace = "http://www.w3.org/2005/Atom";
 
-        private static string DataServicesNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices";
+        private static readonly string DataServicesNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices";
 
-        private static string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
+        private static readonly string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
 
         /// <summary>
-        /// Gets the string value of a NuGet metadata property from the given properties element and property name.
+        ///     Gets the string value of a NuGet metadata property from the given properties element and property name.
         /// </summary>
         /// <param name="properties">The properties element.</param>
         /// <param name="name">The name of the property to get.</param>
@@ -28,7 +28,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        /// Gets the <see cref="XElement"/> within the Atom namespace with the given name.
+        ///     Gets the <see cref="XElement" /> within the Atom namespace with the given name.
         /// </summary>
         /// <param name="element">The element containing the Atom element.</param>
         /// <param name="name">The name of the Atom element</param>
@@ -39,13 +39,13 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        /// Parses the given <see cref="XDocument"/> and returns the list of <see cref="NugetPackage"/>s contained within.
+        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackage" />s contained within.
         /// </summary>
-        /// <param name="document">The <see cref="XDocument"/> that is the OData XML response from the NuGet server.</param>
-        /// <returns>The list of <see cref="NugetPackage"/>s read from the given XML.</returns>
+        /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
+        /// <returns>The list of <see cref="NugetPackage" />s read from the given XML.</returns>
         public static List<NugetPackage> Parse(XDocument document)
         {
-            List<NugetPackage> packages = new List<NugetPackage>();
+            var packages = new List<NugetPackage>();
 
             IEnumerable<XElement> packageEntries;
             if (document.Root.Name.Equals(XName.Get("entry", AtomNamespace)))
@@ -56,10 +56,10 @@ namespace NugetForUnity
             {
                 packageEntries = document.Root.Elements(XName.Get("entry", AtomNamespace));
             }
-                
+
             foreach (var entry in packageEntries)
             {
-                NugetPackage package = new NugetPackage();
+                var package = new NugetPackage();
                 package.Id = entry.GetAtomElement("title").Value;
                 package.DownloadUrl = entry.GetAtomElement("content").Attribute("src").Value;
 
@@ -74,7 +74,7 @@ namespace NugetForUnity
                 package.Authors = entryProperties.GetProperty("Authors");
                 package.DownloadCount = long.Parse(entryProperties.GetProperty("DownloadCount"));
 
-                string iconUrl = entryProperties.GetProperty("IconUrl");
+                var iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
                     package.Icon = NugetHelper.DownloadImage(iconUrl);
@@ -87,17 +87,17 @@ namespace NugetForUnity
                 }
 
                 // Get dependencies
-                string rawDependencies = entryProperties.GetProperty("Dependencies");
+                var rawDependencies = entryProperties.GetProperty("Dependencies");
                 if (!string.IsNullOrEmpty(rawDependencies))
                 {
                     var dependencyGroups = new Dictionary<string, NugetFrameworkGroup>();
 
-                    string[] dependencies = rawDependencies.Split('|');
+                    var dependencies = rawDependencies.Split('|');
                     foreach (var dependencyString in dependencies)
                     {
-                        string[] details = dependencyString.Split(':');
-                        
-                        string framework = string.Empty;
+                        var details = dependencyString.Split(':');
+
+                        var framework = string.Empty;
                         if (details.Length > 2)
                         {
                             framework = details[2];
@@ -112,6 +112,7 @@ namespace NugetForUnity
                         }
 
                         var dependency = new NugetPackageIdentifier(details[0], details[1]);
+
                         // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
                         // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
                         // so we need to only add valid dependencies and skip invalid ones

@@ -2,7 +2,7 @@ name: Build and Test
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "feature/*"]
     tags: ["v*"]
   pull_request_target:
     branches: ["master"]
@@ -34,13 +34,13 @@ jobs:
         shell: pwsh
         run: |
           $describe = git describe --long --tags --always
-          if ($describe -match '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<offset>\d+)-g(?<hash>[a-f0-9]+)$') { 
-            if ([int]::Parse($Matches.offset) -eq 0) { 
+          if ($describe -match '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<offset>\d+)-g(?<hash>[a-f0-9]+)$') {
+            if ([int]::Parse($Matches.offset) -eq 0) {
               $version = "$($Matches.major).$($Matches.minor).$($Matches.patch)"
-            } else { 
+            } else {
               $version = "$($Matches.major).$($Matches.minor).$([int]::Parse($Matches.patch) + 1)-dev.$($Matches.offset)+$($Matches.hash)"
             }
-          } else { 
+          } else {
             $version = "0.0.0-dev.$(git rev-list HEAD --count)+$describe"
           }
           Write-Host "Generated version number: $version"
