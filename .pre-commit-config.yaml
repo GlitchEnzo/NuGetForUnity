@@ -1,0 +1,41 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+exclude: "^.git$"
+repos:
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.7.1
+    hooks:
+      - id: "prettier"
+        additional_dependencies:
+          - prettier@v2.7.1
+          - "@prettier/plugin-xml@2.2.0"
+          - prettier-plugin-ini@v1.1.0
+        args:
+          - --plugin=@prettier/plugin-xml
+          - --plugin=prettier-plugin-ini
+        files: \.(json|xml|html|config|csproj|xlf|DotSettings|yaml|yml|js|md|xrml|xaml|css|editorconfig)$
+  - repo: local
+    hooks:
+      - id: resharper-cleanupcode-all
+        name: ReSharper Code Cleanup (all files)
+        entry: python ./tools/resharper-cleanupcode.py
+        language: system
+        pass_filenames: false
+        require_serial: true
+        stages: [manual]
+      - id: resharper-cleanupcode-changed
+        name: ReSharper Code Cleanup (only changed)
+        entry: python ./tools/resharper-cleanupcode.py
+        language: system
+        files: \.cs$
+        pass_filenames: true
+        require_serial: true
+        stages: [commit, merge-commit]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.(pdf|meta|prefab|shader|controller|asset|cginc|mat|unity|anim|shadergraph)$
+      - id: end-of-file-fixer
+        exclude: \.(asmdef|pdf|meta|prefab|shader|controller|asset|cginc|mat|unity|anim|shadergraph)$
+      - id: check-merge-conflict

@@ -7,8 +7,8 @@ Write-Host "Build NuGetForUnity " -ForegroundColor Green
 
 # Determine the Unity path for importing project references
 $projectVersion = Get-UnityProjectInstance -BasePath ".\Packager" | Select-Object -ExpandProperty Version
-$unityPath = Get-UnitySetupInstance | 
-    Select-UnitySetupInstance -Version $projectVersion | 
+$unityPath = Get-UnitySetupInstance |
+    Select-UnitySetupInstance -Version $projectVersion |
     Select-Object -ExpandProperty Path
 if ( !$unityPath -or $unityPath -eq "" ) {
     throw "Could not find Unity editor for $projectVersion"
@@ -18,8 +18,8 @@ Write-Host "Building package with Unity $projectVersion" -ForegroundColor Green
 
 
 # Build the NuGetForUnity .dlls
-$vspath = Get-VSSetupInstance | 
-    Select-VSSetupInstance -Require Microsoft.Component.MSBuild -Latest | 
+$vspath = Get-VSSetupInstance |
+    Select-VSSetupInstance -Require Microsoft.Component.MSBuild -Latest |
     Select-Object -ExpandProperty InstallationPath
 
 $msbuild = Get-ChildItem "$vspath" -Filter msbuild.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
@@ -31,8 +31,8 @@ $ReferencePath = "$unityPath\Editor\Data\Managed\"
 Write-Host "Building CreateDLL MSBuildPath=$msbuild ReferencePath=$ReferencePath" -ForegroundColor Green
 
 & $msbuild ".\CreateDLL\" /nologo /m "/t:restore,rebuild" /p:AppxBundle=Always /p:Platform='Any CPU' /p:Configuration=Release /p:ReferencePath=$ReferencePath | Out-Host
-if ( $LASTEXITCODE -ne 0 ) { 
-    throw "MSBuild failed with $LASTEXITCODE" 
+if ( $LASTEXITCODE -ne 0 ) {
+    throw "MSBuild failed with $LASTEXITCODE"
 }
 
 
@@ -40,7 +40,7 @@ if ( $LASTEXITCODE -ne 0 ) {
 Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.dll" ".\Packager\Assets\NuGet\Editor"
 
 # Copy .ddl from the build into the test-projects
-Get-ChildItem -path ".\TestProjects\*\Assets\NuGet\Editor" -Directory | 
+Get-ChildItem -path ".\TestProjects\*\Assets\NuGet\Editor" -Directory |
     ForEach-Object {  Copy-Item ".\CreateDLL\bin\Release\NugetForUnity.dll" $_.FullName }
 
 # Launch Unity to export the NuGetForUnity package

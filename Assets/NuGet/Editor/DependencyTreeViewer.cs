@@ -1,17 +1,51 @@
-﻿namespace NugetForUnity
-{
-    using System.Collections.Generic;
-    using System.Linq;
-    using UnityEditor;
-    using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
 
+namespace NugetForUnity
+{
     /// <summary>
-    /// A viewer for all of the packages and their dependencies currently installed in the project.
+    ///     A viewer for all of the packages and their dependencies currently installed in the project.
     /// </summary>
     public class DependencyTreeViewer : EditorWindow
     {
+        private readonly Dictionary<NugetPackage, bool> expanded = new Dictionary<NugetPackage, bool>();
+
         /// <summary>
-        /// Opens the NuGet Package Manager Window.
+        ///     The list of packages that depend on the specified package.
+        /// </summary>
+        private readonly List<NugetPackage> parentPackages = new List<NugetPackage>();
+
+        /// <summary>
+        ///     The titles of the tabs in the window.
+        /// </summary>
+        private readonly string[] tabTitles = { "Dependency Tree", "Who Depends on Me?" };
+
+        /// <summary>
+        ///     The currently selected tab in the window.
+        /// </summary>
+        private int currentTab;
+
+        /// <summary>
+        ///     The array of currently installed package IDs.
+        /// </summary>
+        private string[] installedPackageIds;
+
+        /// <summary>
+        ///     The list of currently installed packages.
+        /// </summary>
+        private List<NugetPackage> installedPackages;
+
+        private List<NugetPackage> roots;
+
+        private Vector2 scrollPosition;
+
+        private int selectedPackageIndex = -1;
+
+        /// <summary>
+        ///     Opens the NuGet Package Manager Window.
         /// </summary>
         [MenuItem("NuGet/Show Dependency Tree", false, 5)]
         protected static void DisplayDependencyTree()
@@ -20,40 +54,7 @@
         }
 
         /// <summary>
-        /// The titles of the tabs in the window.
-        /// </summary>
-        private readonly string[] tabTitles = { "Dependency Tree", "Who Depends on Me?" };
-
-        /// <summary>
-        /// The currently selected tab in the window.
-        /// </summary>
-        private int currentTab;
-
-        private int selectedPackageIndex = -1;
-
-        /// <summary>
-        /// The list of packages that depend on the specified package.
-        /// </summary>
-        private List<NugetPackage> parentPackages = new List<NugetPackage>();
-
-        /// <summary>
-        /// The list of currently installed packages.
-        /// </summary>
-        private List<NugetPackage> installedPackages;
-
-        /// <summary>
-        /// The array of currently installed package IDs.
-        /// </summary>
-        private string[] installedPackageIds;
-
-        private Dictionary<NugetPackage, bool> expanded = new Dictionary<NugetPackage, bool>();
-
-        private List<NugetPackage> roots;
-
-        private Vector2 scrollPosition;
-
-        /// <summary>
-        /// Called when enabling the window.
+        ///     Called when enabling the window.
         /// </summary>
         private void OnEnable()
         {
@@ -69,17 +70,13 @@
 
                 NugetHelper.UpdateInstalledPackages();
                 installedPackages = NugetHelper.InstalledPackages.ToList();
-                List<string> installedPackageNames = new List<string>();
+                var installedPackageNames = new List<string>();
 
-                foreach (NugetPackage package in installedPackages)
+                foreach (var package in installedPackages)
                 {
                     if (!expanded.ContainsKey(package))
                     {
                         expanded.Add(package, false);
-                    }
-                    else
-                    {
-                        //Debug.LogErrorFormat("Expanded already contains {0} {1}", package.Id, package.Version);
                     }
 
                     installedPackageNames.Add(package.Id);
@@ -89,7 +86,7 @@
 
                 BuildTree();
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogErrorFormat("{0}", e.ToString());
             }
@@ -105,10 +102,10 @@
             roots = new List<NugetPackage>(installedPackages);
 
             // remove a package as a root if another package is dependent on it
-            foreach (NugetPackage package in installedPackages)
+            foreach (var package in installedPackages)
             {
-                NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
-                foreach (NugetPackageIdentifier dependency in frameworkGroup.Dependencies)
+                var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                foreach (var dependency in frameworkGroup.Dependencies)
                 {
                     roots.RemoveAll(p => p.Id == dependency.Id);
                 }
@@ -116,7 +113,7 @@
         }
 
         /// <summary>
-        /// Automatically called by Unity to draw the GUI.
+        ///     Automatically called by Unity to draw the GUI.
         /// </summary>
         protected void OnGUI()
         {
@@ -126,10 +123,11 @@
             {
                 case 0:
                     scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-                    foreach (NugetPackage package in roots)
+                    foreach (var package in roots)
                     {
                         DrawPackage(package);
                     }
+
                     EditorGUILayout.EndScrollView();
                     break;
                 case 1:
@@ -139,7 +137,7 @@
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     EditorStyles.label.fontSize = 10;
                     EditorGUI.indentLevel++;
-                    int newIndex = EditorGUILayout.Popup(selectedPackageIndex, installedPackageIds);
+                    var newIndex = EditorGUILayout.Popup(selectedPackageIndex, installedPackageIds);
                     EditorGUI.indentLevel--;
 
                     if (newIndex != selectedPackageIndex)
@@ -147,10 +145,10 @@
                         selectedPackageIndex = newIndex;
 
                         parentPackages.Clear();
-                        NugetPackage selectedPackage = installedPackages[selectedPackageIndex];
+                        var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
@@ -160,7 +158,7 @@
                             }
                         }
                     }
-                    
+
                     EditorGUILayout.Space();
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 14;
@@ -178,19 +176,19 @@
                     {
                         foreach (var parent in parentPackages)
                         {
-                            //EditorGUILayout.LabelField(string.Format("{0} {1}", parent.Id, parent.Version));
                             DrawPackage(parent);
                         }
                     }
+
                     EditorGUI.indentLevel--;
                     EditorGUILayout.EndScrollView();
                     break;
-            } 
+            }
         }
 
         private void DrawDepencency(NugetPackageIdentifier dependency)
         {
-            NugetPackage fullDependency = installedPackages.Find(p => p.Id == dependency.Id);
+            var fullDependency = installedPackages.Find(p => p.Id == dependency.Id);
             if (fullDependency != null)
             {
                 DrawPackage(fullDependency);
@@ -211,11 +209,12 @@
                 {
                     EditorGUI.indentLevel++;
 
-                    NugetFrameworkGroup frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
-                    foreach (NugetPackageIdentifier dependency in frameworkGroup.Dependencies)
+                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                    foreach (var dependency in frameworkGroup.Dependencies)
                     {
                         DrawDepencency(dependency);
                     }
+
                     EditorGUI.indentLevel--;
                 }
             }

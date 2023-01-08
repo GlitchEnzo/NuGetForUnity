@@ -1,0 +1,56 @@
+# see https://prettier.io/docs/en/options.html
+
+# Specify the line length that the printer will wrap on.
+printWidth: 150
+
+# Specify the number of spaces per indentation-level.
+tabWidth: 4
+
+endOfLine: "crlf"
+
+# Whitespaces are considered insensitive.
+htmlWhitespaceSensitivity: "ignore"
+xmlWhitespaceSensitivity: "ignore"
+
+# Overrides for some file types
+overrides:
+  # .config files are xml style e.g. package.config
+  - files: "*.config"
+    options:
+      parser: "xml"
+
+  - files: "*.csproj"
+    options:
+      parser: "xml"
+
+  - files: "*.xlf"
+    options:
+      parser: "xml"
+
+  - files: "*.DotSettings"
+    options:
+      parser: "xml"
+      printWidth: 30000
+
+  - files: "*.inputactions"
+    options:
+      parser: "json"
+
+  - files:
+      - "*.yml"
+      - "*.yaml"
+      - "*.meta"
+    options:
+      parser: "yaml"
+      tabWidth: 2
+
+  - files:
+      - manifest.json
+      - packages-lock.json
+    options:
+      parser: "json"
+      tabWidth: 2
+
+  - files: ".editorconfig"
+    options:
+      parser: "ini"
