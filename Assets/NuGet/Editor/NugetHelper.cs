@@ -626,36 +626,27 @@ namespace NugetForUnity
         {
             if (alreadyImportedLibs == null)
             {
-                var lookupPaths = GetAllLookupPaths();
-                var libNames = lookupPaths.SelectMany(directory => Directory.EnumerateFiles(directory, "*.dll", SearchOption.AllDirectories))
-                    .Select(Path.GetFileName)
-                    .Select(p => Path.ChangeExtension(p, null));
-                alreadyImportedLibs = new HashSet<string>(libNames);
+                // Find all the dll's already installed by NuGetForUnity
+                var alreadyInstalledDllFileNames = new HashSet<string>();
 
-                // workaround not sure why but it reported as missing when not added as NuGet package
-                alreadyImportedLibs.Remove("System.Runtime.CompilerServices.Unsafe");
+                if (NugetConfigFile != null && Directory.Exists(NugetConfigFile.RepositoryPath))
+                {
+                    alreadyInstalledDllFileNames = new HashSet<string>(
+                        Directory.EnumerateFiles(NugetConfigFile.RepositoryPath, "*.dll", SearchOption.AllDirectories)
+                            .Select(Path.GetFileNameWithoutExtension));
+                }
+
+                // Get all assemblies loaded into Unity and filter out those installed by NuGetForUnity
+                alreadyImportedLibs = new HashSet<string>(
+                    AppDomain.CurrentDomain.GetAssemblies()
+                        .Select(a => a.ManifestModule.Name)
+                        .Select(p => Path.ChangeExtension(p, null))
+                        .Where(p => !alreadyInstalledDllFileNames.Contains(p)));
+
                 LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             }
 
             return alreadyImportedLibs;
-        }
-
-        private static string[] GetAllLookupPaths()
-        {
-            var executablePath = EditorApplication.applicationPath;
-            var roots = new[]
-            {
-                // MacOS directory layout
-                Path.Combine(executablePath, "Contents"),
-
-                // Windows directory layout
-                Path.Combine(Directory.GetParent(executablePath).FullName, "Data"),
-            };
-            var relativePaths = new[] { Path.Combine("NetStandard", "compat"), Path.Combine("MonoBleedingEdge", "lib", "mono") };
-            var allPossiblePaths = roots.SelectMany(root => relativePaths.Select(relativePath => Path.Combine(root, relativePath)));
-            var existingPaths = allPossiblePaths.Where(Directory.Exists).ToArray();
-            LogVerbose("All existing path to dependency lookup are: {0}", string.Join(", ", existingPaths));
-            return existingPaths;
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)

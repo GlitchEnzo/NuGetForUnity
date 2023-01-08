@@ -359,4 +359,45 @@ public class NuGetTests
             PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, oldApiCompatibilityLevel);
         }
     }
+
+    [Test]
+    public void TestUpgrading()
+    {
+        NugetHelper.LoadNugetConfigFile();
+
+        var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0");
+        var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0");
+
+        NugetHelper.InstallIdentifier(componentModelAnnotation47);
+        Assert.IsTrue(
+            NugetHelper.IsInstalled(componentModelAnnotation47),
+            "The package was NOT installed: {0} {1}",
+            componentModelAnnotation47.Id,
+            componentModelAnnotation47.Version);
+
+        // Force NuGetHelper to reload the "alreadyImportedLibs" (like if the editor is re-opend)
+        var field = typeof(NugetHelper).GetField("alreadyImportedLibs", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.IsNotNull(field, "Failed to find the field 'alreadyImportedLibs' in NugetHelper");
+        field.SetValue(null, null);
+
+        NugetHelper.InstallIdentifier(componentModelAnnotation5);
+        Assert.IsTrue(
+            NugetHelper.IsInstalled(componentModelAnnotation5),
+            "The package was NOT installed: {0} {1}",
+            componentModelAnnotation5.Id,
+            componentModelAnnotation5.Version);
+        Assert.IsFalse(
+            NugetHelper.IsInstalled(componentModelAnnotation47),
+            "The package is STILL installed: {0} {1}",
+            componentModelAnnotation47.Id,
+            componentModelAnnotation47.Version);
+
+        NugetHelper.UninstallAll();
+
+        Assert.IsFalse(
+            NugetHelper.IsInstalled(componentModelAnnotation5),
+            "The package is STILL installed: {0} {1}",
+            componentModelAnnotation5.Id,
+            componentModelAnnotation5.Version);
+    }
 }
