@@ -87,7 +87,7 @@ namespace NugetForUnity
             "netstandard10",
         };
 
-        private static readonly string[] net4Unity2018Frameworks = { "net471", "net47" };
+        private static readonly string[] net4Unity2018Frameworks = { "net472", "net471", "net47" };
 
         private static readonly string[] net4Unity2017Frameworks =
         {
@@ -95,6 +95,10 @@ namespace NugetForUnity
         };
 
         private static readonly string[] net3Frameworks = { "net35-unity full v3.5", "net35-unity subset v3.5", "net35", "net20", "net11" };
+
+        private static readonly string[] net4Unity2021Frameworks = { "net48" };
+
+        private static readonly string[] netStandardUnity2021Frameworks = { "netstandard21" };
 
         private static readonly string[] defaultFrameworks = { string.Empty };
 
@@ -678,17 +682,29 @@ namespace NugetForUnity
 
             // NET_4_6 option was added in Unity 5.6
             // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
+            // NET_4_8 in Unity 2021.2 is also 3
+            // NET_Standard = 6 2.0 and 2.1 since Unity 2021.2 have the same value
             var using46 = intDotNetVersion == 3;
-            var usingStandard2 = intDotNetVersion == 6; // using .net standard 2.0
+            var usingStandard = intDotNetVersion == 6; // using .net standard 2.0 or 2.1
 
             var frameworkGroups = new List<string[]> { unityFrameworks };
 
-            if (usingStandard2)
+            if (usingStandard)
             {
+                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
+                {
+                    frameworkGroups.Add(netStandardUnity2021Frameworks);
+                }
+
                 frameworkGroups.Add(netStandardFrameworks);
             }
             else if (using46)
             {
+                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
+                {
+                    frameworkGroups.Add(net4Unity2021Frameworks);
+                }
+
                 if (UnityVersion.Current.Major >= 2018)
                 {
                     frameworkGroups.Add(net4Unity2018Frameworks);
@@ -701,6 +717,11 @@ namespace NugetForUnity
 
                 frameworkGroups.Add(net3Frameworks);
                 frameworkGroups.Add(netStandardFrameworks);
+
+                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
+                {
+                    frameworkGroups.Add(netStandardUnity2021Frameworks);
+                }
             }
             else
             {
@@ -2032,6 +2053,15 @@ namespace NugetForUnity
                 Build = int.Parse(match.Groups[5].Value);
             }
 
+            public UnityVersion(int major, int minor, int revision, char release, int build)
+            {
+                Major = major;
+                Minor = minor;
+                Revision = revision;
+                Release = release;
+                Build = build;
+            }
+
             public static int Compare(UnityVersion a, UnityVersion b)
             {
                 if (a.Major < b.Major)
@@ -2090,6 +2120,26 @@ namespace NugetForUnity
             public int CompareTo(UnityVersion other)
             {
                 return Compare(this, other);
+            }
+
+            public static bool operator <(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) < 0;
+            }
+
+            public static bool operator <=(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) <= 0;
+            }
+
+            public static bool operator >(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) > 0;
+            }
+
+            public static bool operator >=(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) >= 0;
             }
         }
 

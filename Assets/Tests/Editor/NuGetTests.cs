@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NugetForUnity;
 using NUnit.Framework;
 using UnityEditor;
@@ -262,5 +264,99 @@ public class NuGetTests
         Assert.That(parsedSource.HasPassword, Is.True);
         Assert.That(parsedSource.UserName, Is.EqualTo(username));
         Assert.That(parsedSource.SavedPassword, Is.EqualTo(password));
+    }
+
+    [Test]
+    [TestCase("2018.4.30f1", false, false, false)]
+    [TestCase("2018.4.30f1", true, false, false)]
+    [TestCase("2021.3.16f1", false, true, true)]
+    [TestCase("2021.3.16f1", true, true, true)]
+    public void TryGetBestTargetFrameworkForCurrentSettingsTest(string unityVersion,
+        bool useNetStandard,
+        bool supportsNetStandard21,
+        bool supportsNet48)
+    {
+        var unityVersionType = typeof(NugetHelper).GetNestedType("UnityVersion", BindingFlags.NonPublic);
+        var currentUnityVersionField = unityVersionType.GetField("Current", BindingFlags.Public | BindingFlags.Static);
+        var oldValue = currentUnityVersionField.GetValue(null);
+        var oldApiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+
+        try
+        {
+            currentUnityVersionField.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
+
+            PlayerSettings.SetApiCompatibilityLevel(
+                EditorUserBuildSettings.selectedBuildTargetGroup,
+                useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6);
+
+            var allFrameworks = new List<string>
+            {
+                "unity",
+                "netstandard21",
+                "netstandard20",
+                "netstandard16",
+                "netstandard15",
+                "netstandard14",
+                "netstandard13",
+                "netstandard12",
+                "netstandard11",
+                "netstandard10",
+                "net48",
+                "net472",
+                "net471",
+                "net47",
+                "net462",
+                "net461",
+                "net46",
+                "net452",
+                "net451",
+                "net45",
+                "net403",
+                "net40",
+                "net4",
+                "net35-unity full v3.5",
+                "net35-unity subset v3.5",
+                "net35",
+                "net20",
+                "net11",
+            };
+
+            while (allFrameworks.Count > 0)
+            {
+                var bestMatch = NugetHelper.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks);
+                var expectedMatchIndex = 0;
+                if (!useNetStandard)
+                {
+                    while (allFrameworks[expectedMatchIndex].StartsWith("netstandard"))
+                    {
+                        ++expectedMatchIndex;
+                    }
+                }
+                else if (allFrameworks[expectedMatchIndex] == "net48")
+                {
+                    // stop when we reached the net-framework part as we only support net-standard
+                    Assert.That(bestMatch, Is.Null);
+                    break;
+                }
+
+                if (!supportsNetStandard21 && allFrameworks[expectedMatchIndex] == "netstandard21")
+                {
+                    ++expectedMatchIndex;
+                }
+
+                if (!supportsNet48 && allFrameworks[expectedMatchIndex] == "net48")
+                {
+                    ++expectedMatchIndex;
+                }
+
+                Assert.That(bestMatch, Is.EqualTo(allFrameworks[expectedMatchIndex]));
+                allFrameworks.RemoveAt(0);
+            }
+        }
+        finally
+        {
+            currentUnityVersionField.SetValue(null, oldValue);
+            PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, oldApiCompatibilityLevel);
+        }
     }
 }
