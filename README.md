@@ -10,19 +10,53 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 
 # How do I install NuGetForUnity?
 
+<details>
+<summary>Install via Package Manager</summary>
+
+#### Unity 2019.3 or newer
+
+1. Open Package Manager window (Window | Package Manager)
+1. Click `+` button on the upper-left of a window, and select "Add package from git URL..."
+1. Enter the following URL and click `Add` button
+
+```
+https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity
+```
+
+> **_NOTE:_** To install a concreate version you can specify the version by prepending #v{version} e.g. `#v2.0.0`. For more see [Unity UPM Documentation](https://docs.unity3d.com/Manual/upm-git.html).
+
+#### Unity 2019.2 or earlier
+
+1. Close Unity Editor
+1. Open Packages/manifest.json by any Text editor
+1. Insert the following line after `"dependencies": {`, and save the file.
+
+    ```json
+    "com.glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
+    ```
+
+1. Reopen Unity project in Unity Editor
+
+</details>
+
+<details>
+<summary>Install via .unitypackage file</summary>
+
 Install the provided Unity package into your Unity project. Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).
 
 Download the `*.unitypackage` file. Right-click on it in File Explorer and choose "Open in Unity."
+
+</details>
 
 # How do I use NuGetForUnity?
 
 To launch, select **NuGet → Manage NuGet Packages**
 
-![](screenshots/menu_item.png?raw=true)
+![](docs/screenshots/menu_item.png?raw=true)
 
 After several seconds (it can take some time to query the server for packages), you should see a window like this:
 
-![](screenshots/online.png?raw=true)
+![](docs/screenshots/online.png?raw=true)
 
 The **Online** tab shows the packages available on the NuGet server.
 
@@ -45,13 +79,13 @@ Note: If the package is already installed an **Uninstall** button will be displa
 
 The **Installed** tabs shows the packages already installed in the current Unity project.
 
-![](screenshots/installed.png?raw=true)
+![](docs/screenshots/installed.png?raw=true)
 
 Click the **Uninstall** button to uninstall the package.
 
 The **Updates** tab shows the packages currently installed that have updates available on the server.
 
-![](screenshots/updates.png?raw=true)
+![](docs/screenshots/updates.png?raw=true)
 
 The version in brackets on the left is the new version number. The version in brackets in the **Update** button is the currently installed version.
 
@@ -67,6 +101,7 @@ _The default NuGet.config file:_
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
+    <clear />
     <add key="NuGet" value="http://www.nuget.org/api/v2/" />
   </packageSources>
   <activePackageSource>
@@ -83,13 +118,13 @@ You can change this to any other NuGet server (such as NuGet.Server or ProGet - 
 
 See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
 
-![](screenshots/menu_item.png?raw=true)
+![](docs/screenshots/menu_item.png?raw=true)
 
 NuGetForUnity installs packages into the local repository path defined in the _NuGet.config_ file (`repositoryPath`). By default, this is set to the `Assets/Packages` folder. In the _NuGet.config_ file, this can either be a full path, or it can be a relative path based on the project's Assets folder. Note: You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
 
 When a package is installed, the _packages.config_ file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed. This allows for the packages to be restored from scratch at any point. The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project. It can be run manually by selecting the **NuGet → Restore Packages** menu item.
 
-![](screenshots/menu_item.png?raw=true)
+![](docs/screenshots/menu_item.png?raw=true)
 
 Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
@@ -101,11 +136,11 @@ The _.nupkg_ files downloaded from the NuGet server are cached locally in the cu
 
 First, you'll need to create a _.nuspec_ file that defines your package. In your Project window, right click where you want the _.nuspec_ file to go and select **NuGet → Create Nuspec File**.
 
-![](screenshots/nuspec_menu.png?raw=true)
+![](docs/screenshots/nuspec_menu.png?raw=true)
 
 Select the new _.nuspec_ file and you should see something like this:
 
-![](screenshots/nuspec_editor.png?raw=true)
+![](docs/screenshots/nuspec_editor.png?raw=true)
 
 Input the appropriate information for your package (ID, Version, Author, Description, etc). Be sure to include whatever dependencies are required by your package.
 
@@ -125,7 +160,7 @@ Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget
 
 # Restoring NuGet Packages over the Command Line
 
-For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line. On Windows, this can be done automatically by executing [RestoreNugetPackages.bat](https://github.com/GlitchEnzo/NuGetForUnity/blob/master/RestoreNugetPackages.bat) directly from within your Unity project directory, given that the NuGetForUnity Asset is already installed in your project.
+For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line. On Windows, this can be done automatically by executing [RestoreNugetPackages.bat](https://github.com/GlitchEnzo/NuGetForUnity/blob/master/docs/RestoreNugetPackages.bat) directly from within your Unity project directory, given that the NuGetForUnity Asset is already installed in your project.
 
 This can also be done manually over the command line as shown here:
 
