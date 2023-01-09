@@ -29,7 +29,8 @@ runs:
     - name: Fail if any workflow file is changed
       if: |
         github.event_name == 'pull_request_target' &&
-        steps.changedWorkflowFiles.outputs.any_changed == 'true'
+        steps.changedWorkflowFiles.outputs.any_changed == 'true' &&
+        github.event.pull_request.user.login != 'JoC0de'
       shell: bash
       run: |
         echo "One or more files in the .github folder has changed."
