@@ -1,0 +1,29 @@
+name: Update copyright year in license file (s)
+
+on:
+  # update license annually at 03:00 AM on January 1
+  schedule:
+    - cron: "0 3 1 1 *"
+
+  # or manually
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: FantasticFiasco/action-update-license-year@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: |
+            **/LICENSE
+            **/LICENSE.md
+            **/LICENSE.txt
