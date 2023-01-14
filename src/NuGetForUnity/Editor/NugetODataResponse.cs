@@ -77,7 +77,7 @@ namespace NugetForUnity
                 var iconUrl = entryProperties.GetProperty("IconUrl");
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
-                    package.Icon = NugetHelper.DownloadImage(iconUrl);
+                    package.IconTask = NugetHelper.DownloadImage(iconUrl);
                 }
 
                 // if there is no title, just use the ID as the title

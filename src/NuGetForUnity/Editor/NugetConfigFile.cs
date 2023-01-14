@@ -27,7 +27,7 @@ namespace NugetForUnity
         public List<NugetPackageSource> PackageSources { get; private set; }
 
         /// <summary>
-        ///     Gets the currectly active package source that is defined in the NuGet.config file.
+        ///     Gets the currently active package source that is defined in the NuGet.config file.
         ///     Note: If the key/Name is set to "All" and the value/Path is set to "(Aggregate source)", all package sources are used.
         /// </summary>
         public NugetPackageSource ActivePackageSource { get; private set; }
@@ -61,7 +61,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Saves this NuGet.config file to disk.
         /// </summary>
-        /// <param name="filepath">The filepath to where this NuGet.config will be saved.</param>
+        /// <param name="filepath">The file-path to where this NuGet.config will be saved.</param>
         public void Save(string filepath)
         {
             var configFile = new XDocument();

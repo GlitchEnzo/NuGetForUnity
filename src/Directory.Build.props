@@ -1,0 +1,21 @@
+<Project>
+    <PropertyGroup>
+        <!-- To support Unity 2018.4 with .NET Framework we can not 'eayily' use features of C# higher than 7.3 -->
+        <LangVersion>7.3</LangVersion>
+    </PropertyGroup>
+
+    <!-- Packaging -->
+    <PropertyGroup>
+        <RepositoryUrl>https://github.com/GlitchEnzo/NuGetForUnity</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/GlitchEnzo/NuGetForUnity</PackageProjectUrl>
+        <Authors>NuGetForUnity Contributors</Authors>
+        <Owners>NuGetForUnity-Contributors</Owners>
+        <IncludeSymbols>true</IncludeSymbols>
+        <LicenseFile>$(MSBuildThisFileDirectory)../LICENSE</LicenseFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <Copyright>Copyright (c) 2017-$([System.DateTime]::Now.ToString('yyyy')) Patrick McCarthy and contributors</Copyright>
+        <PackageReleaseNotes>https://github.com/GlitchEnzo/NuGetForUnity/releases</PackageReleaseNotes>
+    </PropertyGroup>
+</Project>

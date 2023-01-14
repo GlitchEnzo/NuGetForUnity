@@ -169,68 +169,7 @@ namespace NugetForUnity
         protected static void DisplayVersion()
         {
             // open the preferences window
-#if UNITY_2018_1_OR_NEWER
             SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-#else
-            var assembly = System.Reflection.Assembly.GetAssembly(typeof(EditorWindow));
-            var preferencesWindow = assembly.GetType("UnityEditor.PreferencesWindow");
-            var preferencesWindowSection = assembly.GetType("UnityEditor.PreferencesWindow+Section"); // access nested class via + instead of .
-
-            EditorWindow preferencesEditorWindow =
- EditorWindow.GetWindowWithRect(preferencesWindow, new Rect(100f, 100f, 500f, 400f), true, "Unity Preferences");
-
-            //preferencesEditorWindow.m_Parent.window.m_DontSaveToLayout = true; //<-- Unity's implementation also does this
-
-            // Get the flag to see if custom sections have already been added
-            var m_RefreshCustomPreferences =
- preferencesWindow.GetField("m_RefreshCustomPreferences", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            bool refesh = (bool)m_RefreshCustomPreferences.GetValue(preferencesEditorWindow);
-
-            if (refesh)
-            {
-                // Invoke the AddCustomSections to load all user-specified preferences sections.  This normally isn't done until OnGUI, but we need to call it now to set the proper index
-                var addCustomSections =
- preferencesWindow.GetMethod("AddCustomSections", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                addCustomSections.Invoke(preferencesEditorWindow, null);
-
-                // Unity is dumb and doesn't set the flag for having loaded the custom sections INSIDE the AddCustomSections method!  So we must call it manually.
-                m_RefreshCustomPreferences.SetValue(preferencesEditorWindow, false);
-            }
-
-            // get the List<PreferencesWindow.Section> m_Sections.Count
-            var m_Sections =
- preferencesWindow.GetField("m_Sections", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object list = m_Sections.GetValue(preferencesEditorWindow);
-            var sectionList = typeof(List<>).MakeGenericType(new Type[] { preferencesWindowSection });
-            var getCount = sectionList.GetProperty("Count").GetGetMethod(true);
-            int count = (int)getCount.Invoke(list, null);
-            //Debug.LogFormat("Count = {0}", count);
-
-            // Figure out the index of the NuGet for Unity preferences
-            var getItem = sectionList.GetMethod("get_Item");
-            int nugetIndex = 0;
-            for (int i = 0; i < count; i++)
-            {
-                var section = getItem.Invoke(list, new object[] { i });
-                GUIContent content =
- (GUIContent)section.GetType().GetField("content", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(section);
-                if (content != null && content.text == "NuGet For Unity")
-                {
-                    nugetIndex = i;
-                    break;
-                }
-            }
-            //Debug.LogFormat("NuGet index = {0}", nugetIndex);
-
-            // set the selected section index
-            var selectedSectionIndex =
- preferencesWindow.GetProperty("selectedSectionIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var selectedSectionIndexSetter = selectedSectionIndex.GetSetMethod(true);
-            selectedSectionIndexSetter.Invoke(preferencesEditorWindow, new object[] { nugetIndex });
-            //var selectedSectionIndexGetter = selectedSectionIndex.GetGetMethod(true);
-            //object index = selectedSectionIndexGetter.Invoke(preferencesEditorWindow, null);
-            //Debug.LogFormat("Selected Index = {0}", index);
-#endif
         }
 
         /// <summary>
@@ -239,86 +178,78 @@ namespace NugetForUnity
         [MenuItem("NuGet/Check for Updates...", false, 10)]
         protected static void CheckForUpdates()
         {
-#if UNITY_2017_1_OR_NEWER // UnityWebRequest is not available in Unity 5.2, which is the currently the earliest version supported by NuGetForUnity.
-            using (var request = UnityWebRequest.Get(GitHubReleasesApiUrl))
+            var request = UnityWebRequest.Get(GitHubReleasesApiUrl);
+            var operation = request.SendWebRequest();
+            NugetHelper.LogVerbose("HTTP GET {0}", GitHubReleasesApiUrl);
+            EditorUtility.DisplayProgressBar("Checking updates", null, 0.0f);
+
+            operation.completed += asyncOperation =>
             {
-                request.Send();
-#else
-            using (WWW request = new WWW(GitHubReleasesApiUrl))
-            {
-#endif
-
-                NugetHelper.LogVerbose("HTTP GET {0}", GitHubReleasesApiUrl);
-                while (!request.isDone)
+                try
                 {
-                    EditorUtility.DisplayProgressBar("Checking updates", null, 0.0f);
+                    string latestVersion = null;
+                    string latestVersionDownloadUrl = null;
+                    string response = null;
+                    if (!request.isNetworkError && !request.isHttpError)
+                    {
+                        response = request.downloadHandler.text;
+                    }
+
+                    if (response != null)
+                    {
+                        latestVersion = GetLatestVersonFromReleasesApi(response, out latestVersionDownloadUrl);
+                    }
+
+                    EditorUtility.ClearProgressBar();
+
+                    if (latestVersion == null)
+                    {
+                        EditorUtility.DisplayDialog(
+                            "Unable to Determine Updates",
+                            string.Format("Couldn't find release information at {0}. Error: {1}", GitHubReleasesApiUrl, request.error),
+                            "OK");
+                        return;
+                    }
+
+                    var current = new NugetPackageIdentifier("NuGetForUnity", NugetPreferences.NuGetForUnityVersion);
+                    var latest = new NugetPackageIdentifier("NuGetForUnity", latestVersion);
+                    if (current >= latest)
+                    {
+                        EditorUtility.DisplayDialog(
+                            "No Updates Available",
+                            string.Format("Your version of NuGetForUnity is up to date.\nVersion {0}.", NugetPreferences.NuGetForUnityVersion),
+                            "OK");
+                        return;
+                    }
+
+                    // New version is available. Give user options for installing it.
+                    switch (EditorUtility.DisplayDialogComplex(
+                                "Update Available",
+                                string.Format("Current Version: {0}\nLatest Version: {1}", NugetPreferences.NuGetForUnityVersion, latestVersion),
+                                "Install Latest",
+                                "Open Releases Page",
+                                "Cancel"))
+                    {
+                        case 0:
+                            new NuGetForUnityUpdateInstaller(latestVersionDownloadUrl);
+                            break;
+                        case 1:
+                            Application.OpenURL(GitHubReleasesPageUrl);
+                            break;
+                        case 2:
+                            break;
+                    }
                 }
-
-                EditorUtility.ClearProgressBar();
-
-                string latestVersion = null;
-                string latestVersionDownloadUrl = null;
-
-                string response = null;
-#if UNITY_2017_1_OR_NEWER
-                if (!request.isNetworkError && !request.isHttpError)
+                finally
                 {
-                    response = request.downloadHandler.text;
+                    request.Dispose();
                 }
-#else
-                if (request.error == null)
-                {
-                    response = request.text;
-                }
-#endif
-
-                if (response != null)
-                {
-                    latestVersion = GetLatestVersonFromReleasesApi(response, out latestVersionDownloadUrl);
-                }
-
-                if (latestVersion == null)
-                {
-                    EditorUtility.DisplayDialog(
-                        "Unable to Determine Updates",
-                        string.Format("Couldn't find release information at {0}.", GitHubReleasesApiUrl),
-                        "OK");
-                    return;
-                }
-
-                var current = new NugetPackageIdentifier("NuGetForUnity", NugetPreferences.NuGetForUnityVersion);
-                var latest = new NugetPackageIdentifier("NuGetForUnity", latestVersion);
-                if (current >= latest)
-                {
-                    EditorUtility.DisplayDialog(
-                        "No Updates Available",
-                        string.Format("Your version of NuGetForUnity is up to date.\nVersion {0}.", NugetPreferences.NuGetForUnityVersion),
-                        "OK");
-                    return;
-                }
-
-                // New version is available. Give user options for installing it.
-                switch (EditorUtility.DisplayDialogComplex(
-                            "Update Available",
-                            string.Format("Current Version: {0}\nLatest Version: {1}", NugetPreferences.NuGetForUnityVersion, latestVersion),
-                            "Install Latest",
-                            "Open Releases Page",
-                            "Cancel"))
-                {
-                    case 0:
-                        new NuGetForUnityUpdateInstaller(latestVersionDownloadUrl);
-                        break;
-                    case 1:
-                        Application.OpenURL(GitHubReleasesPageUrl);
-                        break;
-                    case 2:
-                        break;
-                }
-            }
+            };
         }
 
         private static string GetLatestVersonFromReleasesApi(string response, out string unitypackageDownloadUrl)
         {
+            // JsonUtility doesn't support top level arrays so we wrap it inside a object.
             var releases = JsonUtility.FromJson<GitHubReleaseApiRequestList>(string.Concat("{ \"list\": ", response, " }"));
             foreach (var release in releases.list)
             {
@@ -396,7 +327,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                Debug.LogErrorFormat("Error while refreshing NuGet packages list: {0}", e.ToString());
             }
             finally
             {
@@ -443,7 +374,7 @@ namespace NugetForUnity
         /// <param name="height"></param>
         /// <param name="col"></param>
         /// <returns></returns>
-        private Texture2D MakeTex(int width, int height, Color col)
+        private static Texture2D MakeTex(int width, int height, Color col)
         {
             var pix = new Color[width * height];
 
@@ -496,7 +427,7 @@ namespace NugetForUnity
         ///     Creates a GUI style with a contrasting background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
         /// </summary>
         /// <returns>A GUI style with the appropriate background color set.</returns>
-        private GUIStyle GetContrastStyle()
+        private static GUIStyle GetContrastStyle()
         {
             var style = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
@@ -508,7 +439,7 @@ namespace NugetForUnity
         ///     Creates a GUI style with a background color the same as the editor's current background color.
         /// </summary>
         /// <returns>A GUI style with the appropriate background color set.</returns>
-        private GUIStyle GetBackgroundStyle()
+        private static GUIStyle GetBackgroundStyle()
         {
             var style = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
@@ -526,8 +457,6 @@ namespace NugetForUnity
             // display all of the installed packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
-
-            var style = GetContrastStyle();
 
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
@@ -603,7 +532,7 @@ namespace NugetForUnity
 
             EditorGUILayout.BeginVertical(showMoreStyle);
 
-            // allow the user to dislay more results
+            // allow the user to display more results
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
@@ -673,11 +602,7 @@ namespace NugetForUnity
 
                     if (GUILayout.Button("Preferences", GUILayout.Width(80)))
                     {
-#if UNITY_2018_3_OR_NEWER
                         SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-#else
-                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
-#endif
                         GetWindow<NugetWindow>().Close();
                     }
                 }
@@ -742,11 +667,7 @@ namespace NugetForUnity
                 {
                     if (GUILayout.Button("Preferences", GUILayout.Width(80)))
                     {
-#if UNITY_2018_3_OR_NEWER
                         SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-#else
-                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
-#endif
                         GetWindow<NugetWindow>().Close();
                     }
                 }
@@ -817,11 +738,7 @@ namespace NugetForUnity
 
                     if (GUILayout.Button("Preferences", GUILayout.Width(80)))
                     {
-#if UNITY_2018_3_OR_NEWER
                         SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-#else
-                        EditorApplication.ExecuteMenuItem("Edit/Preferences...");
-#endif
                         GetWindow<NugetWindow>().Close();
                     }
                 }
@@ -889,19 +806,21 @@ namespace NugetForUnity
                     var rect = GUILayoutUtility.GetRect(iconSize, iconSize);
 
                     // only use GetRect's Y position.  It doesn't correctly set the width, height or X position.
-
                     rect.x = padding;
                     rect.y += padding;
                     rect.width = iconSize;
                     rect.height = iconSize;
 
-                    if (package.Icon != null)
+                    var icon = defaultIcon;
+                    if (package.IconTask != null && package.IconTask.IsCompleted)
                     {
-                        GUI.DrawTexture(rect, package.Icon, ScaleMode.StretchToFill);
+                        // as this is called every frame we don't need to wait for the task we can just use the image if it is available
+                        icon = package.IconTask.Result;
                     }
-                    else if (defaultIcon != null)
+
+                    if (icon != null)
                     {
-                        GUI.DrawTexture(rect, defaultIcon, ScaleMode.StretchToFill);
+                        GUI.DrawTexture(rect, icon, ScaleMode.StretchToFill);
                     }
 
                     rect.x = iconSize + 2 * padding;
@@ -1090,7 +1009,7 @@ namespace NugetForUnity
                         var showCloneWindow = openCloneWindows.Contains(package);
                         cloneButtonBoxStyle.normal.background = showCloneWindow ? contrastStyle.normal.background : packageStyle.normal.background;
 
-                        // Create a simillar style for the 'Clone' window
+                        // Create a similar style for the 'Clone' window
                         var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
                         cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
 
@@ -1125,7 +1044,7 @@ namespace NugetForUnity
 
                             if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
                             {
-                                // Creaete a box around the license button to keep it alligned with Clone button
+                                // Create a box around the license button to keep it aligned with Clone button
                                 EditorGUILayout.BeginHorizontal(normalButtonBoxStyle);
 
                                 // Show the license button

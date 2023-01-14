@@ -9,8 +9,10 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
 using Debug = UnityEngine.Debug;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
@@ -186,17 +188,8 @@ namespace NugetForUnity
         /// <summary>
         ///     The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
         /// </summary>
-        private static ApiCompatibilityLevel DotNetVersion
-        {
-            get
-            {
-#if UNITY_5_6_OR_NEWER
-                return PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
-#else
-                return PlayerSettings.apiCompatibilityLevel;
-#endif
-            }
-        }
+        private static ApiCompatibilityLevel DotNetVersion =>
+            PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 
         /// <summary>
         ///     Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
@@ -286,7 +279,7 @@ namespace NugetForUnity
             }
             else if (files.Length < 1)
             {
-                Debug.LogWarningFormat("No nuget.exe found! Attemping to install the NuGet.CommandLine package.");
+                Debug.LogWarningFormat("No nuget.exe found! Attempting to install the NuGet.CommandLine package.");
                 InstallIdentifier(new NugetPackageIdentifier("NuGet.CommandLine", "2.8.6"));
                 files = Directory.GetFiles(toolsPackagesFolder, "nuget.exe", SearchOption.AllDirectories);
                 if (files.Length < 1)
@@ -301,15 +294,19 @@ namespace NugetForUnity
             var fileName = string.Empty;
             var commandLine = string.Empty;
 
-#if UNITY_EDITOR_OSX
-            // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
-            fileName = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
-            commandLine = " " + files[0] + " " + arguments;
-            LogVerbose("command: " + commandLine);
-#else
-            fileName = files[0];
-            commandLine = arguments;
-#endif
+            if (Environment.OSVersion.Platform == PlatformID.MacOSX)
+            {
+                // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
+                fileName = "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono";
+                commandLine = " " + files[0] + " " + arguments;
+                LogVerbose("command: " + commandLine);
+            }
+            else
+            {
+                fileName = files[0];
+                commandLine = arguments;
+            }
+
             var process = Process.Start(
                 new ProcessStartInfo(fileName, commandLine)
                 {
@@ -1272,10 +1269,10 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Installs the package given by the identifer.  It fetches the appropriate full package from the installed packages, package cache, or package
+        ///     Installs the package given by the identifier.  It fetches the appropriate full package from the installed packages, package cache, or package
         ///     sources and installs it.
         /// </summary>
-        /// <param name="package">The identifer of the package to install.</param>
+        /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
@@ -1300,25 +1297,15 @@ namespace NugetForUnity
         ///     Outputs the given message to the log only if verbose mode is active.  Otherwise it does nothing.
         /// </summary>
         /// <param name="format">The formatted message string.</param>
-        /// <param name="args">The arguments for the formattted message string.</param>
+        /// <param name="args">The arguments for the formatted message string.</param>
         public static void LogVerbose(string format, params object[] args)
         {
             if (NugetConfigFile == null || NugetConfigFile.Verbose)
             {
-#if UNITY_5_4_OR_NEWER
                 var stackTraceLogType = Application.GetStackTraceLogType(LogType.Log);
                 Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
-#else
-                var stackTraceLogType = Application.stackTraceLogType;
-                Application.stackTraceLogType = StackTraceLogType.None;
-#endif
                 Debug.LogFormat(format, args);
-
-#if UNITY_5_4_OR_NEWER
                 Application.SetStackTraceLogType(LogType.Log, stackTraceLogType);
-#else
-                Application.stackTraceLogType = stackTraceLogType;
-#endif
             }
         }
 
@@ -1335,8 +1322,7 @@ namespace NugetForUnity
                 return true;
             }
 
-            NugetPackage installedPackage = null;
-            if (installedPackages.TryGetValue(package.Id, out installedPackage))
+            if (installedPackages.TryGetValue(package.Id, out var installedPackage))
             {
                 if (installedPackage < package)
                 {
@@ -1721,12 +1707,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="url">The URL of the image to download.</param>
         /// <returns>The image as a Unity Texture2D object.</returns>
-        public static Texture2D DownloadImage(string url)
+        public static Task<Texture2D> DownloadImage(string url)
         {
-            var timedout = false;
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             var fromCache = false;
             if (ExistsInDiskCache(url))
             {
@@ -1734,43 +1716,42 @@ namespace NugetForUnity
                 fromCache = true;
             }
 
-            var request = new WWW(url);
-            while (!request.isDone)
+            var taskCompletionSource = new TaskCompletionSource<Texture2D>();
+            var request = UnityWebRequest.Get(url);
             {
-                if (stopwatch.ElapsedMilliseconds >= 750)
+                var downloadHandler = new DownloadHandlerTexture(false);
+
+                request.downloadHandler = downloadHandler;
+                request.timeout = 1;
+                var operation = request.SendWebRequest();
+                operation.completed += asyncOperation =>
                 {
-                    request.Dispose();
-                    timedout = true;
-                    break;
-                }
-            }
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(request.error))
+                        {
+                            LogVerbose("Downloading image {0} failed! Error: {1}.", url, request.error);
+                            taskCompletionSource.TrySetResult(null);
+                            return;
+                        }
 
-            Texture2D result = null;
+                        var result = downloadHandler.texture;
 
-            if (timedout)
-            {
-                LogVerbose("Downloading image {0} timed out! Took more than 750ms.", url);
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(request.error))
-                {
-                    result = request.textureNonReadable;
-                    LogVerbose("Downloading image {0} took {1} ms", url, stopwatch.ElapsedMilliseconds);
-                }
-                else
-                {
-                    LogVerbose("Request error: " + request.error);
-                }
-            }
+                        if (result != null && !fromCache)
+                        {
+                            CacheTextureOnDisk(url, downloadHandler.data);
+                        }
 
-            if (result != null && !fromCache)
-            {
-                CacheTextureOnDisk(url, request.bytes);
-            }
+                        taskCompletionSource.TrySetResult(result);
+                    }
+                    finally
+                    {
+                        request.Dispose();
+                    }
+                };
 
-            request.Dispose();
-            return result;
+                return taskCompletionSource.Task;
+            }
         }
 
         private static void CacheTextureOnDisk(string url, byte[] bytes)

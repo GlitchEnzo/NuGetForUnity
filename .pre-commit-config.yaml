@@ -13,7 +13,7 @@ repos:
         args:
           - --plugin=@prettier/plugin-xml
           - --plugin=prettier-plugin-ini
-        files: \.(json|xml|html|config|csproj|xlf|DotSettings|yaml|yml|js|md|xrml|xaml|css|editorconfig)$
+        files: Directory\.Build\.props$|(\.(json|xml|html|config|csproj|xlf|DotSettings|yaml|yml|js|md|xrml|xaml|css|editorconfig)$)
   - repo: local
     hooks:
       - id: resharper-cleanupcode-all
