@@ -19,6 +19,11 @@ overrides:
     options:
       parser: "xml"
 
+  # comply with the same formatting used by NuGetForUnity
+  - files: "packages.config"
+    options:
+      tabWidth: 2
+
   - files: "*.csproj"
     options:
       parser: "xml"

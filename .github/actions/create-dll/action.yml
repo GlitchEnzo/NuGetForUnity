@@ -14,5 +14,5 @@ runs:
       wget --no-check-certificate -v --secure-protocol=TLSv1_2 https://dot.net/v1/dotnet-install.sh &&
       source ./dotnet-install.sh &&
       rm ./dotnet-install.sh &&
-      dotnet build ./CreateDLL/CreateDLL.csproj --nologo -p:AppxBundle=Always -p:Platform='Any CPU' --configuration Release
+      dotnet build ./src/NuGetForUnity.CreateDll/NuGetForUnity.CreateDll.csproj --nologo -p:AppxBundle=Always -p:Platform='Any CPU' --configuration Release
       -p:ReferencePath=$UNITY_PATH/Editor/Data/Managed -p:Version=${{ inputs.version }}
