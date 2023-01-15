@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Xml.Linq;
 using Debug = UnityEngine.Debug;
 
@@ -529,6 +528,7 @@ namespace NugetForUnity
             return updates;
         }
 
+#if TEST_GET_UPDATES_FALLBACK
         private static void ComparePackageLists(List<NugetPackage> updates,
             List<NugetPackage> updatesReplacement,
             string errorMessageToDisplayIfListsDoNotMatch)
@@ -569,6 +569,7 @@ namespace NugetForUnity
                     extraComparison);
             }
         }
+#endif
 
         /// <summary>
         ///     Some NuGet feeds such as Visual Studio Team Services do not implement the GetUpdates function.

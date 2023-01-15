@@ -20,11 +20,15 @@ overrides:
       parser: "xml"
 
   # comply with the same formatting used by NuGetForUnity
-  - files: "packages.config"
+  - files:
+      - "packages.config"
+      - "NuGet.config"
     options:
       tabWidth: 2
 
-  - files: "*.csproj"
+  - files:
+      - "*.csproj"
+      - "Directory.Build.props"
     options:
       parser: "xml"
 

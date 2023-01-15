@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -8,7 +9,7 @@ namespace NugetForUnity
     ///     Represents a package available from NuGet.
     /// </summary>
     [Serializable]
-    public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>, IEqualityComparer<NugetPackage>
+    public class NugetPackage : NugetPackageIdentifier, IEquatable<NugetPackage>, IEqualityComparer<NugetPackage>, ISerializationCallbackReceiver
     {
         /// <summary>
         ///     Gets or sets the authors of the package.
@@ -35,10 +36,14 @@ namespace NugetForUnity
         /// </summary>
         public string DownloadUrl;
 
+        [SerializeField]
+        private Texture2D icon;
+
         /// <summary>
         ///     Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D" />.
         /// </summary>
-        public Texture2D Icon;
+        [NonSerialized]
+        public Task<Texture2D> IconTask;
 
         /// <summary>
         ///     Gets or sets the URL for the location of the license of the NuGet package.
@@ -51,7 +56,7 @@ namespace NugetForUnity
         public NugetPackageSource PackageSource;
 
         /// <summary>
-        ///     Gets or sets the url for the location of the package's source code.
+        ///     Gets or sets the URL for the location of the package's source code.
         /// </summary>
         public string ProjectUrl;
 
@@ -76,7 +81,7 @@ namespace NugetForUnity
         public RepositoryType RepositoryType;
 
         /// <summary>
-        ///     Gets or sets the url for the location of the package's source code.
+        ///     Gets or sets the URL for the location of the package's source code.
         /// </summary>
         public string RepositoryUrl;
 
@@ -86,7 +91,7 @@ namespace NugetForUnity
         public string Summary;
 
         /// <summary>
-        ///     Gets or sets the title (not ID) of the package.  This is the "friendly" name that only appears in GUIs and on webpages.
+        ///     Gets or sets the title (not ID) of the package. This is the "friendly" name that only appears in GUIs and on web-pages.
         /// </summary>
         public string Title;
 
@@ -102,9 +107,9 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Gets the hashcode for the given <see cref="NugetPackage" />.
+        ///     Gets the hash-code for the given <see cref="NugetPackage" />.
         /// </summary>
-        /// <returns>The hashcode for the given <see cref="NugetPackage" />.</returns>
+        /// <returns>The hash-code for the given <see cref="NugetPackage" />.</returns>
         public int GetHashCode(NugetPackage obj)
         {
             return obj.Id.GetHashCode() ^ obj.Version.GetHashCode();
@@ -118,6 +123,24 @@ namespace NugetForUnity
         public bool Equals(NugetPackage other)
         {
             return other.Id == Id && other.Version == Version;
+        }
+
+        /// <inheritdoc />
+        public void OnBeforeSerialize()
+        {
+            if (IconTask != null)
+            {
+                icon = IconTask.IsCompleted ? IconTask.Result : null;
+            }
+        }
+
+        /// <inheritdoc />
+        public void OnAfterDeserialize()
+        {
+            if (icon != null)
+            {
+                IconTask = Task.FromResult(icon);
+            }
         }
 
         /// <summary>
@@ -141,20 +164,11 @@ namespace NugetForUnity
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
-                package.Icon = NugetHelper.DownloadImage(nuspec.IconUrl);
+                package.IconTask = NugetHelper.DownloadImage(nuspec.IconUrl);
             }
 
             package.RepositoryUrl = nuspec.RepositoryUrl;
-
-            try
-            {
-                package.RepositoryType = (RepositoryType)Enum.Parse(typeof(RepositoryType), nuspec.RepositoryType, true);
-            }
-            catch (Exception)
-            {
-                // ignore parsing error
-            }
-
+            Enum.TryParse(nuspec.RepositoryType, true, out package.RepositoryType);
             package.RepositoryBranch = nuspec.RepositoryBranch;
             package.RepositoryCommit = nuspec.RepositoryCommit;
 
@@ -170,9 +184,9 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Loads a <see cref="NugetPackage" /> from the .nupkg file at the given filepath.
+        ///     Loads a <see cref="NugetPackage" /> from the .nupkg file at the given file-path.
         /// </summary>
-        /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
+        /// <param name="nupkgFilepath">The file-path to the .nupkg file to load.</param>
         /// <returns>The <see cref="NugetPackage" /> loaded from the .nupkg file.</returns>
         public static NugetPackage FromNupkgFile(string nupkgFilepath)
         {
