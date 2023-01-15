@@ -6,13 +6,10 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Networking;
 using Debug = UnityEngine.Debug;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
@@ -25,7 +22,6 @@ namespace NugetForUnity
     ///     1) Open a command prompt as admin (Press Windows key. Type "cmd".  Right click on the icon and choose "Run as Administrator"
     ///     2) Enter this command: cmd /c assoc .nupkg=CompressedFolder
     /// </summary>
-    [InitializeOnLoad]
     public static class NugetHelper
     {
         /// <summary>
@@ -36,18 +32,29 @@ namespace NugetForUnity
         /// <summary>
         ///     The path to the nuget.config file.
         /// </summary>
-        public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, NugetConfigFile.FileName);
+        /// <remarks>
+        ///     <see cref="NugetConfigFile" />
+        /// </remarks>
+        public static readonly string NugetConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, NugetConfigFile.FileName));
 
         /// <summary>
         ///     The path to the packages.config file.
         /// </summary>
-        private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, PackagesConfigFile.FileName);
+        /// <remarks>
+        ///     <see cref="PackagesConfigFile" />
+        /// </remarks>
+        private static readonly string PackagesConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, PackagesConfigFile.FileName));
+
+        /// <summary>
+        ///     Gets the absolute path to the Unity-Project root directory.
+        /// </summary>
+        internal static readonly string AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
 
         /// <summary>
         ///     The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
         public static readonly string PackOutputDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
             Path.Combine("NuGet", "Cache"));
 
         /// <summary>
@@ -71,37 +78,6 @@ namespace NugetForUnity
         private static readonly Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri =
             new Dictionary<Uri, CredentialProviderResponse?>();
 
-        private static HashSet<string> alreadyImportedLibs;
-
-        private static readonly string[] unityFrameworks = { "unity" };
-
-        private static readonly string[] netStandardFrameworks =
-        {
-            "netstandard20",
-            "netstandard16",
-            "netstandard15",
-            "netstandard14",
-            "netstandard13",
-            "netstandard12",
-            "netstandard11",
-            "netstandard10",
-        };
-
-        private static readonly string[] net4Unity2018Frameworks = { "net472", "net471", "net47" };
-
-        private static readonly string[] net4Unity2017Frameworks =
-        {
-            "net462", "net461", "net46", "net452", "net451", "net45", "net403", "net40", "net4",
-        };
-
-        private static readonly string[] net3Frameworks = { "net35-unity full v3.5", "net35-unity subset v3.5", "net35", "net20", "net11" };
-
-        private static readonly string[] net4Unity2021Frameworks = { "net48" };
-
-        private static readonly string[] netStandardUnity2021Frameworks = { "netstandard21" };
-
-        private static readonly string[] defaultFrameworks = { string.Empty };
-
         // TODO: Move to ScriptableObjet
         private static readonly List<AuthenticatedFeed> knownAuthenticatedFeeds = new List<AuthenticatedFeed>
         {
@@ -118,46 +94,26 @@ namespace NugetForUnity
         };
 
         /// <summary>
-        ///     Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
+        ///     Static constructor called only once.
         /// </summary>
         static NugetHelper()
         {
-            AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
-            if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
-            {
-                return;
-            }
-
-            SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
-
-            // if we are entering playmode, don't do anything
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                return;
-            }
-
-            // Load the NuGet.config file
-            LoadNugetConfigFile();
-
             // create the nupkgs directory, if it doesn't exist
-            if (!Directory.Exists(PackOutputDirectory))
-            {
-                Directory.CreateDirectory(PackOutputDirectory);
-            }
-
-            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-            Restore();
+            Directory.CreateDirectory(PackOutputDirectory);
         }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether when installing a NuGet package we also install its dependencies.
+        ///     This is required by the NuGetForUnity.Cli as the CLI only installs packages listed explicitly inside
+        ///     the <see cref="PackagesConfigFile" /> because dependency resolution wouldn't work seamlessly
+        ///     as it can't detect libraries imported by Unity <see cref="UnityPreImportedLibraryResolver" />.
+        /// </summary>
+        internal static bool InstallDependencies { get; set; } = true;
 
         /// <summary>
         ///     The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
         public static NugetConfigFile NugetConfigFile { get; private set; }
-
-        /// <summary>
-        ///     Gets the absolute path to the Unity-Project root directory.
-        /// </summary>
-        internal static string AbsoluteProjectPath { get; }
 
         /// <summary>
         ///     Gets the loaded packages.config file that hold the dependencies for the project.
@@ -174,12 +130,6 @@ namespace NugetForUnity
                 return packagesConfigFile;
             }
         }
-
-        /// <summary>
-        ///     The current .NET version being used (2.0 [actually 3.5], 4.6, etc).
-        /// </summary>
-        private static ApiCompatibilityLevel DotNetVersion =>
-            PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 
         /// <summary>
         ///     Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
@@ -201,7 +151,6 @@ namespace NugetForUnity
                 Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
 
                 NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
-                AssetDatabase.Refresh();
             }
 
             // parse any command line arguments
@@ -257,7 +206,7 @@ namespace NugetForUnity
         private static void RunNugetProcess(string arguments, bool logOuput = true)
         {
             // Try to find any nuget.exe in the package tools installation location
-            var toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
+            var toolsPackagesFolder = Path.Combine(AbsoluteProjectPath, "Packages");
 
             // create the folder to prevent an exception when getting the files
             Directory.CreateDirectory(toolsPackagesFolder);
@@ -281,9 +230,8 @@ namespace NugetForUnity
 
             LogVerbose("Running: {0} \nArgs: {1}", files[0], arguments);
 
-            var fileName = string.Empty;
-            var commandLine = string.Empty;
-
+            string fileName;
+            string commandLine;
             if (Environment.OSVersion.Platform == PlatformID.MacOSX)
             {
                 // ATTENTION: you must install mono running on your mac, we use this mono to run `nuget.exe`
@@ -361,17 +309,12 @@ namespace NugetForUnity
             }
         }
 
-        private static bool FrameworkNamesAreEqual(string tfm1, string tfm2)
-        {
-            return tfm1.Equals(tfm2, StringComparison.InvariantCultureIgnoreCase);
-        }
-
         /// <summary>
         ///     Cleans up a package after it has been installed.
         ///     Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
         /// <param name="package">The NugetPackage to clean.</param>
-        private static void Clean(NugetPackageIdentifier package)
+        private static void CleanInstallationDirectory(NugetPackageIdentifier package)
         {
             var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
 
@@ -405,47 +348,36 @@ namespace NugetForUnity
             // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
             DeleteDirectory(packageInstallDirectory + "/ref");
 
-            if (Directory.Exists(packageInstallDirectory + "/lib"))
+            var packageLibsDirectory = Path.Combine(packageInstallDirectory, "lib");
+            if (Directory.Exists(packageLibsDirectory))
             {
-                var selectedDirectories = new List<string>();
-
                 // go through the library folders in descending order (highest to lowest version)
-                var libDirectories = Directory.GetDirectories(packageInstallDirectory + "/lib").Select(s => new DirectoryInfo(s));
-                var targetFrameworks = libDirectories.Select(x => x.Name.ToLower());
+                var libDirectories = new DirectoryInfo(packageLibsDirectory).GetDirectories();
 
                 var isAlreadyImported = IsAlreadyImportedInEngine(package);
-                var bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
-                if (!isAlreadyImported && bestTargetFramework != null)
+                if (!isAlreadyImported)
                 {
-                    var bestLibDirectory = libDirectories.First(x => FrameworkNamesAreEqual(x.Name, bestTargetFramework));
-
-                    if (bestTargetFramework == "unity" ||
-                        bestTargetFramework == "net35-unity full v3.5" ||
-                        bestTargetFramework == "net35-unity subset v3.5")
+                    var bestLibDirectory = TargetFrameworkResolver.TryGetBestTargetFramework(libDirectories, directory => directory.Name);
+                    if (bestLibDirectory == null)
                     {
-                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "unity"));
-                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "net35-unity full v3.5"));
-                        selectedDirectories.Add(Path.Combine(bestLibDirectory.Parent.FullName, "net35-unity subset v3.5"));
+                        Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
                     }
                     else
                     {
-                        selectedDirectories.Add(bestLibDirectory.FullName);
+                        LogVerbose(
+                            "Selecting directory '{0}' with the best target framework {1} for current settings",
+                            bestLibDirectory,
+                            bestLibDirectory.Name);
                     }
-                }
 
-                foreach (var directory in selectedDirectories)
-                {
-                    LogVerbose("Using {0}", directory);
-                }
-
-                // delete all of the libaries except for the selected one
-                foreach (var directory in libDirectories)
-                {
-                    var validDirectory = selectedDirectories.Where(d => string.Compare(d, directory.FullName, true) == 0).Any();
-
-                    if (!validDirectory)
+                    // delete all of the libraries except for the selected one
+                    foreach (var directory in libDirectories)
                     {
-                        DeleteDirectory(directory.FullName);
+                        // we use reference equality as the TargetFrameworkResolver returns the input reference.
+                        if (directory != bestLibDirectory)
+                        {
+                            DeleteDirectory(directory.FullName);
+                        }
                     }
                 }
             }
@@ -453,9 +385,7 @@ namespace NugetForUnity
             if (Directory.Exists(packageInstallDirectory + "/tools"))
             {
                 // Move the tools folder outside of the Unity Assets folder
-                var toolsInstallDirectory = Path.Combine(
-                    Application.dataPath,
-                    string.Format("../Packages/{0}.{1}/tools", package.Id, package.Version));
+                var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}", "tools");
 
                 LogVerbose("Moving {0} to {1}", packageInstallDirectory + "/tools", toolsInstallDirectory);
 
@@ -524,7 +454,7 @@ namespace NugetForUnity
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newFilePath, e.ToString());
+                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newFilePath, e);
                     }
                 }
 
@@ -546,7 +476,7 @@ namespace NugetForUnity
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newDirectoryPath, e.ToString());
+                        Debug.LogWarningFormat("{0} couldn't be moved. \n{1}", newDirectoryPath, e);
                     }
                 }
 
@@ -557,152 +487,44 @@ namespace NugetForUnity
             }
         }
 
-        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package)
+        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package, bool log = true)
         {
-            var alreadyImportedLibs = GetAlreadyImportedLibs();
+            var alreadyImportedLibs = UnityPreImportedLibraryResolver.GetAlreadyImportedLibs();
             var isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
-            LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            if (log)
+            {
+                LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            }
+
             return isAlreadyImported;
         }
 
-        private static HashSet<string> GetAlreadyImportedLibs()
+        public static NugetFrameworkGroup GetNullableBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
         {
-            if (alreadyImportedLibs == null)
-            {
-                // Find all the dll's already installed by NuGetForUnity
-                var alreadyInstalledDllFileNames = new HashSet<string>();
-
-                if (NugetConfigFile != null && Directory.Exists(NugetConfigFile.RepositoryPath))
-                {
-                    alreadyInstalledDllFileNames = new HashSet<string>(
-                        Directory.EnumerateFiles(NugetConfigFile.RepositoryPath, "*.dll", SearchOption.AllDirectories)
-                            .Select(Path.GetFileNameWithoutExtension));
-                }
-
-                // Get all assemblies loaded into Unity and filter out those installed by NuGetForUnity
-                alreadyImportedLibs = new HashSet<string>(
-                    AppDomain.CurrentDomain.GetAssemblies()
-                        .Select(a => a.ManifestModule.Name)
-                        .Select(p => Path.ChangeExtension(p, null))
-                        .Where(p => !alreadyInstalledDllFileNames.Contains(p)));
-
-                LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
-            }
-
-            return alreadyImportedLibs;
+            var bestTargetFramework = TargetFrameworkResolver.TryGetBestTargetFramework(
+                package.Dependencies,
+                frameworkGroup => frameworkGroup.TargetFramework);
+            LogVerbose("Selecting {0} as the best target framework for current settings", bestTargetFramework?.TargetFramework ?? "(null)");
+            return bestTargetFramework;
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NugetPackage package)
         {
-            var targetFrameworks = package.Dependencies.Select(x => x.TargetFramework);
-
-            var bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
-            return package.Dependencies.FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ??
-                   new NugetFrameworkGroup();
+            return GetNullableBestDependencyFrameworkGroupForCurrentSettings(package) ?? new NugetFrameworkGroup();
         }
 
         public static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
         {
-            var targetFrameworks = nuspec.Dependencies.Select(x => x.TargetFramework);
-
-            var bestTargetFramework = TryGetBestTargetFrameworkForCurrentSettings(targetFrameworks);
-            return nuspec.Dependencies.FirstOrDefault(x => FrameworkNamesAreEqual(x.TargetFramework, bestTargetFramework)) ??
-                   new NugetFrameworkGroup();
+            var bestTargetFramework = TargetFrameworkResolver.TryGetBestTargetFramework(
+                nuspec.Dependencies,
+                frameworkGroup => frameworkGroup.TargetFramework);
+            LogVerbose("Selecting {0} as the best target framework for current settings", bestTargetFramework?.TargetFramework ?? "(null)");
+            return bestTargetFramework ?? new NugetFrameworkGroup();
         }
 
         public static string TryGetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
         {
-            var intDotNetVersion = (int)DotNetVersion; // c
-
-            // NET_4_6 option was added in Unity 5.6
-            // NET_4_6 = 3 in Unity 5.6 and Unity 2017.1 - use the hard-coded int value to ensure it works in earlier versions of Unity
-            // NET_4_8 in Unity 2021.2 is also 3
-            // NET_Standard = 6 2.0 and 2.1 since Unity 2021.2 have the same value
-            var using46 = intDotNetVersion == 3;
-            var usingStandard = intDotNetVersion == 6; // using .net standard 2.0 or 2.1
-
-            var frameworkGroups = new List<string[]> { unityFrameworks };
-
-            if (usingStandard)
-            {
-                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
-                {
-                    frameworkGroups.Add(netStandardUnity2021Frameworks);
-                }
-
-                frameworkGroups.Add(netStandardFrameworks);
-            }
-            else if (using46)
-            {
-                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
-                {
-                    frameworkGroups.Add(net4Unity2021Frameworks);
-                }
-
-                if (UnityVersion.Current.Major >= 2018)
-                {
-                    frameworkGroups.Add(net4Unity2018Frameworks);
-                }
-
-                if (UnityVersion.Current.Major >= 2017)
-                {
-                    frameworkGroups.Add(net4Unity2017Frameworks);
-                }
-
-                frameworkGroups.Add(net3Frameworks);
-                frameworkGroups.Add(netStandardFrameworks);
-
-                if (UnityVersion.Current >= new UnityVersion(2021, 2, 0, 'f', 0))
-                {
-                    frameworkGroups.Add(netStandardUnity2021Frameworks);
-                }
-            }
-            else
-            {
-                frameworkGroups.Add(net3Frameworks);
-            }
-
-            frameworkGroups.Add(defaultFrameworks);
-
-            Func<string, int> getTfmPriority = tfm =>
-            {
-                for (var i = 0; i < frameworkGroups.Count; ++i)
-                {
-                    var index = Array.FindIndex(
-                        frameworkGroups[i],
-                        test =>
-                        {
-                            if (test.Equals(tfm, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                return true;
-                            }
-
-                            if (test.Equals(tfm.Replace(".", string.Empty), StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        });
-
-                    if (index >= 0)
-                    {
-                        return i * 1000 + index;
-                    }
-                }
-
-                return int.MaxValue;
-            };
-
-            // Select the highest .NET library available that is supported
-            // See here: https://docs.nuget.org/ndocs/schema/target-frameworks
-            var result = targetFrameworks.Select(tfm => new PriorityFramework { Priority = getTfmPriority(tfm), Framework = tfm })
-                .Where(pfm => pfm.Priority != int.MaxValue)
-                .ToArray() // Ensure we don't search for priorities again when sorting
-                .OrderBy(pfm => pfm.Priority)
-                .Select(pfm => pfm.Framework)
-                .FirstOrDefault();
-
+            var result = TargetFrameworkResolver.TryGetBestTargetFramework(targetFrameworks.ToList());
             LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
         }
@@ -713,10 +535,7 @@ namespace NugetForUnity
         /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.</param>
         public static void Pack(string nuspecFilePath)
         {
-            if (!Directory.Exists(PackOutputDirectory))
-            {
-                Directory.CreateDirectory(PackOutputDirectory);
-            }
+            Directory.CreateDirectory(PackOutputDirectory);
 
             // Use -NoDefaultExcludes to allow files and folders that start with a . to be packed into the package
             // This is done because if you want a file/folder in a Unity project, but you want Unity to ignore it, it must start with a .
@@ -789,9 +608,9 @@ namespace NugetForUnity
                 {
                     Debug.LogWarningFormat(
                         "{0} couldn't be moved to {1}. It may be a native plugin already locked by Unity. Please trying closing Unity and manually moving it. \n{2}",
-                        file.ToString(),
+                        file,
                         newFilePath,
-                        e.ToString());
+                        e);
                 }
             }
 
@@ -889,13 +708,13 @@ namespace NugetForUnity
             PackagesConfigFile.RemovePackage(package);
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
-            var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}", package.Id, package.Version));
+            var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
             DeleteDirectory(packageInstallDirectory);
 
-            var metaFile = Path.Combine(NugetConfigFile.RepositoryPath, string.Format("{0}.{1}.meta", package.Id, package.Version));
+            var metaFile = Path.Combine(NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}.meta");
             DeleteFile(metaFile);
 
-            var toolsInstallDirectory = Path.Combine(Application.dataPath, string.Format("../Packages/{0}.{1}", package.Id, package.Version));
+            var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}");
             DeleteDirectory(toolsInstallDirectory);
 
             installedPackages.Remove(package.Id);
@@ -1138,7 +957,7 @@ namespace NugetForUnity
 
             if (NugetConfigFile.InstallFromCache)
             {
-                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", packageId.Id, packageId.Version));
+                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", packageId.Id, packageId.Version));
 
                 if (File.Exists(cachedPackagePath))
                 {
@@ -1222,7 +1041,7 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
         {
-            if (IsAlreadyImportedInEngine(package))
+            if (IsAlreadyImportedInEngine(package, false))
             {
                 LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -1262,7 +1081,7 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         public static bool Install(NugetPackage package, bool refreshAssets = true)
         {
-            if (IsAlreadyImportedInEngine(package))
+            if (IsAlreadyImportedInEngine(package, false))
             {
                 LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -1312,17 +1131,31 @@ namespace NugetForUnity
                         0.1f);
                 }
 
-                // install all dependencies for target framework
-                var frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
-
-                LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
-                foreach (var dependency in frameworkGroup.Dependencies)
+                if (InstallDependencies)
                 {
-                    LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                    var installed = InstallIdentifier(dependency);
-                    if (!installed)
+                    // install all dependencies for target framework
+                    var frameworkGroup = GetNullableBestDependencyFrameworkGroupForCurrentSettings(package);
+
+                    if (frameworkGroup == null && package.Dependencies.Count != 0)
                     {
-                        throw new Exception(string.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
+                        Debug.LogWarningFormat(
+                            "Can't find a matching dependency group for the NuGet Package {0} {1} that has a TargetFramework supported by the current Unity Scripting Backend. The NuGet Package supports the following TargetFramework's: {2}",
+                            package.Id,
+                            package.Version,
+                            string.Join(", ", package.Dependencies.Select(dependeny => dependeny.TargetFramework)));
+                    }
+                    else if (frameworkGroup != null)
+                    {
+                        LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
+                        foreach (var dependency in frameworkGroup.Dependencies)
+                        {
+                            LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
+                            var installed = InstallIdentifier(dependency);
+                            if (!installed)
+                            {
+                                throw new Exception(string.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
+                            }
+                        }
                     }
                 }
 
@@ -1330,7 +1163,7 @@ namespace NugetForUnity
                 PackagesConfigFile.AddPackage(package);
                 PackagesConfigFile.Save(PackagesConfigFilePath);
 
-                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", package.Id, package.Version));
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
@@ -1343,7 +1176,7 @@ namespace NugetForUnity
 
                         // copy the .nupkg from the local path to the cache
                         File.Copy(
-                            Path.Combine(package.PackageSource.ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version)),
+                            Path.Combine(package.PackageSource.ExpandedPath, string.Format("{0}.{1}.nupkg", package.Id, package.Version)),
                             cachedPackagePath,
                             true);
                     }
@@ -1413,7 +1246,7 @@ namespace NugetForUnity
                 }
 
                 // clean
-                Clean(package);
+                CleanInstallationDirectory(package);
 
                 // update the installed packages list
                 installedPackages.Add(package.Id, package);
@@ -1422,7 +1255,7 @@ namespace NugetForUnity
             catch (Exception e)
             {
                 WarnIfDotNetAuthenticationIssue(e);
-                Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e.ToString());
+                Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e);
                 installSuccess = false;
             }
             finally
@@ -1436,35 +1269,6 @@ namespace NugetForUnity
             }
 
             return installSuccess;
-        }
-
-        /// <summary>
-        ///     Makes a given path relative to the current Unity-Projects directory.
-        /// </summary>
-        /// <param name="path">The path to make relative.</param>
-        /// <returns>The relative path.</returns>
-        internal static string GetProjectRelativePath(string path)
-        {
-            return GetRelativePath(AbsoluteProjectPath, path);
-        }
-
-        private static string GetRelativePath(string relativeTo, string path)
-        {
-            // Path.GetRelativePath is only available in newer .net versions so we need to implement it our self
-            if (path == null)
-            {
-                return null;
-            }
-
-            path = Path.GetFullPath(path);
-            relativeTo = Path.GetFullPath(relativeTo).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
-                         Path.DirectorySeparatorChar;
-            if (!path.StartsWith(relativeTo, StringComparison.OrdinalIgnoreCase))
-            {
-                return path;
-            }
-
-            return path.Substring(relativeTo.Length);
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
@@ -1495,7 +1299,9 @@ namespace NugetForUnity
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
             ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, policyErrors) => true;
 
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
             var getRequest = (HttpWebRequest)WebRequest.Create(url);
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
             getRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.None;
             if (timeOut.HasValue)
             {
@@ -1575,7 +1381,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                Debug.LogErrorFormat("{0}", e);
             }
             finally
             {
@@ -1633,100 +1439,12 @@ namespace NugetForUnity
             }
 
             var isInstalled = false;
-            NugetPackage installedPackage = null;
-
-            if (installedPackages.TryGetValue(package.Id, out installedPackage))
+            if (installedPackages.TryGetValue(package.Id, out var installedPackage))
             {
                 isInstalled = package.CompareVersion(installedPackage.Version) == 0;
             }
 
             return isInstalled;
-        }
-
-        /// <summary>
-        ///     Downloads an image at the given URL and converts it to a Unity Texture2D.
-        /// </summary>
-        /// <param name="url">The URL of the image to download.</param>
-        /// <returns>The image as a Unity Texture2D object.</returns>
-        public static Task<Texture2D> DownloadImage(string url)
-        {
-            var fromCache = false;
-            if (ExistsInDiskCache(url))
-            {
-                url = "file:///" + GetFilePath(url);
-                fromCache = true;
-            }
-
-            var taskCompletionSource = new TaskCompletionSource<Texture2D>();
-            var request = UnityWebRequest.Get(url);
-            {
-                var downloadHandler = new DownloadHandlerTexture(false);
-
-                request.downloadHandler = downloadHandler;
-                request.timeout = 1;
-                var operation = request.SendWebRequest();
-                operation.completed += asyncOperation =>
-                {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(request.error))
-                        {
-                            LogVerbose("Downloading image {0} failed! Error: {1}.", url, request.error);
-                            taskCompletionSource.TrySetResult(null);
-                            return;
-                        }
-
-                        var result = downloadHandler.texture;
-
-                        if (result != null && !fromCache)
-                        {
-                            CacheTextureOnDisk(url, downloadHandler.data);
-                        }
-
-                        taskCompletionSource.TrySetResult(result);
-                    }
-                    finally
-                    {
-                        request.Dispose();
-                    }
-                };
-
-                return taskCompletionSource.Task;
-            }
-        }
-
-        private static void CacheTextureOnDisk(string url, byte[] bytes)
-        {
-            var diskPath = GetFilePath(url);
-            File.WriteAllBytes(diskPath, bytes);
-        }
-
-        private static bool ExistsInDiskCache(string url)
-        {
-            return File.Exists(GetFilePath(url));
-        }
-
-        private static string GetFilePath(string url)
-        {
-            return Path.Combine(Application.temporaryCachePath, GetHash(url));
-        }
-
-        private static string GetHash(string s)
-        {
-            if (string.IsNullOrEmpty(s))
-            {
-                return null;
-            }
-
-            var md5 = new MD5CryptoServiceProvider();
-            var data = md5.ComputeHash(Encoding.Default.GetBytes(s));
-            var sBuilder = new StringBuilder();
-            for (var i = 0; i < data.Length; i++)
-            {
-                sBuilder.Append(data[i].ToString("x2"));
-            }
-
-            return sBuilder.ToString();
         }
 
         private static void DownloadCredentialProviders(Uri feedUri)
@@ -1741,7 +1459,11 @@ namespace NugetForUnity
 
                 var providerUrl = feed.GetProviderUrl(account);
 
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
                 var credentialProviderRequest = (HttpWebRequest)WebRequest.Create(providerUrl);
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
+#pragma warning restore IDE0079 // Remove unnecessary suppression
 
                 try
                 {
@@ -1866,7 +1588,7 @@ namespace NugetForUnity
             }
 
             // Try to find any nuget.exe in the package tools installation location
-            var toolsPackagesFolder = Path.Combine(Application.dataPath, "../Packages");
+            var toolsPackagesFolder = Path.Combine(AbsoluteProjectPath, "Packages");
             possibleCredentialProviderPaths.Add(toolsPackagesFolder);
 
             // Search through all possible paths to find the credential provider.
@@ -1937,132 +1659,6 @@ namespace NugetForUnity
             return null;
         }
 
-        private struct UnityVersion : IComparable<UnityVersion>
-        {
-            public readonly int Major;
-
-            public readonly int Minor;
-
-            public readonly int Revision;
-
-            public readonly char Release;
-
-            public readonly int Build;
-
-            public static readonly UnityVersion Current = new UnityVersion(Application.unityVersion);
-
-            public UnityVersion(string version)
-            {
-                var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
-                if (!match.Success)
-                {
-                    throw new ArgumentException("Invalid unity version");
-                }
-
-                Major = int.Parse(match.Groups[1].Value);
-                Minor = int.Parse(match.Groups[2].Value);
-                Revision = int.Parse(match.Groups[3].Value);
-                Release = match.Groups[4].Value[0];
-                Build = int.Parse(match.Groups[5].Value);
-            }
-
-            public UnityVersion(int major, int minor, int revision, char release, int build)
-            {
-                Major = major;
-                Minor = minor;
-                Revision = revision;
-                Release = release;
-                Build = build;
-            }
-
-            public static int Compare(UnityVersion a, UnityVersion b)
-            {
-                if (a.Major < b.Major)
-                {
-                    return -1;
-                }
-
-                if (a.Major > b.Major)
-                {
-                    return 1;
-                }
-
-                if (a.Minor < b.Minor)
-                {
-                    return -1;
-                }
-
-                if (a.Minor > b.Minor)
-                {
-                    return 1;
-                }
-
-                if (a.Revision < b.Revision)
-                {
-                    return -1;
-                }
-
-                if (a.Revision > b.Revision)
-                {
-                    return 1;
-                }
-
-                if (a.Release < b.Release)
-                {
-                    return -1;
-                }
-
-                if (a.Release > b.Release)
-                {
-                    return 1;
-                }
-
-                if (a.Build < b.Build)
-                {
-                    return -1;
-                }
-
-                if (a.Build > b.Build)
-                {
-                    return 1;
-                }
-
-                return 0;
-            }
-
-            public int CompareTo(UnityVersion other)
-            {
-                return Compare(this, other);
-            }
-
-            public static bool operator <(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) < 0;
-            }
-
-            public static bool operator <=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) <= 0;
-            }
-
-            public static bool operator >(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) > 0;
-            }
-
-            public static bool operator >=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) >= 0;
-            }
-        }
-
-        private struct PriorityFramework
-        {
-            public int Priority;
-
-            public string Framework;
-        }
-
         private struct AuthenticatedFeed
         {
             public string AccountUrlPattern;
@@ -2093,9 +1689,11 @@ namespace NugetForUnity
         [Serializable]
         private struct CredentialProviderResponse
         {
+#pragma warning disable CS0649
             public string Username;
 
             public string Password;
+#pragma warning restore CS0649
         }
 
         /// <summary>

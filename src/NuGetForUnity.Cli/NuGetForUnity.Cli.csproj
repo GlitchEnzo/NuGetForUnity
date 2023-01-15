@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>NuGetForUnity.Cli</RootNamespace>
+        <AssemblyName>NuGetForUnity.Cli</AssemblyName>
+        <TargetFramework>net7.0</TargetFramework>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>nugetforunity</ToolCommandName>
+        <Title>NuGetForUnity command line tool</Title>
+        <PackageId>NuGetForUnity.Cli</PackageId>
+        <Description>
+            A .NET Core Global Tool (Command-Line-Tool) that allows restoring NuGet packages managed by NuGetForUnity
+            before starting Unity e.g. before building a Unity project on a build server.
+            The tool only restores the NuGet packages, they are managed by the NuGetForUnity Unity Editor plug-in,
+            so you still need to install the NuGetForUnity tool in Unity to install new packages and to ensure that
+            e.g. the import settings of the DLL's are changed to comply with Unity.
+        </Description>
+        <PackageTags>Unity;Package Manager;Tool</PackageTags>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="..\NuGetForUnity\Editor\**\*.cs">
+            <Link>Core\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Compile>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Remove="..\NuGetForUnity\Editor\DependencyTreeViewer.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NugetPackageAssetPostprocessor.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NuGetPackageTextureHelper.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NugetPreferences.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NugetWindow.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NuspecEditor.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\OnLoadNuGetPackageRestorer.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
+    </ItemGroup>
+</Project>

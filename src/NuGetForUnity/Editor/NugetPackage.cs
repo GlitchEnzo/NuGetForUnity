@@ -164,7 +164,7 @@ namespace NugetForUnity
 
             if (!string.IsNullOrEmpty(nuspec.IconUrl))
             {
-                package.IconTask = NugetHelper.DownloadImage(nuspec.IconUrl);
+                package.IconTask = NuGetPackageTextureHelper.DownloadImage(nuspec.IconUrl);
             }
 
             package.RepositoryUrl = nuspec.RepositoryUrl;

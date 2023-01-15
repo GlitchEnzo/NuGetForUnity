@@ -103,6 +103,11 @@ public class NuGetTests
     [Test]
     public void InstallBootstrapCSSTest()
     {
+        if (NugetHelper.NugetConfigFile == null)
+        {
+            NugetHelper.LoadNugetConfigFile();
+        }
+
         // disable the cache for now to force getting the lowest version of the dependency
         NugetHelper.NugetConfigFile.InstallFromCache = false;
 
@@ -276,14 +281,18 @@ public class NuGetTests
         bool supportsNetStandard21,
         bool supportsNet48)
     {
-        var unityVersionType = typeof(NugetHelper).GetNestedType("UnityVersion", BindingFlags.NonPublic);
-        var currentUnityVersionField = unityVersionType.GetField("Current", BindingFlags.Public | BindingFlags.Static);
-        var oldValue = currentUnityVersionField.GetValue(null);
+        var unityVersionType = typeof(TargetFrameworkResolver).GetNestedType("UnityVersion", BindingFlags.NonPublic);
+        Assume.That(unityVersionType, Is.Not.Null);
+        var currentUnityVersionProperty = unityVersionType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
+        Assume.That(currentUnityVersionProperty, Is.Not.Null);
+        Assume.That(currentUnityVersionProperty.CanRead, Is.True);
+        Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
+        var oldValue = currentUnityVersionProperty.GetValue(null);
         var oldApiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 
         try
         {
-            currentUnityVersionField.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
+            currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
             PlayerSettings.SetApiCompatibilityLevel(
                 EditorUserBuildSettings.selectedBuildTargetGroup,
@@ -321,9 +330,12 @@ public class NuGetTests
                 "net11",
             };
 
+            var expectedBestMatch = new List<string>();
+            var foundBestMatch = new List<string>();
             while (allFrameworks.Count > 0)
             {
                 var bestMatch = NugetHelper.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks);
+                foundBestMatch.Add(bestMatch);
                 var expectedMatchIndex = 0;
                 if (!useNetStandard)
                 {
@@ -335,7 +347,7 @@ public class NuGetTests
                 else if (allFrameworks[expectedMatchIndex] == "net48")
                 {
                     // stop when we reached the net-framework part as we only support net-standard
-                    Assert.That(bestMatch, Is.Null);
+                    expectedBestMatch.Add(null);
                     break;
                 }
 
@@ -349,13 +361,15 @@ public class NuGetTests
                     ++expectedMatchIndex;
                 }
 
-                Assert.That(bestMatch, Is.EqualTo(allFrameworks[expectedMatchIndex]));
+                expectedBestMatch.Add(allFrameworks[expectedMatchIndex]);
                 allFrameworks.RemoveAt(0);
             }
+
+            Assert.That(foundBestMatch, Is.EqualTo(expectedBestMatch));
         }
         finally
         {
-            currentUnityVersionField.SetValue(null, oldValue);
+            currentUnityVersionProperty.SetValue(null, oldValue);
             PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, oldApiCompatibilityLevel);
         }
     }
@@ -376,8 +390,8 @@ public class NuGetTests
             componentModelAnnotation47.Version);
 
         // Force NuGetHelper to reload the "alreadyImportedLibs" (like if the editor is re-opend)
-        var field = typeof(NugetHelper).GetField("alreadyImportedLibs", BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.IsNotNull(field, "Failed to find the field 'alreadyImportedLibs' in NugetHelper");
+        var field = typeof(UnityPreImportedLibraryResolver).GetField("alreadyImportedLibs", BindingFlags.Static | BindingFlags.NonPublic);
+        Assume.That(field, Is.Not.Null, "Failed to find the field 'alreadyImportedLibs' in UnityPreImportedLibraryResolver");
         field.SetValue(null, null);
 
         NugetHelper.InstallIdentifier(componentModelAnnotation5);

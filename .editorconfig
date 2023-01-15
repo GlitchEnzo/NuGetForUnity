@@ -10,6 +10,8 @@ max_line_length=150
 [*.cs]
 charset=utf-8-bom
 trim_trailing_whitespace=true
+# Ignore Unnecessary suppression as we don't have ReShaprer installed
+dotnet_remove_unnecessary_suppression_exclusions=category: ReSharper
 # New line preferences
 csharp_new_line_before_open_brace=all
 csharp_new_line_before_else=true
