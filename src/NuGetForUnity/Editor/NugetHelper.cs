@@ -33,17 +33,15 @@ namespace NugetForUnity
         /// </summary>
         private const int TimeOut = 60000;
 
-        private static readonly bool insideInitializeOnLoad;
-
         /// <summary>
         ///     The path to the nuget.config file.
         /// </summary>
-        public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, "./NuGet.config");
+        public static readonly string NugetConfigFilePath = Path.Combine(Application.dataPath, NugetConfigFile.FileName);
 
         /// <summary>
         ///     The path to the packages.config file.
         /// </summary>
-        private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, "./packages.config");
+        private static readonly string PackagesConfigFilePath = Path.Combine(Application.dataPath, PackagesConfigFile.FileName);
 
         /// <summary>
         ///     The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
@@ -125,38 +123,30 @@ namespace NugetForUnity
         static NugetHelper()
         {
             AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
-            insideInitializeOnLoad = true;
-            try
+            if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
             {
-                if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
-                {
-                    return;
-                }
-
-                SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
-
-                // if we are entering playmode, don't do anything
-                if (EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    return;
-                }
-
-                // Load the NuGet.config file
-                LoadNugetConfigFile();
-
-                // create the nupkgs directory, if it doesn't exist
-                if (!Directory.Exists(PackOutputDirectory))
-                {
-                    Directory.CreateDirectory(PackOutputDirectory);
-                }
-
-                // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-                Restore();
+                return;
             }
-            finally
+
+            SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
+
+            // if we are entering playmode, don't do anything
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                insideInitializeOnLoad = false;
+                return;
             }
+
+            // Load the NuGet.config file
+            LoadNugetConfigFile();
+
+            // create the nupkgs directory, if it doesn't exist
+            if (!Directory.Exists(PackOutputDirectory))
+            {
+                Directory.CreateDirectory(PackOutputDirectory);
+            }
+
+            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
+            Restore();
         }
 
         /// <summary>
@@ -368,50 +358,6 @@ namespace NugetForUnity
                     LogVerbose("Removing %20 from {0}", file);
                     File.Move(file, file.Replace("%20", " "));
                 }
-            }
-        }
-
-        /// <summary>
-        ///     Checks the file importer settings and disables the export to WSA Platform setting.
-        /// </summary>
-        /// <param name="filePath">The path to the .config file.</param>
-        /// <param name="notifyOfUpdate">Whether or not to log a warning of the update.</param>
-        public static void DisableWSAPExportSetting(string filePath, bool notifyOfUpdate)
-        {
-            var unityVersionParts = Application.unityVersion.Split('.');
-            int unityMajorVersion;
-            if (int.TryParse(unityVersionParts[0], out unityMajorVersion) && unityMajorVersion <= 2017)
-            {
-                return;
-            }
-
-            filePath = Path.GetFullPath(filePath);
-
-            var assetsLocalPath = filePath.Replace(Path.GetFullPath(Application.dataPath), "Assets");
-            var importer = AssetImporter.GetAtPath(assetsLocalPath) as PluginImporter;
-
-            if (importer == null)
-            {
-                if (!insideInitializeOnLoad)
-                {
-                    Debug.LogError(string.Format("Couldn't get importer for '{0}'.", filePath));
-                }
-
-                return;
-            }
-
-            if (importer.GetCompatibleWithPlatform(BuildTarget.WSAPlayer))
-            {
-                if (notifyOfUpdate)
-                {
-                    Debug.LogWarning(string.Format("Disabling WSA platform on asset settings for {0}", filePath));
-                }
-                else
-                {
-                    LogVerbose("Disabling WSA platform on asset settings for {0}", filePath);
-                }
-
-                importer.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
             }
         }
 
@@ -1403,15 +1349,6 @@ namespace NugetForUnity
                     }
                     else
                     {
-                        // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-                        // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-
-                        // remove all handlers
-                        ServicePointManager.ServerCertificateValidationCallback = null;
-
-                        // add anonymous handler
-                        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
                         LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
 
                         if (refreshAssets)
@@ -1554,6 +1491,10 @@ namespace NugetForUnity
         /// <returns>Stream containing the result.</returns>
         public static Stream RequestUrl(string url, string userName, string password, int? timeOut)
         {
+            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually. Currently just accept anything.
+            // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
+            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, policyErrors) => true;
+
             var getRequest = (HttpWebRequest)WebRequest.Create(url);
             getRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.None;
             if (timeOut.HasValue)

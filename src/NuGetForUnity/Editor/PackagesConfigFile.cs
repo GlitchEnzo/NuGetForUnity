@@ -12,6 +12,11 @@ namespace NugetForUnity
     public class PackagesConfigFile
     {
         /// <summary>
+        ///     The file name where the configuration is stored.
+        /// </summary>
+        public const string FileName = "packages.config";
+
+        /// <summary>
         ///     Gets the <see cref="NugetPackageIdentifier" />s contained in the package.config file.
         /// </summary>
         public List<NugetPackageIdentifier> Packages { get; private set; }
@@ -78,10 +83,6 @@ namespace NugetForUnity
             }
 
             var packagesFile = XDocument.Load(filepath);
-
-            // Force disable
-            NugetHelper.DisableWSAPExportSetting(filepath, false);
-
             foreach (var packageElement in packagesFile.Root.Elements())
             {
                 var package = new NugetPackage { Id = packageElement.Attribute("id").Value, Version = packageElement.Attribute("version").Value };
@@ -147,8 +148,6 @@ namespace NugetForUnity
             }
 
             packagesFile.Save(filepath);
-
-            NugetHelper.DisableWSAPExportSetting(filepath, packageExists);
         }
     }
 }

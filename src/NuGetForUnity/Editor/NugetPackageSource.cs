@@ -364,16 +364,6 @@ namespace NugetForUnity
             stopwatch.Start();
 
             var packages = new List<NugetPackage>();
-
-            // Mono doesn't have a Certificate Authority, so we have to provide all validation manually.  Currently just accept anything.
-            // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
-
-            // remove all handlers
-            ServicePointManager.ServerCertificateValidationCallback = null;
-
-            // add anonymous handler
-            ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, policyErrors) => true;
-
             using (var responseStream = NugetHelper.RequestUrl(url, username, password, 5000))
             {
                 using (var streamReader = new StreamReader(responseStream))
@@ -387,7 +377,7 @@ namespace NugetForUnity
             }
 
             stopwatch.Stop();
-            NugetHelper.LogVerbose("Retreived {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
+            NugetHelper.LogVerbose("Received {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
 
             return packages;
         }

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -16,6 +15,11 @@ namespace NugetForUnity
     /// </summary>
     public class NugetConfigFile
     {
+        /// <summary>
+        ///     The file name where the configuration is stored.
+        /// </summary>
+        public const string FileName = "NuGet.config";
+
         /// <summary>
         ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
@@ -177,8 +181,6 @@ namespace NugetForUnity
             }
 
             configFile.Save(filepath);
-
-            NugetHelper.DisableWSAPExportSetting(filepath, fileExists);
         }
 
         /// <summary>
@@ -194,9 +196,6 @@ namespace NugetForUnity
             configFile.ReadOnlyPackageFiles = false;
 
             var file = XDocument.Load(filePath);
-
-            // Force disable
-            NugetHelper.DisableWSAPExportSetting(filePath, false);
 
             // read the full list of package sources (some may be disabled below)
             var packageSources = file.Root.Element("packageSources");
@@ -320,25 +319,21 @@ namespace NugetForUnity
         {
             const string contents = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <configuration>
-    <packageSources>
-       <clear />
-       <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
-    </packageSources>
-    <disabledPackageSources />
-    <activePackageSource>
-       <add key=""All"" value=""(Aggregate source)"" />
-    </activePackageSource>
-    <config>
-       <add key=""repositoryPath"" value=""./Packages"" />
-       <add key=""DefaultPushSource"" value=""http://www.nuget.org/api/v2/"" />
-    </config>
+  <packageSources>
+    <clear />
+    <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
+  </packageSources>
+  <disabledPackageSources />
+  <activePackageSource>
+    <add key=""All"" value=""(Aggregate source)"" />
+  </activePackageSource>
+  <config>
+    <add key=""repositoryPath"" value=""./Packages"" />
+    <add key=""DefaultPushSource"" value=""http://www.nuget.org/api/v2/"" />
+  </config>
 </configuration>";
 
             File.WriteAllText(filePath, contents, new UTF8Encoding());
-
-            AssetDatabase.Refresh();
-
-            NugetHelper.DisableWSAPExportSetting(filePath, false);
 
             return Load(filePath);
         }

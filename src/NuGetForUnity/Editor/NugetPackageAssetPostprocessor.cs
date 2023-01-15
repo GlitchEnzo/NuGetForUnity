@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,6 +55,15 @@ namespace NugetForUnity
             string absoluteRepositoryPath,
             bool reimport)
         {
+            var assetFileName = Path.GetFileName(projectRelativeAssetPath);
+            if (assetFileName.Equals(NugetConfigFile.FileName, StringComparison.OrdinalIgnoreCase) ||
+                assetFileName.Equals(PackagesConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
+            {
+                // Not sure why but for .config files we need to re-import always. I think this is because they are treated as native plug-ins.
+                var result = ModifyImportSettingsOfConfigurationFile(projectRelativeAssetPath, true);
+                return ("ConfigurationFile", projectRelativeAssetPath, result);
+            }
+
             var absoluteAssetPath = Path.GetFullPath(Path.Combine(NugetHelper.AbsoluteProjectPath, projectRelativeAssetPath));
             if (!AssetIsDllInsideNuGetRepository(absoluteAssetPath, absoluteRepositoryPath))
             {
@@ -128,6 +137,36 @@ namespace NugetForUnity
             }
 
             NugetHelper.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", analyzerAssetPath);
+            return ResultStatus.Success;
+        }
+
+        /// <summary>
+        ///     Changes the importer settings to disables the export to WSA Platform setting.
+        /// </summary>
+        /// <param name="analyzerAssetPath">The path to the .config file.</param>
+        /// <param name="reimport">Whether or not to save and re-import the file.</param>
+        private static ResultStatus ModifyImportSettingsOfConfigurationFile(string analyzerAssetPath, bool reimport)
+        {
+            if (!GetPluginImporter(analyzerAssetPath, out var plugin))
+            {
+                return ResultStatus.Failure;
+            }
+
+            if (AlreadyProcessed(plugin))
+            {
+                return ResultStatus.AlreadyProcessed;
+            }
+
+            plugin.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
+            AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
+
+            if (reimport)
+            {
+                // Persist and reload the change to the meta file
+                plugin.SaveAndReimport();
+            }
+
+            NugetHelper.LogVerbose("Disabling WSA platform on asset settings for {0}", analyzerAssetPath);
             return ResultStatus.Success;
         }
 
