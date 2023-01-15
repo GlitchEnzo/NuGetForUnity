@@ -247,7 +247,7 @@ public class NuGetTests
     public void PackageSourceCredentialsTest(string name)
     {
         var resourcesFolder = Path.Combine(Directory.GetCurrentDirectory(), "Assets/Tests/Resources");
-        var path = Path.Combine(resourcesFolder, "NuGet.config");
+        var path = Path.Combine(resourcesFolder, NugetConfigFile.FileName);
 
         var username = "username";
         var password = "password";
