@@ -6,7 +6,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Handles the displaying, editing, and saving of the preferences for NuGet For Unity.
     /// </summary>
-    public static class NugetPreferences
+    public class NugetPreferences : SettingsProvider
     {
         /// <summary>
         ///     The current version of NuGet for Unity.
@@ -19,10 +19,27 @@ namespace NugetForUnity
         private static Vector2 scrollPosition;
 
         /// <summary>
+        ///     Instantiate the settings provider.
+        /// </summary>
+        public NugetPreferences()
+            : base("Preferences/NuGet For Unity", SettingsScope.User)
+        {
+        }
+
+        /// <summary>
+        ///     Creates a instance of the NuGet for Unity settings provider.
+        /// </summary>
+        /// <returns>The instance of the settings provider.</returns>
+        [SettingsProvider]
+        public static SettingsProvider Create()
+        {
+            return new NugetPreferences();
+        }
+
+        /// <summary>
         ///     Draws the preferences GUI inside the Unity preferences window in the Editor.
         /// </summary>
-        [PreferenceItem("NuGet For Unity")]
-        public static void PreferencesGUI()
+        public override void OnGUI(string searchContext)
         {
             var preferencesChangedThisFrame = false;
 
