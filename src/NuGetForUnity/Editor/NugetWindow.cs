@@ -190,7 +190,7 @@ namespace NugetForUnity
                     string latestVersion = null;
                     string latestVersionDownloadUrl = null;
                     string response = null;
-                    if (!request.isNetworkError && !request.isHttpError)
+                    if (string.IsNullOrEmpty(request.error))
                     {
                         response = request.downloadHandler.text;
                     }
@@ -327,7 +327,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("Error while refreshing NuGet packages list: {0}", e.ToString());
+                Debug.LogErrorFormat("Error while refreshing NuGet packages list: {0}", e);
             }
             finally
             {
