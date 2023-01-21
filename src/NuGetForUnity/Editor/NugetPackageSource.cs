@@ -109,7 +109,17 @@ namespace NugetForUnity
             {
                 if (!package.HasVersionRange)
                 {
-                    var localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
+                    var localPackagePath = Path.Combine(ExpandedPath, $"{package.Id}.{package.Version}.nupkg");
+
+                    if (!File.Exists(localPackagePath))
+                    {
+                        // Hierarchical folder structures are supported in NuGet 3.3+.
+                        // └─<packageID>
+                        //   └─<version>
+                        //     └─<packageID>.<version>.nupkg
+                        localPackagePath = Path.Combine(ExpandedPath, package.Id, package.Version, $"{package.Id}.{package.Version}.nupkg");
+                    }
+
                     if (File.Exists(localPackagePath))
                     {
                         var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
@@ -123,7 +133,7 @@ namespace NugetForUnity
                 else
                 {
                     // TODO: Optimize to no longer use GetLocalPackages, since that loads the .nupkg itself
-                    foundPackages = GetLocalPackages(package.Id, true, true);
+                    foundPackages = GetLocalPackages($"{package.Id}*", true, true);
                 }
             }
             else
@@ -144,7 +154,7 @@ namespace NugetForUnity
                 catch (Exception e)
                 {
                     foundPackages = new List<NugetPackage>();
-                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
                 }
             }
 
@@ -195,7 +205,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("Unable to retrieve package from {0}\n{1}", url, e.ToString());
+                Debug.LogErrorFormat("Unable to retrieve package from {0}\n{1}", url, e);
                 return null;
             }
         }
@@ -219,7 +229,7 @@ namespace NugetForUnity
         {
             if (IsLocalPath)
             {
-                return GetLocalPackages(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip);
+                return GetLocalPackages($"*{searchTerm}*", includeAllVersions, includePrerelease, numberToSkip);
             }
 
             //Example URL: "http://www.nuget.org/api/v2/Search()?$filter=IsLatestVersion&$orderby=Id&$skip=0&$top=30&searchTerm='newtonsoft'&targetFramework=''&includePrerelease=false";
@@ -268,7 +278,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
                 return new List<NugetPackage>();
             }
         }
@@ -279,13 +289,11 @@ namespace NugetForUnity
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
         private List<NugetPackage> GetLocalPackages(string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
-            int numberToGet = 15,
             int numberToSkip = 0)
         {
             var localPackages = new List<NugetPackage>();
@@ -300,9 +308,16 @@ namespace NugetForUnity
 
             if (Directory.Exists(path))
             {
-                var packagePaths = Directory.GetFiles(path, string.Format("*{0}*.nupkg", searchTerm));
+                var packagePaths = Directory.GetFiles(path, $"{searchTerm}.nupkg");
 
-                foreach (var packagePath in packagePaths)
+                // Hierarchical folder structures are supported in NuGet 3.3+.
+                // └─<packageID>
+                //   └─<version>
+                //     └─<packageID>.<version>.nupkg
+                var packagesFromFolders = Directory.GetDirectories(path, searchTerm)
+                    .SelectMany(nameFolder => Directory.GetDirectories(nameFolder))
+                    .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
+                foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
                 {
                     var package = NugetPackage.FromNupkgFile(packagePath);
                     package.PackageSource = this;
@@ -490,7 +505,7 @@ namespace NugetForUnity
                         return GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
                     }
 
-                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e.ToString());
+                    Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
                 }
             }
 
