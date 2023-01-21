@@ -17,5 +17,6 @@
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <Copyright>Copyright (c) 2017-$([System.DateTime]::Now.ToString('yyyy')) Patrick McCarthy and contributors</Copyright>
         <PackageReleaseNotes>https://github.com/GlitchEnzo/NuGetForUnity/releases</PackageReleaseNotes>
+        <PackageTags>Unity;Package Manager</PackageTags>
     </PropertyGroup>
 </Project>

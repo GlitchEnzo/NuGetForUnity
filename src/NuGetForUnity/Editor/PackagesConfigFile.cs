@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
-using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -78,8 +77,6 @@ namespace NugetForUnity
                 Debug.LogFormat("No packages.config file found. Creating default at {0}", filepath);
 
                 configFile.Save(filepath);
-
-                AssetDatabase.Refresh();
             }
 
             var packagesFile = XDocument.Load(filepath);

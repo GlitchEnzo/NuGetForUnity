@@ -907,7 +907,6 @@ namespace NugetForUnity
                         if (GUILayout.Button("Install"))
                         {
                             NugetHelper.InstallIdentifier(package);
-                            AssetDatabase.Refresh();
                             NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }

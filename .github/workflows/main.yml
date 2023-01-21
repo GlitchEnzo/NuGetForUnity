@@ -14,8 +14,8 @@ permissions:
   statuses: write
 
 jobs:
-  buildOnLinux:
-    name: Build on linux
+  determineVersionNumber:
+    name: Determine Version Number
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.generateVersion.outputs.version }}
@@ -46,21 +46,36 @@ jobs:
           Write-Host "Generated version number: $version"
           echo "version=$($version)" >> $Env:GITHUB_OUTPUT
 
+  buildOnLinux:
+    name: Build on linux
+    runs-on: ubuntu-latest
+    needs: [determineVersionNumber]
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
       - name: Create DLL
         uses: ./.github/actions/create-dll
         with:
-          version: ${{ steps.generateVersion.outputs.version }}
+          version: ${{ needs.determineVersionNumber.outputs.version }}
 
       - name: Upload NuGetForUnity.dll
         uses: actions/upload-artifact@v3
         with:
           name: NuGetForUnity.dll
           path: ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
+          if-no-files-found: error
 
   packageOnLinux:
     name: Create .unitypackage on linux
     runs-on: ubuntu-latest
-    needs: [buildOnLinux]
+    needs: [buildOnLinux, determineVersionNumber]
 
     steps:
       - name: Checkout action file
@@ -94,13 +109,45 @@ jobs:
           buildMethod: NugetForUnity.Export.Execute
           # custom versioning
           versioning: "Custom"
-          version: ${{ needs.buildOnLinux.outputs.version }}
+          version: ${{ needs.determineVersionNumber.outputs.version }}
 
-      - name: Upload Build Artifact
+      - name: Upload UnityPackage
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetForUnity.${{ needs.buildOnLinux.outputs.version }}.unitypackage
+          name: NuGetForUnity.${{ needs.determineVersionNumber.outputs.version }}.unitypackage
           path: ./src/NuGetForUnity.Packager/NugetForUnity.unitypackage
+          if-no-files-found: error
+
+  packageTool:
+    name: Pack .NET Core Global Tool
+    runs-on: ubuntu-latest
+    needs: [determineVersionNumber]
+
+    steps:
+      - name: Checkout action file
+        uses: Bhacaz/checkout-files@v2
+        with:
+          files: .github/actions/checkout/action.yml
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "7.0.x"
+
+      - name: Build and pack
+        run: >-
+          dotnet pack ./src/NuGetForUnity.Cli/NuGetForUnity.Cli.csproj --nologo -c Release -o .
+          -p:Version=${{ needs.determineVersionNumber.outputs.version }}
+
+      - name: Upload NuGetForUnity.Cli NuGet package
+        uses: actions/upload-artifact@v3
+        with:
+          name: NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg
+          path: ./NuGetForUnity.Cli.*.nupkg
+          if-no-files-found: error
 
   testUbuntu:
     name: Test on linux
@@ -127,6 +174,7 @@ jobs:
   runTestProjectsOnLinux:
     name: Run test projects on linux
     runs-on: ubuntu-latest
+    needs: [packageTool, determineVersionNumber]
     strategy:
       fail-fast: false
       matrix:
@@ -143,14 +191,17 @@ jobs:
       - name: Checkout
         uses: ./.github/actions/checkout
 
-      - name: Restore NuGet packages using NuGetForUnity
-        uses: ./.github/actions/nuget-restore
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      - name: Download NuGetForUnity.Cli NuGet package
+        uses: actions/download-artifact@v3
         with:
-          projectPath: ${{ matrix.projectPath }}
+          name: NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg
+          path: .
+
+      - name: Install NuGetForUnity.Cli Tool
+        run: dotnet tool install --add-source . NuGetForUnity.Cli --version ${{ needs.determineVersionNumber.outputs.version }}
+
+      - name: Restore NuGet packages using NuGetForUnity.Cli
+        run: dotnet nugetforunity restore '${{ matrix.projectPath }}'
 
       - name: Unity - Build project ${{ matrix.projectPath }}
         uses: game-ci/unity-builder@v2.1.2

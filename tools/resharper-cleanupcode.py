@@ -6,8 +6,9 @@ import time
 scriptLocation = os.path.dirname(os.path.realpath(sys.argv[0]))
 repositoryRoot = os.path.dirname(scriptLocation)
 
-solutionFiles = ["src/NuGetForUnity.Tests/NuGetForUnity.Tests.sln"]
+solutionFiles = ["src/NuGetForUnity.Tests/NuGetForUnity.Tests.sln", "src/NuGetForUnity.Cli/NuGetForUnity.Cli.sln"]
 toolsRoot = repositoryRoot
+mainPackageFolder = os.path.realpath(os.path.join(repositoryRoot, "src/NuGetForUnity")) + os.sep
 
 subprocess.run(["dotnet", "tool", "restore"], cwd = toolsRoot, check = True)
 startTime = time.time()
@@ -28,9 +29,19 @@ try:
                 absoluteChangedFile = os.path.realpath(os.path.join(repositoryRoot, changedFile))
                 changedFile = os.path.relpath(absoluteChangedFile, solutionDir)
                 if changedFile.startswith(".."):
+                    if solutionFile.endswith('NuGetForUnity.Cli.sln'):
+                        # for NuGetForUnity.Cli we don't format external files
+                        continue
+                    elif not absoluteChangedFile.startswith(mainPackageFolder):
+                        # for NuGetForUnity.Tests we only include external files that lie inside src/NuGetForUnity
+                        continue
+
                     # file path can't be outside solution-directory "../" we fall-back to absolute file path
                     changedFile = absoluteChangedFile
                 cleanupArg += ";" + changedFile
+            if cleanupArg.endswith('='):
+                # no changed file owned by solution so skip
+                continue
         buildStartTime = time.time()
         subprocess.run(["dotnet", "build", "-property:RunAnalyzers=false", "-clp:ErrorsOnly", solutionFile], cwd = repositoryRoot, check = True)
         clenupStartTime = time.time()
