@@ -1403,6 +1403,11 @@ namespace NugetForUnity
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
             foreach (var folder in directories)
             {
+                if (Path.GetFileName(folder) == ".svn")
+                {
+                    continue;
+                }
+
                 var pkgPath = Path.Combine(folder, $"{Path.GetFileName(folder)}.nupkg");
                 var package = NugetPackage.FromNupkgFile(pkgPath);
 
