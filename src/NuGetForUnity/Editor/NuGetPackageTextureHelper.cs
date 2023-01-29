@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,48 +20,56 @@ namespace NugetForUnity
         /// <returns>The image as a Unity Texture2D object.</returns>
         internal static Task<Texture2D> DownloadImage(string url)
         {
-            var fromCache = false;
-            if (ExistsInDiskCache(url))
+            try
             {
-                url = "file:///" + GetFilePath(url);
-                fromCache = true;
-            }
-
-            var taskCompletionSource = new TaskCompletionSource<Texture2D>();
-            var request = UnityWebRequest.Get(url);
-            {
-                var downloadHandler = new DownloadHandlerTexture(false);
-
-                request.downloadHandler = downloadHandler;
-                request.timeout = 1;
-                var operation = request.SendWebRequest();
-                operation.completed += asyncOperation =>
+                var fromCache = false;
+                if (ExistsInDiskCache(url))
                 {
-                    try
+                    url = "file:///" + GetFilePath(url);
+                    fromCache = true;
+                }
+
+                var taskCompletionSource = new TaskCompletionSource<Texture2D>();
+                var request = UnityWebRequest.Get(url);
+                {
+                    var downloadHandler = new DownloadHandlerTexture(false);
+
+                    request.downloadHandler = downloadHandler;
+                    request.timeout = 1;
+                    var operation = request.SendWebRequest();
+                    operation.completed += asyncOperation =>
                     {
-                        if (!string.IsNullOrEmpty(request.error))
+                        try
                         {
-                            NugetHelper.LogVerbose("Downloading image {0} failed! Error: {1}.", url, request.error);
-                            taskCompletionSource.TrySetResult(null);
-                            return;
+                            if (!string.IsNullOrEmpty(request.error))
+                            {
+                                NugetHelper.LogVerbose("Downloading image {0} failed! Error: {1}.", url, request.error);
+                                taskCompletionSource.TrySetResult(null);
+                                return;
+                            }
+
+                            var result = downloadHandler.texture;
+
+                            if (result != null && !fromCache)
+                            {
+                                CacheTextureOnDisk(url, downloadHandler.data);
+                            }
+
+                            taskCompletionSource.TrySetResult(result);
                         }
-
-                        var result = downloadHandler.texture;
-
-                        if (result != null && !fromCache)
+                        finally
                         {
-                            CacheTextureOnDisk(url, downloadHandler.data);
+                            request.Dispose();
                         }
+                    };
 
-                        taskCompletionSource.TrySetResult(result);
-                    }
-                    finally
-                    {
-                        request.Dispose();
-                    }
-                };
-
-                return taskCompletionSource.Task;
+                    return taskCompletionSource.Task;
+                }
+            }
+            catch (Exception exception)
+            {
+                NugetHelper.LogVerbose("Error while downloading image from: '{0}' got error: {1}", url, exception);
+                return Task.FromResult<Texture2D>(null);
             }
         }
 
