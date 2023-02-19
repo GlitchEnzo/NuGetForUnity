@@ -146,6 +146,12 @@ namespace NugetForUnity
                 {
                     url = string.Format("{0}&$filter=Version eq '{1}'", url, package.Version);
                 }
+                else
+                {
+                    // As we can't search for a specific Version we need to fetch all versions and remove the non matching versions.
+                    // As packages can have so many versions to find the correct version we fetch up to 1000 instead of the default 100.
+                    url = string.Format("{0}&$top=1000", url);
+                }
 
                 try
                 {
@@ -182,6 +188,7 @@ namespace NugetForUnity
         {
             if (package.HasVersionRange)
             {
+                // if multiple match we use the lowest version
                 return FindPackagesById(package).FirstOrDefault();
             }
 
@@ -379,7 +386,7 @@ namespace NugetForUnity
             stopwatch.Start();
 
             var packages = new List<NugetPackage>();
-            using (var responseStream = NugetHelper.RequestUrl(url, username, password, 5000))
+            using (var responseStream = NugetHelper.RequestUrl(url, username, password, 10000))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {

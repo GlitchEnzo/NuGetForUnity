@@ -39,11 +39,9 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D icon;
 
-        /// <summary>
-        ///     Gets or sets the icon for the package as a <see cref="UnityEngine.Texture2D" />.
-        /// </summary>
-        [NonSerialized]
-        public Task<Texture2D> IconTask;
+        public Task<Texture2D> iconTask;
+
+        public string IconUrl;
 
         /// <summary>
         ///     Gets or sets the URL for the location of the license of the NuGet package.
@@ -96,6 +94,27 @@ namespace NugetForUnity
         public string Title;
 
         /// <summary>
+        ///     Gets the icon for the package as a task returning a <see cref="Texture2D" />.
+        /// </summary>
+        public Task<Texture2D> IconTask
+        {
+            get
+            {
+                if (iconTask != null)
+                {
+                    return iconTask;
+                }
+
+                if (!string.IsNullOrEmpty(IconUrl))
+                {
+                    iconTask = NuGetPackageTextureHelper.DownloadImage(IconUrl);
+                }
+
+                return iconTask;
+            }
+        }
+
+        /// <summary>
         ///     Checks to see if the two given <see cref="NugetPackage" />s are equal.
         /// </summary>
         /// <param name="x">The first <see cref="NugetPackage" /> to compare.</param>
@@ -128,9 +147,9 @@ namespace NugetForUnity
         /// <inheritdoc />
         public void OnBeforeSerialize()
         {
-            if (IconTask != null)
+            if (iconTask != null)
             {
-                icon = IconTask.IsCompleted ? IconTask.Result : null;
+                icon = iconTask.IsCompleted ? iconTask.Result : null;
             }
         }
 
@@ -139,7 +158,7 @@ namespace NugetForUnity
         {
             if (icon != null)
             {
-                IconTask = Task.FromResult(icon);
+                iconTask = Task.FromResult(icon);
             }
         }
 
@@ -161,12 +180,7 @@ namespace NugetForUnity
             package.ReleaseNotes = nuspec.ReleaseNotes;
             package.LicenseUrl = nuspec.LicenseUrl;
             package.ProjectUrl = nuspec.ProjectUrl;
-
-            if (!string.IsNullOrEmpty(nuspec.IconUrl))
-            {
-                package.IconTask = NuGetPackageTextureHelper.DownloadImage(nuspec.IconUrl);
-            }
-
+            package.IconUrl = nuspec.IconUrl;
             package.RepositoryUrl = nuspec.RepositoryUrl;
             Enum.TryParse(nuspec.RepositoryType, true, out package.RepositoryType);
             package.RepositoryBranch = nuspec.RepositoryBranch;
