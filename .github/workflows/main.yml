@@ -140,7 +140,14 @@ jobs:
       - name: Build and pack
         run: >-
           dotnet pack ./src/NuGetForUnity.Cli/NuGetForUnity.Cli.csproj --nologo -c Release -o .
-          -p:Version=${{ needs.determineVersionNumber.outputs.version }}
+          -p:Version=${{ needs.determineVersionNumber.outputs.version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+          -p:ContinuousIntegrationBuild=true
+
+      - name: publish the NuGetForUnity.Cli NuGet package
+        if: github.ref_type == 'tag'
+        run: >-
+          dotnet nuget push .\NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
+          --source https://api.nuget.org/v3/index.json
 
       - name: Upload NuGetForUnity.Cli NuGet package
         uses: actions/upload-artifact@v3
