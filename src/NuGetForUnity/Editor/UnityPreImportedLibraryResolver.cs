@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UnityEditor;
 
 namespace NugetForUnity
 {
@@ -35,6 +36,13 @@ namespace NugetForUnity
                     AppDomain.CurrentDomain.GetAssemblies()
                         .Select(assembly => Path.GetFileNameWithoutExtension(assembly.ManifestModule.Name))
                         .Where(p => !alreadyInstalledDllFileNames.Contains(p)));
+
+                if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) ==
+                    ApiCompatibilityLevel.NET_Standard_2_0)
+                {
+                    alreadyImportedLibs.Add("NETStandard.Library");
+                    alreadyImportedLibs.Add("Microsoft.NETCore.Platforms");
+                }
 
                 NugetHelper.LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             }
