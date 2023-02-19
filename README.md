@@ -160,9 +160,15 @@ Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget
 
 # Restoring NuGet Packages over the Command Line
 
-For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line. On Windows, this can be done automatically by executing [RestoreNugetPackages.bat](https://github.com/GlitchEnzo/NuGetForUnity/blob/master/docs/RestoreNugetPackages.bat) directly from within your Unity project directory, given that the NuGetForUnity Asset is already installed in your project.
+For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line without starting Unity. This is achieved using a seperate [NuGetForUnity.Cli](https://www.nuget.org/packages/NuGetForUnity.Cli) NuGet package containing a [.Net Tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
-This can also be done manually over the command line as shown here:
+## Installation
 
--   Windows: `$ \progra~1\Unity\Editor\Unity.exe -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
--   Mac: `$ /Applications/Unity/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath <yourProjectDirHere> -executeMethod NugetForUnity.NugetHelper.Restore`
+-   As a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
+-   If you don't have a tool manifest (local tool instalation context) first creat one with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`.
+
+For more information see [.Net Tool Documentaion](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
+
+## Usage
+
+Restore nuget packages of a single Unity Project: `dotnet nugetforunity restore <PROJECT_PATH>`. If installed as a global tool it can be called without the `dotnet` prefix: `nugetforunity restore <PROJECT_PATH>`.
