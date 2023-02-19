@@ -43,7 +43,12 @@ namespace NugetForUnity
                         {
                             if (!string.IsNullOrEmpty(request.error))
                             {
-                                NugetHelper.LogVerbose("Downloading image {0} failed! Error: {1}.", url, request.error);
+#if UNITY_2020_1_OR_NEWER
+                                NugetHelper.LogVerbose("Downloading image {0} failed! Web error: {1}, Handler error: {2}.", url, request.error, downloadHandler.error);
+#else
+                                NugetHelper.LogVerbose("Downloading image {0} failed! Web error: {1}.", url, request.error);
+#endif
+
                                 taskCompletionSource.TrySetResult(null);
                                 return;
                             }

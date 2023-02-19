@@ -812,7 +812,7 @@ namespace NugetForUnity
                     rect.height = iconSize;
 
                     var icon = defaultIcon;
-                    if (package.IconTask != null && package.IconTask.IsCompleted)
+                    if (package.IconTask != null && package.IconTask.IsCompleted && package.IconTask.Result != null)
                     {
                         // as this is called every frame we don't need to wait for the task we can just use the image if it is available
                         icon = package.IconTask.Result;

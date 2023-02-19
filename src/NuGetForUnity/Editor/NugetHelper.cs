@@ -913,9 +913,13 @@ namespace NugetForUnity
         /// <returns>The best <see cref="NugetPackage" /> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
         {
-            NugetPackage installedPackage = null;
+            if (installedPackages.Count == 0)
+            {
+                // Ensure that the dictionary is filled before we check if a NuGet package is already installed.
+                UpdateInstalledPackages();
+            }
 
-            if (installedPackages.TryGetValue(packageId.Id, out installedPackage))
+            if (installedPackages.TryGetValue(packageId.Id, out var installedPackage))
             {
                 if (packageId.Version != installedPackage.Version)
                 {
@@ -955,7 +959,7 @@ namespace NugetForUnity
         {
             NugetPackage package = null;
 
-            if (NugetConfigFile.InstallFromCache)
+            if (NugetConfigFile.InstallFromCache && !packageId.HasVersionRange)
             {
                 var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", packageId.Id, packageId.Version));
 
