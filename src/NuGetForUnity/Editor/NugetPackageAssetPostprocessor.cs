@@ -40,6 +40,8 @@ namespace NugetForUnity
         ///     so we can change the import settings before unity throws errors about incompatibility etc..
         ///     Currently we change the import settings of:
         ///     Roslyn-Analyzers: are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
+        ///     NuGetForUnity config files: so they are not exported to WSA
+        ///     PlayerOnly assemblies: configure the assemblies to be excluded form edit-mode
         /// </summary>
         private void OnPreprocessAsset()
         {
@@ -72,12 +74,20 @@ namespace NugetForUnity
 
             var assetPathRelativeToRepository = absoluteAssetPath.Substring(absoluteRepositoryPath.Length);
 
-            // the first component is the package name
+            // the first component is the package name with version number
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
                 var result = ModifyImportSettingsOfRoslynAnalyzer(projectRelativeAssetPath, reimport);
                 return ("RoslynAnalyzer", projectRelativeAssetPath, result);
+            }
+
+            if (assetPathComponents.Length > 0 &&
+                UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
+                    .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
+            {
+                var result = ModifyImportSettingsOfPlayerOnly(projectRelativeAssetPath, reimport);
+                return ("PlayerOnly", projectRelativeAssetPath, result);
             }
 
             return null;
@@ -137,6 +147,40 @@ namespace NugetForUnity
             }
 
             NugetHelper.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", analyzerAssetPath);
+            return ResultStatus.Success;
+        }
+
+        /// <summary>
+        ///     Changes the importer settings to exclude it from editor.
+        ///     This is needed for assemblies that are imported by unity but only in edit-mode so we can only import it in play-mode.
+        ///     <seealso cref="UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries" />.
+        /// </summary>
+        /// <param name="assemblyAssetPath">The path to the .dll file.</param>
+        /// <param name="reimport">Whether or not to save and re-import the file.</param>
+        private static ResultStatus ModifyImportSettingsOfPlayerOnly(string assemblyAssetPath, bool reimport)
+        {
+            if (!GetPluginImporter(assemblyAssetPath, out var plugin))
+            {
+                return ResultStatus.Failure;
+            }
+
+            if (AlreadyProcessed(plugin))
+            {
+                return ResultStatus.AlreadyProcessed;
+            }
+
+            plugin.SetCompatibleWithAnyPlatform(true);
+            plugin.SetExcludeEditorFromAnyPlatform(true);
+
+            AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
+
+            if (reimport)
+            {
+                // Persist and reload the change to the meta file
+                plugin.SaveAndReimport();
+            }
+
+            NugetHelper.LogVerbose("Configured asset '{0}' as a Player Only.", assemblyAssetPath);
             return ResultStatus.Success;
         }
 

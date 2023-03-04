@@ -9,6 +9,12 @@ using UnityEditor;
 
 public class NuGetTests
 {
+    [TearDown]
+    public void Cleanup()
+    {
+        NugetHelper.UninstallAll();
+    }
+
     [Test]
     public void SimpleRestoreTest()
     {
@@ -190,6 +196,36 @@ public class NuGetTests
         // cleanup and uninstall everything
         NugetHelper.UninstallAll();
         Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
+    }
+
+    [Test]
+    public void InstallMicrosoftMlProbabilisticCompilerTest()
+    {
+        var probabilisticCompiler = new NugetPackageIdentifier("Microsoft.ML.Probabilistic.Compiler", "0.4.2301.301");
+
+        NugetHelper.InstallIdentifier(probabilisticCompiler);
+        Assert.IsTrue(
+            NugetHelper.IsInstalled(probabilisticCompiler),
+            "The package was NOT installed: {0} {1}",
+            probabilisticCompiler.Id,
+            probabilisticCompiler.Version);
+
+        var libraryDirectory = Path.Combine(
+            NugetHelper.NugetConfigFile.RepositoryPath,
+            $"{probabilisticCompiler.Id}.{probabilisticCompiler.Version}",
+            "lib",
+            "netstandard2.0");
+
+        Assert.That(libraryDirectory, Does.Exist);
+        Assert.That(Path.Combine(libraryDirectory, "cs"), Does.Not.Exist);
+
+        // cleanup and uninstall everything
+        NugetHelper.UninstallAll();
+        Assert.IsFalse(
+            NugetHelper.IsInstalled(probabilisticCompiler),
+            "The package is STILL installed: {0} {1}",
+            probabilisticCompiler.Id,
+            probabilisticCompiler.Version);
     }
 
     [Test]
