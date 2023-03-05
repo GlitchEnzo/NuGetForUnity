@@ -379,6 +379,22 @@ namespace NugetForUnity
                             DeleteDirectory(directory.FullName);
                         }
                     }
+
+                    if (bestLibDirectory != null)
+                    {
+                        // some older packages e.g. Microsoft.CodeAnalysis.Common 2.10.0 have multiple localization resource files
+                        // e.g. Microsoft.CodeAnalysis.resources.dll each inside a folder with the language name as a folder name e.g. zh-Hant or fr
+                        // unity doesn't support importing multiple assemblies with the same file name.
+                        // for now we just delete all folders so the language neutral version is used and Unity is happy.
+                        var languageSupFolders = bestLibDirectory.GetDirectories();
+                        if (languageSupFolders.All(languageSupFolder => languageSupFolder.Name.Split('-').FirstOrDefault()?.Length == 2))
+                        {
+                            foreach (var languageSupFolder in languageSupFolders)
+                            {
+                                languageSupFolder.Delete(true);
+                            }
+                        }
+                    }
                 }
             }
 

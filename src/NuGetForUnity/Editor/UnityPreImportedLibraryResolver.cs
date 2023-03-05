@@ -13,6 +13,8 @@ namespace NugetForUnity
     {
         private static HashSet<string> alreadyImportedLibs;
 
+        private static HashSet<string> alreadyImportedEditorOnlyLibraries;
+
         /// <summary>
         ///     Gets all libraries that are already imported by unity so we shouldn't / don't need to install them as NuGet packages.
         /// </summary>
@@ -34,7 +36,7 @@ namespace NugetForUnity
                         .Select(Path.GetFileNameWithoutExtension));
             }
 
-            // Search the all project assemblies that are not from a package or a Unity assembly.
+            // Search the all project assemblies that are not editor only.
             // We only use player assemblies as we don't need to collect UnityEditor assemblies, we don't support installing NuGet packages with reference to UnityEditor.
 #if UNITY_2019_3_OR_NEWER
             const AssembliesType assemblieType = AssembliesType.PlayerWithoutTestAssemblies;
@@ -42,10 +44,7 @@ namespace NugetForUnity
             const AssembliesType assemblieType = AssembliesType.Player;
 #endif
             var projectAssemblies = CompilationPipeline.GetAssemblies(assemblieType)
-                .Where(
-                    playerAssembly => playerAssembly.sourceFiles.Length == 0 ||
-                                      playerAssembly.sourceFiles.Any(
-                                          sourceFilePath => sourceFilePath.StartsWith("Assets/") || sourceFilePath.StartsWith("Assets\\")));
+                .Where(playerAssembly => playerAssembly.flags != AssemblyFlags.EditorAssembly);
 
             // Collect all referenced assemblies but exclude all assemblies installed by NuGetForUnity.
             var porojectReferences = projectAssemblies.SelectMany(playerAssembly => playerAssembly.allReferences);
@@ -63,9 +62,37 @@ namespace NugetForUnity
             // the compiler / language is available by default
             alreadyImportedLibs.Add("Microsoft.CSharp");
 
+            var editorOnlyAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor)
+                .Where(assembly => assembly.flags == AssemblyFlags.EditorAssembly)
+                .ToList();
+            var editorReferences = editorOnlyAssemblies.SelectMany(editorOnlyAssembly => editorOnlyAssembly.allReferences);
+            alreadyImportedEditorOnlyLibraries = new HashSet<string>(
+                editorReferences.Select(Path.GetFileNameWithoutExtension).Where(assemblyName => !alreadyImportedLibs.Contains(assemblyName)));
+
+            // com.unity.visualscripting uses .net 4.8 so it implicitly has System.CodeDom
+            if (!alreadyImportedLibs.Contains("System.CodeDom") &&
+                editorOnlyAssemblies.Any(editorOnlyAssembly => editorOnlyAssembly.name == "Unity.VisualScripting.Shared.Editor"))
+            {
+                alreadyImportedEditorOnlyLibraries.Add("System.CodeDom");
+            }
+
             NugetHelper.LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
+            NugetHelper.LogVerbose("Already imported editor only libraries: {0}", string.Join(", ", alreadyImportedEditorOnlyLibraries));
 
             return alreadyImportedLibs;
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        internal static HashSet<string> GetAlreadyImportedEditorOnlyLibraries()
+        {
+            if (alreadyImportedEditorOnlyLibraries == null)
+            {
+                GetAlreadyImportedLibs();
+            }
+
+            return alreadyImportedEditorOnlyLibraries;
         }
     }
 }
