@@ -40,6 +40,16 @@ https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity
 </details>
 
 <details>
+<summary>Install via OpenUPM</summary>
+The package is available on the <a href="https://openupm.com/packages/com.github-glitchenzo.nugetforunity/">openupm</a> registry. So you can install it via openupm-cli.
+
+```
+openupm add com.github-glitchenzo.nugetforunity
+```
+
+</details>
+
+<details>
 <summary>Install via .unitypackage file</summary>
 
 Install the provided Unity package into your Unity project. Located [here](https://github.com/GlitchEnzo/NuGetForUnity/releases).
@@ -131,6 +141,21 @@ Note: Depending on the size and number of packages you need to install, the `Res
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
 
 The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder. (`C:\Users\[username]\AppData\Local\NuGet\Cache`). Packages previously installed are installed via the cache folder instead of downloading it from the server again.
+
+# Advanced settings
+
+## Disabel automatic referencing of assemblies
+
+To disable the automatic referenceing of assemblies of a NuGet package you can sett the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<packages>
+    <package id="Serilog" version="2.12.0" autoReferenced="false" />
+</packages>
+```
+
+When this setting is set to `false` the assemblies of the NuGet package are only referenced by Unity projects that explicitly list them inside there `*.asmdef` file.
 
 # How do I create my own NuGet packages from within Unity?
 

@@ -34,26 +34,40 @@ namespace NugetForUnity
             .Select(fieldInfo => (BuildTarget)fieldInfo.GetValue(null))
             .ToList();
 
+        private static readonly PropertyInfo PluginImporterIsExplicitlyReferencedProperty =
+            typeof(PluginImporter).GetProperty("IsExplicitlyReferenced", BindingFlags.Instance | BindingFlags.NonPublic) ??
+            throw new InvalidOperationException("Can't find property 'IsExplicitlyReferenced'.");
+
         /// <summary>
         ///     Get informed about a new asset that is added.
         ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
         ///     so we can change the import settings before unity throws errors about incompatibility etc..
-        ///     Currently we change the import settings of:
-        ///     Roslyn-Analyzers: are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
-        ///     NuGetForUnity config files: so they are not exported to WSA
-        ///     PlayerOnly assemblies: configure the assemblies to be excluded form edit-mode
+        ///     <para>
+        ///         Currently we change the import settings of:
+        ///     </para>
+        ///     <list type="bullet">
+        ///         <item>
+        ///             <term>Roslyn-Analyzers:</term> are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
+        ///         </item>
+        ///         <item>
+        ///             <term>NuGetForUnity config files:</term> so they are not exported to WSA
+        ///         </item>
+        ///         <item>
+        ///             <term>PlayerOnly assemblies:</term> configure the assemblies to be excluded form edit-mode
+        ///         </item>
+        ///         <item>
+        ///             <term>Normal assemblies (*.dll):</term> apply the IsExplicitlyReferenced setting read from the <c>package.config</c>.
+        ///         </item>
+        ///     </list>
         /// </summary>
         private void OnPreprocessAsset()
         {
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
-            var result = HandleAsset(assetPath, absoluteRepositoryPath, false);
-            if (result.HasValue)
-            {
-                LogResults(new[] { result.Value });
-            }
+            var results = HandleAsset(assetPath, absoluteRepositoryPath, false);
+            LogResults(results);
         }
 
-        private static (string AssetType, string AssetPath, ResultStatus Status)? HandleAsset(string projectRelativeAssetPath,
+        private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(string projectRelativeAssetPath,
             string absoluteRepositoryPath,
             bool reimport)
         {
@@ -63,34 +77,61 @@ namespace NugetForUnity
             {
                 // Not sure why but for .config files we need to re-import always. I think this is because they are treated as native plug-ins.
                 var result = ModifyImportSettingsOfConfigurationFile(projectRelativeAssetPath, true);
-                return ("ConfigurationFile", projectRelativeAssetPath, result);
+                yield return ("ConfigurationFile", projectRelativeAssetPath, result);
+
+                yield break;
             }
 
             var absoluteAssetPath = Path.GetFullPath(Path.Combine(NugetHelper.AbsoluteProjectPath, projectRelativeAssetPath));
             if (!AssetIsDllInsideNuGetRepository(absoluteAssetPath, absoluteRepositoryPath))
             {
-                return null;
+                yield break;
             }
 
             var assetPathRelativeToRepository = absoluteAssetPath.Substring(absoluteRepositoryPath.Length);
 
             // the first component is the package name with version number
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
+            var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : null;
+            var packageName = string.Join(".", packageNameParts.TakeWhile(part => !part.All(char.IsDigit)));
+            var packageConfig = NugetHelper.PackagesConfigFile.Packages.FirstOrDefault(
+                packageSettings => packageSettings.Id.Equals(packageName, StringComparison.OrdinalIgnoreCase));
+
+            if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
+            {
+                yield return ("GetPluginImporter", projectRelativeAssetPath, ResultStatus.Failure);
+
+                yield break;
+            }
+
+            if (AlreadyProcessed(plugin))
+            {
+                yield return ("AlreadyProcessed", projectRelativeAssetPath, ResultStatus.AlreadyProcessed);
+
+                yield break;
+            }
+
+            if (packageConfig != null)
+            {
+                ModifyImportSettingsOfGeneralPlugin(packageConfig, plugin, reimport);
+                yield return ("GeneralSetting", projectRelativeAssetPath, ResultStatus.Success);
+            }
+
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
-                var result = ModifyImportSettingsOfRoslynAnalyzer(projectRelativeAssetPath, reimport);
-                return ("RoslynAnalyzer", projectRelativeAssetPath, result);
+                ModifyImportSettingsOfRoslynAnalyzer(plugin, reimport);
+                yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
+
+                yield break;
             }
 
             if (assetPathComponents.Length > 0 &&
                 UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
                     .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
             {
-                var result = ModifyImportSettingsOfPlayerOnly(projectRelativeAssetPath, reimport);
-                return ("PlayerOnly", projectRelativeAssetPath, result);
+                ModifyImportSettingsOfPlayerOnly(plugin, reimport);
+                yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
             }
-
-            return null;
         }
 
         private static string[] GetPathComponents(string path)
@@ -119,18 +160,8 @@ namespace NugetForUnity
             return NugetHelper.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 
-        private static ResultStatus ModifyImportSettingsOfRoslynAnalyzer(string analyzerAssetPath, bool reimport)
+        private static void ModifyImportSettingsOfRoslynAnalyzer(PluginImporter plugin, bool reimport)
         {
-            if (!GetPluginImporter(analyzerAssetPath, out var plugin))
-            {
-                return ResultStatus.Failure;
-            }
-
-            if (AlreadyProcessed(plugin))
-            {
-                return ResultStatus.AlreadyProcessed;
-            }
-
             plugin.SetCompatibleWithAnyPlatform(false);
             plugin.SetCompatibleWithEditor(false);
             foreach (var platform in NonObsoleteBuildTargets)
@@ -146,8 +177,20 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", analyzerAssetPath);
-            return ResultStatus.Success;
+            NugetHelper.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
+        }
+
+        private static void ModifyImportSettingsOfGeneralPlugin(PackageConfig packageConfig, PluginImporter plugin, bool reimport)
+        {
+            PluginImporterIsExplicitlyReferencedProperty.SetValue(plugin, !packageConfig.AutoReferenced);
+
+            AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
+
+            if (reimport)
+            {
+                // Persist and reload the change to the meta file
+                plugin.SaveAndReimport();
+            }
         }
 
         /// <summary>
@@ -157,18 +200,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="assemblyAssetPath">The path to the .dll file.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        private static ResultStatus ModifyImportSettingsOfPlayerOnly(string assemblyAssetPath, bool reimport)
+        private static void ModifyImportSettingsOfPlayerOnly(PluginImporter plugin, bool reimport)
         {
-            if (!GetPluginImporter(assemblyAssetPath, out var plugin))
-            {
-                return ResultStatus.Failure;
-            }
-
-            if (AlreadyProcessed(plugin))
-            {
-                return ResultStatus.AlreadyProcessed;
-            }
-
             plugin.SetCompatibleWithAnyPlatform(true);
             plugin.SetExcludeEditorFromAnyPlatform(true);
 
@@ -180,8 +213,7 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Configured asset '{0}' as a Player Only.", assemblyAssetPath);
-            return ResultStatus.Success;
+            NugetHelper.LogVerbose("Configured asset '{0}' as a Player Only.", plugin.assetPath);
         }
 
         /// <summary>
@@ -210,7 +242,7 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Disabling WSA platform on asset settings for {0}", analyzerAssetPath);
+            NugetHelper.LogVerbose("Disabling WSA platform on asset settings for {0}", plugin.assetPath);
             return ResultStatus.Success;
         }
 
