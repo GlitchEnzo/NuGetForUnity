@@ -65,9 +65,7 @@ namespace NugetForUnity
             var editorOnlyAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor)
                 .Where(assembly => assembly.flags == AssemblyFlags.EditorAssembly)
                 .ToList();
-            var editorReferences = editorOnlyAssemblies.SelectMany(editorOnlyAssembly => editorOnlyAssembly.allReferences);
-            alreadyImportedEditorOnlyLibraries = new HashSet<string>(
-                editorReferences.Select(Path.GetFileNameWithoutExtension).Where(assemblyName => !alreadyImportedLibs.Contains(assemblyName)));
+            alreadyImportedEditorOnlyLibraries = new HashSet<string>();
 
             // com.unity.visualscripting uses .net 4.8 so it implicitly has System.CodeDom
             if (!alreadyImportedLibs.Contains("System.CodeDom") &&

@@ -88,7 +88,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                Debug.LogErrorFormat("{0}", e.ToString());
+                Debug.LogErrorFormat("{0}", e);
             }
             finally
             {
@@ -193,7 +193,7 @@ namespace NugetForUnity
             {
                 DrawPackage(fullDependency);
             }
-            else
+            else if (!NugetHelper.IsInstalled(dependency))
             {
                 Debug.LogErrorFormat("{0} {1} is not installed!", dependency.Id, dependency.Version);
             }

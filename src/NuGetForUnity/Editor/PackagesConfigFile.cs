@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using UnityEngine;
 
@@ -15,21 +17,26 @@ namespace NugetForUnity
         /// </summary>
         public const string FileName = "packages.config";
 
+        private const string AutoReferencedAttributeName = "autoReferenced";
+
+        private string contentIsSameAsInFilePath;
+
         /// <summary>
         ///     Gets the <see cref="NugetPackageIdentifier" />s contained in the package.config file.
         /// </summary>
-        public List<NugetPackageIdentifier> Packages { get; private set; }
+        public List<PackageConfig> Packages { get; private set; }
 
         /// <summary>
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        public void AddPackage(NugetPackageIdentifier package)
+        public void AddPackage(PackageConfig package)
         {
-            var existingPackage = Packages.Find(p => p.Id.ToLower() == package.Id.ToLower());
+            var existingPackage = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
             if (existingPackage != null)
             {
-                if (existingPackage < package)
+                var compared = existingPackage.CompareTo(package);
+                if (compared < 0)
                 {
                     Debug.LogWarningFormat(
                         "{0} {1} is already listed in the packages.config file.  Updating to {2}",
@@ -38,8 +45,9 @@ namespace NugetForUnity
                         package.Version);
                     Packages.Remove(existingPackage);
                     Packages.Add(package);
+                    MarkAsModified();
                 }
-                else if (existingPackage > package)
+                else if (compared > 0)
                 {
                     Debug.LogWarningFormat(
                         "Trying to add {0} {1} to the packages.config file.  {2} is already listed, so using that.",
@@ -51,7 +59,17 @@ namespace NugetForUnity
             else
             {
                 Packages.Add(package);
+                MarkAsModified();
             }
+        }
+
+        /// <summary>
+        ///     Adds a package to the packages.config file.
+        /// </summary>
+        /// <param name="package">The NugetPackage to add to the packages.config file.</param>
+        public void AddPackage(NugetPackageIdentifier package)
+        {
+            AddPackage(new PackageConfig { Id = package.Id, Version = package.Version });
         }
 
         /// <summary>
@@ -60,7 +78,11 @@ namespace NugetForUnity
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
         public void RemovePackage(NugetPackageIdentifier package)
         {
-            Packages.RemoveAll(p => p.CompareTo(package) == 0);
+            var removed = Packages.RemoveAll(p => p.CompareTo(package) == 0);
+            if (removed > 0)
+            {
+                MarkAsModified();
+            }
         }
 
         /// <summary>
@@ -69,7 +91,7 @@ namespace NugetForUnity
         /// <returns>A newly created <see cref="PackagesConfigFile" />.</returns>
         public static PackagesConfigFile Load(string filepath)
         {
-            var configFile = new PackagesConfigFile { Packages = new List<NugetPackageIdentifier>() };
+            var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
 
             // Create a package.config file, if there isn't already one in the project
             if (!File.Exists(filepath))
@@ -82,10 +104,17 @@ namespace NugetForUnity
             var packagesFile = XDocument.Load(filepath);
             foreach (var packageElement in packagesFile.Root.Elements())
             {
-                var package = new NugetPackage { Id = packageElement.Attribute("id").Value, Version = packageElement.Attribute("version").Value };
+                var package = new PackageConfig
+                {
+                    Id = packageElement.Attribute("id").Value,
+                    Version = packageElement.Attribute("version").Value,
+                    AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
+                                            new XAttribute(AutoReferencedAttributeName, true)),
+                };
                 configFile.Packages.Add(package);
             }
 
+            configFile.contentIsSameAsInFilePath = filepath;
             return configFile;
         }
 
@@ -95,8 +124,13 @@ namespace NugetForUnity
         /// <param name="filepath">The filepath to where this packages.config will be saved.</param>
         public void Save(string filepath)
         {
+            if (contentIsSameAsInFilePath == filepath)
+            {
+                return;
+            }
+
             Packages.Sort(
-                delegate(NugetPackageIdentifier x, NugetPackageIdentifier y)
+                delegate(PackageConfig x, PackageConfig y)
                 {
                     if (x.Id == null && y.Id == null)
                     {
@@ -128,6 +162,11 @@ namespace NugetForUnity
                 var packageElement = new XElement("package");
                 packageElement.Add(new XAttribute("id", package.Id));
                 packageElement.Add(new XAttribute("version", package.Version));
+                if (!package.AutoReferenced)
+                {
+                    packageElement.Add(new XAttribute(AutoReferencedAttributeName, package.AutoReferenced));
+                }
+
                 packagesFile.Root.Add(packageElement);
             }
 
@@ -145,6 +184,12 @@ namespace NugetForUnity
             }
 
             packagesFile.Save(filepath);
+            contentIsSameAsInFilePath = filepath;
+        }
+
+        private void MarkAsModified()
+        {
+            contentIsSameAsInFilePath = null;
         }
     }
 }
