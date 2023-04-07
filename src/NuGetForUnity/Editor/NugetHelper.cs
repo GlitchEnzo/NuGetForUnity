@@ -148,6 +148,8 @@ namespace NugetForUnity
         /// <returns>A dictionary of installed and selected <see cref="NugetPackage" />s.</returns>
         public static IEnumerable<NugetPackage> SelectedInstalledPackages => selectedInstalledPackages.Values;
 
+        public static int SelectedPackagesCount;
+
         /// <summary>
         ///     Loads the NuGet.config file.
         /// </summary>
@@ -607,6 +609,7 @@ namespace NugetForUnity
         public static void Select(NugetPackage package)
         {
             selectedInstalledPackages.Add(package.Id, package);
+            SelectedPackagesCount++;
         }
 
         /// <summary>
@@ -616,6 +619,20 @@ namespace NugetForUnity
         public static void Unselect(NugetPackage package)
         {
             selectedInstalledPackages.Remove(package.Id);
+            SelectedPackagesCount--;
+        }
+
+        /// <summary>
+        /// Unselects all selected packages.
+        /// </summary>
+        public static void UnselectAll()
+        {
+            foreach (var package in SelectedInstalledPackages)
+            {
+                package.IsSelected = false;
+            }
+            selectedInstalledPackages.Clear();
+            SelectedPackagesCount = 0;
         }
 
         /// <summary>
@@ -747,6 +764,7 @@ namespace NugetForUnity
         {
             foreach (var package in selectedInstalledPackages.Values.ToList())
             {
+                Unselect(package);
                 Uninstall(package);
             }
         }
@@ -822,6 +840,45 @@ namespace NugetForUnity
                 }
 
                 currentProgress += progressStep;
+            }
+
+            AssetDatabase.Refresh();
+
+            EditorUtility.ClearProgressBar();
+        }
+
+        /// <summary>
+        ///     Installs all of the given selected updates, and uninstalls the corresponding package that is already installed.
+        /// </summary>
+        /// <param name="updates">The list of all updates to install.</param>
+        /// <param name="packagesToUpdate">The list of selected packages currently installed.</param>
+        public static void UpdateAllSelected(IEnumerable<NugetPackage> updates)
+        {
+            var progressStep = 1.0f / Math.Min(updates.Count(), selectedInstalledPackages.Count());
+            float currentProgress = 0;
+
+            foreach (var update in updates)
+            {
+                if (SelectedInstalledPackages.Contains(update))
+                {
+                    EditorUtility.DisplayProgressBar(
+                        string.Format("Updating to {0} {1}", update.Id, update.Version),
+                        "Installing All Selected Updates",
+                        currentProgress);
+
+                    var installedPackage = SelectedInstalledPackages.FirstOrDefault(p => p.Id == update.Id);
+                    if (installedPackage != null)
+                    {
+                        Unselect(installedPackage);
+                        Update(installedPackage, update, false);
+                    }
+                    else
+                    {
+                        Debug.LogErrorFormat("Trying to update {0} to {1}, but no version is installed!", update.Id, update.Version);
+                    }
+
+                    currentProgress += progressStep;
+                }
             }
 
             AssetDatabase.Refresh();

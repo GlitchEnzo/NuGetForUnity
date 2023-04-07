@@ -94,21 +94,10 @@ namespace NugetForUnity
         /// </summary>
         public string Title;
 
-        private bool isSelected;
         /// <summary>
         ///     Gets or sets if the package is selected to be batch uninstalled or updated.
         /// </summary>
-        public bool IsSelected
-        {
-            get => isSelected;
-            set
-            {
-                isSelected = value;
-
-                if (isSelected) NugetHelper.Select(this);
-                else NugetHelper.Unselect(this);
-            }
-        }
+        public bool IsSelected;
 
         /// <summary>
         ///     Gets the icon for the package as a task returning a <see cref="Texture2D" />.

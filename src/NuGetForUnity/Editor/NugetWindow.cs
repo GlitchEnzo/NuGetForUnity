@@ -420,6 +420,7 @@ namespace NugetForUnity
 
         private void OnTabChanged()
         {
+            NugetHelper.UnselectAll();
             openCloneWindows.Clear();
         }
 
@@ -460,7 +461,7 @@ namespace NugetForUnity
 
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                DrawPackages(filteredUpdatePackages);
+                DrawPackages(filteredUpdatePackages, true);
             }
             else
             {
@@ -489,7 +490,7 @@ namespace NugetForUnity
             var filteredInstalledPackages = FilteredInstalledPackages.ToList();
             if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
-                DrawPackages(filteredInstalledPackages);
+                DrawPackages(filteredInstalledPackages, true);
             }
             else
             {
@@ -551,7 +552,7 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(List<NugetPackage> packages)
+        private void DrawPackages(List<NugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
@@ -559,7 +560,7 @@ namespace NugetForUnity
             for (var i = 0; i < packages.Count; i++)
             {
                 EditorGUILayout.BeginVertical(backgroundStyle);
-                DrawPackage(packages[i], backgroundStyle, contrastStyle);
+                DrawPackage(packages[i], backgroundStyle, contrastStyle, canBeSelected);
                 EditorGUILayout.EndVertical();
 
                 // swap styles
@@ -670,6 +671,27 @@ namespace NugetForUnity
                         SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
                         GetWindow<NugetWindow>().Close();
                     }
+
+                    GUILayout.FlexibleSpace();
+                    if (NugetHelper.InstalledPackages.Count() > 0)
+                    {
+                        if (GUILayout.Button("Uninstall All", EditorStyles.miniButtonRight, GUILayout.Width(150)))
+                        {
+                            NugetHelper.UninstallAll();
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+
+                    if (NugetHelper.SelectedPackagesCount > 0)
+                    {
+                        if (GUILayout.Button("Uninstall All Selected", EditorStyles.miniButtonRight, GUILayout.Width(150)))
+                        {
+                            NugetHelper.UninstallAllSelected();
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -724,18 +746,24 @@ namespace NugetForUnity
                         UpdateUpdatePackages();
                     }
 
-                    if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                    if (updatePackages.Count > 0)
                     {
-                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                        {
+                            NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
                     }
 
-                    if (GUILayout.Button("Install All Selected Updates", GUILayout.Width(200)))
+                    if (NugetHelper.SelectedPackagesCount > 0)
                     {
-                        NugetHelper.UpdateAll(updatePackages, NugetHelper.SelectedInstalledPackages);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        if (GUILayout.Button("Install All Selected Updates", GUILayout.Width(200)))
+                        {
+                            NugetHelper.UpdateAllSelected(updatePackages);
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
                     }
 
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
@@ -794,12 +822,21 @@ namespace NugetForUnity
         ///     Draws the given <see cref="NugetPackage" />.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage" /> to draw.</param>
-        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
+        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
-            package.IsSelected = EditorGUILayout.Toggle(package.IsSelected);
+            if (canBeSelected)
+            {
+                var isSelectedTemp = EditorGUILayout.Toggle(package.IsSelected);
+                if (isSelectedTemp != package.IsSelected)
+                {
+                    package.IsSelected = isSelectedTemp;
+                    if (package.IsSelected) NugetHelper.Select(package);
+                    else NugetHelper.Unselect(package);
+                }
+            }
 
             EditorGUILayout.BeginHorizontal();
             {
