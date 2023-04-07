@@ -755,6 +755,7 @@ namespace NugetForUnity
             {
                 Uninstall(package);
             }
+            UnselectAll();
         }
 
         /// <summary>
@@ -845,6 +846,7 @@ namespace NugetForUnity
             AssetDatabase.Refresh();
 
             EditorUtility.ClearProgressBar();
+            UnselectAll();
         }
 
         /// <summary>
