@@ -73,6 +73,11 @@ namespace NugetForUnity
         private static readonly Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
 
         /// <summary>
+        ///     The dictionary of currently selected installed <see cref="NugetPackage" />s keyed off of their ID string.
+        /// </summary>
+        private static readonly Dictionary<string, NugetPackage> selectedInstalledPackages = new Dictionary<string, NugetPackage>();
+
+        /// <summary>
         ///     The dictionary of cached credentials retrieved by credential providers, keyed by feed URI.
         /// </summary>
         private static readonly Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri =
@@ -136,6 +141,12 @@ namespace NugetForUnity
         /// </summary>
         /// <returns>A dictionary of installed <see cref="NugetPackage" />s.</returns>
         public static IEnumerable<NugetPackage> InstalledPackages => installedPackages.Values;
+
+        /// <summary>
+        ///     Gets the dictionary of packages that are actually installed in the project and selected, keyed off of the ID.
+        /// </summary>
+        /// <returns>A dictionary of installed and selected <see cref="NugetPackage" />s.</returns>
+        public static IEnumerable<NugetPackage> SelectedInstalledPackages => selectedInstalledPackages.Values;
 
         /// <summary>
         ///     Loads the NuGet.config file.
@@ -590,6 +601,24 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        /// Selects the given package to be uninstalled or updated.
+        /// </summary>
+        /// <param name="package">Package to be selected.</param>
+        public static void Select(NugetPackage package)
+        {
+            selectedInstalledPackages.Add(package.Id, package);
+        }
+
+        /// <summary>
+        /// Unselects the given package to be uninstalled or updated.
+        /// </summary>
+        /// <param name="package">Package to be unselected.</param>
+        public static void Unselect(NugetPackage package)
+        {
+            selectedInstalledPackages.Remove(package.Id);
+        }
+
+        /// <summary>
         ///     Recursively copies all files and sub-directories from one directory to another.
         /// </summary>
         /// <param name="sourceDirectoryPath">The filepath to the folder to copy from.</param>
@@ -706,6 +735,17 @@ namespace NugetForUnity
         internal static void UninstallAll()
         {
             foreach (var package in installedPackages.Values.ToList())
+            {
+                Uninstall(package);
+            }
+        }
+
+        /// <summary>
+        ///     Uninstalls all of the currently installed and selected packages.
+        /// </summary>
+        internal static void UninstallAllSelected()
+        {
+            foreach (var package in selectedInstalledPackages.Values.ToList())
             {
                 Uninstall(package);
             }

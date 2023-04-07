@@ -731,6 +731,13 @@ namespace NugetForUnity
                         UpdateUpdatePackages();
                     }
 
+                    if (GUILayout.Button("Install All Selected Updates", GUILayout.Width(200)))
+                    {
+                        NugetHelper.UpdateAll(updatePackages, NugetHelper.SelectedInstalledPackages);
+                        NugetHelper.UpdateInstalledPackages();
+                        UpdateUpdatePackages();
+                    }
+
                     if (GUILayout.Button("Refresh", GUILayout.Width(60)))
                     {
                         Refresh(true);
@@ -791,6 +798,8 @@ namespace NugetForUnity
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+
+            package.IsSelected = EditorGUILayout.Toggle(GUIContent.none, package.IsSelected);
 
             EditorGUILayout.BeginHorizontal();
             {
