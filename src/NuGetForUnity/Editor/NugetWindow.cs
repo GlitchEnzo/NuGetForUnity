@@ -799,7 +799,7 @@ namespace NugetForUnity
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
-            package.IsSelected = EditorGUILayout.Toggle(GUIContent.none, package.IsSelected);
+            package.IsSelected = EditorGUILayout.Toggle(package.IsSelected);
 
             EditorGUILayout.BeginHorizontal();
             {
