@@ -1430,7 +1430,13 @@ namespace NugetForUnity
                     continue;
                 }
 
-                var pkgPath = Path.Combine(folder, $"{folderName}.nupkg");
+                var pkgPath = Path.Combine(folder, $"{folderName}.nupkg");                
+                if (!File.Exists(pkgPath))
+                {
+                    // ignore folder not containing a nuget-package
+                    continue;
+                }
+                
                 var package = NugetPackage.FromNupkgFile(pkgPath);
 
                 var installed = false;
