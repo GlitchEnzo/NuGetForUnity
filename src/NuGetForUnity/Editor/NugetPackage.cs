@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -39,8 +40,11 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D icon;
 
-        public Task<Texture2D> iconTask;
+        private Task<Texture2D> iconTask;
 
+        /// <summary>
+        ///     Gets or sets the URL for the location of the icon of the NuGet package.
+        /// </summary>
         public string IconUrl;
 
         /// <summary>
@@ -193,6 +197,12 @@ namespace NugetForUnity
             }
 
             package.Dependencies = nuspec.Dependencies;
+
+            // handle local icon files, preferred if the file exists.
+            if (!string.IsNullOrEmpty(nuspec.IconFilePath) && (string.IsNullOrEmpty(nuspec.IconUrl) || File.Exists(nuspec.IconFilePath)))
+            {
+                package.IconUrl = $"file:///{nuspec.IconFilePath}";
+            }
 
             return package;
         }
