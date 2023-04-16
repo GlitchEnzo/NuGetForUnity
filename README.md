@@ -214,7 +214,7 @@ System.Diagnostics.EventLog references strong named System.Security.Principal.Wi
 Assembly Version Validation can be disabled in Player Settings "Assembly Version Validation"
 ```
 
-As mentioned in the message this error can be suppresed by changing a setting. Just go to Edit -> Project Settings -> Player -> Scroll down and expand "Other Settings" than uncheck "Assembly Version Validation" unther the "Configuration" section.
+As mentioned in the message this error can be suppressed by changing a setting. Just go to Edit -> Project Settings -> Player -> Scroll down and expand "Other Settings" than uncheck "Assembly Version Validation" under the "Configuration" section.
 
 <details>
 <summary>Screenshot of Player Settings</summary>
