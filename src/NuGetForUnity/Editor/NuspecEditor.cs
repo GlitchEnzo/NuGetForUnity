@@ -42,21 +42,16 @@ namespace NugetForUnity
             if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
             {
                 var selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
-                filepath = selectedFile.Substring("Assets/".Length);
-                filepath = Path.Combine(Application.dataPath, filepath);
+                filepath = Path.Combine(NugetHelper.AbsoluteProjectPath, selectedFile);
             }
 
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
             {
                 // if it was a file that was selected, replace the filename
                 filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
-                filepath += "MyPackage.nuspec";
             }
-            else
-            {
-                // if it was a directory that was selected, simply add the filename
-                filepath += "/MyPackage.nuspec";
-            }
+
+            filepath = Path.Combine(filepath, "MyPackage.nuspec");
 
             Debug.LogFormat("Creating: {0}", filepath);
 
@@ -77,8 +72,8 @@ namespace NugetForUnity
             AssetDatabase.Refresh();
 
             // select the newly created .nuspec file
-            var dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
-            Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(filepath.Replace(dataPath, string.Empty));
+            var relativeNuspecFilePath = filepath.Substring(NugetHelper.AbsoluteProjectPath.Length + 1);
+            Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(relativeNuspecFilePath);
 
             // automatically display the editor with the newly created .nuspec file
             DisplayNuspecEditor();
@@ -106,8 +101,7 @@ namespace NugetForUnity
             if (defaultAsset != null)
             {
                 var filepath = AssetDatabase.GetAssetPath(defaultAsset);
-                var dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
-                filepath = Path.Combine(dataPath, filepath);
+                filepath = Path.Combine(NugetHelper.AbsoluteProjectPath, filepath);
 
                 isNuspec = Path.GetExtension(filepath) == ".nuspec";
             }
@@ -140,8 +134,7 @@ namespace NugetForUnity
             if (defaultAsset != null)
             {
                 var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
-                var dataPath = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
-                assetFilepath = Path.Combine(dataPath, assetFilepath);
+                assetFilepath = Path.Combine(NugetHelper.AbsoluteProjectPath, assetFilepath);
 
                 var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
 
