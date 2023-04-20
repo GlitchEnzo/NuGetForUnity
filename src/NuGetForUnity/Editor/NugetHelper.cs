@@ -70,7 +70,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The dictionary of currently installed <see cref="NugetPackage" />s keyed off of their ID string.
         /// </summary>
-        private static readonly Dictionary<string, NugetPackage> installedPackages = new Dictionary<string, NugetPackage>();
+        private static Dictionary<string, NugetPackage> installedPackages;
 
         /// <summary>
         ///     The dictionary of currently selected installed <see cref="NugetPackage" />s keyed off of their ID string.
@@ -137,10 +137,25 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Gets the packages that are actually installed in the project.
+        /// </summary>
+        public static IEnumerable<NugetPackage> InstalledPackages => InstalledPackagesDictionary.Values;
+
+        /// <summary>
         ///     Gets the dictionary of packages that are actually installed in the project, keyed off of the ID.
         /// </summary>
-        /// <returns>A dictionary of installed <see cref="NugetPackage" />s.</returns>
-        public static IEnumerable<NugetPackage> InstalledPackages => installedPackages.Values;
+        private static Dictionary<string, NugetPackage> InstalledPackagesDictionary
+        {
+            get
+            {
+                if (installedPackages == null)
+                {
+                    UpdateInstalledPackages();
+                }
+
+                return installedPackages;
+            }
+        }
 
         /// <summary>
         ///     Gets the dictionary of packages that are actually installed in the project and selected, keyed off of the ID.
@@ -751,7 +766,7 @@ namespace NugetForUnity
         /// </summary>
         internal static void UninstallAll()
         {
-            foreach (var package in installedPackages.Values.ToList())
+            foreach (var package in InstalledPackages.ToList())
             {
                 Uninstall(package);
             }
@@ -792,7 +807,7 @@ namespace NugetForUnity
             var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}");
             DeleteDirectory(toolsInstallDirectory);
 
-            installedPackages.Remove(package.Id);
+            installedPackages?.Remove(package.Id);
 
             if (refreshAssets)
             {
@@ -898,7 +913,14 @@ namespace NugetForUnity
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            installedPackages.Clear();
+            if (installedPackages == null)
+            {
+                installedPackages = new Dictionary<string, NugetPackage>();
+            }
+            else
+            {
+                installedPackages.Clear();
+            }
 
             // loops through the packages that are actually installed in the project
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
@@ -1028,13 +1050,7 @@ namespace NugetForUnity
         /// <returns>The best <see cref="NugetPackage" /> match, if there is one, otherwise null.</returns>
         private static NugetPackage GetInstalledPackage(NugetPackageIdentifier packageId)
         {
-            if (installedPackages.Count == 0)
-            {
-                // Ensure that the dictionary is filled before we check if a NuGet package is already installed.
-                UpdateInstalledPackages();
-            }
-
-            if (installedPackages.TryGetValue(packageId.Id, out var installedPackage))
+            if (InstalledPackagesDictionary.TryGetValue(packageId.Id, out var installedPackage))
             {
                 if (packageId.Version != installedPackage.Version)
                 {
@@ -1206,7 +1222,7 @@ namespace NugetForUnity
                 return true;
             }
 
-            if (installedPackages.TryGetValue(package.Id, out var installedPackage))
+            if (InstalledPackagesDictionary.TryGetValue(package.Id, out var installedPackage))
             {
                 if (installedPackage < package)
                 {
@@ -1368,7 +1384,7 @@ namespace NugetForUnity
                 CleanInstallationDirectory(package);
 
                 // update the installed packages list
-                installedPackages.Add(package.Id, package);
+                InstalledPackagesDictionary.Add(package.Id, package);
                 installSuccess = true;
             }
             catch (Exception e)
@@ -1530,6 +1546,12 @@ namespace NugetForUnity
                 }
 
                 var pkgPath = Path.Combine(folder, $"{folderName}.nupkg");
+                if (!File.Exists(pkgPath))
+                {
+                    // ignore folder not containing a nuget-package
+                    continue;
+                }
+
                 var package = NugetPackage.FromNupkgFile(pkgPath);
 
                 var installed = false;
@@ -1565,7 +1587,7 @@ namespace NugetForUnity
             }
 
             var isInstalled = false;
-            if (installedPackages.TryGetValue(package.Id, out var installedPackage))
+            if (InstalledPackagesDictionary.TryGetValue(package.Id, out var installedPackage))
             {
                 isInstalled = package.CompareVersion(installedPackage.Version) == 0;
             }

@@ -1,6 +1,6 @@
 ## Description
 
-[Describe the issue you have.]
+[Describe the issue you have. If applicable provide logs produced by enabeling verbose logging in the NuGetForUnity settings.]
 
 -   **NuGet Package:** [What is the name and version of the NuGet package you are installing?]
 -   **NuGetForUnity Version:** [What version of NuGetForUnity are you running?]
