@@ -73,11 +73,6 @@ namespace NugetForUnity
         private static Dictionary<string, NugetPackage> installedPackages;
 
         /// <summary>
-        ///     The dictionary of currently selected installed <see cref="NugetPackage" />s keyed off of their ID string.
-        /// </summary>
-        private static readonly Dictionary<string, NugetPackage> selectedInstalledPackages = new Dictionary<string, NugetPackage>();
-
-        /// <summary>
         ///     The dictionary of cached credentials retrieved by credential providers, keyed by feed URI.
         /// </summary>
         private static readonly Dictionary<Uri, CredentialProviderResponse?> cachedCredentialsByFeedUri =
@@ -156,14 +151,6 @@ namespace NugetForUnity
                 return installedPackages;
             }
         }
-
-        /// <summary>
-        ///     Gets the dictionary of packages that are actually installed in the project and selected, keyed off of the ID.
-        /// </summary>
-        /// <returns>A dictionary of installed and selected <see cref="NugetPackage" />s.</returns>
-        public static IEnumerable<NugetPackage> SelectedInstalledPackages => selectedInstalledPackages.Values;
-
-        public static int SelectedPackagesCount;
 
         /// <summary>
         ///     Loads the NuGet.config file.
@@ -618,39 +605,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        /// Selects the given package to be uninstalled or updated.
-        /// </summary>
-        /// <param name="package">Package to be selected.</param>
-        public static void Select(NugetPackage package)
-        {
-            selectedInstalledPackages.Add(package.Id, package);
-            SelectedPackagesCount++;
-        }
-
-        /// <summary>
-        /// Unselects the given package to be uninstalled or updated.
-        /// </summary>
-        /// <param name="package">Package to be unselected.</param>
-        public static void Unselect(NugetPackage package)
-        {
-            selectedInstalledPackages.Remove(package.Id);
-            SelectedPackagesCount--;
-        }
-
-        /// <summary>
-        /// Unselects all selected packages.
-        /// </summary>
-        public static void UnselectAll()
-        {
-            foreach (var package in SelectedInstalledPackages)
-            {
-                package.IsSelected = false;
-            }
-            selectedInstalledPackages.Clear();
-            SelectedPackagesCount = 0;
-        }
-
-        /// <summary>
         ///     Recursively copies all files and sub-directories from one directory to another.
         /// </summary>
         /// <param name="sourceDirectoryPath">The filepath to the folder to copy from.</param>
@@ -764,23 +718,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Uninstalls all of the currently installed packages.
         /// </summary>
-        internal static void UninstallAll()
+        internal static void UninstallAll(bool onlySelected = false)
         {
             foreach (var package in InstalledPackages.ToList())
             {
-                Uninstall(package);
-            }
-            UnselectAll();
-        }
+                if (onlySelected && !package.IsSelected) continue;
 
-        /// <summary>
-        ///     Uninstalls all of the currently installed and selected packages.
-        /// </summary>
-        internal static void UninstallAllSelected()
-        {
-            foreach (var package in selectedInstalledPackages.Values.ToList())
-            {
-                Unselect(package);
                 Uninstall(package);
             }
         }
@@ -856,46 +799,6 @@ namespace NugetForUnity
                 }
 
                 currentProgress += progressStep;
-            }
-
-            AssetDatabase.Refresh();
-
-            EditorUtility.ClearProgressBar();
-            UnselectAll();
-        }
-
-        /// <summary>
-        ///     Installs all of the given selected updates, and uninstalls the corresponding package that is already installed.
-        /// </summary>
-        /// <param name="updates">The list of all updates to install.</param>
-        /// <param name="packagesToUpdate">The list of selected packages currently installed.</param>
-        public static void UpdateAllSelected(IEnumerable<NugetPackage> updates)
-        {
-            var progressStep = 1.0f / Math.Min(updates.Count(), selectedInstalledPackages.Count());
-            float currentProgress = 0;
-
-            foreach (var update in updates)
-            {
-                if (SelectedInstalledPackages.Contains(update))
-                {
-                    EditorUtility.DisplayProgressBar(
-                        string.Format("Updating to {0} {1}", update.Id, update.Version),
-                        "Installing All Selected Updates",
-                        currentProgress);
-
-                    var installedPackage = SelectedInstalledPackages.FirstOrDefault(p => p.Id == update.Id);
-                    if (installedPackage != null)
-                    {
-                        Unselect(installedPackage);
-                        Update(installedPackage, update, false);
-                    }
-                    else
-                    {
-                        Debug.LogErrorFormat("Trying to update {0} to {1}, but no version is installed!", update.Id, update.Version);
-                    }
-
-                    currentProgress += progressStep;
-                }
             }
 
             AssetDatabase.Refresh();
