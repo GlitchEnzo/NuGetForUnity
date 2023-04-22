@@ -235,4 +235,4 @@ To import one of the System libraries and resolve the error you need to create a
 -r:System.Net.Http.dll
 ```
 
-and place it inside the containig the project that requires the library e.g. the `Assets` folder. It can also be placed in a folder that contains a `.asmdef` so the reference is only added to the sub-project. NuGetForUnity also uses a `csc.rsp` file see [csc.rsp](src/NuGetForUnity/Editor/csc.rsp).
+and place it inside the containing project that requires the library e.g. the `Assets` folder. It can also be placed in a folder that contains a `.asmdef` to only add the reference to the sub-project. For example NuGetForUnity also uses a `csc.rsp` file see [csc.rsp](src/NuGetForUnity/Editor/csc.rsp).
