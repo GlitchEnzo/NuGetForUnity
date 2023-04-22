@@ -202,7 +202,7 @@ Restore nuget packages of a single Unity Project: `dotnet nugetforunity restore 
 
 # Common issues when installing NuGet packages
 
-Unity is relatively special as it uses a different runtime, a fork of the [Mono](https://docs.unity3d.com/Manual/Mono.html) runtime, than the standerd .Net from Microsoft uses. For some platforms Unity even uses [IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html) that compiles all C# code to C++ code. So Unity also uses a different build-system. This can lead to some issues with NuGet packages that heavily depend on the standard .Net build-system. NuGetForUnity tries to handle most of the changes needed for NuGet packages to work inside Unity but it is not able to resolve all issues.
+In the .Net ecosystem Unity is relatively special as it doesn't use the standard .Net runtime from Microsoft instead, it uses a fork of the [Mono](https://docs.unity3d.com/Manual/Mono.html) runtime. For some platforms Unity even uses [IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html) that compiles all C# code to C++ code. So Unity also uses a different build-system. This can lead to some issues with NuGet packages that heavily depend on the standard .Net build-system. NuGetForUnity tries to handle most of the changes needed to allow using NuGet packages inside Unity but it is not able to resolve all issues. This section contains some common issues and potential solutions.
 
 ## Version Conflicts
 
