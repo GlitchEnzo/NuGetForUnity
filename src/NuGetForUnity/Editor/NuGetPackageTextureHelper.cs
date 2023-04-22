@@ -23,7 +23,12 @@ namespace NugetForUnity
             try
             {
                 var fromCache = false;
-                if (ExistsInDiskCache(url))
+                if (url.StartsWith("file://"))
+                {
+                    // we only cache images coming from a remote server.
+                    fromCache = true;
+                }
+                else if (ExistsInDiskCache(url))
                 {
                     url = "file:///" + GetFilePath(url);
                     fromCache = true;
@@ -35,7 +40,7 @@ namespace NugetForUnity
                     var downloadHandler = new DownloadHandlerTexture(false);
 
                     request.downloadHandler = downloadHandler;
-                    request.timeout = 1;
+                    request.timeout = 1; // 1 second
                     var operation = request.SendWebRequest();
                     operation.completed += asyncOperation =>
                     {

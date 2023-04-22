@@ -6,7 +6,7 @@ You can learn more about NuGet here: [nuget.org](https://www.nuget.org/)
 
 NuGetForUnity provides a visual editor window to see available packages on the server, see installed packages, and see available package updates. A visual interface is also provided to create and edit _.nuspec_ files in order to define and publish your own NuGet packages from within Unity.
 
-![](screenshots/online.png?raw=true)
+<img alt="Online Packages Tap" src="docs/screenshots/online.png" height="500px" />
 
 # How do I install NuGetForUnity?
 
@@ -62,11 +62,11 @@ Download the `*.unitypackage` file. Right-click on it in File Explorer and choos
 
 To launch, select **NuGet → Manage NuGet Packages**
 
-![](docs/screenshots/menu_item.png?raw=true)
+<img alt="Menu Items" src="docs/screenshots/menu_item.png" height="170px" />
 
 After several seconds (it can take some time to query the server for packages), you should see a window like this:
 
-![](docs/screenshots/online.png?raw=true)
+<img alt="Online Packages Tap" src="docs/screenshots/online.png" height="500px" />
 
 The **Online** tab shows the packages available on the NuGet server.
 
@@ -89,13 +89,13 @@ Note: If the package is already installed an **Uninstall** button will be displa
 
 The **Installed** tabs shows the packages already installed in the current Unity project.
 
-![](docs/screenshots/installed.png?raw=true)
+<img alt="Installed Packages Tap" src="docs/screenshots/installed.png" height="500px" />
 
 Click the **Uninstall** button to uninstall the package.
 
 The **Updates** tab shows the packages currently installed that have updates available on the server.
 
-![](docs/screenshots/updates.png?raw=true)
+<img alt="Updates Packages Tap" src="docs/screenshots/updates.png" height="500px" />
 
 The version in brackets on the left is the new version number. The version in brackets in the **Update** button is the currently installed version.
 
@@ -128,13 +128,13 @@ You can change this to any other NuGet server (such as NuGet.Server or ProGet - 
 
 See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
 
-![](docs/screenshots/menu_item.png?raw=true)
+<img alt="Menu Items" src="docs/screenshots/menu_item.png" height="170px" />
 
 NuGetForUnity installs packages into the local repository path defined in the _NuGet.config_ file (`repositoryPath`). By default, this is set to the `Assets/Packages` folder. In the _NuGet.config_ file, this can either be a full path, or it can be a relative path based on the project's Assets folder. Note: You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
 
 When a package is installed, the _packages.config_ file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed. This allows for the packages to be restored from scratch at any point. The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project. It can be run manually by selecting the **NuGet → Restore Packages** menu item.
 
-![](docs/screenshots/menu_item.png?raw=true)
+<img alt="Menu Items" src="docs/screenshots/menu_item.png" height="170px" />
 
 Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
@@ -161,11 +161,11 @@ When this setting is set to `false` the assemblies of the NuGet package are only
 
 First, you'll need to create a _.nuspec_ file that defines your package. In your Project window, right click where you want the _.nuspec_ file to go and select **NuGet → Create Nuspec File**.
 
-![](docs/screenshots/nuspec_menu.png?raw=true)
+<img alt="Create Nuspec Menu" src="docs/screenshots/nuspec_menu.png" height="400px" />
 
 Select the new _.nuspec_ file and you should see something like this:
 
-![](docs/screenshots/nuspec_editor.png?raw=true)
+<img alt="Nuspec editor" src="docs/screenshots/nuspec_editor.png" height="500px" />
 
 Input the appropriate information for your package (ID, Version, Author, Description, etc). Be sure to include whatever dependencies are required by your package.
 
@@ -176,6 +176,8 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 # How do I create my own NuGet server to host NuGet packages?
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
+
+> **Note:** NuGetForUnity currently only supports NuGet Api version v1
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share.
 
@@ -197,3 +199,24 @@ For more information see [.Net Tool Documentaion](https://learn.microsoft.com/en
 ## Usage
 
 Restore nuget packages of a single Unity Project: `dotnet nugetforunity restore <PROJECT_PATH>`. If installed as a global tool it can be called without the `dotnet` prefix: `nugetforunity restore <PROJECT_PATH>`.
+
+# Common issues when installing NuGet packages
+
+In the .Net ecosystem Unity is relatively special as it doesn't use the standard .Net runtime from Microsoft instead, it uses a fork of the [Mono](https://docs.unity3d.com/Manual/Mono.html) runtime. For some platforms Unity even uses [IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html) that compiles all C# code to C++ code. So Unity also uses a different build-system. This can lead to some issues with NuGet packages that heavily depend on the standard .Net build-system. NuGetForUnity tries to handle most of the changes needed to allow using NuGet packages inside Unity but it is not able to resolve all issues. This section contains some common issues and potential solutions.
+
+## Version Conflicts
+
+If two NuGet packages depend on the same package but reference different versions of it, Unity shows a error like:
+
+```
+Assembly 'Assets/Packages/System.Diagnostics.EventLog.4.7.0/lib/netstandard2.0/System.Diagnostics.EventLog.dll' will not be loaded due to errors:
+System.Diagnostics.EventLog references strong named System.Security.Principal.Windows Assembly references: 4.1.1.0 Found in project: 4.1.3.0.
+Assembly Version Validation can be disabled in Player Settings "Assembly Version Validation"
+```
+
+As mentioned in the message this error can be suppressed by changing a setting. Just go to Edit -> Project Settings -> Player -> Scroll down and expand "Other Settings" than uncheck "Assembly Version Validation" under the "Configuration" section.
+
+<details>
+<summary>Screenshot of Player Settings</summary>
+<img als="Assembly Version Validation settings page" src="docs/screenshots/assembly-version-validation-setting.png" height="550px" />
+</details>
