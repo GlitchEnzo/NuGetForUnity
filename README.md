@@ -220,3 +220,19 @@ As mentioned in the message this error can be suppressed by changing a setting. 
 <summary>Screenshot of Player Settings</summary>
 <img als="Assembly Version Validation settings page" src="docs/screenshots/assembly-version-validation-setting.png" height="550px" />
 </details>
+
+## Missing System libraries
+
+When targeting .Net Framework, the 'Api Compatibility Level' setting under _Edit_ -> _Project Settings_ -> _Player_ -> _Other Settings_ is set to .NET Framework, Unity doesn't include some System libraries by default. See also [Unity documentation about system libraries](https://docs.unity3d.com/Manual/dotnetProfileAssemblies.html) and [Unity documetnation about .Net Profiles](https://docs.unity3d.com/Manual/dotnetProfileSupport.html). Libraries that are not imported by default are e.g. `System.Drawing`, `System.IO.Compression`, `System.IO.Compression.FileSystem` and `System.Net.Http`. If you try to use one of this libraries you get a error like:
+
+```
+The type `HttpClient` is defined in an assembly that is not referenced. You must add a reference to assembly 'System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.
+```
+
+To import one of the System libraries and resolve the error you need to create a `csc.rsp` file with the content e.g. to import `System.Net.Http`
+
+```
+-r:System.Net.Http.dll
+```
+
+and place it inside the containing project that requires the library e.g. the `Assets` folder. It can also be placed in a folder that contains a `.asmdef` to only add the reference to the sub-project. For example NuGetForUnity also uses a `csc.rsp` file see [csc.rsp](src/NuGetForUnity/Editor/csc.rsp).
