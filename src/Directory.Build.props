@@ -2,6 +2,7 @@
     <PropertyGroup>
         <!-- To support Unity 2018.4 with .NET Framework we can not 'eayily' use features of C# higher than 7.3 -->
         <LangVersion>7.3</LangVersion>
+        <RuntimeIdentifier>win</RuntimeIdentifier>
     </PropertyGroup>
 
     <!-- Packaging -->
@@ -19,4 +20,11 @@
         <PackageReleaseNotes>https://github.com/GlitchEnzo/NuGetForUnity/releases</PackageReleaseNotes>
         <PackageTags>Unity;Package Manager</PackageTags>
     </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
 </Project>

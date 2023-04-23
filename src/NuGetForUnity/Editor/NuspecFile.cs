@@ -13,7 +13,7 @@ namespace NugetForUnity
     /// </summary>
     /// <remarks>
     ///     At a minumum, Id, Version, Description, and Authors is required.  Everything else is optional.
-    ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec
+    ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec.
     /// </remarks>
     public class NuspecFile : NugetPackageIdentifier
     {

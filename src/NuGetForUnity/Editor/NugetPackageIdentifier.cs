@@ -7,14 +7,16 @@ using UnityEngine;
 namespace NugetForUnity
 {
     /// <summary>
-    ///     Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
+    ///     Represents an identifier for a NuGet package. It contains only an ID and a Version number.
     /// </summary>
-    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>, ISerializationCallbackReceiver
+    [Serializable]
+    public class NugetPackageIdentifier : INuGetPackageIdentifier,
+        IEquatable<NugetPackageIdentifier>,
+        IComparable<NugetPackageIdentifier>,
+        ISerializationCallbackReceiver
     {
-        /// <summary>
-        ///     Gets or sets the ID of the NuGet package.
-        /// </summary>
-        public string Id;
+        [SerializeField]
+        private string versionForSerialization;
 
         /// <summary>
         ///     Gets or sets whether this package was installed manually or just as a dependency.
@@ -158,9 +160,10 @@ namespace NugetForUnity
         /// <inheritdoc />
         public int CompareTo(NugetPackageIdentifier other)
         {
-            if (Id != other.Id)
+            var idCompareResult = string.Compare(Id, other.Id, StringComparison.Ordinal);
+            if (idCompareResult != 0)
             {
-                return string.Compare(Id, other.Id);
+                return idCompareResult;
             }
 
             if (HasVersionRange || other.HasVersionRange)
@@ -179,6 +182,63 @@ namespace NugetForUnity
         public bool Equals(NugetPackageIdentifier other)
         {
             return other != null && other.Id == Id && other.Version == Version;
+        }
+
+        /// <inheritdoc />
+        [field: SerializeField]
+        public string Id { get; set; }
+
+        /// <inheritdoc />
+        public string Version
+        {
+            get => PackageVersion.ToString();
+
+            set => PackageVersion = new NuGetPackageVersion(value);
+        }
+
+        /// <inheritdoc />
+        public NuGetPackageVersion PackageVersion { get; internal set; }
+
+        /// <inheritdoc />
+        public bool IsPrerelease => PackageVersion.IsPrerelease;
+
+        /// <inheritdoc />
+        public bool HasVersionRange => PackageVersion.HasVersionRange;
+
+        /// <inheritdoc />
+        public bool InRange(INuGetPackageIdentifier otherPackage)
+        {
+            return PackageVersion.InRange(otherPackage.PackageVersion);
+        }
+
+        /// <inheritdoc />
+        public bool InRange(NuGetPackageVersion otherVersion)
+        {
+            return PackageVersion.InRange(otherVersion);
+        }
+
+        /// <inheritdoc />
+        public bool Equals(INuGetPackageIdentifier other)
+        {
+            return Equals(other as NugetPackageIdentifier);
+        }
+
+        /// <inheritdoc />
+        public int CompareTo(INuGetPackageIdentifier other)
+        {
+            return CompareTo(other as NugetPackageIdentifier);
+        }
+
+        /// <inheritdoc />
+        public virtual void OnBeforeSerialize()
+        {
+            versionForSerialization = PackageVersion?.ToString();
+        }
+
+        /// <inheritdoc />
+        public virtual void OnAfterDeserialize()
+        {
+            Version = versionForSerialization;
         }
 
         /// <summary>
@@ -319,33 +379,20 @@ namespace NugetForUnity
         /// <returns>True if the given object is equal to this <see cref="NugetPackageIdentifier" />, otherwise false.</returns>
         public override bool Equals(object obj)
         {
-            // If parameter is null return false.
-            if (obj == null)
-            {
-                return false;
-            }
-
-            // If parameter cannot be cast to NugetPackageIdentifier return false.
-            if (obj is NugetPackageIdentifier packageIdentifier)
-            {
-                // Return true if the fields match:
-                return Id == packageIdentifier.Id && Version == packageIdentifier.Version;
-            }
-
-            return false;
+            return Equals(obj as NugetPackageIdentifier);
         }
 
         /// <summary>
-        ///     Gets the hashcode for this <see cref="NugetPackageIdentifier" />.
+        ///     Gets the hash-code for this <see cref="NugetPackageIdentifier" />.
         /// </summary>
-        /// <returns>The hashcode for this instance.</returns>
+        /// <returns>The hash-code for this instance.</returns>
         public override int GetHashCode()
         {
             return Id.GetHashCode() ^ Version.GetHashCode();
         }
 
         /// <summary>
-        ///     Returns the string representation of this <see cref="NugetPackageIdentifer" /> in the form "{ID}.{Version}".
+        ///     Returns the string representation of this <see cref="NugetPackageIdentifier" /> in the form "{ID}.{Version}".
         /// </summary>
         /// <returns>A string in the form "{ID}.{Version}".</returns>
         public override string ToString()

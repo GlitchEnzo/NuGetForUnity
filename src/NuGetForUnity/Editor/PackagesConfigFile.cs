@@ -67,7 +67,7 @@ namespace NugetForUnity
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        public void AddPackage(NugetPackageIdentifier package)
+        public void AddPackage(INuGetPackageIdentifier package)
         {
             AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
         }
@@ -76,7 +76,7 @@ namespace NugetForUnity
         ///     Removes a package from the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        public bool RemovePackage(NugetPackageIdentifier package)
+        public bool RemovePackage(INugetPackageIdentifier package)
         {
             var removed = Packages.RemoveAll(p => p.CompareTo(package) == 0);
             if (removed > 0)

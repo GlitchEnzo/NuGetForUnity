@@ -107,7 +107,7 @@ namespace NugetForUnity
 
         /// <summary>
         ///     Select the highest .NET library available that is supported
-        ///     See here: https://docs.nuget.org/ndocs/schema/target-frameworks
+        ///     See here: https://docs.nuget.org/ndocs/schema/target-frameworks.
         /// </summary>
         /// <param name="availableTargetFrameworks"></param>
         /// <returns></returns>

@@ -11,12 +11,12 @@ namespace NugetForUnity
     /// </summary>
     public class DependencyTreeViewer : EditorWindow
     {
-        private readonly Dictionary<NugetPackage, bool> expanded = new Dictionary<NugetPackage, bool>();
+        private readonly Dictionary<INuGetPackage, bool> expanded = new Dictionary<INuGetPackage, bool>();
 
         /// <summary>
         ///     The list of packages that depend on the specified package.
         /// </summary>
-        private readonly List<NugetPackage> parentPackages = new List<NugetPackage>();
+        private readonly List<INuGetPackage> parentPackages = new List<INuGetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -36,9 +36,9 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of currently installed packages.
         /// </summary>
-        private List<NugetPackage> installedPackages;
+        private List<INuGetPackage> installedPackages;
 
-        private List<NugetPackage> roots;
+        private List<INuGetPackage> roots;
 
         private Vector2 scrollPosition;
 
@@ -137,7 +137,12 @@ namespace NugetForUnity
                         var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                            if (!package.Dependencies.IsCompleted)
+                            {
+                                continue;
+                            }
+
+                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
@@ -175,7 +180,7 @@ namespace NugetForUnity
             }
         }
 
-        private void DrawDepencency(NugetPackageIdentifier dependency)
+        private void DrawDepencency(INuGetPackageIdentifier dependency)
         {
             var fullDependency = installedPackages.Find(p => p.Id == dependency.Id);
             if (fullDependency != null)
@@ -188,9 +193,9 @@ namespace NugetForUnity
             }
         }
 
-        private void DrawPackage(NugetPackage package)
+        private void DrawPackage(INuGetPackage package)
         {
-            if (package.Dependencies != null && package.Dependencies.Count > 0)
+            if (package.Dependencies != null && package.Dependencies.IsCompleted && package.Dependencies.Result.Count > 0)
             {
                 expanded[package] = EditorGUILayout.Foldout(expanded[package], string.Format("{0} {1}", package.Id, package.Version));
 
@@ -198,7 +203,7 @@ namespace NugetForUnity
                 {
                     EditorGUI.indentLevel++;
 
-                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
                     foreach (var dependency in frameworkGroup.Dependencies)
                     {
                         DrawDepencency(dependency);

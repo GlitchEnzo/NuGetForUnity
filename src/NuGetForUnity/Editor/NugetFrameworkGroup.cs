@@ -11,7 +11,7 @@ namespace NugetForUnity
         public NugetFrameworkGroup()
         {
             TargetFramework = "";
-            Dependencies = new List<NugetPackageIdentifier>();
+            Dependencies = new List<INuGetPackageIdentifier>();
         }
 
         /// <summary>
@@ -22,6 +22,6 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the list of package dependencies that belong to this group.
         /// </summary>
-        public List<NugetPackageIdentifier> Dependencies { get; set; }
+        public List<INuGetPackageIdentifier> Dependencies { get; set; }
     }
 }

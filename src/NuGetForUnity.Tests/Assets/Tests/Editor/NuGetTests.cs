@@ -343,8 +343,9 @@ public class NuGetTests
     [TestCase("1.0.0", "1.0.0.10")]
     public void VersionComparison(string smallerVersion, string greaterVersion)
     {
-        var smallerPackage = new NugetPackage { Id = "TestPackage", Version = smallerVersion };
-        var greaterPackage = new NugetPackage { Id = "TestPackage", Version = greaterVersion };
+        var localNuGetPackageSource = new LocalNuGetPackageSource("test", "test");
+        var smallerPackage = new NugetPackage(localNuGetPackageSource) { Id = "TestPackage", Version = smallerVersion };
+        var greaterPackage = new NugetPackage(localNuGetPackageSource) { Id = "TestPackage", Version = greaterVersion };
 
         Assert.IsTrue(smallerPackage.CompareTo(greaterPackage) < 0, "{0} was NOT smaller than {1}", smallerVersion, greaterVersion);
         Assert.IsTrue(greaterPackage.CompareTo(smallerPackage) > 0, "{0} was NOT greater than {1}", greaterVersion, smallerVersion);
@@ -421,7 +422,7 @@ public class NuGetTests
 
         var file = NugetConfigFile.CreateDefaultFile(path);
 
-        var inputSource = new NugetPackageSource(name, "localhost") { UserName = username, SavedPassword = password };
+        var inputSource = new NuGetPackageSourceV2(name, "http://localhost") { UserName = username, SavedPassword = password };
 
         file.PackageSources.Add(inputSource);
         file.Save(path);
@@ -438,7 +439,8 @@ public class NuGetTests
     [TestCase("2018.4.30f1", true, false, false)]
     [TestCase("2021.3.16f1", false, true, true)]
     [TestCase("2021.3.16f1", true, true, true)]
-    public void TryGetBestTargetFrameworkForCurrentSettingsTest(string unityVersion,
+    public void TryGetBestTargetFrameworkForCurrentSettingsTest(
+        string unityVersion,
         bool useNetStandard,
         bool supportsNetStandard21,
         bool supportsNet48)

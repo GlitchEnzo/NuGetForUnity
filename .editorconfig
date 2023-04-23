@@ -142,6 +142,8 @@ dotnet_diagnostic.sa1101.severity=none
 dotnet_diagnostic.SA1408.severity=none
 dotnet_diagnostic.SA1407.severity=none
 dotnet_diagnostic.SA1118.severity=none
+# ReSharper properties
+resharper_wrap_after_declaration_lpar=true
 
 [{*.yaml,*.yml}]
 indent_size=2

@@ -97,9 +97,9 @@ namespace NugetForUnity
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-            NugetPackageSource sourceToMoveUp = null;
-            NugetPackageSource sourceToMoveDown = null;
-            NugetPackageSource sourceToRemove = null;
+            INuGetPackageSource sourceToMoveUp = null;
+            INuGetPackageSource sourceToMoveDown = null;
+            INuGetPackageSource sourceToRemove = null;
 
             foreach (var source in NugetHelper.NugetConfigFile.PackageSources)
             {
@@ -232,7 +232,7 @@ namespace NugetForUnity
 
             if (GUILayout.Button("Add New Source"))
             {
-                NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSource("New Source", "source_path"));
+                NugetHelper.NugetConfigFile.PackageSources.Add(new NuGetPackageSourceV2("New Source", "source_path"));
                 preferencesChangedThisFrame = true;
             }
 

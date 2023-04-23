@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -8,7 +9,7 @@ namespace NugetForUnity
     ///     Provides helper methods for parsing a NuGet server OData response.
     ///     OData is a superset of the Atom API.
     /// </summary>
-    public static class NugetODataResponse
+    internal static class NugetODataResponse
     {
         private const string AtomNamespace = "http://www.w3.org/2005/Atom";
 
@@ -31,7 +32,7 @@ namespace NugetForUnity
         ///     Gets the <see cref="XElement" /> within the Atom namespace with the given name.
         /// </summary>
         /// <param name="element">The element containing the Atom element.</param>
-        /// <param name="name">The name of the Atom element</param>
+        /// <param name="name">The name of the Atom element.</param>
         /// <returns>The Atom element.</returns>
         private static XElement GetAtomElement(this XElement element, string name)
         {
@@ -42,8 +43,9 @@ namespace NugetForUnity
         ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackage" />s contained within.
         /// </summary>
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
+        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
         /// <returns>The list of <see cref="NugetPackage" />s read from the given XML.</returns>
-        public static List<NugetPackage> Parse(XDocument document)
+        public static List<NugetPackage> Parse(XDocument document, NuGetPackageSourceV2 packageSource)
         {
             var packages = new List<NugetPackage>();
 
@@ -64,9 +66,9 @@ namespace NugetForUnity
 
             foreach (var entry in packageEntries)
             {
-                var package = new NugetPackage
+                var package = new NugetPackage(packageSource)
                 {
-                    Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
+                    Id = entry.GetAtomElement("title").Value, DownloadUrlV2 = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };
 
                 var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace));
@@ -77,8 +79,8 @@ namespace NugetForUnity
                 package.ReleaseNotes = entryProperties.GetProperty("ReleaseNotes");
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
-                package.Authors = entryProperties.GetProperty("Authors");
-                package.DownloadCount = long.Parse(entryProperties.GetProperty("DownloadCount"));
+                package.Authors = entryProperties.GetProperty("Authors").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                package.TotalDownloads = long.Parse(entryProperties.GetProperty("DownloadCount"));
                 package.IconUrl = entryProperties.GetProperty("IconUrl");
 
                 // if there is no title, just use the ID as the title
@@ -123,7 +125,7 @@ namespace NugetForUnity
 
                     foreach (var group in dependencyGroups.Values)
                     {
-                        package.Dependencies.Add(group);
+                        package.DependenciesV2.Add(group);
                     }
                 }
 

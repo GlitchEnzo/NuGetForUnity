@@ -11,7 +11,7 @@ namespace NugetForUnity
 {
     /// <summary>
     ///     Represents a NuGet.config file that stores the NuGet settings.
-    ///     See here: https://docs.nuget.org/consume/nuget-config-file
+    ///     See here: https://docs.nuget.org/consume/nuget-config-file.
     /// </summary>
     public class NugetConfigFile
     {
@@ -37,13 +37,13 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
         /// </summary>
-        public List<NugetPackageSource> PackageSources { get; private set; }
+        public List<INuGetPackageSource> PackageSources { get; private set; }
 
         /// <summary>
         ///     Gets the currently active package source that is defined in the NuGet.config file.
         ///     Note: If the key/Name is set to "All" and the value/Path is set to "(Aggregate source)", all package sources are used.
         /// </summary>
-        public NugetPackageSource ActivePackageSource { get; private set; }
+        public INuGetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
         ///     Gets the local path where packages are to be installed.  It can be a full path or a relative path.
@@ -220,14 +220,14 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Loads a NuGet.config file at the given filepath.
+        ///     Loads a NuGet.config file at the given file-path.
         /// </summary>
-        /// <param name="filePath">The full filepath to the NuGet.config file to load.</param>
+        /// <param name="filePath">The full file-path to the NuGet.config file to load.</param>
         /// <returns>The newly loaded <see cref="NugetConfigFile" />.</returns>
         public static NugetConfigFile Load(string filePath)
         {
             var configFile = new NugetConfigFile();
-            configFile.PackageSources = new List<NugetPackageSource>();
+            configFile.PackageSources = new List<INuGetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
 
@@ -240,7 +240,8 @@ namespace NugetForUnity
                 var adds = packageSources.Elements("add");
                 foreach (var add in adds)
                 {
-                    configFile.PackageSources.Add(new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value));
+                    configFile.PackageSources.Add(
+                        NuGetPackageSourceCreator.CreatePackageSource(add.Attribute("key").Value, add.Attribute("value").Value, null));
                 }
             }
 
@@ -249,7 +250,10 @@ namespace NugetForUnity
             if (activePackageSource != null)
             {
                 var add = activePackageSource.Element("add");
-                configFile.ActivePackageSource = new NugetPackageSource(add.Attribute("key").Value, add.Attribute("value").Value);
+                configFile.ActivePackageSource = NuGetPackageSourceCreator.CreatePackageSource(
+                    add.Attribute("key").Value,
+                    add.Attribute("value").Value,
+                    configFile.PackageSources);
             }
 
             // disable all listed disabled package sources
