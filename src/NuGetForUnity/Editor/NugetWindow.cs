@@ -835,6 +835,12 @@ namespace NugetForUnity
                         // as this is called every frame we don't need to wait for the task we can just use the image if it is available
                         icon = package.IconTask.Result;
                     }
+                    else if (installed != null && installed.IconTask != null && installed.IconTask.IsCompleted && installed.IconTask.Result != null)
+                    {
+                        // fallback to the icon of the already installed package (somehow there are cases where the update package has no icon URL)
+                        // as this is called every frame we don't need to wait for the task we can just use the image if it is available
+                        icon = installed.IconTask.Result;
+                    }
 
                     if (icon != null)
                     {

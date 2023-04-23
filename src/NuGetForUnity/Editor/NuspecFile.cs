@@ -69,6 +69,18 @@ namespace NugetForUnity
         public string IconUrl { get; set; }
 
         /// <summary>
+        ///     Gets the path to a icon file. The path is relative to the root folder of the package. This is a alternative to using a URL <see cref="IconUrl" />
+        ///     .
+        /// </summary>
+        public string Icon { get; private set; }
+
+        /// <summary>
+        ///     Gets the full path to a icon file. This is only set if the .nuspec file contains a <see cref="Icon" />. This is a alternative to using a URL
+        ///     <see cref="IconUrl" />.
+        /// </summary>
+        public string IconFilePath { get; private set; }
+
+        /// <summary>
         ///     Gets or sets a value indicating whether the license of the NuGet package needs to be accepted in order to use it.
         /// </summary>
         public bool RequireLicenseAcceptance { get; set; }
@@ -124,9 +136,9 @@ namespace NugetForUnity
         public string Authors { get; set; }
 
         /// <summary>
-        ///     Loads the .nuspec file inside the .nupkg file at the given filepath.
+        ///     Loads the .nuspec file inside the .nupkg file at the given file path.
         /// </summary>
-        /// <param name="nupkgFilepath">The filepath to the .nupkg file to load.</param>
+        /// <param name="nupkgFilepath">The file path to the .nupkg file to load.</param>
         /// <returns>The .nuspec file loaded from inside the .nupkg file.</returns>
         public static NuspecFile FromNupkgFile(string nupkgFilepath)
         {
@@ -142,16 +154,13 @@ namespace NugetForUnity
 
                     using (var stream = entry.Open())
                     {
-                        nuspec = Load(stream);
+                        nuspec = Load(stream).SetIconFilePath(nupkgFilepath);
                     }
                 }
             }
             else
             {
                 Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilepath);
-
-                //nuspec.Id = packageId;
-                //nuspec.Version = packageVersion;
                 nuspec.Description = string.Format("COULD NOT LOAD {0}", nupkgFilepath);
             }
 
@@ -159,13 +168,13 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Loads a .nuspec file at the given filepath.
+        ///     Loads a .nuspec file at the given file path.
         /// </summary>
-        /// <param name="filePath">The full filepath to the .nuspec file to load.</param>
+        /// <param name="filePath">The full file path to the .nuspec file to load.</param>
         /// <returns>The newly loaded <see cref="NuspecFile" />.</returns>
         public static NuspecFile Load(string filePath)
         {
-            return Load(XDocument.Load(filePath));
+            return Load(XDocument.Load(filePath)).SetIconFilePath(filePath);
         }
 
         /// <summary>
@@ -202,6 +211,7 @@ namespace NugetForUnity
             nuspec.LicenseUrl = (string)metadata.Element(XName.Get("licenseUrl", nuspecNamespace)) ?? string.Empty;
             nuspec.ProjectUrl = (string)metadata.Element(XName.Get("projectUrl", nuspecNamespace)) ?? string.Empty;
             nuspec.IconUrl = (string)metadata.Element(XName.Get("iconUrl", nuspecNamespace)) ?? string.Empty;
+            nuspec.Icon = (string)metadata.Element(XName.Get("icon", nuspecNamespace)) ?? string.Empty;
             nuspec.RequireLicenseAcceptance = bool.Parse((string)metadata.Element(XName.Get("requireLicenseAcceptance", nuspecNamespace)) ?? "False");
             nuspec.Description = (string)metadata.Element(XName.Get("description", nuspecNamespace)) ?? string.Empty;
             nuspec.Summary = (string)metadata.Element(XName.Get("summary", nuspecNamespace)) ?? string.Empty;
@@ -259,7 +269,6 @@ namespace NugetForUnity
             var filesElement = package.Element(XName.Get("files", nuspecNamespace));
             if (filesElement != null)
             {
-                //UnityEngine.Debug.Log("Loading files!");
                 foreach (var fileElement in filesElement.Elements(XName.Get("file", nuspecNamespace)))
                 {
                     var file = new NuspecContentFile();
@@ -401,6 +410,16 @@ namespace NugetForUnity
                 convertedTargetFramework;
 
             return convertedTargetFramework;
+        }
+
+        private NuspecFile SetIconFilePath(string containingFilePath)
+        {
+            if (!string.IsNullOrEmpty(Icon))
+            {
+                IconFilePath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(containingFilePath)), Icon);
+            }
+
+            return this;
         }
     }
 }
