@@ -38,6 +38,11 @@ namespace NugetForUnity
         private readonly HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
 
         /// <summary>
+        ///     Used to keep track of which packages are selected for uninstalling or updating.
+        /// </summary>
+        private readonly HashSet<NugetPackage> selectedPackages = new HashSet<NugetPackage>();
+
+        /// <summary>
         ///     The titles of the tabs in the window.
         /// </summary>
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
@@ -62,12 +67,11 @@ namespace NugetForUnity
         /// <summary>
         ///     The filtered list of package updates available.
         /// </summary>
-
         private List<NugetPackage> FilteredUpdatePackages
         {
             get
             {
-                if (updatesSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
                 {
                     return updatePackages;
                 }
@@ -141,14 +145,13 @@ namespace NugetForUnity
         {
             get
             {
-                if (installedSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(installedSearchTerm) || installedSearchTerm == "Search")
                 {
                     return NugetHelper.InstalledPackages;
                 }
 
                 return NugetHelper.InstalledPackages
-                    .Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm))
-                    .ToList();
+                    .Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm));
             }
         }
 
@@ -420,20 +423,8 @@ namespace NugetForUnity
 
         private void OnTabChanged()
         {
-            UnselectPackages(NugetHelper.InstalledPackages.ToList());
-            UnselectPackages(updatePackages);
+            selectedPackages.Clear();
             openCloneWindows.Clear();
-        }
-
-        /// <summary>
-        /// Unselects all selected packages.
-        /// </summary>
-        private void UnselectPackages(List<NugetPackage> packages)
-        {
-            foreach (var package in packages)
-            {
-                package.IsSelected = false;
-            }
         }
 
         /// <summary>
@@ -471,9 +462,10 @@ namespace NugetForUnity
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            if (FilteredUpdatePackages != null && FilteredUpdatePackages.Count > 0)
+            var filteredUpdatePackages = FilteredUpdatePackages;
+            if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                DrawPackages(FilteredUpdatePackages, true);
+                DrawPackages(filteredUpdatePackages, true);
             }
             else
             {
@@ -672,17 +664,17 @@ namespace NugetForUnity
                     {
                         if (GUILayout.Button("Uninstall All", EditorStyles.miniButtonRight, GUILayout.Width(150)))
                         {
-                            NugetHelper.UninstallAll();
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
                             NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
 
-                    if (NugetHelper.InstalledPackages.Where(p => p.IsSelected).Count() > 0)
+                    if (NugetHelper.InstalledPackages.Any(selectedPackages.Contains))
                     {
                         if (GUILayout.Button("Uninstall Selected", EditorStyles.miniButtonRight, GUILayout.Width(150)))
                         {
-                            NugetHelper.UninstallAll(true);
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(p => selectedPackages.Contains(p)).ToList());
                             NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -740,11 +732,11 @@ namespace NugetForUnity
                             UpdateUpdatePackages();
                         }
 
-                        if (updatePackages.Where(p => p.IsSelected).Count() > 0)
+                        if (updatePackages.Any(selectedPackages.Contains))
                         {
                             if (GUILayout.Button("Update Selected", GUILayout.Width(200)))
                             {
-                                NugetHelper.UpdateAll(updatePackages.Where(p => p.IsSelected), NugetHelper.InstalledPackages);
+                                NugetHelper.UpdateAll(updatePackages.Where(p => selectedPackages.Contains(p)), NugetHelper.InstalledPackages);
                                 NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
@@ -803,10 +795,18 @@ namespace NugetForUnity
 
             if (canBeSelected)
             {
-                var isSelectedTemp = EditorGUILayout.Toggle(package.IsSelected);
-                if (isSelectedTemp != package.IsSelected)
+                var isSelected = selectedPackages.Contains(package);
+                var isSelectedTemp = EditorGUILayout.Toggle(isSelected);
+                if (isSelectedTemp != isSelected)
                 {
-                    package.IsSelected = isSelectedTemp;
+                    if (isSelectedTemp)
+                    {
+                        selectedPackages.Add(package);
+                    }
+                    else
+                    {
+                        selectedPackages.Remove(package);
+                    }
                 }
             }
 
