@@ -159,7 +159,7 @@ namespace NugetForUnity
         [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
-            NugetHelper.Restore();
+            NugetHelper.Restore(installDeps: !NugetHelper.NugetConfigFile.LockPackagesOnRestore);
         }
 
         /// <summary>

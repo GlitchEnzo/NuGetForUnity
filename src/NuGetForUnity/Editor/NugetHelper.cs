@@ -103,14 +103,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether when installing a NuGet package we also install its dependencies.
-        ///     This is required by the NuGetForUnity.Cli as the CLI only installs packages listed explicitly inside
-        ///     the <see cref="PackagesConfigFile" /> because dependency resolution wouldn't work seamlessly
-        ///     as it can't detect libraries imported by Unity <see cref="UnityPreImportedLibraryResolver" />.
-        /// </summary>
-        internal static bool InstallDependencies { get; set; } = true;
-
-        /// <summary>
         ///     The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
         public static NugetConfigFile NugetConfigFile { get; private set; }
@@ -1075,7 +1067,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true, bool installDeps = true)
         {
             if (IsAlreadyImportedInEngine(package, false))
             {
@@ -1087,7 +1079,7 @@ namespace NugetForUnity
 
             if (foundPackage != null)
             {
-                return Install(foundPackage, refreshAssets);
+                return Install(foundPackage, refreshAssets, installDeps);
             }
 
             Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
@@ -1115,7 +1107,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        public static bool Install(NugetPackage package, bool refreshAssets = true)
+        public static bool Install(NugetPackage package, bool refreshAssets = true, bool installDeps = true)
         {
             if (IsAlreadyImportedInEngine(package, false))
             {
@@ -1167,7 +1159,7 @@ namespace NugetForUnity
                         0.1f);
                 }
 
-                if (InstallDependencies)
+                if (installDeps)
                 {
                     // install all dependencies for target framework
                     var frameworkGroup = GetNullableBestDependencyFrameworkGroupForCurrentSettings(package);
@@ -1186,7 +1178,7 @@ namespace NugetForUnity
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
                             LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                            var installed = InstallIdentifier(dependency);
+                            var installed = InstallIdentifier(dependency, refreshAssets, installDeps);
                             if (!installed)
                             {
                                 throw new Exception(string.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
@@ -1373,7 +1365,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Restores all packages defined in packages.config.
         /// </summary>
-        public static void Restore()
+        public static void Restore(bool installDeps = true)
         {
             UpdateInstalledPackages();
 
@@ -1402,7 +1394,7 @@ namespace NugetForUnity
                         if (!IsInstalled(package))
                         {
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            InstallIdentifier(package);
+                            InstallIdentifier(package, installDeps: installDeps);
                         }
                         else
                         {

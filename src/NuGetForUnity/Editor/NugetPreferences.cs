@@ -71,11 +71,18 @@ namespace NugetForUnity
                 NugetHelper.NugetConfigFile.Verbose = verbose;
             }
 
-            var requestTimeout = EditorGUILayout.Toggle("Request Timeout", NugetHelper.NugetConfigFile.RequestTimeout);
+            var requestTimeout = EditorGUILayout.IntField("Request Timeout", NugetHelper.NugetConfigFile.RequestTimeout);
             if (requestTimeout != NugetHelper.NugetConfigFile.RequestTimeout)
             {
                 preferencesChangedThisFrame = true;
                 NugetHelper.NugetConfigFile.RequestTimeout = requestTimeout;
+            }
+
+            var lockPackagesOnRestore = EditorGUILayout.Toggle("Lock Packages on Restore", NuGetPackageTextureHelper.NugetConfigFile.LockPackagesOnRestore);
+            if (lockPackagesOnRestore != NugetHelper.NugetConfigFile.LockPackagesOnRestore)
+            {
+                preferencesChangedThisFrame = true;
+                NugetHelper.NugetConfigFile.LockPackagesOnRestore = lockPackagesOnRestore;
             }
 
             EditorGUILayout.LabelField("Package Sources:");

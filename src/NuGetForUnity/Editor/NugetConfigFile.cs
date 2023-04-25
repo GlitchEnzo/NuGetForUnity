@@ -52,6 +52,17 @@ namespace NugetForUnity
         public bool Verbose { get; set; }
 
         /// <summary>
+        ///     Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the
+        ///     server.
+        /// </summary>
+        public bool InstallFromCache { get; set; }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether installed package files are set to read-only.
+        /// </summary>
+        public bool ReadOnlyPackageFiles { get; set; }
+
+        /// <summary>
         ///     Gets or sets a timeout in milliseconds for a request to sources
         /// </summary>
         public int RequestTimeout { get; set; }
@@ -62,15 +73,9 @@ namespace NugetForUnity
         private const int defaultRequestTimeout = 10000;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the
-        ///     server.
+        ///     Gets or sets a value indicating whether the installed packages should be fixed
         /// </summary>
-        public bool InstallFromCache { get; set; }
-
-        /// <summary>
-        ///     Gets or sets a value indicating whether installed package files are set to read-only.
-        /// </summary>
-        public bool ReadOnlyPackageFiles { get; set; }
+        public bool LockPackagesOnRestore { get; set; }
 
         /// <summary>
         ///     Saves this NuGet.config file to disk.
@@ -172,6 +177,14 @@ namespace NugetForUnity
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "RequestTimeout"));
                 addElement.Add(new XAttribute("value", RequestTimeout.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
+            if (LockPackagesOnRestore)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "LockPackagesOnRestore"));
+                addElement.Add(new XAttribute("value", LockPackagesOnRestore.ToString().ToLower()));
                 config.Add(addElement);
             }
 
@@ -325,6 +338,10 @@ namespace NugetForUnity
                     else if (string.Equals(key, "RequestTimeout", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.RequestTimeout = int.Parse(value);
+                    }
+                    else if (string.Equals(key, "LockPackagesOnRestore", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.LockPackagesOnRestore = bool.Parse(value);
                     }
                 }
             }

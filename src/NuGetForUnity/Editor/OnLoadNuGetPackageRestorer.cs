@@ -27,7 +27,7 @@ namespace NugetForUnity
             NugetHelper.LoadNugetConfigFile();
 
             // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-            NugetHelper.Restore();
+            NugetHelper.Restore(installDeps: !NugetHelper.NugetConfigFile.LockPackagesOnRestore);
         }
     }
 }

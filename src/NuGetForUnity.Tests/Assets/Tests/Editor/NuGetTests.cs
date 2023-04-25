@@ -172,6 +172,24 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallStyleCopNoDepTest()
+    {
+        var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
+        var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
+
+        NugetHelper.InstallIdentifier(styleCopPlusId, installDeps: false);
+
+        // StyleCopPlus depends on StyleCop, so they should both be installed
+        // it depends on version 4.7.49.0, so ensure it is also installed
+        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package SHOULD NOT be installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+
+        // cleanup and uninstall everything
+        NugetHelper.UninstallAll();
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+    }
+
+    [Test]
     public void InstallSignalRClientTest()
     {
         var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2");
