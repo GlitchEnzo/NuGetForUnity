@@ -78,7 +78,7 @@ namespace NugetForUnity
                 NugetHelper.NugetConfigFile.RequestTimeout = requestTimeout;
             }
 
-            var lockPackagesOnRestore = EditorGUILayout.Toggle("Lock Packages on Restore", NuGetPackageTextureHelper.NugetConfigFile.LockPackagesOnRestore);
+            var lockPackagesOnRestore = EditorGUILayout.Toggle("Lock Packages on Restore", NugetHelper.NugetConfigFile.LockPackagesOnRestore);
             if (lockPackagesOnRestore != NugetHelper.NugetConfigFile.LockPackagesOnRestore)
             {
                 preferencesChangedThisFrame = true;
