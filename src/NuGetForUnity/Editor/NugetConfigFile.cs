@@ -65,7 +65,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets a timeout in milliseconds for a request to sources
         /// </summary>
-        public int RequestTimeout { get; set; }
+        public int RequestTimeout { get; set; } = defaultRequestTimeout;
 
         /// <summary>
         ///     Default timeout in milliseconds for a request to sources
