@@ -52,6 +52,16 @@ namespace NugetForUnity
         public bool Verbose { get; set; }
 
         /// <summary>
+        ///     Gets or sets a timeout in milliseconds for a request to sources
+        /// </summary>
+        public int RequestTimeout { get; set; }
+
+        /// <summary>
+        ///     Default timeout in milliseconds for a request to sources
+        /// </summary>
+        private const int defaultRequestTimeout = 10000;
+
+        /// <summary>
         ///     Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the
         ///     server.
         /// </summary>
@@ -154,6 +164,14 @@ namespace NugetForUnity
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "ReadOnlyPackageFiles"));
                 addElement.Add(new XAttribute("value", ReadOnlyPackageFiles.ToString().ToLower()));
+                config.Add(addElement);
+            }
+
+            if (RequestTimeout != defaultRequestTimeout)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", "RequestTimeout"));
+                addElement.Add(new XAttribute("value", RequestTimeout.ToString().ToLower()));
                 config.Add(addElement);
             }
 
@@ -303,6 +321,10 @@ namespace NugetForUnity
                     else if (string.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.ReadOnlyPackageFiles = bool.Parse(value);
+                    }
+                    else if (string.Equals(key, "RequestTimeout", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.RequestTimeout = int.Parse(value);
                     }
                 }
             }

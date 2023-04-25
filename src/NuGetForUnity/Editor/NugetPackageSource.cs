@@ -386,7 +386,7 @@ namespace NugetForUnity
             stopwatch.Start();
 
             var packages = new List<NugetPackage>();
-            using (var responseStream = NugetHelper.RequestUrl(url, username, password, 10000))
+            using (var responseStream = NugetHelper.RequestUrl(url, username, password, NugetHelper.NugetConfigFile.RequestTimeout))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {

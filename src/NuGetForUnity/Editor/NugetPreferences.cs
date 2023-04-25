@@ -71,6 +71,13 @@ namespace NugetForUnity
                 NugetHelper.NugetConfigFile.Verbose = verbose;
             }
 
+            var requestTimeout = EditorGUILayout.Toggle("Request Timeout", NugetHelper.NugetConfigFile.RequestTimeout);
+            if (requestTimeout != NugetHelper.NugetConfigFile.RequestTimeout)
+            {
+                preferencesChangedThisFrame = true;
+                NugetHelper.NugetConfigFile.RequestTimeout = requestTimeout;
+            }
+
             EditorGUILayout.LabelField("Package Sources:");
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
