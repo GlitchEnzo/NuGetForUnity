@@ -660,7 +660,7 @@ namespace NugetForUnity
                 EditorGUILayout.BeginHorizontal();
                 {
                     GUILayout.FlexibleSpace();
-                    if (NugetHelper.InstalledPackages.Count() > 0)
+                    if (NugetHelper.InstalledPackages.Any())
                     {
                         if (GUILayout.Button("Uninstall All", EditorStyles.miniButtonRight, GUILayout.Width(150)))
                         {
@@ -736,7 +736,7 @@ namespace NugetForUnity
                         {
                             if (GUILayout.Button("Update Selected", GUILayout.Width(200)))
                             {
-                                NugetHelper.UpdateAll(updatePackages.Where(p => selectedPackages.Contains(p)), NugetHelper.InstalledPackages);
+                                NugetHelper.UpdateAll(updatePackages.Where(selectedPackages.Contains), NugetHelper.InstalledPackages);
                                 NugetHelper.UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
