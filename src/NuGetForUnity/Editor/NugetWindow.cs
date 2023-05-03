@@ -77,7 +77,7 @@ namespace NugetForUnity
                 }
 
                 return updatePackages
-                    .Where(package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0))
+                    .Where(package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
                     .ToList();
             }
         }
@@ -151,7 +151,7 @@ namespace NugetForUnity
                 }
 
                 return NugetHelper.InstalledPackages
-                    .Where(package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0));
+                    .Where(package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0);
             }
         }
 
