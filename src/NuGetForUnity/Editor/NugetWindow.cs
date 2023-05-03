@@ -674,7 +674,7 @@ namespace NugetForUnity
                     {
                         if (GUILayout.Button("Uninstall Selected", EditorStyles.miniButtonRight, GUILayout.Width(150)))
                         {
-                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(p => selectedPackages.Contains(p)).ToList());
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(selectedPackages.Contains).ToList());
                             NugetHelper.UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
