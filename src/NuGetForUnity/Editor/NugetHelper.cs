@@ -718,9 +718,9 @@ namespace NugetForUnity
         /// <summary>
         ///     Uninstalls all of the currently installed packages.
         /// </summary>
-        internal static void UninstallAll()
+        internal static void UninstallAll(List<NugetPackage> packagesToUninstall)
         {
-            foreach (var package in InstalledPackages.ToList())
+            foreach (var package in packagesToUninstall)
             {
                 Uninstall(package);
             }

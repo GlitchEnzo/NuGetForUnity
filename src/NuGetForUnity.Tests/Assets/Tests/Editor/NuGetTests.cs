@@ -12,7 +12,7 @@ public class NuGetTests
     [TearDown]
     public void Cleanup()
     {
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class NuGetTests
         NugetHelper.InstallIdentifier(json608);
         Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
 
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
         Assert.IsFalse(NugetHelper.IsInstalled(json608), "The package is STILL installed: {0} {1}", json608.Id, json608.Version);
         Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
     }
@@ -87,7 +87,7 @@ public class NuGetTests
         finally
         {
             // uninstall the package
-            NugetHelper.UninstallAll();
+            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
             Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id, analyzer.Version);
         }
     }
@@ -102,7 +102,7 @@ public class NuGetTests
         Assert.IsTrue(NugetHelper.IsInstalled(protobuf), "The package was NOT installed: {0} {1}", protobuf.Id, protobuf.Version);
 
         // uninstall the package
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
         Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
@@ -140,7 +140,7 @@ public class NuGetTests
         Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
 
         // confirm they are uninstalled
         Assert.IsFalse(NugetHelper.IsInstalled(bootstrap337), "The package is STILL installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
@@ -165,7 +165,7 @@ public class NuGetTests
         Assert.IsTrue(NugetHelper.IsInstalled(styleCopId), "The package was NOT installed: {0} {1}", styleCopId.Id, styleCopId.Version);
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
 
         Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
         Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package is STILL installed: {0} {1}", styleCopId.Id, styleCopId.Version);
@@ -194,7 +194,7 @@ public class NuGetTests
         }
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
         Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
     }
 
@@ -220,7 +220,7 @@ public class NuGetTests
         Assert.That(Path.Combine(libraryDirectory, "cs"), Does.Not.Exist);
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
         Assert.IsFalse(
             NugetHelper.IsInstalled(probabilisticCompiler),
             "The package is STILL installed: {0} {1}",
@@ -442,7 +442,7 @@ public class NuGetTests
             componentModelAnnotation47.Id,
             componentModelAnnotation47.Version);
 
-        NugetHelper.UninstallAll();
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
 
         Assert.IsFalse(
             NugetHelper.IsInstalled(componentModelAnnotation5),

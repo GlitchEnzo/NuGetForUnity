@@ -38,6 +38,11 @@ namespace NugetForUnity
         private readonly HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
 
         /// <summary>
+        ///     Used to keep track of which packages are selected for uninstalling or updating.
+        /// </summary>
+        private readonly HashSet<NugetPackage> selectedPackages = new HashSet<NugetPackage>();
+
+        /// <summary>
         ///     The titles of the tabs in the window.
         /// </summary>
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
@@ -62,7 +67,21 @@ namespace NugetForUnity
         /// <summary>
         ///     The filtered list of package updates available.
         /// </summary>
-        private List<NugetPackage> filteredUpdatePackages = new List<NugetPackage>();
+        private List<NugetPackage> FilteredUpdatePackages
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
+                {
+                    return updatePackages;
+                }
+
+                return updatePackages
+                    .Where(package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .ToList();
+            }
+        }
+
 
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
@@ -74,13 +93,6 @@ namespace NugetForUnity
         ///     The search term to search the installed packages for.
         /// </summary>
         private string installedSearchTerm = "Search";
-
-        /// <summary>
-        ///     The search term in progress while it is being typed into the search box.
-        ///     We wait until the Enter key or Search button is pressed before searching in order
-        ///     to match the way that the Online and Updates searches work.
-        /// </summary>
-        private string installedSearchTermEditBox = "Search";
 
         /// <summary>
         ///     The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
@@ -133,14 +145,13 @@ namespace NugetForUnity
         {
             get
             {
-                if (installedSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(installedSearchTerm) || installedSearchTerm == "Search")
                 {
                     return NugetHelper.InstalledPackages;
                 }
 
                 return NugetHelper.InstalledPackages
-                    .Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm))
-                    .ToList();
+                    .Where(package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0);
             }
         }
 
@@ -357,14 +368,6 @@ namespace NugetForUnity
         {
             // get any available updates for the installed packages
             updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
-            filteredUpdatePackages = updatePackages;
-
-            if (updatesSearchTerm != "Search")
-            {
-                filteredUpdatePackages = updatePackages
-                    .Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm))
-                    .ToList();
-            }
         }
 
         /// <summary>
@@ -420,6 +423,7 @@ namespace NugetForUnity
 
         private void OnTabChanged()
         {
+            selectedPackages.Clear();
             openCloneWindows.Clear();
         }
 
@@ -458,9 +462,10 @@ namespace NugetForUnity
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
+            var filteredUpdatePackages = FilteredUpdatePackages;
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                DrawPackages(filteredUpdatePackages);
+                DrawPackages(filteredUpdatePackages, true);
             }
             else
             {
@@ -489,7 +494,7 @@ namespace NugetForUnity
             var filteredInstalledPackages = FilteredInstalledPackages.ToList();
             if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
             {
-                DrawPackages(filteredInstalledPackages);
+                DrawPackages(filteredInstalledPackages, true);
             }
             else
             {
@@ -551,7 +556,7 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(List<NugetPackage> packages)
+        private void DrawPackages(List<NugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
@@ -559,7 +564,7 @@ namespace NugetForUnity
             for (var i = 0; i < packages.Count; i++)
             {
                 EditorGUILayout.BeginVertical(backgroundStyle);
-                DrawPackage(packages[i], backgroundStyle, contrastStyle);
+                DrawPackage(packages[i], backgroundStyle, contrastStyle, canBeSelected);
                 EditorGUILayout.EndVertical();
 
                 // swap styles
@@ -595,16 +600,7 @@ namespace NugetForUnity
                         UpdateOnlinePackages();
                     }
 
-                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
-                    {
-                        Refresh(true);
-                    }
-
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
-                    {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
-                    }
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -661,15 +657,30 @@ namespace NugetForUnity
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
                 EditorGUILayout.BeginHorizontal();
                 {
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+                    GUILayout.FlexibleSpace();
+                    if (NugetHelper.InstalledPackages.Any())
                     {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
+                        if (GUILayout.Button("Uninstall All", EditorStyles.miniButtonRight, GUILayout.Width(150)))
+                        {
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
                     }
+
+                    if (NugetHelper.InstalledPackages.Any(selectedPackages.Contains))
+                    {
+                        if (GUILayout.Button("Uninstall Selected", EditorStyles.miniButtonRight, GUILayout.Width(150)))
+                        {
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(selectedPackages.Contains).ToList());
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -677,23 +688,11 @@ namespace NugetForUnity
                 {
                     var oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    installedSearchTermEditBox = EditorGUILayout.TextField(installedSearchTermEditBox, GUILayout.Height(30));
-
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
+                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
 
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
                 EditorGUILayout.EndHorizontal();
-
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    installedSearchTerm = installedSearchTermEditBox;
-                }
             }
             EditorGUILayout.EndVertical();
         }
@@ -724,23 +723,27 @@ namespace NugetForUnity
                         UpdateUpdatePackages();
                     }
 
-                    if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                    if (updatePackages.Count > 0)
                     {
-                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        if (GUILayout.Button("Update All", GUILayout.Width(150)))
+                        {
+                            NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                            NugetHelper.UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+
+                        if (updatePackages.Any(selectedPackages.Contains))
+                        {
+                            if (GUILayout.Button("Update Selected", GUILayout.Width(200)))
+                            {
+                                NugetHelper.UpdateAll(updatePackages.Where(selectedPackages.Contains), NugetHelper.InstalledPackages);
+                                NugetHelper.UpdateInstalledPackages();
+                                UpdateUpdatePackages();
+                            }
+                        }
                     }
 
-                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
-                    {
-                        Refresh(true);
-                    }
-
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
-                    {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
-                    }
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -751,46 +754,61 @@ namespace NugetForUnity
                     UpdateUpdatePackages();
                 }
 
-                var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
                 EditorGUILayout.BeginHorizontal();
                 {
                     var oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
                     updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GUILayout.Height(30));
 
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
-
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
                 EditorGUILayout.EndHorizontal();
-
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    if (updatesSearchTerm != "Search")
-                    {
-                        filteredUpdatePackages = updatePackages.Where(
-                                x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm))
-                            .ToList();
-                    }
-                }
             }
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        ///     Draws the "Refresh" and "Preferences" buttons in the upper right corner, which are visible in every tab.
+        /// </summary>
+        private void DrawMandatoryButtons()
+        {
+            if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+            {
+                Refresh(true);
+            }
+
+            if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+            {
+                SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+                GetWindow<NugetWindow>().Close();
+            }
         }
 
         /// <summary>
         ///     Draws the given <see cref="NugetPackage" />.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage" /> to draw.</param>
-        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
+        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+
+            if (canBeSelected)
+            {
+                var isSelected = selectedPackages.Contains(package);
+                var shouldBeSelected = EditorGUILayout.Toggle(isSelected);
+                if (shouldBeSelected != isSelected)
+                {
+                    if (shouldBeSelected)
+                    {
+                        selectedPackages.Add(package);
+                    }
+                    else
+                    {
+                        selectedPackages.Remove(package);
+                    }
+                }
+            }
 
             EditorGUILayout.BeginHorizontal();
             {
