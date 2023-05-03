@@ -796,10 +796,10 @@ namespace NugetForUnity
             if (canBeSelected)
             {
                 var isSelected = selectedPackages.Contains(package);
-                var isSelectedTemp = EditorGUILayout.Toggle(isSelected);
-                if (isSelectedTemp != isSelected)
+                var shouldBeSelected = EditorGUILayout.Toggle(isSelected);
+                if (shouldBeSelected != isSelected)
                 {
-                    if (isSelectedTemp)
+                    if (shouldBeSelected)
                     {
                         selectedPackages.Add(package);
                     }
