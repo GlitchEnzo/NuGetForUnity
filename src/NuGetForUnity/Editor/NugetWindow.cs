@@ -65,25 +65,6 @@ namespace NugetForUnity
         private Texture2D defaultIcon;
 
         /// <summary>
-        ///     The filtered list of package updates available.
-        /// </summary>
-        private List<NugetPackage> FilteredUpdatePackages
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
-                {
-                    return updatePackages;
-                }
-
-                return updatePackages
-                    .Where(package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
-                    .ToList();
-            }
-        }
-
-
-        /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
         /// </summary>
         [SerializeField]
@@ -141,6 +122,25 @@ namespace NugetForUnity
         /// </summary>
         private string updatesSearchTerm = "Search";
 
+        /// <summary>
+        ///     The filtered list of package updates available.
+        /// </summary>
+        private List<NugetPackage> FilteredUpdatePackages
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
+                {
+                    return updatePackages;
+                }
+
+                return updatePackages.Where(
+                        package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                                   package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .ToList();
+            }
+        }
+
         private IEnumerable<NugetPackage> FilteredInstalledPackages
         {
             get
@@ -150,8 +150,9 @@ namespace NugetForUnity
                     return NugetHelper.InstalledPackages;
                 }
 
-                return NugetHelper.InstalledPackages
-                    .Where(package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 || package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0);
+                return NugetHelper.InstalledPackages.Where(
+                    package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                               package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0);
             }
         }
 
@@ -373,21 +374,21 @@ namespace NugetForUnity
         /// <summary>
         ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/
         /// </summary>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
-        private static Texture2D MakeTex(int width, int height, Color col)
+        /// <param name="color">The color to fill the texture with.</param>
+        /// <returns>The generated texture.</returns>
+        private static Texture2D CreateSingleColorTexture(Color color)
         {
-            var pix = new Color[width * height];
-
-            for (var i = 0; i < pix.Length; i++)
+            const int width = 16;
+            const int height = 16;
+            var pix = new Color32[width * height];
+            Color32 color32 = color;
+            for (var index = 0; index < pix.Length; index++)
             {
-                pix[i] = col;
+                pix[index] = color32;
             }
 
             var result = new Texture2D(width, height);
-            result.SetPixels(pix);
+            result.SetPixels32(pix);
             result.Apply();
 
             return result;
@@ -435,7 +436,7 @@ namespace NugetForUnity
         {
             var style = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
-            style.normal.background = MakeTex(16, 16, backgroundColor);
+            style.normal.background = CreateSingleColorTexture(backgroundColor);
             return style;
         }
 
@@ -447,8 +448,16 @@ namespace NugetForUnity
         {
             var style = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
-            style.normal.background = MakeTex(16, 16, backgroundColor);
+            style.normal.background = CreateSingleColorTexture(backgroundColor);
             return style;
+        }
+
+        private static GUIStyle GetHeaderStyle()
+        {
+            var headerStyle = new GUIStyle();
+            var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.4f, 0.4f, 0.4f);
+            headerStyle.normal.background = CreateSingleColorTexture(backgroundColor);
+            return headerStyle;
         }
 
         /// <summary>
@@ -525,16 +534,7 @@ namespace NugetForUnity
                 DrawPackages(availablePackages);
             }
 
-            var showMoreStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
-
+            var showMoreStyle = GetHeaderStyle();
             EditorGUILayout.BeginVertical(showMoreStyle);
 
             // allow the user to display more results
@@ -579,15 +579,7 @@ namespace NugetForUnity
         /// </summary>
         private void DrawOnlineHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -645,15 +637,7 @@ namespace NugetForUnity
         /// </summary>
         private void DrawInstalledHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -702,15 +686,7 @@ namespace NugetForUnity
         /// </summary>
         private void DrawUpdatesHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -793,23 +769,6 @@ namespace NugetForUnity
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
-            if (canBeSelected)
-            {
-                var isSelected = selectedPackages.Contains(package);
-                var shouldBeSelected = EditorGUILayout.Toggle(isSelected);
-                if (shouldBeSelected != isSelected)
-                {
-                    if (shouldBeSelected)
-                    {
-                        selectedPackages.Add(package);
-                    }
-                    else
-                    {
-                        selectedPackages.Remove(package);
-                    }
-                }
-            }
-
             EditorGUILayout.BeginHorizontal();
             {
                 // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
@@ -820,12 +779,29 @@ namespace NugetForUnity
                 EditorGUILayout.BeginHorizontal();
                 {
                     const int iconSize = 32;
-                    var padding = EditorStyles.label.padding.vertical;
-                    var rect = GUILayoutUtility.GetRect(iconSize, iconSize);
+                    var paddingX = Math.Max(EditorStyles.label.padding.horizontal, 3);
+                    var rect = GUILayoutUtility.GetRect(0, iconSize);
+                    rect.y += Math.Max(EditorStyles.label.padding.vertical, 3);
+                    if (canBeSelected)
+                    {
+                        const int toggleSize = 18;
+                        rect.x += toggleSize;
+                        var isSelected = selectedPackages.Contains(package);
+                        var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
+                        if (shouldBeSelected != isSelected)
+                        {
+                            if (shouldBeSelected)
+                            {
+                                selectedPackages.Add(package);
+                            }
+                            else
+                            {
+                                selectedPackages.Remove(package);
+                            }
+                        }
+                    }
 
-                    // only use GetRect's Y position.  It doesn't correctly set the width, height or X position.
-                    rect.x = padding;
-                    rect.y += padding;
+                    rect.x += paddingX;
                     rect.width = iconSize;
                     rect.height = iconSize;
 
@@ -845,32 +821,29 @@ namespace NugetForUnity
                     if (icon != null)
                     {
                         GUI.DrawTexture(rect, icon, ScaleMode.StretchToFill);
+                        rect.x += iconSize + paddingX;
                     }
 
-                    rect.x = iconSize + 2 * padding;
-                    rect.width = position.width / 2 - (iconSize + padding);
-                    rect.y -= padding; // This will leave the text aligned with the top of the image
+                    // text is allowed to get the half of the available space rest is for buttons and version label
+                    rect.width = (position.width - rect.x) / 2;
 
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 16;
 
                     var idSize = EditorStyles.label.CalcSize(new GUIContent(package.Id));
-                    rect.y += iconSize / 2 - idSize.y / 2 + padding;
                     GUI.Label(rect, package.Id, EditorStyles.label);
-                    rect.x += idSize.x;
+                    rect.x += Mathf.Min(idSize.x, rect.width) + paddingX;
 
                     EditorStyles.label.fontSize = 10;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
-
-                    var versionSize = EditorStyles.label.CalcSize(new GUIContent(package.Version));
-                    rect.y += idSize.y - versionSize.y - padding / 2;
+                    rect.y += EditorStyles.label.fontSize / 2;
 
                     if (!string.IsNullOrEmpty(package.Authors))
                     {
                         var authorLabel = string.Format("by {0}", package.Authors);
                         var size = EditorStyles.label.CalcSize(new GUIContent(authorLabel));
                         GUI.Label(rect, authorLabel, EditorStyles.label);
-                        rect.x += size.x;
+                        rect.x += size.x + paddingX;
                     }
 
                     if (package.DownloadCount > 0)
@@ -878,7 +851,6 @@ namespace NugetForUnity
                         var downloadLabel = string.Format("{0} downloads", package.DownloadCount.ToString("#,#"));
                         var size = EditorStyles.label.CalcSize(new GUIContent(downloadLabel));
                         GUI.Label(rect, downloadLabel, EditorStyles.label);
-                        rect.x += size.x;
                     }
                 }
 
