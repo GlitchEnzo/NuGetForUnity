@@ -195,9 +195,19 @@ namespace NugetForUnity
 
             if (IsLocalPath)
             {
-                var localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-                if (File.Exists(localPackagePath))
+
+                // Determine the matching file name.
+                var fileName = $"{package.Id}.{package.Version}.nupkg";
+
+                // Search for a file with this name under this source's path. If successful, then return the matching
+                // package.
+                var matchingFiles = Directory.GetFiles(ExpandedPath, fileName, SearchOption.AllDirectories);
+
+                // If we found a match, then retrieve the first match. The file should exist.
+                if(matchingFiles.Length > 0)
                 {
+                    var localPackagePath = matchingFiles[0];
+                    Debug.Assert(File.Exists(localPackagePath));
                     var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
                     localPackage.PackageSource = this;
                     return localPackage;
