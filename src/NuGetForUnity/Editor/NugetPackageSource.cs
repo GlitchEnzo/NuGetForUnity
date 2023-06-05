@@ -321,7 +321,11 @@ namespace NugetForUnity
                 // └─<packageID>
                 //   └─<version>
                 //     └─<packageID>.<version>.nupkg
-                var packagesFromFolders = Directory.GetDirectories(path, searchTerm)
+                //
+                // If the search term is empty, then just use GetDirectories; an ArgumentException that confusingly
+                // highlights an "invalid path" will be thrown if the search term form is used.
+                var packagesFromFolders =
+                (searchTerm == ""? Directory.GetDirectories(path): Directory.GetDirectories(path, searchTerm))
                     .SelectMany(nameFolder => Directory.GetDirectories(nameFolder))
                     .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
                 foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
