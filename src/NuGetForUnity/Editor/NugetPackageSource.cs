@@ -110,19 +110,12 @@ namespace NugetForUnity
             {
                 if (!package.HasVersionRange)
                 {
-                    var localPackagePath = Path.Combine(ExpandedPath, $"{package.Id}.{package.Version}.nupkg");
+                    // Find the package file in the repository.
+                    var localPackagePath = package.LocalRepoPkgPath(ExpandedPath);
 
-                    if (!File.Exists(localPackagePath))
+                    if (localPackagePath != null)
                     {
-                        // Hierarchical folder structures are supported in NuGet 3.3+.
-                        // └─<packageID>
-                        //   └─<version>
-                        //     └─<packageID>.<version>.nupkg
-                        localPackagePath = Path.Combine(ExpandedPath, package.Id, package.Version, $"{package.Id}.{package.Version}.nupkg");
-                    }
-
-                    if (File.Exists(localPackagePath))
-                    {
+                        Debug.Assert(File.Exists(localPackagePath));
                         var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
                         foundPackages = new List<NugetPackage> { localPackage };
                     }
@@ -196,17 +189,12 @@ namespace NugetForUnity
             if (IsLocalPath)
             {
 
-                // Determine the matching file name.
-                var fileName = $"{package.Id}.{package.Version}.nupkg";
-
-                // Search for a file with this name under this source's path. If successful, then return the matching
-                // package.
-                var matchingFiles = Directory.GetFiles(ExpandedPath, fileName, SearchOption.AllDirectories);
+                // Retrieve the path to this package in the local repo. If this fails, the value will be null.
+                var localPackagePath = package.LocalRepoPkgPath(ExpandedPath);
 
                 // If we found a match, then retrieve the first match. The file should exist.
-                if(matchingFiles.Length > 0)
+                if(localPackagePath != null)
                 {
-                    var localPackagePath = matchingFiles[0];
                     Debug.Assert(File.Exists(localPackagePath));
                     var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
                     localPackage.PackageSource = this;

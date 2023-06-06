@@ -15,7 +15,7 @@ namespace NugetForUnity
     ///     At a minumum, Id, Version, Description, and Authors is required.  Everything else is optional.
     ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec
     /// </remarks>
-    public class NuspecFile
+    public class NuspecFile: NuCommon
     {
         /// <summary>
         ///     Gets or sets the source control branch the package is from.
@@ -37,7 +37,7 @@ namespace NugetForUnity
         /// </summary>
         public string RepositoryUrl;
 
-        public NuspecFile()
+        public NuspecFile(): base()
         {
             Dependencies = new List<NugetFrameworkGroup>();
             Files = new List<NuspecContentFile>();
@@ -109,16 +109,6 @@ namespace NugetForUnity
         ///     Gets or sets the list of content files listed in the .nuspec file.
         /// </summary>
         public List<NuspecContentFile> Files { get; set; }
-
-        /// <summary>
-        ///     Gets or sets the ID of the NuGet package.
-        /// </summary>
-        public string Id { get; set; }
-
-        /// <summary>
-        ///     Gets or sets the version number of the NuGet package.
-        /// </summary>
-        public string Version { get; set; }
 
         /// <summary>
         ///     Gets or sets the description of the NuGet package.
@@ -240,10 +230,9 @@ namespace NugetForUnity
 
                     foreach (var dependencyElement in frameworkGroup.Elements(XName.Get("dependency", nuspecNamespace)))
                     {
-                        var dependency = new NugetPackageIdentifier();
-
-                        dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
-                        dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+                        var id = (string)dependencyElement.Attribute("id") ?? string.Empty;
+                        var version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+                        var dependency = new NugetPackageIdentifier(id, version);
                         group.Dependencies.Add(dependency);
                     }
 
@@ -256,9 +245,9 @@ namespace NugetForUnity
                     var group = new NugetFrameworkGroup();
                     foreach (var dependencyElement in dependenciesElement.Elements(XName.Get("dependency", nuspecNamespace)))
                     {
-                        var dependency = new NugetPackageIdentifier();
-                        dependency.Id = (string)dependencyElement.Attribute("id") ?? string.Empty;
-                        dependency.Version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+                        var id = (string)dependencyElement.Attribute("id") ?? string.Empty;
+                        var version = (string)dependencyElement.Attribute("version") ?? string.Empty;
+                        var dependency = new NugetPackageIdentifier(id, version);
                         group.Dependencies.Add(dependency);
                     }
 
