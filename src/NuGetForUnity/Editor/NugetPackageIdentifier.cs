@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -6,25 +7,13 @@ namespace NugetForUnity
     /// <summary>
     ///     Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
     /// </summary>
-    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
+    public class NugetPackageIdentifier: NuCommon, IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
     {
         /// <summary>
-        ///     Gets or sets the ID of the NuGet package.
+        ///     Initializes a new instance of a <see cref="NugetPackageIdentifier" /> with empty id and version.
         /// </summary>
-        public string Id;
-
-        /// <summary>
-        ///     Gets or sets the version number of the NuGet package.
-        /// </summary>
-        public string Version;
-
-        /// <summary>
-        ///     Initializes a new instance of a <see cref="NugetPackageIdentifider" /> with empty ID and Version.
-        /// </summary>
-        public NugetPackageIdentifier()
+        public NugetPackageIdentifier(): base()
         {
-            Id = string.Empty;
-            Version = string.Empty;
         }
 
         /// <summary>
@@ -32,10 +21,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="id">The ID of the package.</param>
         /// <param name="version">The version number of the package.</param>
-        public NugetPackageIdentifier(string id, string version)
+        public NugetPackageIdentifier(string id, string version): base(id, version)
         {
-            Id = id;
-            Version = version;
         }
 
         /// <summary>
