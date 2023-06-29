@@ -303,6 +303,11 @@ namespace NugetForUnity
             bool includePrerelease = false,
             int numberToSkip = 0)
         {
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                searchTerm = "*";
+            }
+
             var localPackages = new List<NugetPackage>();
 
             if (numberToSkip != 0)
