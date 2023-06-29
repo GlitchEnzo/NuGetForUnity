@@ -144,7 +144,6 @@ jobs:
           -p:ContinuousIntegrationBuild=true
 
       - name: publish the NuGetForUnity.Cli NuGet package
-        if: github.ref_type == 'tag'
         run: >-
           dotnet nuget push ./NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
           --source https://api.nuget.org/v3/index.json
