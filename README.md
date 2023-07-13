@@ -144,7 +144,7 @@ The _.nupkg_ files downloaded from the NuGet server are cached locally in the cu
 
 # Advanced settings
 
-## Disabel automatic referencing of assemblies
+## Disable automatic referencing of assemblies
 
 To disable the automatic referenceing of assemblies of a NuGet package you can sett the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
 
