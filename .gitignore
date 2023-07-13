@@ -1,3 +1,4 @@
 /[Bb]in/
 
 *.log
+/src/NuGetForUnity.CreateDll/.idea/**
