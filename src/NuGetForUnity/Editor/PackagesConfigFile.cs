@@ -55,6 +55,12 @@ namespace NugetForUnity
                         package.Version,
                         existingPackage.Version);
                 }
+                else if (existingPackage.IsManuallyInstalled != package.IsManuallyInstalled)
+                {
+                    Packages.Remove(existingPackage);
+                    Packages.Add(package);
+                    MarkAsModified();
+                }
             }
             else
             {
@@ -69,20 +75,22 @@ namespace NugetForUnity
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
         public void AddPackage(NugetPackageIdentifier package)
         {
-            AddPackage(new PackageConfig { Id = package.Id, Version = package.Version });
+            AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
         }
 
         /// <summary>
         ///     Removes a package from the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        public void RemovePackage(NugetPackageIdentifier package)
+        public bool RemovePackage(NugetPackageIdentifier package)
         {
             var removed = Packages.RemoveAll(p => p.CompareTo(package) == 0);
             if (removed > 0)
             {
                 MarkAsModified();
             }
+
+            return removed > 0;
         }
 
         /// <summary>
@@ -108,6 +116,7 @@ namespace NugetForUnity
                 {
                     Id = packageElement.Attribute("id").Value,
                     Version = packageElement.Attribute("version").Value,
+                    IsManuallyInstalled = packageElement.Attribute("manual") != null,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
                                             new XAttribute(AutoReferencedAttributeName, true)),
                 };
@@ -162,12 +171,18 @@ namespace NugetForUnity
                 var packageElement = new XElement("package");
                 packageElement.Add(new XAttribute("id", package.Id));
                 packageElement.Add(new XAttribute("version", package.Version));
+
+                if (package.IsManuallyInstalled)
+                {
+                    packageElement.Add(new XAttribute("manual", "true"));
+                }
+
                 if (!package.AutoReferenced)
                 {
                     packageElement.Add(new XAttribute(AutoReferencedAttributeName, package.AutoReferenced));
                 }
 
-                packagesFile.Root.Add(packageElement);
+                packagesFile.Root?.Add(packageElement);
             }
 
             // remove the read only flag on the file, if there is one.

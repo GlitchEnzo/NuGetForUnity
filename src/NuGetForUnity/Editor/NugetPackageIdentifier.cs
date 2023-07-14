@@ -19,6 +19,11 @@ namespace NugetForUnity
         public string Version;
 
         /// <summary>
+        /// Gets or sets whether this package was installed manually or just as a dependency.
+        /// </summary>
+        public bool IsManuallyInstalled;
+
+        /// <summary>
         ///     Initializes a new instance of a <see cref="NugetPackageIdentifider" /> with empty ID and Version.
         /// </summary>
         public NugetPackageIdentifier()
@@ -428,34 +433,12 @@ namespace NugetForUnity
                     buildA > buildB ? 1 : 0;
                 var prerelease = string.Compare(prereleaseA, prereleaseB, StringComparison.Ordinal);
 
-                if (major == 0)
-                {
-                    // if major versions are equal, compare minor versions
-                    if (minor == 0)
-                    {
-                        if (patch == 0)
-                        {
-                            // if patch versions are equal, compare build versions
-                            if (build == 0)
-                            {
-                                // if the build versions are equal, just return the prerelease version comparison
-                                return prerelease;
-                            }
+                if (major != 0) return major;
+                if (minor != 0) return minor;
+                if (patch != 0) return patch;
+                if (build != 0) return build;
 
-                            // the build versions are different, so use them
-                            return build;
-                        }
-
-                        // the patch versions are different, so use them
-                        return patch;
-                    }
-
-                    // the minor versions are different, so use them
-                    return minor;
-                }
-
-                // the major versions are different, so use them
-                return major;
+                return prerelease;
             }
             catch (Exception)
             {

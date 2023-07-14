@@ -14,7 +14,7 @@ namespace NugetForUnity
     internal static class TargetFrameworkResolver
     {
         // highest priority first. We use values without '.' for easier comparison.
-        private static readonly TargetFrameworkSupport[] priorizedTargetFrameworks =
+        private static readonly TargetFrameworkSupport[] prioritizedTargetFrameworks =
         {
             new TargetFrameworkSupport("unity"),
 
@@ -116,11 +116,11 @@ namespace NugetForUnity
             return TryGetBestTargetFramework(availableTargetFrameworks, targetFramework => targetFramework);
         }
 
-        public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTrgetFreameworkString)
+        public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTargetFrameworkString)
         {
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
-            foreach (var targetFrameworkSupport in priorizedTargetFrameworks)
+            foreach (var targetFrameworkSupport in prioritizedTargetFrameworks)
             {
                 if (targetFrameworkSupport.SupportedDotnetVersions.Length != 0 &&
                     !targetFrameworkSupport.SupportedDotnetVersions.Contains(currentDotnetVersion))
@@ -136,9 +136,10 @@ namespace NugetForUnity
                 var bestMatch = availableTargetFrameworks.FirstOrDefault(
                     availableTargetFramework =>
                     {
-                        var availableString = getTrgetFreameworkString(availableTargetFramework).Replace(".", "");
+                        var availableString = getTargetFrameworkString(availableTargetFramework).Replace(".", "");
                         return availableString.Equals(targetFrameworkSupport.Name, StringComparison.OrdinalIgnoreCase);
                     });
+
                 if (bestMatch != null)
                 {
                     return bestMatch;
