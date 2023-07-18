@@ -969,6 +969,7 @@ namespace NugetForUnity
                         if (GUILayout.Button("Add as explicit"))
                         {
                             NugetHelper.SetManuallyInstalledFlag(installed);
+                            ClearViewCache();
                         }
                     }
 
