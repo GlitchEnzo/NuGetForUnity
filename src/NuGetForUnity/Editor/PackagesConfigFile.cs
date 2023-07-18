@@ -55,12 +55,6 @@ namespace NugetForUnity
                         package.Version,
                         existingPackage.Version);
                 }
-                else if (existingPackage.IsManuallyInstalled != package.IsManuallyInstalled)
-                {
-                    Packages.Remove(existingPackage);
-                    Packages.Add(package);
-                    MarkAsModified();
-                }
             }
             else
             {
@@ -93,6 +87,17 @@ namespace NugetForUnity
             return removed > 0;
         }
 
+        internal void SetManuallyInstalledFlag(NugetPackageIdentifier package)
+        {
+            package.IsManuallyInstalled = true;
+            var packageConfig = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+            if (packageConfig != null)
+            {
+                packageConfig.IsManuallyInstalled = true;
+                MarkAsModified();
+            }
+        }
+
         /// <summary>
         ///     Loads a list of all currently installed packages by reading the packages.config file.
         /// </summary>
@@ -116,7 +121,8 @@ namespace NugetForUnity
                 {
                     Id = packageElement.Attribute("id").Value,
                     Version = packageElement.Attribute("version").Value,
-                    IsManuallyInstalled = packageElement.Attribute("manual") != null,
+                    IsManuallyInstalled = packageElement.Attribute("manuallyInstalled")?.Value.Equals("true",
+                            StringComparison.OrdinalIgnoreCase) ?? false,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
                                             new XAttribute(AutoReferencedAttributeName, true)),
                 };
@@ -174,7 +180,7 @@ namespace NugetForUnity
 
                 if (package.IsManuallyInstalled)
                 {
-                    packageElement.Add(new XAttribute("manual", "true"));
+                    packageElement.Add(new XAttribute("manuallyInstalled", "true"));
                 }
 
                 if (!package.AutoReferenced)

@@ -12,6 +12,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Represents a NuGet Package Source (a "server").
     /// </summary>
+    [Serializable]
     public class NugetPackageSource
     {
         /// <summary>
@@ -30,12 +31,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the name of the package source.
         /// </summary>
-        public string Name { get; set; }
+        public string Name;
 
         /// <summary>
         ///     Gets or sets the path of the package source.
         /// </summary>
-        public string SavedPath { get; set; }
+        public string SavedPath;
 
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
@@ -54,12 +55,12 @@ namespace NugetForUnity
             }
         }
 
-        public string UserName { get; set; }
+        public string UserName;
 
         /// <summary>
         ///     Gets or sets the password used to access the feed. Null indicates that no password is used.
         /// </summary>
-        public string SavedPassword { get; set; }
+        public string SavedPassword;
 
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
@@ -89,12 +90,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets a value indicated whether the path is a local path or a remote path.
         /// </summary>
-        public bool IsLocalPath { get; }
+        public bool IsLocalPath;
 
         /// <summary>
         ///     Gets or sets a value indicated whether this source is enabled or not.
         /// </summary>
-        public bool IsEnabled { get; set; }
+        public bool IsEnabled;
 
         /// <summary>
         ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier" /> given.

@@ -67,8 +67,6 @@ namespace NugetForUnity
         /// </summary>
         private static readonly List<NugetPackageSource> packageSources = new List<NugetPackageSource>();
 
-        public static event Action OnInstalledPackagesChanged;
-
         /// <summary>
         ///     The dictionary of currently installed <see cref="NugetPackage" />s keyed off of their ID string.
         /// </summary>
@@ -758,15 +756,16 @@ namespace NugetForUnity
             var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{foundPackage.Id}.{foundPackage.Version}");
             DeleteDirectory(toolsInstallDirectory);
 
-            installedPackages?.Remove(foundPackage.Id);
-
             if (installedPackages != null && installedPackages.Count > 0)
             {
+                installedPackages.Remove(foundPackage.Id);
+
+                // uninstall all non manually installed dependencies that are not a dependency of another installed package
                 var frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(foundPackage);
                 foreach (var dependency in frameworkGroup.Dependencies)
                 {
-                    var actualData = PackagesConfigFile.Packages.Find(pkg => pkg.Id == dependency.Id);
-                    if (actualData == null || actualData.IsManuallyInstalled)
+                    var packageConfiguration = PackagesConfigFile.Packages.Find(pkg => pkg.Id == dependency.Id);
+                    if (packageConfiguration == null || packageConfiguration.IsManuallyInstalled)
                     {
                         continue;
                     }
@@ -797,7 +796,7 @@ namespace NugetForUnity
         {
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
-            newVersion.IsManuallyInstalled = currentVersion.IsManuallyInstalled;
+            newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
             return InstallIdentifier(newVersion, refreshAssets);
         }
 
@@ -836,9 +835,9 @@ namespace NugetForUnity
             EditorUtility.ClearProgressBar();
         }
 
-        public static void UpdatePackageConfig(NugetPackage package)
+        public static void SetManuallyInstalledFlag(NugetPackageIdentifier package)
         {
-            PackagesConfigFile.AddPackage(package);
+            PackagesConfigFile.SetManuallyInstalledFlag(package);
             PackagesConfigFile.Save(PackagesConfigFilePath);
         }
 
@@ -864,15 +863,14 @@ namespace NugetForUnity
             // loops through the packages that are actually installed in the project
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
+                var manuallyInstalledPackagesNumber = 0;
                 void AddPackageToInstalled(NugetPackage package)
                 {
                     if (!installedPackages.ContainsKey(package.Id))
                     {
-                        var actualData = PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id);
-                        if (actualData != null)
-                        {
-                            package.IsManuallyInstalled = actualData.IsManuallyInstalled;
-                        }
+                        package.IsManuallyInstalled =
+                            PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
+                        if (package.IsManuallyInstalled) manuallyInstalledPackagesNumber++;
                         installedPackages.Add(package.Id, package);
                     }
                     else
@@ -896,12 +894,38 @@ namespace NugetForUnity
                     var package = NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile));
                     AddPackageToInstalled(package);
                 }
+
+                if (manuallyInstalledPackagesNumber == 0)
+                {
+                    // set root packages as manually installed if none are marked as such
+                    foreach (var rootPackage in GetInstalledRootPackages())
+                    {
+                        PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
+                    }
+                    PackagesConfigFile.Save(PackagesConfigFilePath);
+                }
             }
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
+        }
 
-            OnInstalledPackagesChanged?.Invoke();
+        internal static List<NugetPackage> GetInstalledRootPackages()
+        {
+            // default all packages to being roots
+            var roots = new List<NugetPackage>(installedPackages.Values);
+
+            // remove a package as a root if another package is dependent on it
+            foreach (var package in installedPackages.Values)
+            {
+                var frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                foreach (var dependency in frameworkGroup.Dependencies)
+                {
+                    roots.RemoveAll(p => p.Id == dependency.Id);
+                }
+            }
+
+            return roots;
         }
 
         /// <summary>
@@ -1296,10 +1320,13 @@ namespace NugetForUnity
                         {
                             var filePath = Path.Combine(baseDirectory, entry.FullName);
 
-                            var isDir = filePath.EndsWith("/") || filePath.EndsWith("\\");
-                            var dirName = isDir ? filePath : Path.GetDirectoryName(filePath);
-                            if (dirName != null && !Directory.Exists(dirName)) Directory.CreateDirectory(dirName);
-                            if (isDir) continue;
+                            var directory = Path.GetDirectoryName(filePath);
+                            Directory.CreateDirectory(directory);
+                            if (Directory.Exists(filePath))
+                            {
+                                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
+                                continue;
+                            }
 
                             entry.ExtractToFile(filePath, true);
 

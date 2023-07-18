@@ -201,6 +201,10 @@ namespace NugetForUnity
         protected static void RestorePackages()
         {
             NugetHelper.Restore();
+            foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
+            {
+                nugetWindow.ClearViewCache();
+            }
         }
 
         /// <summary>
@@ -315,13 +319,7 @@ namespace NugetForUnity
         /// </summary>
         private void OnEnable()
         {
-            NugetHelper.OnInstalledPackagesChanged += ClearViewCache;
             Refresh(false);
-        }
-
-        private void OnDisable()
-        {
-            NugetHelper.OnInstalledPackagesChanged -= ClearViewCache;
         }
 
         private void ClearViewCache()
@@ -366,7 +364,7 @@ namespace NugetForUnity
                     UpdateOnlinePackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                    NugetHelper.UpdateInstalledPackages();
+                    UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
                     UpdateUpdatePackages();
@@ -383,6 +381,7 @@ namespace NugetForUnity
             }
             finally
             {
+                ClearViewCache();
                 EditorUtility.ClearProgressBar();
 
                 NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
@@ -400,6 +399,12 @@ namespace NugetForUnity
                     showOnlinePrerelease,
                     numberToGet,
                     numberToSkip);
+        }
+
+        private void UpdateInstalledPackages()
+        {
+            NugetHelper.UpdateInstalledPackages();
+            ClearViewCache();
         }
 
         /// <summary>
@@ -591,15 +596,15 @@ namespace NugetForUnity
                 var headerStyle = GetHeaderStyle();
 
                 EditorGUILayout.LabelField("Installed packages", headerStyle, GUILayout.Height(20));
-                DrawPackages(installedPackages.TakeWhile(p => p.IsManuallyInstalled), true);
+                DrawPackages(installedPackages.TakeWhile(package => package.IsManuallyInstalled), true);
 
-                var rect = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
-                EditorGUI.LabelField(rect, "", headerStyle);
+                var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
+                EditorGUI.LabelField(rectangle, "", headerStyle);
 
-                showImplicitlyInstalled = EditorGUI.Foldout(rect, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
+                showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
                 if (showImplicitlyInstalled)
                 {
-                    DrawPackages(installedPackages.SkipWhile(p => p.IsManuallyInstalled), true);
+                    DrawPackages(installedPackages.SkipWhile(package => package.IsManuallyInstalled), true);
                 }
             }
             else
@@ -745,7 +750,7 @@ namespace NugetForUnity
                         if (GUILayout.Button("Uninstall All", GUILayout.Width(100)))
                         {
                             NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-                            NugetHelper.UpdateInstalledPackages();
+                            UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
@@ -755,7 +760,7 @@ namespace NugetForUnity
                         if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
                         {
                             NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(selectedPackages.Contains).ToList());
-                            NugetHelper.UpdateInstalledPackages();
+                            UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
@@ -800,7 +805,7 @@ namespace NugetForUnity
                         if (GUILayout.Button("Update All", GUILayout.Width(100)))
                         {
                             NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
-                            NugetHelper.UpdateInstalledPackages();
+                            UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
 
@@ -809,7 +814,7 @@ namespace NugetForUnity
                             if (GUILayout.Button("Update Selected", GUILayout.Width(120)))
                             {
                                 NugetHelper.UpdateAll(updatePackages.Where(selectedPackages.Contains), NugetHelper.InstalledPackages);
-                                NugetHelper.UpdateInstalledPackages();
+                                UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
@@ -957,64 +962,55 @@ namespace NugetForUnity
 
                 GUILayout.Label($"Version {package.Version}");
 
-                if (installed != null && installed.Version == package.Version)
+                if (installed != null)
                 {
-                    if (!installed.IsManuallyInstalled)
+                    if (!installed.IsManuallyInstalled && package.PackageSource == null)
                     {
                         if (GUILayout.Button("Add as explicit"))
                         {
-                            installed.IsManuallyInstalled = true;
-                            NugetHelper.UpdatePackageConfig(installed);
+                            NugetHelper.SetManuallyInstalledFlag(installed);
                         }
                     }
-                    else
+
+                    if (installed < package)
                     {
-                        // This specific version is installed
-                        if (GUILayout.Button("Uninstall"))
+                        // An older version is installed
+                        if (GUILayout.Button("Update"))
                         {
-                            NugetHelper.Uninstall(installed);
-                            NugetHelper.UpdateInstalledPackages();
+                            NugetHelper.Update(installed, package);
+                            UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
+                    }
+                    else if (installed > package)
+                    {
+                        // A newer version is installed
+                        if (GUILayout.Button("Downgrade"))
+                        {
+                            NugetHelper.Update(installed, package);
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+
+                    if (GUILayout.Button("Uninstall"))
+                    {
+                        NugetHelper.Uninstall(installed);
+                        UpdateInstalledPackages();
+                        UpdateUpdatePackages();
                     }
                 }
                 else
                 {
-                    if (installed != null)
+                    var alreadyInstalled = NugetHelper.IsAlreadyImportedInEngine(package, false);
+                    using (new EditorGUI.DisabledScope(alreadyInstalled))
                     {
-                        if (installed < package)
+                        if (GUILayout.Button(new GUIContent("Install", null, alreadyInstalled ? "Already imported by Unity" : null)))
                         {
-                            // An older version is installed
-                            if (GUILayout.Button("Update"))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                        else if (installed > package)
-                        {
-                            // A newer version is installed
-                            if (GUILayout.Button("Downgrade"))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var alreadyInstalled = NugetHelper.IsAlreadyImportedInEngine(package, false);
-                        using (new EditorGUI.DisabledScope(alreadyInstalled))
-                        {
-                            if (GUILayout.Button(new GUIContent("Install", null, alreadyInstalled ? "Already imported by Unity" : null)))
-                            {
-                                package.IsManuallyInstalled = true;
-                                NugetHelper.InstallIdentifier(package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
+                            package.IsManuallyInstalled = true;
+                            NugetHelper.InstallIdentifier(package);
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
                         }
                     }
                 }

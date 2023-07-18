@@ -31,7 +31,7 @@ public class NuGetTests
     public void InstallJsonTest()
     {
         // install a specific version
-        var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
+        var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8") { IsManuallyInstalled = true };
         NugetHelper.InstallIdentifier(json608);
         Assert.IsTrue(NugetHelper.IsInstalled(json608), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
 
@@ -52,7 +52,7 @@ public class NuGetTests
     [Test]
     public void InstallRoslynAnalyzerTest()
     {
-        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2");
+        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") {IsManuallyInstalled = true};
         if (NugetHelper.NugetConfigFile == null)
         {
             NugetHelper.LoadNugetConfigFile();
@@ -95,7 +95,7 @@ public class NuGetTests
     [Test]
     public void InstallProtobufTest()
     {
-        var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668");
+        var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
 
         // install the package
         NugetHelper.InstallIdentifier(protobuf);
@@ -117,7 +117,7 @@ public class NuGetTests
         // disable the cache for now to force getting the lowest version of the dependency
         NugetHelper.NugetConfigFile.InstallFromCache = false;
 
-        var bootstrap337 = new NugetPackageIdentifier("bootstrap", "3.3.7");
+        var bootstrap337 = new NugetPackageIdentifier("bootstrap", "3.3.7") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(bootstrap337);
         Assert.IsTrue(NugetHelper.IsInstalled(bootstrap337), "The package was NOT installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
@@ -128,7 +128,7 @@ public class NuGetTests
         Assert.IsTrue(NugetHelper.IsInstalled(jQuery191), "The package was NOT installed: {0} {1}", jQuery191.Id, jQuery191.Version);
 
         // now upgrade jQuery to 3.1.1
-        var jQuery311 = new NugetPackageIdentifier("jQuery", "3.1.1");
+        var jQuery311 = new NugetPackageIdentifier("jQuery", "3.1.1") { IsManuallyInstalled = true };
         NugetHelper.InstallIdentifier(jQuery311);
         Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
@@ -154,7 +154,7 @@ public class NuGetTests
     [Test]
     public void InstallStyleCopTest()
     {
-        var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
+        var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5") { IsManuallyInstalled = true };
         var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
 
         NugetHelper.InstallIdentifier(styleCopPlusId);
@@ -174,7 +174,7 @@ public class NuGetTests
     [Test]
     public void InstallSignalRClientTest()
     {
-        var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2");
+        var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(signalRClient);
         Assert.IsTrue(NugetHelper.IsInstalled(signalRClient), "The package was NOT installed: {0} {1}", signalRClient.Id, signalRClient.Version);
@@ -201,7 +201,7 @@ public class NuGetTests
     [Test]
     public void InstallMicrosoftMlProbabilisticCompilerTest()
     {
-        var probabilisticCompiler = new NugetPackageIdentifier("Microsoft.ML.Probabilistic.Compiler", "0.4.2301.301");
+        var probabilisticCompiler = new NugetPackageIdentifier("Microsoft.ML.Probabilistic.Compiler", "0.4.2301.301") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(probabilisticCompiler);
         Assert.IsTrue(
@@ -415,8 +415,8 @@ public class NuGetTests
     {
         NugetHelper.LoadNugetConfigFile();
 
-        var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0");
-        var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0");
+        var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };
+        var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(componentModelAnnotation47);
         Assert.IsTrue(
