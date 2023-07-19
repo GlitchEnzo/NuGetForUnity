@@ -72,7 +72,10 @@ namespace NugetForUnity
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
-            if (Array.IndexOf(importedAssets, "Assets/packages.config") < 0) return;
+            if (Array.IndexOf(importedAssets, NugetHelper.PackagesConfigFilePath) < 0)
+            {
+                return;
+            }
 
             NugetHelper.ReloadPackagesConfig();
             NugetHelper.Restore();

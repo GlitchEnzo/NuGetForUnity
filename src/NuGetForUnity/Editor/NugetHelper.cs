@@ -43,7 +43,7 @@ namespace NugetForUnity
         /// <remarks>
         ///     <see cref="PackagesConfigFile" />
         /// </remarks>
-        private static readonly string PackagesConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, PackagesConfigFile.FileName));
+        internal static readonly string PackagesConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, PackagesConfigFile.FileName));
 
         /// <summary>
         ///     Gets the absolute path to the Unity-Project root directory.
@@ -374,45 +374,41 @@ namespace NugetForUnity
                 // go through the library folders in descending order (highest to lowest version)
                 var libDirectories = new DirectoryInfo(packageLibsDirectory).GetDirectories();
 
-                var isAlreadyImported = IsAlreadyImportedInEngine(package);
-                if (!isAlreadyImported)
+                var bestLibDirectory = TargetFrameworkResolver.TryGetBestTargetFramework(libDirectories, directory => directory.Name);
+                if (bestLibDirectory == null)
                 {
-                    var bestLibDirectory = TargetFrameworkResolver.TryGetBestTargetFramework(libDirectories, directory => directory.Name);
-                    if (bestLibDirectory == null)
-                    {
-                        Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
-                    }
-                    else
-                    {
-                        LogVerbose(
-                            "Selecting directory '{0}' with the best target framework {1} for current settings",
-                            bestLibDirectory,
-                            bestLibDirectory.Name);
-                    }
+                    Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
+                }
+                else
+                {
+                    LogVerbose(
+                        "Selecting directory '{0}' with the best target framework {1} for current settings",
+                        bestLibDirectory,
+                        bestLibDirectory.Name);
+                }
 
-                    // delete all of the libraries except for the selected one
-                    foreach (var directory in libDirectories)
+                // delete all of the libraries except for the selected one
+                foreach (var directory in libDirectories)
+                {
+                    // we use reference equality as the TargetFrameworkResolver returns the input reference.
+                    if (directory != bestLibDirectory)
                     {
-                        // we use reference equality as the TargetFrameworkResolver returns the input reference.
-                        if (directory != bestLibDirectory)
-                        {
-                            DeleteDirectory(directory.FullName);
-                        }
+                        DeleteDirectory(directory.FullName);
                     }
+                }
 
-                    if (bestLibDirectory != null)
+                if (bestLibDirectory != null)
+                {
+                    // some older packages e.g. Microsoft.CodeAnalysis.Common 2.10.0 have multiple localization resource files
+                    // e.g. Microsoft.CodeAnalysis.resources.dll each inside a folder with the language name as a folder name e.g. zh-Hant or fr
+                    // unity doesn't support importing multiple assemblies with the same file name.
+                    // for now we just delete all folders so the language neutral version is used and Unity is happy.
+                    var languageSupFolders = bestLibDirectory.GetDirectories();
+                    if (languageSupFolders.All(languageSupFolder => languageSupFolder.Name.Split('-').FirstOrDefault()?.Length == 2))
                     {
-                        // some older packages e.g. Microsoft.CodeAnalysis.Common 2.10.0 have multiple localization resource files
-                        // e.g. Microsoft.CodeAnalysis.resources.dll each inside a folder with the language name as a folder name e.g. zh-Hant or fr
-                        // unity doesn't support importing multiple assemblies with the same file name.
-                        // for now we just delete all folders so the language neutral version is used and Unity is happy.
-                        var languageSupFolders = bestLibDirectory.GetDirectories();
-                        if (languageSupFolders.All(languageSupFolder => languageSupFolder.Name.Split('-').FirstOrDefault()?.Length == 2))
+                        foreach (var languageSupFolder in languageSupFolders)
                         {
-                            foreach (var languageSupFolder in languageSupFolders)
-                            {
-                                languageSupFolder.Delete(true);
-                            }
+                            languageSupFolder.Delete(true);
                         }
                     }
                 }
@@ -802,7 +798,7 @@ namespace NugetForUnity
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
             newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
-            return InstallIdentifier(newVersion, refreshAssets);
+            return InstallIdentifier(newVersion, refreshAssets, true);
         }
 
         /// <summary>
@@ -1029,11 +1025,24 @@ namespace NugetForUnity
                 {
                     if (packageId.InRange(installedPackage))
                     {
-                        LogVerbose(
-                            "Requested {0} {1}, but {2} is already installed, so using that.",
-                            packageId.Id,
-                            packageId.Version,
-                            installedPackage.Version);
+                        var configPackage = PackagesConfigFile.Packages.Find(p => p.Id == packageId.Id);
+                        if (configPackage != null && configPackage < installedPackage)
+                        {
+                            LogVerbose(
+                                "Requested {0} {1}. {2} is already installed, but config demands lower version.",
+                                packageId.Id,
+                                packageId.Version,
+                                installedPackage.Version);
+                            installedPackage = null;
+                        }
+                        else
+                        {
+                            LogVerbose(
+                                "Requested {0} {1}, but {2} is already installed, so using that.",
+                                packageId.Id,
+                                packageId.Version,
+                                installedPackage.Version);
+                        }
                     }
                     else
                     {
@@ -1147,9 +1156,10 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true)
+        /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine</param>
+        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true, bool isUpdate = false)
         {
-            if (IsAlreadyImportedInEngine(package, false))
+            if (!isUpdate && IsAlreadyImportedInEngine(package, false))
             {
                 LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -1160,7 +1170,7 @@ namespace NugetForUnity
             if (foundPackage != null)
             {
                 foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
-                return Install(foundPackage, refreshAssets);
+                return Install(foundPackage, refreshAssets, isUpdate);
             }
 
             Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
@@ -1188,9 +1198,10 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        public static bool Install(NugetPackage package, bool refreshAssets = true)
+        /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine</param>
+        public static bool Install(NugetPackage package, bool refreshAssets = true, bool isUpdate = false)
         {
-            if (IsAlreadyImportedInEngine(package, false))
+            if (!isUpdate && IsAlreadyImportedInEngine(package, false))
             {
                 LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -1211,6 +1222,16 @@ namespace NugetForUnity
 
                 if (installedPackage > package)
                 {
+                    var configPackage = PackagesConfigFile.Packages.Find(identifier => identifier.Id == package.Id);
+                    if (configPackage != null && configPackage < installedPackage)
+                    {
+                        LogVerbose(
+                            "{0} {1} is installed but config needs {2} so downgrading.",
+                            installedPackage.Id,
+                            installedPackage.Version,
+                            package.Version);
+                        return Update(installedPackage, package, false);
+                    }
                     LogVerbose(
                         "{0} {1} is installed. {2} or greater is needed, so using installed version.",
                         installedPackage.Id,
@@ -1367,7 +1388,6 @@ namespace NugetForUnity
             {
                 WarnIfDotNetAuthenticationIssue(e);
                 Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e);
-                installSuccess = false;
             }
             finally
             {
