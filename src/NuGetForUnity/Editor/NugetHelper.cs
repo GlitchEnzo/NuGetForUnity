@@ -1447,16 +1447,20 @@ namespace NugetForUnity
         {
             UpdateInstalledPackages();
 
+            var packagesToInstall = PackagesConfigFile.Packages.FindAll(package => !IsInstalled(package));
+            if (packagesToInstall.Count == 0)
+            {
+                LogVerbose("No packages need restoring.");
+                return;
+            }
+
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             try
             {
-                var progressStep = 1.0f / PackagesConfigFile.Packages.Count;
+                var progressStep = 1.0f / packagesToInstall.Count;
                 float currentProgress = 0;
-
-                // copy the list since the InstallIdentifier operation below changes the actual installed packages list
-                var packagesToInstall = new List<NugetPackageIdentifier>(PackagesConfigFile.Packages);
 
                 LogVerbose("Restoring {0} packages.", packagesToInstall.Count);
 
@@ -1468,16 +1472,8 @@ namespace NugetForUnity
                             "Restoring NuGet Packages",
                             string.Format("Restoring {0} {1}", package.Id, package.Version),
                             currentProgress);
-
-                        if (!IsInstalled(package))
-                        {
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
                             InstallIdentifier(package);
-                        }
-                        else
-                        {
-                            LogVerbose("---Already installed: {0} {1}", package.Id, package.Version);
-                        }
                     }
 
                     currentProgress += progressStep;
