@@ -67,6 +67,17 @@ namespace NugetForUnity
             LogResults(results);
         }
 
+        private static void OnPostprocessAllAssets(string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            if (Array.IndexOf(importedAssets, "Assets/packages.config") < 0) return;
+
+            NugetHelper.ReloadPackagesConfig();
+            NugetHelper.Restore();
+        }
+
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(string projectRelativeAssetPath,
             string absoluteRepositoryPath,
             bool reimport)

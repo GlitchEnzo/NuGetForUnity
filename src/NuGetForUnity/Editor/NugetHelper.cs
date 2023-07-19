@@ -131,6 +131,11 @@ namespace NugetForUnity
             }
         }
 
+        public static void ReloadPackagesConfig()
+        {
+            packagesConfigFile = null;
+        }
+
         /// <summary>
         ///     Gets the packages that are actually installed in the project.
         /// </summary>
