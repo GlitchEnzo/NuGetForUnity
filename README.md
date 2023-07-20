@@ -86,12 +86,20 @@ Click the **View License** to open the license in a web browser.
 
 Click the **Install** to install the package.
 Note: If the package is already installed an **Uninstall** button will be displayed which lets you uninstall the package.
+If the **Install** button is disabled, it means the package is already imported by Unity.
 
 The **Installed** tabs shows the packages already installed in the current Unity project.
 
 <img alt="Installed Packages Tap" src="docs/screenshots/installed.png" height="500px" />
 
+The **Installed packages** part of the list shows packages directly installed as project dependencies.
+
+The **Implicitly installed packages** part shows packages that are installed as transitive dependencies.
+
 Click the **Uninstall** button to uninstall the package.
+When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled. 
+
+If **Add as explicit** is clicked on an **implicitly** installed package, it will be moved to the first part of the list and will **not** be automatically uninstalled in a scenario described above.
 
 The **Updates** tab shows the packages currently installed that have updates available on the server.
 

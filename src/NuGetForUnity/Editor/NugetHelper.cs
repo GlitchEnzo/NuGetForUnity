@@ -518,7 +518,7 @@ namespace NugetForUnity
             }
         }
 
-        private static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package, bool log = true)
+        internal static bool IsAlreadyImportedInEngine(NugetPackageIdentifier package, bool log = true)
         {
             var alreadyImportedLibs = UnityPreImportedLibraryResolver.GetAlreadyImportedLibs();
             var isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
@@ -722,33 +722,63 @@ namespace NugetForUnity
         {
             foreach (var package in packagesToUninstall)
             {
-                Uninstall(package);
+                Uninstall(package, false);
             }
+
+            AssetDatabase.Refresh();
         }
 
         /// <summary>
         ///     "Uninstalls" the given package by simply deleting its folder.
         /// </summary>
         /// <param name="package">The NugetPackage to uninstall.</param>
-        /// <param name="refreshAssets">True to force Unity to refesh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
+        /// <param name="refreshAssets">True to force Unity to refresh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
         public static void Uninstall(NugetPackageIdentifier package, bool refreshAssets = true)
         {
             LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
 
+            var foundPackage = package as NugetPackage ?? GetSpecificPackage(package);
+
             // update the package.config file
-            PackagesConfigFile.RemovePackage(package);
+            if (!PackagesConfigFile.RemovePackage(foundPackage))
+            {
+                return;
+            }
+
             PackagesConfigFile.Save(PackagesConfigFilePath);
 
-            var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
+            var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{foundPackage.Id}.{foundPackage.Version}");
             DeleteDirectory(packageInstallDirectory);
 
-            var metaFile = Path.Combine(NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}.meta");
+            var metaFile = Path.Combine(NugetConfigFile.RepositoryPath, $"{foundPackage.Id}.{foundPackage.Version}.meta");
             DeleteFile(metaFile);
 
-            var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}");
+            var toolsInstallDirectory = Path.Combine(AbsoluteProjectPath, "Packages", $"{foundPackage.Id}.{foundPackage.Version}");
             DeleteDirectory(toolsInstallDirectory);
 
-            installedPackages?.Remove(package.Id);
+            if (installedPackages != null && installedPackages.Count > 0)
+            {
+                installedPackages.Remove(foundPackage.Id);
+
+                // uninstall all non manually installed dependencies that are not a dependency of another installed package
+                var frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(foundPackage);
+                foreach (var dependency in frameworkGroup.Dependencies)
+                {
+                    var packageConfiguration = PackagesConfigFile.Packages.Find(pkg => pkg.Id == dependency.Id);
+                    if (packageConfiguration == null || packageConfiguration.IsManuallyInstalled)
+                    {
+                        continue;
+                    }
+
+                    var hasMoreParents = installedPackages.Values.Select(GetBestDependencyFrameworkGroupForCurrentSettings)
+                        .Any(frameworkGrp => frameworkGrp.Dependencies.Any(dep => dep.Id == dependency.Id));
+
+                    if (!hasMoreParents)
+                    {
+                        Uninstall(dependency, false);
+                    }
+                }
+            }
 
             if (refreshAssets)
             {
@@ -766,6 +796,7 @@ namespace NugetForUnity
         {
             LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             Uninstall(currentVersion, false);
+            newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
             return InstallIdentifier(newVersion, refreshAssets);
         }
 
@@ -804,6 +835,12 @@ namespace NugetForUnity
             EditorUtility.ClearProgressBar();
         }
 
+        public static void SetManuallyInstalledFlag(NugetPackageIdentifier package)
+        {
+            PackagesConfigFile.SetManuallyInstalledFlag(package);
+            PackagesConfigFile.Save(PackagesConfigFilePath);
+        }
+
         /// <summary>
         ///     Updates the dictionary of packages that are actually installed in the project based on the files that are currently installed.
         /// </summary>
@@ -826,19 +863,28 @@ namespace NugetForUnity
             // loops through the packages that are actually installed in the project
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
-                // a package that was installed via NuGet will have the .nupkg it came from inside the folder
-                var nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
-                foreach (var nupkgFile in nupkgFiles)
+                var manuallyInstalledPackagesNumber = 0;
+                void AddPackageToInstalled(NugetPackage package)
                 {
-                    var package = NugetPackage.FromNupkgFile(nupkgFile);
                     if (!installedPackages.ContainsKey(package.Id))
                     {
+                        package.IsManuallyInstalled =
+                            PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
+                        if (package.IsManuallyInstalled) manuallyInstalledPackagesNumber++;
                         installedPackages.Add(package.Id, package);
                     }
                     else
                     {
                         Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
                     }
+                }
+
+                // a package that was installed via NuGet will have the .nupkg it came from inside the folder
+                var nupkgFiles = Directory.GetFiles(NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
+                foreach (var nupkgFile in nupkgFiles)
+                {
+                    var package = NugetPackage.FromNupkgFile(nupkgFile);
+                    AddPackageToInstalled(package);
                 }
 
                 // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
@@ -846,19 +892,40 @@ namespace NugetForUnity
                 foreach (var nuspecFile in nuspecFiles)
                 {
                     var package = NugetPackage.FromNuspec(NuspecFile.Load(nuspecFile));
-                    if (!installedPackages.ContainsKey(package.Id))
+                    AddPackageToInstalled(package);
+                }
+
+                if (manuallyInstalledPackagesNumber == 0)
+                {
+                    // set root packages as manually installed if none are marked as such
+                    foreach (var rootPackage in GetInstalledRootPackages())
                     {
-                        installedPackages.Add(package.Id, package);
+                        PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
-                    else
-                    {
-                        Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
-                    }
+                    PackagesConfigFile.Save(PackagesConfigFilePath);
                 }
             }
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
+        }
+
+        internal static List<NugetPackage> GetInstalledRootPackages()
+        {
+            // default all packages to being roots
+            var roots = new List<NugetPackage>(installedPackages.Values);
+
+            // remove a package as a root if another package is dependent on it
+            foreach (var package in installedPackages.Values)
+            {
+                var frameworkGroup = GetBestDependencyFrameworkGroupForCurrentSettings(package);
+                foreach (var dependency in frameworkGroup.Dependencies)
+                {
+                    roots.RemoveAll(p => p.Id == dependency.Id);
+                }
+            }
+
+            return roots;
         }
 
         /// <summary>
@@ -1087,6 +1154,7 @@ namespace NugetForUnity
 
             if (foundPackage != null)
             {
+                foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
                 return Install(foundPackage, refreshAssets);
             }
 
@@ -1178,7 +1246,7 @@ namespace NugetForUnity
                             "Can't find a matching dependency group for the NuGet Package {0} {1} that has a TargetFramework supported by the current Unity Scripting Backend. The NuGet Package supports the following TargetFramework's: {2}",
                             package.Id,
                             package.Version,
-                            string.Join(", ", package.Dependencies.Select(dependeny => dependeny.TargetFramework)));
+                            string.Join(", ", package.Dependencies.Select(dependency => dependency.TargetFramework)));
                     }
                     else if (frameworkGroup != null)
                     {
@@ -1251,10 +1319,12 @@ namespace NugetForUnity
                         foreach (var entry in zip.Entries)
                         {
                             var filePath = Path.Combine(baseDirectory, entry.FullName);
+
                             var directory = Path.GetDirectoryName(filePath);
                             Directory.CreateDirectory(directory);
                             if (Directory.Exists(filePath))
                             {
+                                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
                                 continue;
                             }
 
@@ -1269,7 +1339,7 @@ namespace NugetForUnity
                     }
 
                     // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, string.Format("{0}.{1}.nupkg", package.Id, package.Version)), true);
+                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, $"{package.Id}.{package.Version}.nupkg"), true);
                 }
                 else
                 {
