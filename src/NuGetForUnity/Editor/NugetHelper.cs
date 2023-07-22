@@ -1565,7 +1565,7 @@ namespace NugetForUnity
             var isInstalled = false;
             if (InstalledPackagesDictionary.TryGetValue(package.Id, out var installedPackage))
             {
-                isInstalled = package.CompareVersion(installedPackage.Version) == 0;
+                isInstalled = package.Equals(installedPackage);
             }
 
             return isInstalled;

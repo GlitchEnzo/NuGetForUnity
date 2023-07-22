@@ -965,10 +965,10 @@ namespace NugetForUnity
                 GUILayout.FlexibleSpace();
                 if (installed != null && installed.Version != package.Version)
                 {
-                    GUILayout.Label($"Current Version {installed.Version}");
+                    GUILayout.Label($"Current Version {installed.FullVersion}");
                 }
 
-                GUILayout.Label($"Version {package.Version}");
+                GUILayout.Label($"Version {package.FullVersion}");
 
                 if (installed != null)
                 {
