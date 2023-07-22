@@ -14,14 +14,14 @@ namespace NugetForUnity
         public string Id;
 
         /// <summary>
+        ///     Gets or sets whether this package was installed manually or just as a dependency.
+        /// </summary>
+        public bool IsManuallyInstalled;
+
+        /// <summary>
         ///     Gets or sets the version number of the NuGet package.
         /// </summary>
         public string Version;
-
-        /// <summary>
-        /// Gets or sets whether this package was installed manually or just as a dependency.
-        /// </summary>
-        public bool IsManuallyInstalled;
 
         /// <summary>
         ///     Initializes a new instance of a <see cref="NugetPackageIdentifider" /> with empty ID and Version.
