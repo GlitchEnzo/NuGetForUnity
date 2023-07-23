@@ -524,11 +524,11 @@ namespace NugetForUnity
 
             // sort alphabetically, then by version descending
             updates.Sort(
-                delegate(NugetPackage x, NugetPackage y)
+                (x, y) =>
                 {
                     if (x.Id == y.Id)
                     {
-                        return -1 * x.CompareVersion(y.Version);
+                        return -1 * x.CompareVersion(y);
                     }
 
                     return x.Id.CompareTo(y.Id);

@@ -134,6 +134,14 @@ xmldoc_wrap_text=true
 xmldoc_wrap_around_elements=false
 xmldoc_indent_text=one_indent
 xmldoc_keep_user_linebreaks=true
+# analyzer warings
+dotnet_code_quality.ca1051.api_surface=all
+dotnet_diagnostic.sa1633.severity=none
+dotnet_diagnostic.sa1200.severity=none
+dotnet_diagnostic.sa1101.severity=none
+dotnet_diagnostic.SA1408.severity=none
+dotnet_diagnostic.SA1407.severity=none
+dotnet_diagnostic.SA1118.severity=none
 
 [{*.yaml,*.yml}]
 indent_size=2
