@@ -67,7 +67,7 @@ namespace NugetForUnity
                     return;
                 }
 
-                if (normalizedVersion == value)
+                if (FullVersion == value)
                 {
                     return;
                 }
