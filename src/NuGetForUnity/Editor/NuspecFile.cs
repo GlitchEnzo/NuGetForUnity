@@ -15,7 +15,7 @@ namespace NugetForUnity
     ///     At a minumum, Id, Version, Description, and Authors is required.  Everything else is optional.
     ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec
     /// </remarks>
-    public class NuspecFile: NuCommon
+    public class NuspecFile : NugetPackageIdentifier
     {
         /// <summary>
         ///     Gets or sets the source control branch the package is from.
@@ -37,7 +37,7 @@ namespace NugetForUnity
         /// </summary>
         public string RepositoryUrl;
 
-        public NuspecFile(): base()
+        public NuspecFile()
         {
             Dependencies = new List<NugetFrameworkGroup>();
             Files = new List<NuspecContentFile>();

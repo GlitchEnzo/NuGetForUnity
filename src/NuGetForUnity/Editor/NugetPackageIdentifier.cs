@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -143,6 +145,16 @@ namespace NugetForUnity
             }
         }
 
+        /// <summary>
+        ///     Gets the name of the '.nupkg' file that contains the whole package content as a ZIP.
+        /// </summary>
+        public string PackageFileName => $"{Id}.{Version}.nupkg";
+
+        /// <summary>
+        ///     Gets the name of the '.nuspec' file that contains metadata of this NuGet package's.
+        /// </summary>
+        public string SpecificationFileName => $"{Id}.{Version}.nuspec";
+
         /// <inheritdoc />
         public int CompareTo(NugetPackageIdentifier other)
         {
@@ -186,6 +198,40 @@ namespace NugetForUnity
             var cached = FullVersion;
             FullVersion = null;
             Version = cached;
+        }
+
+        /// <summary>
+        ///     Full filename, including specified path, of this NuGet package's file.
+        /// </summary>
+        /// <remarks>
+        ///     Do not use this method when attempting to find a package file in a local repository; use
+        ///     <see
+        ///         cref="GetLocalPackageFilePath" />
+        ///     instead. The existence of the file is not verified.
+        /// </remarks>
+        /// <param name="baseDirectoryPath">Path in which the package file will be found.</param>
+        /// <returns>Base package filename prefixed by the indicated path.</returns>
+        public string GetPackageFilePath(string baseDirectoryPath)
+        {
+            return Path.Combine(baseDirectoryPath, PackageFileName);
+        }
+
+        /// <summary>
+        ///     Full filename, including full path, of this NuGet package's file in a local NuGet repository.
+        /// </summary>
+        /// <remarks>
+        ///     Use this method when attempting to find a package file in a local repository. Do not use
+        ///     <see cref="GetPackageFilePath(string)" /> for this purpose. The existence of the file is verified.
+        /// </remarks>
+        /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
+        /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
+        public string GetLocalPackageFilePath(string baseDirectoryPath)
+        {
+            // Find this package's file in the repository.
+            var files = Directory.GetFiles(baseDirectoryPath, PackageFileName, SearchOption.AllDirectories);
+
+            // If we found any, return the first found; otherwise return null.
+            return files.FirstOrDefault();
         }
 
         /// <summary>

@@ -586,7 +586,7 @@ namespace NugetForUnity
         /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
         public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
         {
-            var packagePath = nuspec.PkgPath(PackOutputDirectory);
+            var packagePath = nuspec.GetLocalPackageFilePath(PackOutputDirectory);
             if (!File.Exists(packagePath))
             {
                 LogVerbose("Attempting to Pack.");
@@ -1065,7 +1065,7 @@ namespace NugetForUnity
 
             if (NugetConfigFile.InstallFromCache && !packageId.HasVersionRange)
             {
-                var cachedPackagePath = packageId.PkgPath(PackOutputDirectory);
+                var cachedPackagePath = packageId.GetLocalPackageFilePath(PackOutputDirectory);
 
                 if (File.Exists(cachedPackagePath))
                 {
@@ -1272,7 +1272,7 @@ namespace NugetForUnity
                 PackagesConfigFile.AddPackage(package);
                 PackagesConfigFile.Save(PackagesConfigFilePath);
 
-                var cachedPackagePath = package.PkgPath(PackOutputDirectory);
+                var cachedPackagePath = package.GetPackageFilePath(PackOutputDirectory);
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
@@ -1284,12 +1284,9 @@ namespace NugetForUnity
                         LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
 
                         // copy the .nupkg from the local path to the cache
-                        var pkgFile = package.LocalRepoPkgPath(package.PackageSource.ExpandedPath);
+                        var pkgFile = package.GetLocalPackageFilePath(package.PackageSource.ExpandedPath);
                         Debug.Assert(pkgFile != null);
-                        File.Copy(
-                            pkgFile,
-                            cachedPackagePath,
-                            true);
+                        File.Copy(pkgFile, cachedPackagePath, true);
                     }
                     else
                     {
@@ -1346,7 +1343,7 @@ namespace NugetForUnity
                     }
 
                     // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, package.PkgPath(baseDirectory), true);
+                    File.Copy(cachedPackagePath, package.GetPackageFilePath(baseDirectory), true);
                 }
                 else
                 {

@@ -111,7 +111,7 @@ namespace NugetForUnity
                 if (!package.HasVersionRange)
                 {
                     // Find the package file in the repository.
-                    var localPackagePath = package.LocalRepoPkgPath(ExpandedPath);
+                    var localPackagePath = package.GetLocalPackageFilePath(ExpandedPath);
 
                     if (localPackagePath != null)
                     {
@@ -188,12 +188,11 @@ namespace NugetForUnity
 
             if (IsLocalPath)
             {
-
                 // Retrieve the path to this package in the local repo. If this fails, the value will be null.
-                var localPackagePath = package.LocalRepoPkgPath(ExpandedPath);
+                var localPackagePath = package.GetLocalPackageFilePath(ExpandedPath);
 
                 // If we found a match, then retrieve the first match. The file should exist.
-                if(localPackagePath != null)
+                if (localPackagePath != null)
                 {
                     Debug.Assert(File.Exists(localPackagePath));
                     var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
@@ -325,11 +324,7 @@ namespace NugetForUnity
                 // └─<packageID>
                 //   └─<version>
                 //     └─<packageID>.<version>.nupkg
-                //
-                // If the search term is empty, then just use GetDirectories; an ArgumentException that confusingly
-                // highlights an "invalid path" will be thrown if the search term form is used.
-                var packagesFromFolders =
-                (searchTerm == ""? Directory.GetDirectories(path): Directory.GetDirectories(path, searchTerm))
+                var packagesFromFolders = Directory.GetDirectories(path, searchTerm)
                     .SelectMany(nameFolder => Directory.GetDirectories(nameFolder))
                     .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
                 foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
