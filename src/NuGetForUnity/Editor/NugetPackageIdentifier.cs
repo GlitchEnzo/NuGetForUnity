@@ -183,7 +183,9 @@ namespace NugetForUnity
         public virtual void OnAfterDeserialize()
         {
             // the full version is serialized so it is used to populate the SemVer2Version
-            Version = FullVersion;
+            var cached = FullVersion;
+            FullVersion = null;
+            Version = cached;
         }
 
         /// <summary>
