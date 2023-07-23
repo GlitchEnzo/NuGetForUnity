@@ -52,7 +52,7 @@ public class NuGetTests
     [Test]
     public void InstallRoslynAnalyzerTest()
     {
-        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") {IsManuallyInstalled = true};
+        var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") { IsManuallyInstalled = true };
         if (NugetHelper.NugetConfigFile == null)
         {
             NugetHelper.LoadNugetConfigFile();

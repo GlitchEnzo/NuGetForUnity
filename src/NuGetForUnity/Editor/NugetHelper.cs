@@ -864,13 +864,17 @@ namespace NugetForUnity
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
                 var manuallyInstalledPackagesNumber = 0;
+
                 void AddPackageToInstalled(NugetPackage package)
                 {
                     if (!installedPackages.ContainsKey(package.Id))
                     {
-                        package.IsManuallyInstalled =
-                            PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
-                        if (package.IsManuallyInstalled) manuallyInstalledPackagesNumber++;
+                        package.IsManuallyInstalled = PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
+                        if (package.IsManuallyInstalled)
+                        {
+                            manuallyInstalledPackagesNumber++;
+                        }
+
                         installedPackages.Add(package.Id, package);
                     }
                     else
@@ -902,6 +906,7 @@ namespace NugetForUnity
                     {
                         PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
+
                     PackagesConfigFile.Save(PackagesConfigFilePath);
                 }
             }

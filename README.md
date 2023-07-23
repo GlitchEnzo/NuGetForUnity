@@ -97,7 +97,7 @@ The **Installed packages** part of the list shows packages directly installed as
 The **Implicitly installed packages** part shows packages that are installed as transitive dependencies.
 
 Click the **Uninstall** button to uninstall the package.
-When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled. 
+When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled.
 
 If **Add as explicit** is clicked on an **implicitly** installed package, it will be moved to the first part of the list and will **not** be automatically uninstalled in a scenario described above.
 

@@ -121,8 +121,8 @@ namespace NugetForUnity
                 {
                     Id = packageElement.Attribute("id").Value,
                     Version = packageElement.Attribute("version").Value,
-                    IsManuallyInstalled = packageElement.Attribute("manuallyInstalled")?.Value.Equals("true",
-                            StringComparison.OrdinalIgnoreCase) ?? false,
+                    IsManuallyInstalled =
+                        packageElement.Attribute("manuallyInstalled")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
                                             new XAttribute(AutoReferencedAttributeName, true)),
                 };
