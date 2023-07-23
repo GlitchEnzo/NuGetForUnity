@@ -151,7 +151,7 @@ namespace NugetForUnity
                 return string.Compare(Id, other.Id);
             }
 
-            if (HasVersionRange)
+            if (HasVersionRange || other.HasVersionRange)
             {
                 return Version.CompareTo(other.Version);
             }
