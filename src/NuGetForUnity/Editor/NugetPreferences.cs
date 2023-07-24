@@ -1,4 +1,6 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -71,6 +73,34 @@ namespace NugetForUnity
                 preferencesChangedThisFrame = true;
                 NugetHelper.NugetConfigFile.Verbose = verbose;
             }
+
+            EditorGUILayout.BeginHorizontal();
+            {
+                var packagesConfigPath = NugetHelper.NugetConfigFile.RelativePackagesConfigPath;
+                EditorGUILayout.LabelField($"Packages Config path: {packagesConfigPath}");
+                packagesConfigPath = Path.GetFullPath(packagesConfigPath);
+                if (GUILayout.Button("Browse"))
+                {
+                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, "");
+
+                    if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
+                    {
+                        var pathCheck = NugetHelper.GetProjectRelativePath(newPath);
+
+                        // make sure the path is within Assets directory
+                        if (!pathCheck.StartsWith("Assets"))
+                        {
+                            Debug.LogError("packages.config path has to be within <project root>/Assets.");
+                        }
+                        else
+                        {
+                            PackagesConfigFile.Move(newPath);
+                            preferencesChangedThisFrame = true;
+                        }
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
 
             var requestTimeout = EditorGUILayout.IntField(
                 new GUIContent(

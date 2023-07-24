@@ -74,6 +74,35 @@ namespace NugetForUnity
         /// </summary>
         public bool ReadOnlyPackageFiles { get; set; }
 
+        public string PackagesConfigPath;
+
+        public string RelativePackagesConfigPath
+        {
+            get => NugetHelper.GetProjectRelativePath(PackagesConfigPath);
+
+            private set
+            {
+                PackagesConfigPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(value));
+
+                var packageConfigRelativePath = NugetHelper.GetProjectRelativePath(PackagesConfigPath);
+
+                // package config path is invalid (not under Assets), set to default
+                if (packageConfigRelativePath == PackagesConfigPath || packageConfigRelativePath == ".")
+                {
+                    Debug.LogError("Path to packages.config in NuGet.config must be relative to the project root. Setting to default.");
+                    PackagesConfigPath = Application.dataPath;
+                    Save(NugetHelper.NugetConfigFilePath);
+                }
+
+                PackagesConfigPath = PackagesConfigPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+        }
+
+        /// <summary>
+        ///     The path to the packages.config file.
+        /// </summary>
+        public string PackagesConfigFilePath => Path.Combine(PackagesConfigPath, PackagesConfigFile.FileName);
+
         /// <summary>
         ///     Gets or sets the timeout in seconds used for all web requests to NuGet sources.
         /// </summary>
@@ -145,6 +174,11 @@ namespace NugetForUnity
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", "repositoryPath"));
             addElement.Add(new XAttribute("value", savedRepositoryPath));
+            config.Add(addElement);
+
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "PackagesConfigPath"));
+            addElement.Add(new XAttribute("value", RelativePackagesConfigPath));
             config.Add(addElement);
 
             // save the default push source
@@ -233,6 +267,7 @@ namespace NugetForUnity
             configFile.PackageSources = new List<INugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
+            configFile.RelativePackagesConfigPath = "Assets";
 
             var file = XDocument.Load(filePath);
 
@@ -355,6 +390,10 @@ namespace NugetForUnity
                     {
                         configFile.LockPackagesOnRestore = bool.Parse(value);
                     }
+                    else if (string.Equals(key, "PackagesConfigPath", StringComparison.OrdinalIgnoreCase))
+                    {
+                        configFile.RelativePackagesConfigPath = value;
+                    }
                 }
             }
 
@@ -380,6 +419,7 @@ namespace NugetForUnity
   </activePackageSource>
   <config>
     <add key=""repositoryPath"" value=""./Packages"" />
+    <add key=""PackagesConfigPath"" value=""Assets"" />
   </config>
 </configuration>";
 

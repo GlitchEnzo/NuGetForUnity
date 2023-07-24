@@ -52,7 +52,13 @@ namespace NugetForUnity
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
-            var packagesConfigFilePath = Path.GetFullPath(NugetHelper.PackagesConfigFilePath);
+            // currently only importedAssets are important for us, so if there are none, we do nothing
+            if (importedAssets.Length == 0)
+            {
+                return;
+            }
+
+            var packagesConfigFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
             var foundPackagesConfigAsset = importedAssets.Any(
                 importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
 

@@ -39,14 +39,6 @@ namespace NugetForUnity
         public static readonly string NugetConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, NugetConfigFile.FileName));
 
         /// <summary>
-        ///     The path to the packages.config file.
-        /// </summary>
-        /// <remarks>
-        ///     <see cref="PackagesConfigFile" />.
-        /// </remarks>
-        internal static readonly string PackagesConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, PackagesConfigFile.FileName));
-
-        /// <summary>
         ///     Gets the absolute path to the Unity-Project root directory.
         /// </summary>
         internal static readonly string AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
@@ -97,7 +89,7 @@ namespace NugetForUnity
             {
                 if (packagesConfigFile == null)
                 {
-                    packagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
+                    packagesConfigFile = PackagesConfigFile.Load();
                 }
 
                 return packagesConfigFile;
@@ -756,7 +748,7 @@ namespace NugetForUnity
             // update the package.config file
             if (PackagesConfigFile.RemovePackage(foundPackage))
             {
-                PackagesConfigFile.Save(PackagesConfigFilePath);
+                PackagesConfigFile.Save();
             }
 
             var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{foundPackage.Id}.{foundPackage.Version}");
@@ -855,7 +847,7 @@ namespace NugetForUnity
         internal static void SetManuallyInstalledFlag(INugetPackageIdentifier package)
         {
             PackagesConfigFile.SetManuallyInstalledFlag(package);
-            PackagesConfigFile.Save(PackagesConfigFilePath);
+            PackagesConfigFile.Save();
         }
 
         /// <summary>
@@ -927,8 +919,7 @@ namespace NugetForUnity
                     {
                         PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
-
-                    PackagesConfigFile.Save(PackagesConfigFilePath);
+                    PackagesConfigFile.Save();
                 }
             }
 
@@ -1283,7 +1274,7 @@ namespace NugetForUnity
 
                 // update packages.config
                 PackagesConfigFile.AddPackage(package);
-                PackagesConfigFile.Save(PackagesConfigFilePath);
+                PackagesConfigFile.Save();
 
                 var cachedPackagePath = Path.Combine(PackOutputDirectory, package.PackageFileName);
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
@@ -1588,6 +1579,36 @@ namespace NugetForUnity
             }
 
             return isInstalled;
+        }
+
+        /// <summary>
+        ///     Returns the path relative to project directory, or path if it's not relative to project directory.
+        ///     Should the project upgrade to .NET Standard 2.1, this will be removed and instead we will use Path.GetRelativePath(relativeTo, path);
+        /// </summary>
+        /// <param name="absolutePath">The destination path.</param>
+        public static string GetProjectRelativePath(string absolutePath)
+        {
+            var projectFolder = (Path.GetDirectoryName(Application.dataPath) ?? string.Empty).Replace('\\', '/');
+
+            if (string.IsNullOrEmpty(projectFolder) || string.IsNullOrEmpty(absolutePath) || !Path.IsPathRooted(absolutePath))
+            {
+                return absolutePath;
+            }
+
+            var path = absolutePath.Replace('\\', '/');
+
+            if (!path.StartsWith(projectFolder, StringComparison.Ordinal))
+            {
+                return absolutePath;
+            }
+
+            var projectFolderLength = projectFolder.Length;
+            if (path.Length > projectFolderLength && path[projectFolderLength] == '/')
+            {
+                projectFolderLength++;
+            }
+
+            return path.Length > projectFolderLength ? path.Substring(projectFolderLength) : ".";
         }
     }
 }
