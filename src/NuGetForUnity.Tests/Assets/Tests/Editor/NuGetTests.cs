@@ -240,6 +240,62 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
+    {
+        var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
+        var tempDirectoryPath = Path.GetFullPath("TempUnitTestFolder");
+        Directory.CreateDirectory(tempDirectoryPath);
+        File.Copy(NugetHelper.NugetConfigFilePath, Path.Combine(tempDirectoryPath, NugetConfigFile.FileName));
+
+        try
+        {
+            // get the package file by installing it
+            NugetHelper.InstallIdentifier(package);
+            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+            var packageFilePath =
+                package.GetPackageFilePath(Path.Combine(NugetHelper.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}"));
+            Assert.That(packageFilePath, Does.Exist.IgnoreDirectories);
+
+            // Hierarchical folder structures are supported in NuGet 3.3+.
+            // └─<packageID>
+            //   └─<version>
+            //     └─<packageID>.<version>.nupkg
+            var targetDirectory = Path.Combine(
+                tempDirectoryPath,
+                hierarchical ? $"{package.Id}{Path.DirectorySeparatorChar}{package.Version}" : string.Empty);
+            Directory.CreateDirectory(targetDirectory);
+            File.Copy(packageFilePath, Path.Combine(targetDirectory, Path.GetFileName(packageFilePath)));
+            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+
+            // force the package source to be the local directory
+            var nugetConfig = NugetHelper.NugetConfigFile;
+            nugetConfig.InstallFromCache = false;
+            nugetConfig.PackageSources.Clear();
+            nugetConfig.PackageSources.Add(new NugetPackageSource("LocalUnitTestSource", tempDirectoryPath));
+            nugetConfig.Save(NugetHelper.NugetConfigFilePath);
+            NugetHelper.LoadNugetConfigFile();
+
+            // install the package from the local file
+            NugetHelper.InstallIdentifier(package);
+            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+
+            // search local package source
+            var localPackages = NugetHelper.Search();
+            Assert.That(localPackages, Is.EqualTo(new[] { package }));
+        }
+        finally
+        {
+            File.Copy(Path.Combine(tempDirectoryPath, NugetConfigFile.FileName), NugetHelper.NugetConfigFilePath, true);
+            NugetHelper.LoadNugetConfigFile();
+            Directory.Delete(tempDirectoryPath, true);
+        }
+    }
+
+    [Test]
     [TestCase("1.0.0-rc1", "1.0.0")]
     [TestCase("1.0.0-rc1", "1.0.0-rc2")]
     [TestCase("1.2.3", "1.2.4")]
