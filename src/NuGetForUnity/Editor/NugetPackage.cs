@@ -149,8 +149,9 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void OnBeforeSerialize()
+        public override void OnBeforeSerialize()
         {
+            base.OnBeforeSerialize();
             if (iconTask != null)
             {
                 icon = iconTask.IsCompleted ? iconTask.Result : null;
@@ -158,12 +159,14 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void OnAfterDeserialize()
+        public override void OnAfterDeserialize()
         {
             if (icon != null)
             {
                 iconTask = Task.FromResult(icon);
             }
+
+            base.OnAfterDeserialize();
         }
 
         /// <summary>

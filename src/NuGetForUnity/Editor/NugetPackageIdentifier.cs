@@ -1,4 +1,7 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -6,7 +9,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Represents an identifier for a NuGet package.  It contains only an ID and a Version number.
     /// </summary>
-    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
+    public class NugetPackageIdentifier : IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>, ISerializationCallbackReceiver
     {
         /// <summary>
         ///     Gets or sets the ID of the NuGet package.
@@ -14,26 +17,27 @@ namespace NugetForUnity
         public string Id;
 
         /// <summary>
-        ///     Gets or sets the version number of the NuGet package.
-        /// </summary>
-        public string Version;
-
-        /// <summary>
-        /// Gets or sets whether this package was installed manually or just as a dependency.
+        ///     Gets or sets whether this package was installed manually or just as a dependency.
         /// </summary>
         public bool IsManuallyInstalled;
 
+        private string normalizedVersion;
+
+        private SemVer2Version semVer2Version;
+
         /// <summary>
-        ///     Initializes a new instance of a <see cref="NugetPackageIdentifider" /> with empty ID and Version.
+        ///     Initializes a new instance of the <see cref="NugetPackageIdentifier" /> class with empty ID and Version.
         /// </summary>
         public NugetPackageIdentifier()
         {
             Id = string.Empty;
-            Version = string.Empty;
+            normalizedVersion = string.Empty;
+            FullVersion = string.Empty;
+            semVer2Version = new SemVer2Version(false);
         }
 
         /// <summary>
-        ///     Initializes a new instance of a <see cref="NugetPackageIdentifider" /> with the given ID and Version.
+        ///     Initializes a new instance of the <see cref="NugetPackageIdentifier" /> class with the given ID and Version.
         /// </summary>
         /// <param name="id">The ID of the package.</param>
         /// <param name="version">The version number of the package.</param>
@@ -44,29 +48,84 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Gets or sets the version number of the NuGet package.
+        ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
+        /// </summary>
+        public string Version
+        {
+            get => normalizedVersion;
+
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    semVer2Version = new SemVer2Version(false);
+                    normalizedVersion = string.Empty;
+                    FullVersion = string.Empty;
+                    IsPrerelease = false;
+                    IsMinInclusive = false;
+                    IsMaxInclusive = false;
+                    HasVersionRange = false;
+                    return;
+                }
+
+                if (FullVersion == value)
+                {
+                    return;
+                }
+
+                IsMinInclusive = value.StartsWith("[");
+                HasVersionRange = IsMinInclusive || value.StartsWith("(");
+                if (HasVersionRange)
+                {
+                    semVer2Version = new SemVer2Version(false);
+                    normalizedVersion = value;
+                    FullVersion = value;
+                    IsPrerelease = value.Contains("-");
+                    IsMaxInclusive = value.EndsWith("]");
+                }
+                else
+                {
+                    semVer2Version = new SemVer2Version(value);
+                    normalizedVersion = semVer2Version.ToString(); // normalize the version string
+                    FullVersion = semVer2Version.ToString(true); // get the full version string with build-metadata
+                    IsPrerelease = semVer2Version.PreRelease != null;
+                    IsMaxInclusive = false;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Gets the full version number of the NuGet package.
+        ///     This contains the build-metadata e.g. <b>1.0.0+b3a8</b>.
+        /// </summary>
+        [field: SerializeField]
+        public string FullVersion { get; private set; }
+
+        /// <summary>
         ///     Gets a value indicating whether this is a prerelease package or an official release package.
         /// </summary>
-        public bool IsPrerelease => Version.Contains("-");
+        public bool IsPrerelease { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the version number specified is a range of values.
         /// </summary>
-        public bool HasVersionRange => Version.StartsWith("(") || Version.StartsWith("[");
+        public bool HasVersionRange { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the minimum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
         /// </summary>
-        public bool IsMinInclusive => Version.StartsWith("[");
+        public bool IsMinInclusive { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the maximum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
         /// </summary>
-        public bool IsMaxInclusive => Version.EndsWith("]");
+        public bool IsMaxInclusive { get; private set; }
 
         /// <summary>
         ///     Gets the minimum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
-        public string MinimumVersion => Version.TrimStart('[', '(').TrimEnd(']', ')').Split(',')[0].Trim();
+        public string MinimumVersion => HasVersionRange ? Version.TrimStart('[', '(').TrimEnd(']', ')').Split(',')[0].Trim() : Version;
 
         /// <summary>
         ///     Gets the maximum version number of the NuGet package. Only valid when HasVersionRange is true.
@@ -75,11 +134,26 @@ namespace NugetForUnity
         {
             get
             {
+                if (!HasVersionRange)
+                {
+                    return null;
+                }
+
                 // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
                 var minMax = Version.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
                 return minMax.Length == 2 ? minMax[1].Trim() : null;
             }
         }
+
+        /// <summary>
+        ///     Gets the name of the '.nupkg' file that contains the whole package content as a ZIP.
+        /// </summary>
+        public string PackageFileName => $"{Id}.{Version}.nupkg";
+
+        /// <summary>
+        ///     Gets the name of the '.nuspec' file that contains metadata of this NuGet package's.
+        /// </summary>
+        public string SpecificationFileName => $"{Id}.{Version}.nuspec";
 
         /// <inheritdoc />
         public int CompareTo(NugetPackageIdentifier other)
@@ -89,7 +163,12 @@ namespace NugetForUnity
                 return string.Compare(Id, other.Id);
             }
 
-            return CompareVersion(other.Version);
+            if (HasVersionRange || other.HasVersionRange)
+            {
+                return Version.CompareTo(other.Version);
+            }
+
+            return semVer2Version.Compare(other.semVer2Version);
         }
 
         /// <summary>
@@ -103,6 +182,59 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Called by Unity when this object is about to be serialized.
+        /// </summary>
+        public virtual void OnBeforeSerialize()
+        {
+            // nothing to do
+        }
+
+        /// <summary>
+        ///     Called by Unity when this object has been deserialized.
+        /// </summary>
+        public virtual void OnAfterDeserialize()
+        {
+            // the full version is serialized so it is used to populate the SemVer2Version
+            var cached = FullVersion;
+            FullVersion = null;
+            Version = cached;
+        }
+
+        /// <summary>
+        ///     Full filename, including specified path, of this NuGet package's file.
+        /// </summary>
+        /// <remarks>
+        ///     Do not use this method when attempting to find a package file in a local repository; use
+        ///     <see
+        ///         cref="GetLocalPackageFilePath" />
+        ///     instead. The existence of the file is not verified.
+        /// </remarks>
+        /// <param name="baseDirectoryPath">Path in which the package file will be found.</param>
+        /// <returns>Base package filename prefixed by the indicated path.</returns>
+        public string GetPackageFilePath(string baseDirectoryPath)
+        {
+            return Path.Combine(baseDirectoryPath, PackageFileName);
+        }
+
+        /// <summary>
+        ///     Full filename, including full path, of this NuGet package's file in a local NuGet repository.
+        /// </summary>
+        /// <remarks>
+        ///     Use this method when attempting to find a package file in a local repository. Do not use
+        ///     <see cref="GetPackageFilePath(string)" /> for this purpose. The existence of the file is verified.
+        /// </remarks>
+        /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
+        /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
+        public string GetLocalPackageFilePath(string baseDirectoryPath)
+        {
+            // Find this package's file in the repository.
+            var files = Directory.GetFiles(baseDirectoryPath, PackageFileName, SearchOption.AllDirectories);
+
+            // If we found any, return the first found; otherwise return null.
+            return files.FirstOrDefault();
+        }
+
+        /// <summary>
         ///     Checks to see if the first <see cref="NugetPackageIdentifier" /> is less than the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
@@ -110,12 +242,7 @@ namespace NugetForUnity
         /// <returns>True if the first is less than the second.</returns>
         public static bool operator <(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (first.Id != second.Id)
-            {
-                return string.Compare(first.Id, second.Id) < 0;
-            }
-
-            return first.CompareVersion(second.Version) < 0;
+            return first.CompareTo(second) < 0;
         }
 
         /// <summary>
@@ -126,12 +253,7 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than the second.</returns>
         public static bool operator >(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (first.Id != second.Id)
-            {
-                return string.Compare(first.Id, second.Id) > 0;
-            }
-
-            return first.CompareVersion(second.Version) > 0;
+            return first.CompareTo(second) > 0;
         }
 
         /// <summary>
@@ -142,12 +264,7 @@ namespace NugetForUnity
         /// <returns>True if the first is less than or equal to the second.</returns>
         public static bool operator <=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (first.Id != second.Id)
-            {
-                return string.Compare(first.Id, second.Id) <= 0;
-            }
-
-            return first.CompareVersion(second.Version) <= 0;
+            return first.CompareTo(second) <= 0;
         }
 
         /// <summary>
@@ -158,12 +275,7 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than or equal to the second.</returns>
         public static bool operator >=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (first.Id != second.Id)
-            {
-                return string.Compare(first.Id, second.Id) >= 0;
-            }
-
-            return first.CompareVersion(second.Version) >= 0;
+            return first.CompareTo(second) >= 0;
         }
 
         /// <summary>
@@ -175,9 +287,14 @@ namespace NugetForUnity
         /// <returns>True if the first is equal to the second.</returns>
         public static bool operator ==(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (ReferenceEquals(first, null))
+            if (ReferenceEquals(first, second))
             {
-                return ReferenceEquals(second, null);
+                return true;
+            }
+
+            if (first is null)
+            {
+                return false;
             }
 
             return first.Equals(second);
@@ -192,12 +309,7 @@ namespace NugetForUnity
         /// <returns>True if the first is not equal to the second.</returns>
         public static bool operator !=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
-            if (ReferenceEquals(first, null))
-            {
-                return !ReferenceEquals(second, null);
-            }
-
-            return !first.Equals(second);
+            return !(first == second);
         }
 
         /// <summary>
@@ -214,14 +326,13 @@ namespace NugetForUnity
             }
 
             // If parameter cannot be cast to NugetPackageIdentifier return false.
-            var p = obj as NugetPackageIdentifier;
-            if ((object)p == null)
+            if (obj is NugetPackageIdentifier packageIdentifier)
             {
-                return false;
+                // Return true if the fields match:
+                return Id == packageIdentifier.Id && Version == packageIdentifier.Version;
             }
 
-            // Return true if the fields match:
-            return Id == p.Id && Version == p.Version;
+            return false;
         }
 
         /// <summary>
@@ -244,73 +355,67 @@ namespace NugetForUnity
 
         /// <summary>
         ///     Determines if the given <see cref="NugetPackageIdentifier" />'s version is in the version range of this <see cref="NugetPackageIdentifier" />.
-        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
+        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="otherVersion">The <see cref="NugetPackageIdentifier" /> whose version to check if is in the range.</param>
+        /// <param name="otherPackage">The <see cref="NugetPackageIdentifier" /> whose version to check if is in the range.</param>
         /// <returns>True if the given version is in the range, otherwise false.</returns>
         public bool InRange(NugetPackageIdentifier otherPackage)
         {
-            return InRange(otherPackage.Version);
-        }
-
-        /// <summary>
-        ///     Determines if the given version is in the version range of this <see cref="NugetPackageIdentifier" />.
-        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
-        /// </summary>
-        /// <param name="otherVersion">The version to check if is in the range.</param>
-        /// <returns>True if the given version is in the range, otherwise false.</returns>
-        public bool InRange(string otherVersion)
-        {
-            var comparison = CompareVersion(otherVersion);
-            if (comparison == 0)
+            if (HasVersionRange)
             {
-                return true;
+                var comparison = CompareVersion(otherPackage.semVer2Version);
+                if (comparison == 0)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
-            // if it has no version range specified (ie only a single version number) NuGet's specs
-            // state that that is the minimum version number, inclusive
-            if (!HasVersionRange && comparison < 0)
-            {
-                return true;
-            }
-
-            return false;
+            // if it has no version range specified (e.g. only a single version number)
+            // The NuGet's specs state that it is the minimum version number, inclusive
+            return semVer2Version.Compare(otherPackage.semVer2Version) <= 0;
         }
 
         /// <summary>
         ///     Compares the given version string with the version range of this <see cref="NugetPackageIdentifier" />.
-        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions
+        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="otherVersion">The version to check if is in the range.</param>
+        /// <param name="other">The package of witch the version to check if is in the range.</param>
         /// <returns>
         ///     -1 if otherVersion is less than the version range. 0 if otherVersion is inside the version range. +1 if otherVersion is greater than the
         ///     version range.
         /// </returns>
-        public int CompareVersion(string otherVersion)
+        public int CompareVersion(NugetPackageIdentifier other)
+        {
+            return CompareVersion(other.semVer2Version);
+        }
+
+        private int CompareVersion(in SemVer2Version otherSemVer2)
         {
             if (!HasVersionRange)
             {
-                return CompareVersions(Version, otherVersion);
+                return semVer2Version.Compare(otherSemVer2);
             }
 
+            var compareMinimum = 0;
             if (!string.IsNullOrEmpty(MinimumVersion))
             {
-                var compare = CompareVersions(MinimumVersion, otherVersion);
+                compareMinimum = new SemVer2Version(MinimumVersion).Compare(otherSemVer2);
 
                 // -1 = Min < other <-- Inclusive & Exclusive
                 //  0 = Min = other <-- Inclusive Only
                 // +1 = Min > other <-- OUT OF RANGE
-
                 if (IsMinInclusive)
                 {
-                    if (compare > 0)
+                    if (compareMinimum > 0)
                     {
                         return -1;
                     }
                 }
                 else
                 {
-                    if (compare >= 0)
+                    if (compareMinimum >= 0)
                     {
                         return -1;
                     }
@@ -319,12 +424,11 @@ namespace NugetForUnity
 
             if (!string.IsNullOrEmpty(MaximumVersion))
             {
-                var compare = CompareVersions(MaximumVersion, otherVersion);
+                var compare = new SemVer2Version(MaximumVersion).Compare(otherSemVer2);
 
                 // -1 = Max < other <-- OUT OF RANGE
                 //  0 = Max = other <-- Inclusive Only
                 // +1 = Max > other <-- Inclusive & Exclusive
-
                 if (IsMaxInclusive)
                 {
                     if (compare < 0)
@@ -345,7 +449,7 @@ namespace NugetForUnity
                 if (IsMaxInclusive)
                 {
                     // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                    return CompareVersions(MinimumVersion, otherVersion);
+                    return compareMinimum;
                 }
             }
 
@@ -353,119 +457,194 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a prerelease tag, such as
-        ///     "1.3.0.1-alpha2".
-        ///     Returns:
-        ///     -1 if versionA is less than versionB
-        ///     0 if versionA is equal to versionB
-        ///     +1 if versionA is greater than versionB
+        ///     SemVer2 <see href="https://semver.org/" />.
+        ///     Complying with NuGet comparison rules <see href="https://learn.microsoft.com/en-us/nuget/concepts/package-versioning" />.
         /// </summary>
-        /// <param name="versionA">The first version number to compare.</param>
-        /// <param name="versionB">The second version number to compare.</param>
-        /// <returns>-1 if versionA is less than versionB. 0 if versionA is equal to versionB. +1 if versionA is greater than versionB</returns>
-        private static int CompareVersions(string versionA, string versionB)
+        private readonly struct SemVer2Version
         {
-            try
+            private readonly int major;
+
+            private readonly int minor;
+
+            private readonly int? patch;
+
+            private readonly int? build;
+
+            private readonly string buildMetadata;
+
+            public string PreRelease { get; }
+
+            /// <summary>
+            ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
+            /// </summary>
+            /// <param name="dummy">Dummy to allow calling this constructor.</param>
+            public SemVer2Version(bool dummy)
             {
-                var splitStringsA = versionA.Split('-');
-                versionA = splitStringsA[0];
-                var prereleaseA = "\uFFFF";
+                _ = dummy;
+                buildMetadata = null;
+                PreRelease = null;
+                major = -1;
+                minor = -1;
+                patch = null;
+                build = null;
+            }
 
-                if (splitStringsA.Length > 1)
+            /// <summary>
+            ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
+            /// </summary>
+            /// <param name="version">The version number as string.</param>
+            public SemVer2Version(string version)
+            {
+                try
                 {
-                    prereleaseA = splitStringsA[1];
-                    for (var i = 2; i < splitStringsA.Length; i++)
+                    buildMetadata = null;
+                    var buildMetadataStartIndex = version.IndexOf('+');
+                    if (buildMetadataStartIndex > 0)
                     {
-                        prereleaseA += "-" + splitStringsA[i];
+                        buildMetadata = version.Substring(buildMetadataStartIndex + 1);
+                        version = version.Substring(0, buildMetadataStartIndex);
+                    }
+
+                    PreRelease = null;
+                    var preReleaseStartIndex = version.IndexOf('-');
+                    if (preReleaseStartIndex > 0)
+                    {
+                        PreRelease = version.Substring(preReleaseStartIndex + 1);
+                        version = version.Substring(0, preReleaseStartIndex);
+                    }
+
+                    var split = version.Split('.');
+                    major = int.Parse(split[0]);
+                    minor = int.Parse(split[1]);
+                    patch = null;
+                    if (split.Length >= 3)
+                    {
+                        patch = int.Parse(split[2]);
+                    }
+
+                    build = null;
+                    if (split.Length >= 4)
+                    {
+                        build = int.Parse(split[3]);
                     }
                 }
-
-                var splitA = versionA.Split('.');
-                var majorA = int.Parse(splitA[0]);
-                var minorA = int.Parse(splitA[1]);
-                var patchA = 0;
-                if (splitA.Length >= 3)
+                catch (Exception ex)
                 {
-                    patchA = int.Parse(splitA[2]);
+                    Debug.LogErrorFormat("Invalid version number: '{0}'\n{1}", version, ex);
+                    buildMetadata = null;
+                    PreRelease = null;
+                    major = -1;
+                    minor = -1;
+                    patch = null;
+                    build = null;
                 }
+            }
 
-                var buildA = 0;
-                if (splitA.Length >= 4)
+            /// <summary>
+            ///     Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a prerelease tag, such as
+            ///     "1.3.0.1-alpha2".
+            ///     Returns:
+            ///     -1 if this is less than other
+            ///     0 if this is equal to other
+            ///     +1 if this is greater than other.
+            /// </summary>
+            /// <param name="other">The second version number to compare.</param>
+            /// <returns>-1 if this is less than other. 0 if this is equal to other. +1 if this is greater than other.</returns>
+            public int Compare(in SemVer2Version other)
+            {
+                try
                 {
-                    buildA = int.Parse(splitA[3]);
-                }
-
-                var splitStringsB = versionB.Split('-');
-                versionB = splitStringsB[0];
-                var prereleaseB = "\uFFFF";
-
-                if (splitStringsB.Length > 1)
-                {
-                    prereleaseB = splitStringsB[1];
-                    for (var i = 2; i < splitStringsB.Length; i++)
+                    var majorComparison = major.CompareTo(other.major);
+                    if (majorComparison == 0)
                     {
-                        prereleaseB += "-" + splitStringsB[i];
-                    }
-                }
-
-                var splitB = versionB.Split('.');
-                var majorB = int.Parse(splitB[0]);
-                var minorB = int.Parse(splitB[1]);
-                var patchB = 0;
-                if (splitB.Length >= 3)
-                {
-                    patchB = int.Parse(splitB[2]);
-                }
-
-                var buildB = 0;
-                if (splitB.Length >= 4)
-                {
-                    buildB = int.Parse(splitB[3]);
-                }
-
-                var major = majorA < majorB ? -1 :
-                    majorA > majorB ? 1 : 0;
-                var minor = minorA < minorB ? -1 :
-                    minorA > minorB ? 1 : 0;
-                var patch = patchA < patchB ? -1 :
-                    patchA > patchB ? 1 : 0;
-                var build = buildA < buildB ? -1 :
-                    buildA > buildB ? 1 : 0;
-                var prerelease = string.Compare(prereleaseA, prereleaseB, StringComparison.Ordinal);
-
-                if (major == 0)
-                {
-                    // if major versions are equal, compare minor versions
-                    if (minor == 0)
-                    {
-                        if (patch == 0)
+                        // if major versions are equal, compare minor versions
+                        var minorComparison = minor.CompareTo(other.minor);
+                        if (minorComparison == 0)
                         {
-                            // if patch versions are equal, compare build versions
-                            if (build == 0)
+                            var patchNumber = patch ?? 0;
+                            var otherPatch = other.patch ?? 0;
+                            var patchComparison = patchNumber.CompareTo(otherPatch);
+                            if (patchComparison == 0)
                             {
-                                // if the build versions are equal, just return the prerelease version comparison
-                                return prerelease;
+                                // if patch versions are equal, compare build versions
+                                var buildNumber = build ?? 0;
+                                var otherBuild = other.build ?? 0;
+                                var buildComparison = buildNumber.CompareTo(otherBuild);
+                                if (buildComparison == 0)
+                                {
+                                    // if the build versions are equal, just return the prerelease version comparison
+                                    var prerelease = PreRelease ?? "\uFFFF";
+                                    var otherPrerelease = other.PreRelease ?? "\uFFFF";
+                                    var prereleaseComparison = string.Compare(prerelease, otherPrerelease, StringComparison.Ordinal);
+                                    return prereleaseComparison;
+                                }
+
+                                // the build versions are different, so use them
+                                return buildComparison;
                             }
 
-                            // the build versions are different, so use them
-                            return build;
+                            // the patch versions are different, so use them
+                            return patchComparison;
                         }
 
-                        // the patch versions are different, so use them
-                        return patch;
+                        // the minor versions are different, so use them
+                        return minorComparison;
                     }
 
-                    // the minor versions are different, so use them
-                    return minor;
+                    // the major versions are different, so use them
+                    return majorComparison;
+                }
+                catch (Exception)
+                {
+                    Debug.LogErrorFormat("Compare Error: {0} {1}", this, other);
+                    return -1;
+                }
+            }
+
+            /// <inheritdoc />
+            public override string ToString()
+            {
+                return ToString();
+            }
+
+            /// <summary>
+            ///     Returns the version number as a string in the form <see cref="major" />.<see cref="minor" />.<see cref="patch" />-<see cref="PreRelease" />+
+            ///     <see cref="buildMetadata" />.
+            ///     The <see cref="buildMetadata" /> can be removed.
+            /// </summary>
+            /// <param name="withBuildMetadata">If <c>true</c> the <see cref="buildMetadata" /> is included.</param>
+            /// <returns>The formatted string.</returns>
+            public string ToString(bool withBuildMetadata = false)
+            {
+                var stringBuilder = new StringBuilder();
+                stringBuilder.Append(major);
+                stringBuilder.Append('.');
+                stringBuilder.Append(minor);
+                if (patch.HasValue)
+                {
+                    stringBuilder.Append('.');
+                    stringBuilder.Append(patch.Value);
                 }
 
-                // the major versions are different, so use them
-                return major;
-            }
-            catch (Exception)
-            {
-                Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
-                return -1;
+                if (build.HasValue)
+                {
+                    stringBuilder.Append('.');
+                    stringBuilder.Append(build.Value);
+                }
+
+                if (!string.IsNullOrEmpty(PreRelease))
+                {
+                    stringBuilder.Append('-');
+                    stringBuilder.Append(PreRelease);
+                }
+
+                if (withBuildMetadata && !string.IsNullOrEmpty(buildMetadata))
+                {
+                    stringBuilder.Append('+');
+                    stringBuilder.Append(buildMetadata);
+                }
+
+                return stringBuilder.ToString();
             }
         }
     }

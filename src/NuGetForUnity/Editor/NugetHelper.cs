@@ -587,7 +587,7 @@ namespace NugetForUnity
         /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
         public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
         {
-            var packagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", nuspec.Id, nuspec.Version));
+            var packagePath = nuspec.GetLocalPackageFilePath(PackOutputDirectory);
             if (!File.Exists(packagePath))
             {
                 LogVerbose("Attempting to Pack.");
@@ -865,13 +865,17 @@ namespace NugetForUnity
             if (Directory.Exists(NugetConfigFile.RepositoryPath))
             {
                 var manuallyInstalledPackagesNumber = 0;
+
                 void AddPackageToInstalled(NugetPackage package)
                 {
                     if (!installedPackages.ContainsKey(package.Id))
                     {
-                        package.IsManuallyInstalled =
-                            PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
-                        if (package.IsManuallyInstalled) manuallyInstalledPackagesNumber++;
+                        package.IsManuallyInstalled = PackagesConfigFile.Packages.Find(pkg => pkg.Id == package.Id)?.IsManuallyInstalled ?? false;
+                        if (package.IsManuallyInstalled)
+                        {
+                            manuallyInstalledPackagesNumber++;
+                        }
+
                         installedPackages.Add(package.Id, package);
                     }
                     else
@@ -903,6 +907,7 @@ namespace NugetForUnity
                     {
                         PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
+
                     PackagesConfigFile.Save(PackagesConfigFilePath);
                 }
             }
@@ -1074,7 +1079,7 @@ namespace NugetForUnity
 
             if (NugetConfigFile.InstallFromCache && !packageId.HasVersionRange)
             {
-                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", packageId.Id, packageId.Version));
+                var cachedPackagePath = packageId.GetLocalPackageFilePath(PackOutputDirectory);
 
                 if (File.Exists(cachedPackagePath))
                 {
@@ -1293,7 +1298,7 @@ namespace NugetForUnity
                 PackagesConfigFile.AddPackage(package);
                 PackagesConfigFile.Save(PackagesConfigFilePath);
 
-                var cachedPackagePath = Path.Combine(PackOutputDirectory, string.Format("{0}.{1}.nupkg", package.Id, package.Version));
+                var cachedPackagePath = package.GetPackageFilePath(PackOutputDirectory);
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
@@ -1305,10 +1310,9 @@ namespace NugetForUnity
                         LogVerbose("Caching local package {0} {1}", package.Id, package.Version);
 
                         // copy the .nupkg from the local path to the cache
-                        File.Copy(
-                            Path.Combine(package.PackageSource.ExpandedPath, string.Format("{0}.{1}.nupkg", package.Id, package.Version)),
-                            cachedPackagePath,
-                            true);
+                        var pkgFile = package.GetLocalPackageFilePath(package.PackageSource.ExpandedPath);
+                        Debug.Assert(pkgFile != null);
+                        File.Copy(pkgFile, cachedPackagePath, true);
                     }
                     else
                     {
@@ -1365,7 +1369,7 @@ namespace NugetForUnity
                     }
 
                     // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, $"{package.Id}.{package.Version}.nupkg"), true);
+                    File.Copy(cachedPackagePath, package.GetPackageFilePath(baseDirectory), true);
                 }
                 else
                 {
@@ -1581,7 +1585,7 @@ namespace NugetForUnity
             var isInstalled = false;
             if (InstalledPackagesDictionary.TryGetValue(package.Id, out var installedPackage))
             {
-                isInstalled = package.CompareVersion(installedPackage.Version) == 0;
+                isInstalled = package.Equals(installedPackage);
             }
 
             return isInstalled;

@@ -97,7 +97,7 @@ The **Installed packages** part of the list shows packages directly installed as
 The **Implicitly installed packages** part shows packages that are installed as transitive dependencies.
 
 Click the **Uninstall** button to uninstall the package.
-When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled. 
+When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled.
 
 If **Add as explicit** is clicked on an **implicitly** installed package, it will be moved to the first part of the list and will **not** be automatically uninstalled in a scenario described above.
 
@@ -185,7 +185,7 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
 
-> **Note:** NuGetForUnity currently only supports NuGet Api version v1
+> **Note:** NuGetForUnity currently only supports NuGet Api version v2
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share.
 

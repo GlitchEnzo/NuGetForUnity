@@ -47,7 +47,10 @@ namespace NugetForUnity
         {
             var packages = new List<NugetPackage>();
 
-            if (document.Root == null) return packages;
+            if (document.Root == null)
+            {
+                return packages;
+            }
 
             IEnumerable<XElement> packageEntries;
             if (document.Root.Name.Equals(XName.Get("entry", AtomNamespace)))
@@ -63,8 +66,7 @@ namespace NugetForUnity
             {
                 var package = new NugetPackage
                 {
-                    Id = entry.GetAtomElement("title").Value,
-                    DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value
+                    Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };
 
                 var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace));

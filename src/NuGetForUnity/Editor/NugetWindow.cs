@@ -25,6 +25,14 @@ namespace NugetForUnity
 
         private const string GitHubReleasesApiUrl = "https://api.github.com/repos/GlitchEnzo/NuGetForUnity/releases?per_page=10";
 
+        private static GUIStyle cachedHeaderStyle;
+
+        private static GUIStyle cachedBackgroundStyle;
+
+        private static GUIStyle cachedFoldoutStyle;
+
+        private static GUIStyle cachedContrastStyle;
+
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>
@@ -64,6 +72,8 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D defaultIcon;
 
+        private List<NugetPackage> filteredInstalledPackages;
+
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
         /// </summary>
@@ -76,8 +86,6 @@ namespace NugetForUnity
         private string installedSearchTerm = "Search";
 
         private string lastInstalledSearchTerm;
-
-        private List<NugetPackage> filteredInstalledPackages;
 
         /// <summary>
         ///     The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
@@ -105,6 +113,8 @@ namespace NugetForUnity
         /// </summary>
         private bool showAllUpdateVersions;
 
+        private bool showImplicitlyInstalled;
+
         /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
@@ -125,16 +135,6 @@ namespace NugetForUnity
         ///     The search term to search the update packages for.
         /// </summary>
         private string updatesSearchTerm = "Search";
-
-        private bool showImplicitlyInstalled;
-
-        private static GUIStyle cachedHeaderStyle;
-
-        private static GUIStyle cachedBackgroundStyle;
-
-        private static GUIStyle cachedFoldoutStyle;
-
-        private static GUIStyle cachedContrastStyle;
 
         /// <summary>
         ///     The filtered list of package updates available.
@@ -172,14 +172,17 @@ namespace NugetForUnity
                 else
                 {
                     filteredInstalledPackages = NugetHelper.InstalledPackages.Where(
-                        package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-                            package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0).ToList();
+                            package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                                       package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                        .ToList();
                 }
-                filteredInstalledPackages.Sort((p1, p2) =>
-                {
-                    var cmp = p2.IsManuallyInstalled.CompareTo(p1.IsManuallyInstalled);
-                    return cmp != 0 ? cmp : string.Compare(p1.Id, p2.Id, StringComparison.Ordinal);
-                });
+
+                filteredInstalledPackages.Sort(
+                    (p1, p2) =>
+                    {
+                        var cmp = p2.IsManuallyInstalled.CompareTo(p1.IsManuallyInstalled);
+                        return cmp != 0 ? cmp : string.Compare(p1.Id, p2.Id, StringComparison.Ordinal);
+                    });
 
                 return filteredInstalledPackages;
             }
@@ -393,12 +396,12 @@ namespace NugetForUnity
         /// </summary>
         private void UpdateOnlinePackages()
         {
-                availablePackages = NugetHelper.Search(
-                    onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                    showAllOnlineVersions,
-                    showOnlinePrerelease,
-                    numberToGet,
-                    numberToSkip);
+            availablePackages = NugetHelper.Search(
+                onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
+                showAllOnlineVersions,
+                showOnlinePrerelease,
+                numberToGet,
+                numberToSkip);
         }
 
         private void UpdateInstalledPackages()
@@ -544,7 +547,7 @@ namespace NugetForUnity
                 onFocused = { textColor = Color.white },
                 active = { textColor = Color.white },
                 onActive = { textColor = Color.white },
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleLeft,
             };
 
             return cachedFoldoutStyle;
@@ -601,7 +604,12 @@ namespace NugetForUnity
                 var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
                 EditorGUI.LabelField(rectangle, "", headerStyle);
 
-                showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
+                showImplicitlyInstalled = EditorGUI.Foldout(
+                    rectangle,
+                    showImplicitlyInstalled,
+                    "Implicitly installed packages",
+                    true,
+                    GetFoldoutStyle());
                 if (showImplicitlyInstalled)
                 {
                     DrawPackages(installedPackages.SkipWhile(package => package.IsManuallyInstalled), true);
@@ -957,10 +965,10 @@ namespace NugetForUnity
                 GUILayout.FlexibleSpace();
                 if (installed != null && installed.Version != package.Version)
                 {
-                    GUILayout.Label($"Current Version {installed.Version}");
+                    GUILayout.Label($"Current Version {installed.FullVersion}");
                 }
 
-                GUILayout.Label($"Version {package.Version}");
+                GUILayout.Label($"Version {package.FullVersion}");
 
                 if (installed != null)
                 {
