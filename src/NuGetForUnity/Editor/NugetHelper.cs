@@ -1251,7 +1251,6 @@ namespace NugetForUnity
                 return true;
             }
 
-            var installSuccess = false;
             try
             {
                 LogVerbose("Installing: {0} {1}", package.Id, package.Version);
@@ -1386,12 +1385,13 @@ namespace NugetForUnity
 
                 // update the installed packages list
                 InstalledPackagesDictionary.Add(package.Id, package);
-                installSuccess = true;
+                return true;
             }
             catch (Exception e)
             {
                 WarnIfDotNetAuthenticationIssue(e);
                 Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e);
+                return false;
             }
             finally
             {
@@ -1402,8 +1402,6 @@ namespace NugetForUnity
                     EditorUtility.ClearProgressBar();
                 }
             }
-
-            return installSuccess;
         }
 
         private static void WarnIfDotNetAuthenticationIssue(Exception e)
@@ -1476,36 +1474,37 @@ namespace NugetForUnity
         {
             UpdateInstalledPackages();
 
-            var packagesToInstall = PackagesConfigFile.Packages.FindAll(package => !IsInstalled(package));
-            if (packagesToInstall.Count == 0)
-            {
-                LogVerbose("No packages need restoring.");
-                return;
-            }
-
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             try
             {
-                var progressStep = 1.0f / packagesToInstall.Count;
-                float currentProgress = 0;
-
-                LogVerbose("Restoring {0} packages.", packagesToInstall.Count);
-
-                foreach (var package in packagesToInstall)
+                var packagesToInstall = PackagesConfigFile.Packages.FindAll(package => !IsInstalled(package));
+                if (packagesToInstall.Count > 0)
                 {
-                    if (package != null)
+                    var progressStep = 1.0f / packagesToInstall.Count;
+                    float currentProgress = 0;
+
+                    LogVerbose("Restoring {0} packages.", packagesToInstall.Count);
+
+                    foreach (var package in packagesToInstall)
                     {
-                        EditorUtility.DisplayProgressBar(
-                            "Restoring NuGet Packages",
-                            string.Format("Restoring {0} {1}", package.Id, package.Version),
-                            currentProgress);
+                        if (package != null)
+                        {
+                            EditorUtility.DisplayProgressBar(
+                                "Restoring NuGet Packages",
+                                string.Format("Restoring {0} {1}", package.Id, package.Version),
+                                currentProgress);
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
                             InstallIdentifier(package);
-                    }
+                        }
 
-                    currentProgress += progressStep;
+                        currentProgress += progressStep;
+                    }
+                }
+                else
+                {
+                    LogVerbose("No packages need restoring.");
                 }
 
                 CheckForUnnecessaryPackages();
