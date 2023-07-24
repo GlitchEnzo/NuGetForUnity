@@ -185,7 +185,7 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
 
-> **Note:** NuGetForUnity currently only supports NuGet Api version v1
+> **Note:** NuGetForUnity currently only supports NuGet Api version v2
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share.
 
