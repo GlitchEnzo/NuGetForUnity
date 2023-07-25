@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 using NugetForUnity;
 using NUnit.Framework;
 using UnityEditor;
@@ -567,5 +568,117 @@ public class NuGetTests
         {
             Assert.That(deserialized.InRange(identifier), Is.True);
         }
+    }
+
+    [Test]
+    [TestCase("jQuery", "3.7.0")]
+    public void TestPostprocessInstall(string packageId, string packageVersion)
+    {
+        var packagesFile = new XDocument();
+        packagesFile.Add(new XElement("packages"));
+
+        var packageElement = new XElement("package");
+        packageElement.Add(new XAttribute("id", packageId));
+        packageElement.Add(new XAttribute("version", packageVersion));
+        packageElement.Add(new XAttribute("manuallyInstalled", "true"));
+
+        packagesFile.Root?.Add(packageElement);
+
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        var packageExists = File.Exists(filepath);
+        if (packageExists)
+        {
+            var attributes = File.GetAttributes(filepath);
+
+            if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+            {
+                attributes &= ~FileAttributes.ReadOnly;
+                File.SetAttributes(filepath, attributes);
+            }
+        }
+
+        packagesFile.Save(filepath);
+
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
+
+        AssetDatabase.Refresh();
+
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
+    [TestCase("jQuery", "3.7.0")]
+    public void TestPostprocessUninstall(string packageId, string packageVersion)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+        NugetHelper.InstallIdentifier(package);
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+        var packagesFile = new XDocument();
+        packagesFile.Add(new XElement("packages"));
+
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        var packageExists = File.Exists(filepath);
+        if (packageExists)
+        {
+            var attributes = File.GetAttributes(filepath);
+
+            if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+            {
+                attributes &= ~FileAttributes.ReadOnly;
+                File.SetAttributes(filepath, attributes);
+            }
+        }
+
+        packagesFile.Save(filepath);
+
+        AssetDatabase.Refresh();
+
+        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
+    [TestCase("jQuery", "3.6.4", "3.7.0")]
+    [TestCase("jQuery", "3.7.0", "3.6.4")]
+    public void TestPostprocessDifferentVersion(string packageId, string packageVersionOld, string packageVersionNew)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
+        NugetHelper.InstallIdentifier(package);
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+        var packagesFile = new XDocument();
+        packagesFile.Add(new XElement("packages"));
+
+        var packageElement = new XElement("package");
+        packageElement.Add(new XAttribute("id", packageId));
+        packageElement.Add(new XAttribute("version", packageVersionNew));
+        packageElement.Add(new XAttribute("manuallyInstalled", "true"));
+
+        packagesFile.Root?.Add(packageElement);
+
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        var packageExists = File.Exists(filepath);
+        if (packageExists)
+        {
+            var attributes = File.GetAttributes(filepath);
+
+            if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+            {
+                attributes &= ~FileAttributes.ReadOnly;
+                File.SetAttributes(filepath, attributes);
+            }
+        }
+
+        packagesFile.Save(filepath);
+
+        AssetDatabase.Refresh();
+
+        Assert.IsFalse(NugetHelper.IsInstalled(package), "The old package version IS STILL installed: {0} {1}", package.Id, package.Version);
+        package = new NugetPackageIdentifier { Id = packageId, Version = packageVersionNew };
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The new package version was NOT installed: {0} {1}", package.Id, package.Version);
     }
 }

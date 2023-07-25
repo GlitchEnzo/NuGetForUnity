@@ -741,12 +741,10 @@ namespace NugetForUnity
             var foundPackage = package as NugetPackage ?? GetSpecificPackage(package);
 
             // update the package.config file
-            if (!PackagesConfigFile.RemovePackage(foundPackage))
+            if (PackagesConfigFile.RemovePackage(foundPackage))
             {
-                return;
+                PackagesConfigFile.Save(PackagesConfigFilePath);
             }
-
-            PackagesConfigFile.Save(PackagesConfigFilePath);
 
             var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{foundPackage.Id}.{foundPackage.Version}");
             DeleteDirectory(packageInstallDirectory);
@@ -1531,6 +1529,7 @@ namespace NugetForUnity
             }
 
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
+            var somethingDeleted = false;
             foreach (var folder in directories)
             {
                 var folderName = Path.GetFileName(folder);
@@ -1561,11 +1560,17 @@ namespace NugetForUnity
 
                 if (!installed)
                 {
+                    somethingDeleted = true;
                     LogVerbose("---DELETE unnecessary package {0}", folder);
 
                     DeleteDirectory(folder);
                     DeleteFile(folder + ".meta");
                 }
+            }
+
+            if (somethingDeleted)
+            {
+                UpdateInstalledPackages();
             }
         }
 
