@@ -24,7 +24,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the <see cref="NugetPackageIdentifier" />s contained in the package.config file.
         /// </summary>
-        public List<PackageConfig> Packages { get; private set; }
+        public List<PackageConfig> Packages { get; private set; } = new List<PackageConfig>();
 
         /// <summary>
         ///     Adds a package to the packages.config file.

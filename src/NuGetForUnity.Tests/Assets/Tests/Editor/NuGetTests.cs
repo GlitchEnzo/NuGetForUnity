@@ -577,11 +577,9 @@ public class NuGetTests
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
         var filepath = NugetHelper.PackagesConfigFilePath;
 
-        var packagesConfigFile = $@"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<packages>
-    <package id=""{packageId}"" version=""{packageVersion}"" manuallyInstalled=""true"" />
-</packages>";
-        File.WriteAllText(filepath, packagesConfigFile);
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.AddPackage(package);
+        packagesConfigFile.Save(filepath);
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
 
@@ -600,9 +598,8 @@ public class NuGetTests
         NugetHelper.InstallIdentifier(package);
         Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
-        const string packagesConfigFile = @"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<packages/>";
-        File.WriteAllText(filepath, packagesConfigFile);
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.Save(filepath);
 
         AssetDatabase.Refresh();
 
@@ -614,23 +611,21 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0", "3.6.4")]
     public void TestPostprocessDifferentVersion(string packageId, string packageVersionOld, string packageVersionNew)
     {
-        var package = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
+        var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
+        var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
         var filepath = NugetHelper.PackagesConfigFilePath;
 
-        NugetHelper.InstallIdentifier(package);
-        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        NugetHelper.InstallIdentifier(packageOld);
+        Assert.IsTrue(NugetHelper.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
 
-        var packagesConfigFile = $@"<?xml version=""1.0"" encoding=""utf-8"" ?>
-<packages>
-    <package id=""{packageId}"" version=""{packageVersionNew}"" manuallyInstalled=""true"" />
-</packages>";
-        File.WriteAllText(filepath, packagesConfigFile);
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.AddPackage(packageNew);
+        packagesConfigFile.Save(filepath);
 
         AssetDatabase.Refresh();
 
-        Assert.IsFalse(NugetHelper.IsInstalled(package), "The old package version IS STILL installed: {0} {1}", package.Id, package.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
 
-        package = new NugetPackageIdentifier { Id = packageId, Version = packageVersionNew };
-        Assert.IsTrue(NugetHelper.IsInstalled(package), "The new package version was NOT installed: {0} {1}", package.Id, package.Version);
+        Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
     }
 }
