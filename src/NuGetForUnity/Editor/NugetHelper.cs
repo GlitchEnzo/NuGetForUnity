@@ -131,7 +131,10 @@ namespace NugetForUnity
             }
         }
 
-        public static void ReloadPackagesConfig()
+        /// <summary>
+        ///     Invalidates the currently loaded 'packages.config' so it is reloaded when it is accessed the next time.
+        /// </summary>
+        internal static void ReloadPackagesConfig()
         {
             packagesConfigFile = null;
         }
