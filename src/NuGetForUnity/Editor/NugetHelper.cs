@@ -905,13 +905,13 @@ namespace NugetForUnity
                 {
                     // set root packages as manually installed if none are marked as such
                     foreach (var rootPackage in GetInstalledRootPackages())
-                    {
-                        PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
-                    }
+                        {
+                            PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
+                        }
 
-                    PackagesConfigFile.Save(PackagesConfigFilePath);
+                        PackagesConfigFile.Save(PackagesConfigFilePath);
+                    }
                 }
-            }
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
@@ -1478,6 +1478,7 @@ namespace NugetForUnity
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
+            var somethingChanged = false;
             try
             {
                 var packagesToInstall = PackagesConfigFile.Packages.FindAll(package => !IsInstalled(package));
@@ -1498,6 +1499,7 @@ namespace NugetForUnity
                                 currentProgress);
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
                             InstallIdentifier(package);
+                            somethingChanged = true;
                         }
 
                         currentProgress += progressStep;
@@ -1508,7 +1510,7 @@ namespace NugetForUnity
                     LogVerbose("No packages need restoring.");
                 }
 
-                CheckForUnnecessaryPackages();
+                somethingChanged = somethingChanged || CheckForUnnecessaryPackages();
             }
             catch (Exception e)
             {
@@ -1519,16 +1521,20 @@ namespace NugetForUnity
                 stopwatch.Stop();
                 LogVerbose("Restoring packages took {0} ms", stopwatch.ElapsedMilliseconds);
 
-                AssetDatabase.Refresh();
+                if (somethingChanged)
+                {
+                    AssetDatabase.Refresh();
+                }
+
                 EditorUtility.ClearProgressBar();
             }
         }
 
-        internal static void CheckForUnnecessaryPackages()
+        internal static bool CheckForUnnecessaryPackages()
         {
             if (!Directory.Exists(NugetConfigFile.RepositoryPath))
             {
-                return;
+                return false;
             }
 
             var directories = Directory.GetDirectories(NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
@@ -1575,6 +1581,8 @@ namespace NugetForUnity
             {
                 UpdateInstalledPackages();
             }
+
+            return somethingDeleted;
         }
 
         /// <summary>

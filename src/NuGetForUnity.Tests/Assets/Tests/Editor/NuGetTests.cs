@@ -583,7 +583,9 @@ public class NuGetTests
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
 
-        AssetDatabase.Refresh();
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
@@ -601,7 +603,10 @@ public class NuGetTests
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save(filepath);
 
-        AssetDatabase.Refresh();
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[]{filepath},
+            null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
@@ -622,7 +627,9 @@ public class NuGetTests
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save(filepath);
 
-        AssetDatabase.Refresh();
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
 
