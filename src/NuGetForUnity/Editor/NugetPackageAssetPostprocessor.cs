@@ -71,7 +71,7 @@ namespace NugetForUnity
         ///     Called when the asset database finishes importing assets.
         ///     We use it to check if packages.config has been changed and if so, we want to restore packages.
         /// </summary>
-        public static void OnPostprocessAllAssets(string[] importedAssets,
+        internal static void OnPostprocessAllAssets(string[] importedAssets,
             string[] deletedAssets,
             string[] movedAssets,
             string[] movedFromAssetPaths)
