@@ -568,4 +568,70 @@ public class NuGetTests
             Assert.That(deserialized.InRange(identifier), Is.True);
         }
     }
+
+    [Test]
+    [TestCase("jQuery", "3.7.0")]
+    public void TestPostprocessInstall(string packageId, string packageVersion)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.AddPackage(package);
+        packagesConfigFile.Save(filepath);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
+
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
+    [TestCase("jQuery", "3.7.0")]
+    public void TestPostprocessUninstall(string packageId, string packageVersion)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        NugetHelper.InstallIdentifier(package);
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.Save(filepath);
+
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[]{filepath},
+            null, null, null);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
+    [TestCase("jQuery", "3.6.4", "3.7.0")]
+    [TestCase("jQuery", "3.7.0", "3.6.4")]
+    public void TestPostprocessDifferentVersion(string packageId, string packageVersionOld, string packageVersionNew)
+    {
+        var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
+        var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
+        var filepath = NugetHelper.PackagesConfigFilePath;
+
+        NugetHelper.InstallIdentifier(packageOld);
+        Assert.IsTrue(NugetHelper.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
+
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.AddPackage(packageNew);
+        packagesConfigFile.Save(filepath);
+
+        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
+        filepath = filepath.Substring(assetsIndex);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+
+        Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
+
+        Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
+    }
 }

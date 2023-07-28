@@ -39,17 +39,17 @@ namespace NugetForUnity
             // Search the all project assemblies that are not editor only.
             // We only use player assemblies as we don't need to collect UnityEditor assemblies, we don't support installing NuGet packages with reference to UnityEditor.
 #if UNITY_2019_3_OR_NEWER
-            const AssembliesType assemblieType = AssembliesType.PlayerWithoutTestAssemblies;
+            const AssembliesType assemblyType = AssembliesType.PlayerWithoutTestAssemblies;
 #else
-            const AssembliesType assemblieType = AssembliesType.Player;
+            const AssembliesType assemblyType = AssembliesType.Player;
 #endif
-            var projectAssemblies = CompilationPipeline.GetAssemblies(assemblieType)
+            var projectAssemblies = CompilationPipeline.GetAssemblies(assemblyType)
                 .Where(playerAssembly => playerAssembly.flags != AssemblyFlags.EditorAssembly);
 
             // Collect all referenced assemblies but exclude all assemblies installed by NuGetForUnity.
-            var porojectReferences = projectAssemblies.SelectMany(playerAssembly => playerAssembly.allReferences);
+            var projectReferences = projectAssemblies.SelectMany(playerAssembly => playerAssembly.allReferences);
             alreadyImportedLibs = new HashSet<string>(
-                porojectReferences.Select(compiledAssemblyReference => Path.GetFileNameWithoutExtension(compiledAssemblyReference))
+                projectReferences.Select(Path.GetFileNameWithoutExtension)
                     .Where(assemblyName => !alreadyInstalledDllFileNames.Contains(assemblyName)));
 
             if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_Standard_2_0)
