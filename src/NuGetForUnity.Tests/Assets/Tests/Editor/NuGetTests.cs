@@ -41,6 +41,7 @@ public class NuGetTests
     }
 
     [Test]
+    [Order(2)]
     public void InstallJsonTest()
     {
         // install a specific version
