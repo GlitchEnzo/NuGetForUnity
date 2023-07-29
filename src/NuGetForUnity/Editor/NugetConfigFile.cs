@@ -21,6 +21,15 @@ namespace NugetForUnity
         public const string FileName = "NuGet.config";
 
         /// <summary>
+        ///     Default timeout in seconds for all web requests.
+        /// </summary>
+        private const int DefaultRequestTimeout = 100;
+
+        private const string RequestTimeoutSecondsConfigKey = "RequestTimeoutSeconds";
+
+        private const string LockPackagesOnRestoreConfigKey = "LockPackagesOnRestore";
+
+        /// <summary>
         ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         private string savedRepositoryPath;
@@ -47,7 +56,7 @@ namespace NugetForUnity
         public string DefaultPushSource { get; private set; }
 
         /// <summary>
-        ///     True to output verbose log messages to the console.  False to output the normal level of messages.
+        ///     Gets or sets a value indicating whether to output verbose log messages to the console. False to output the normal level of messages.
         /// </summary>
         public bool Verbose { get; set; }
 
@@ -63,25 +72,21 @@ namespace NugetForUnity
         public bool ReadOnlyPackageFiles { get; set; }
 
         /// <summary>
-        ///     Gets or sets a timeout in milliseconds for a request to sources
+        ///     Gets or sets the timeout in seconds used for all web requests to NuGet sources.
         /// </summary>
-        public int RequestTimeout { get; set; } = defaultRequestTimeout;
+        public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
 
         /// <summary>
-        ///     Default timeout in milliseconds for a request to sources
-        /// </summary>
-        private const int defaultRequestTimeout = 10000;
-
-        /// <summary>
-        ///     Gets or sets a value indicating whether the installed packages should be fixed
+        ///     Gets or sets a value indicating whether the installed packages should be fixed, so only the packages that are configure inside the
+        ///     'package.config' are installed without installing the dependencies of them.
         /// </summary>
         public bool LockPackagesOnRestore { get; set; }
 
         /// <summary>
         ///     Saves this NuGet.config file to disk.
         /// </summary>
-        /// <param name="filepath">The file-path to where this NuGet.config will be saved.</param>
-        public void Save(string filepath)
+        /// <param name="filePath">The file-path to where this NuGet.config will be saved.</param>
+        public void Save(string filePath)
         {
             var configFile = new XDocument();
 
@@ -172,18 +177,18 @@ namespace NugetForUnity
                 config.Add(addElement);
             }
 
-            if (RequestTimeout != defaultRequestTimeout)
+            if (RequestTimeoutSeconds != DefaultRequestTimeout)
             {
                 addElement = new XElement("add");
-                addElement.Add(new XAttribute("key", "RequestTimeout"));
-                addElement.Add(new XAttribute("value", RequestTimeout.ToString().ToLower()));
+                addElement.Add(new XAttribute("key", RequestTimeoutSecondsConfigKey));
+                addElement.Add(new XAttribute("value", RequestTimeoutSeconds));
                 config.Add(addElement);
             }
 
             if (LockPackagesOnRestore)
             {
                 addElement = new XElement("add");
-                addElement.Add(new XAttribute("key", "LockPackagesOnRestore"));
+                addElement.Add(new XAttribute("key", LockPackagesOnRestoreConfigKey));
                 addElement.Add(new XAttribute("value", LockPackagesOnRestore.ToString().ToLower()));
                 config.Add(addElement);
             }
@@ -197,21 +202,21 @@ namespace NugetForUnity
 
             configFile.Add(configuration);
 
-            var fileExists = File.Exists(filepath);
+            var fileExists = File.Exists(filePath);
 
             // remove the read only flag on the file, if there is one.
             if (fileExists)
             {
-                var attributes = File.GetAttributes(filepath);
+                var attributes = File.GetAttributes(filePath);
 
                 if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
                 {
                     attributes &= ~FileAttributes.ReadOnly;
-                    File.SetAttributes(filepath, attributes);
+                    File.SetAttributes(filePath, attributes);
                 }
             }
 
-            configFile.Save(filepath);
+            configFile.Save(filePath);
         }
 
         /// <summary>
@@ -335,11 +340,11 @@ namespace NugetForUnity
                     {
                         configFile.ReadOnlyPackageFiles = bool.Parse(value);
                     }
-                    else if (string.Equals(key, "RequestTimeout", StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(key, RequestTimeoutSecondsConfigKey, StringComparison.OrdinalIgnoreCase))
                     {
-                        configFile.RequestTimeout = int.Parse(value);
+                        configFile.RequestTimeoutSeconds = int.Parse(value);
                     }
-                    else if (string.Equals(key, "LockPackagesOnRestore", StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(key, LockPackagesOnRestoreConfigKey, StringComparison.OrdinalIgnoreCase))
                     {
                         configFile.LockPackagesOnRestore = bool.Parse(value);
                     }
@@ -350,9 +355,9 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Creates a NuGet.config file with the default settings at the given full filepath.
+        ///     Creates a NuGet.config file with the default settings at the given full file-path.
         /// </summary>
-        /// <param name="filePath">The full filepath where to create the NuGet.config file.</param>
+        /// <param name="filePath">The full file-path where to create the NuGet.config file.</param>
         /// <returns>The loaded <see cref="NugetConfigFile" /> loaded off of the newly created default file.</returns>
         public static NugetConfigFile CreateDefaultFile(string filePath)
         {

@@ -2,10 +2,14 @@
 
 namespace NugetForUnity
 {
+    /// <summary>
+    ///     Automatically restores NuGet packages when Unity opens the project.
+    /// </summary>
     [InitializeOnLoad]
     public static class OnLoadNuGetPackageRestorer
     {
         /// <summary>
+        ///     Initializes static members of the <see cref="OnLoadNuGetPackageRestorer" /> class.
         ///     Static constructor used by Unity to initialize NuGet and restore packages defined in packages.config.
         /// </summary>
         static OnLoadNuGetPackageRestorer()
@@ -26,8 +30,8 @@ namespace NugetForUnity
             // Load the NuGet.config file
             NugetHelper.LoadNugetConfigFile();
 
-            // restore packages - this will be called EVERY time the project is loaded or a code-file changes
-            NugetHelper.Restore(installDeps: !NugetHelper.NugetConfigFile.LockPackagesOnRestore);
+            // restore packages - this will be called EVERY time the project is loaded
+            NugetHelper.Restore(!NugetHelper.NugetConfigFile.LockPackagesOnRestore);
         }
     }
 }

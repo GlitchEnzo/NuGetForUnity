@@ -71,14 +71,22 @@ namespace NugetForUnity
                 NugetHelper.NugetConfigFile.Verbose = verbose;
             }
 
-            var requestTimeout = EditorGUILayout.IntField("Request Timeout", NugetHelper.NugetConfigFile.RequestTimeout);
-            if (requestTimeout != NugetHelper.NugetConfigFile.RequestTimeout)
+            var requestTimeout = EditorGUILayout.IntField(
+                new GUIContent(
+                    "Request Timeout in seconds",
+                    "Timeout used for web requests to the package source. A value of -1 can be used to disable timeout."),
+                NugetHelper.NugetConfigFile.RequestTimeoutSeconds);
+            if (requestTimeout != NugetHelper.NugetConfigFile.RequestTimeoutSeconds)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.RequestTimeout = requestTimeout;
+                NugetHelper.NugetConfigFile.RequestTimeoutSeconds = requestTimeout;
             }
 
-            var lockPackagesOnRestore = EditorGUILayout.Toggle("Lock Packages on Restore", NugetHelper.NugetConfigFile.LockPackagesOnRestore);
+            var lockPackagesOnRestore = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Lock Packages on Restore",
+                    "When lock packages on restore is enabled only packages explicitly listed inside the 'packages.config' file will be installed. No dependencies are installed. This feature should only be used when having issues that unneeded or broken packages are installed."),
+                NugetHelper.NugetConfigFile.LockPackagesOnRestore);
             if (lockPackagesOnRestore != NugetHelper.NugetConfigFile.LockPackagesOnRestore)
             {
                 preferencesChangedThisFrame = true;
