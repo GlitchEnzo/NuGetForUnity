@@ -67,6 +67,28 @@ namespace NugetForUnity
             LogResults(results);
         }
 
+        /// <summary>
+        ///     Called when the asset database finishes importing assets.
+        ///     We use it to check if packages.config has been changed and if so, we want to restore packages.
+        /// </summary>
+        internal static void OnPostprocessAllAssets(string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            var packagesConfigFilePath = Path.GetFullPath(NugetHelper.PackagesConfigFilePath);
+            var foundPackagesConfigAsset = importedAssets.Any(
+                importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
+
+            if (!foundPackagesConfigAsset)
+            {
+                return;
+            }
+
+            NugetHelper.ReloadPackagesConfig();
+            NugetHelper.Restore();
+        }
+
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(string projectRelativeAssetPath,
             string absoluteRepositoryPath,
             bool reimport)

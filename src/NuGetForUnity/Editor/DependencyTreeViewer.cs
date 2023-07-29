@@ -98,18 +98,7 @@ namespace NugetForUnity
 
         private void BuildTree()
         {
-            // default all packages to being roots
-            roots = new List<NugetPackage>(installedPackages);
-
-            // remove a package as a root if another package is dependent on it
-            foreach (var package in installedPackages)
-            {
-                var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
-                foreach (var dependency in frameworkGroup.Dependencies)
-                {
-                    roots.RemoveAll(p => p.Id == dependency.Id);
-                }
-            }
+            roots = NugetHelper.GetInstalledRootPackages();
         }
 
         /// <summary>

@@ -12,6 +12,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Represents a NuGet Package Source (a "server").
     /// </summary>
+    [Serializable]
     public class NugetPackageSource
     {
         /// <summary>
@@ -30,12 +31,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the name of the package source.
         /// </summary>
-        public string Name { get; set; }
+        public string Name;
 
         /// <summary>
         ///     Gets or sets the path of the package source.
         /// </summary>
-        public string SavedPath { get; set; }
+        public string SavedPath;
 
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
@@ -54,12 +55,12 @@ namespace NugetForUnity
             }
         }
 
-        public string UserName { get; set; }
+        public string UserName;
 
         /// <summary>
         ///     Gets or sets the password used to access the feed. Null indicates that no password is used.
         /// </summary>
-        public string SavedPassword { get; set; }
+        public string SavedPassword;
 
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
@@ -89,12 +90,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets a value indicated whether the path is a local path or a remote path.
         /// </summary>
-        public bool IsLocalPath { get; }
+        public bool IsLocalPath;
 
         /// <summary>
         ///     Gets or sets a value indicated whether this source is enabled or not.
         /// </summary>
-        public bool IsEnabled { get; set; }
+        public bool IsEnabled;
 
         /// <summary>
         ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier" /> given.
@@ -109,19 +110,12 @@ namespace NugetForUnity
             {
                 if (!package.HasVersionRange)
                 {
-                    var localPackagePath = Path.Combine(ExpandedPath, $"{package.Id}.{package.Version}.nupkg");
+                    // Find the package file in the repository.
+                    var localPackagePath = package.GetLocalPackageFilePath(ExpandedPath);
 
-                    if (!File.Exists(localPackagePath))
+                    if (localPackagePath != null)
                     {
-                        // Hierarchical folder structures are supported in NuGet 3.3+.
-                        // └─<packageID>
-                        //   └─<version>
-                        //     └─<packageID>.<version>.nupkg
-                        localPackagePath = Path.Combine(ExpandedPath, package.Id, package.Version, $"{package.Id}.{package.Version}.nupkg");
-                    }
-
-                    if (File.Exists(localPackagePath))
-                    {
+                        Debug.Assert(File.Exists(localPackagePath));
                         var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
                         foundPackages = new List<NugetPackage> { localPackage };
                     }
@@ -194,9 +188,13 @@ namespace NugetForUnity
 
             if (IsLocalPath)
             {
-                var localPackagePath = Path.Combine(ExpandedPath, string.Format("./{0}.{1}.nupkg", package.Id, package.Version));
-                if (File.Exists(localPackagePath))
+                // Retrieve the path to this package in the local repo. If this fails, the value will be null.
+                var localPackagePath = package.GetLocalPackageFilePath(ExpandedPath);
+
+                // If we found a match, then retrieve the first match. The file should exist.
+                if (localPackagePath != null)
                 {
+                    Debug.Assert(File.Exists(localPackagePath));
                     var localPackage = NugetPackage.FromNupkgFile(localPackagePath);
                     localPackage.PackageSource = this;
                     return localPackage;
@@ -303,6 +301,11 @@ namespace NugetForUnity
             bool includePrerelease = false,
             int numberToSkip = 0)
         {
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                searchTerm = "*";
+            }
+
             var localPackages = new List<NugetPackage>();
 
             if (numberToSkip != 0)
@@ -518,11 +521,11 @@ namespace NugetForUnity
 
             // sort alphabetically, then by version descending
             updates.Sort(
-                delegate(NugetPackage x, NugetPackage y)
+                (x, y) =>
                 {
                     if (x.Id == y.Id)
                     {
-                        return -1 * x.CompareVersion(y.Version);
+                        return -1 * x.CompareVersion(y);
                     }
 
                     return x.Id.CompareTo(y.Id);

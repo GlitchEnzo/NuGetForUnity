@@ -10,11 +10,11 @@ namespace NugetForUnity
     /// </summary>
     public static class NugetODataResponse
     {
-        private static readonly string AtomNamespace = "http://www.w3.org/2005/Atom";
+        private const string AtomNamespace = "http://www.w3.org/2005/Atom";
 
-        private static readonly string DataServicesNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices";
+        private const string DataServicesNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices";
 
-        private static readonly string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
+        private const string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
 
         /// <summary>
         ///     Gets the string value of a NuGet metadata property from the given properties element and property name.
@@ -47,6 +47,11 @@ namespace NugetForUnity
         {
             var packages = new List<NugetPackage>();
 
+            if (document.Root == null)
+            {
+                return packages;
+            }
+
             IEnumerable<XElement> packageEntries;
             if (document.Root.Name.Equals(XName.Get("entry", AtomNamespace)))
             {
@@ -59,9 +64,10 @@ namespace NugetForUnity
 
             foreach (var entry in packageEntries)
             {
-                var package = new NugetPackage();
-                package.Id = entry.GetAtomElement("title").Value;
-                package.DownloadUrl = entry.GetAtomElement("content").Attribute("src").Value;
+                var package = new NugetPackage
+                {
+                    Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
+                };
 
                 var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace));
                 package.Title = entryProperties.GetProperty("Title");
@@ -98,17 +104,15 @@ namespace NugetForUnity
                             framework = details[2];
                         }
 
-                        NugetFrameworkGroup group;
-                        if (!dependencyGroups.TryGetValue(framework, out group))
+                        if (!dependencyGroups.TryGetValue(framework, out var group))
                         {
-                            group = new NugetFrameworkGroup();
-                            group.TargetFramework = framework;
+                            group = new NugetFrameworkGroup { TargetFramework = framework };
                             dependencyGroups.Add(framework, group);
                         }
 
                         var dependency = new NugetPackageIdentifier(details[0], details[1]);
 
-                        // some packages (ex: FSharp.Data - 2.1.0) have inproper "semi-empty" dependencies such as:
+                        // some packages (ex: FSharp.Data - 2.1.0) have improper "semi-empty" dependencies such as:
                         // "Zlib.Portable:1.10.0:portable-net40+sl50+wp80+win80|::net40"
                         // so we need to only add valid dependencies and skip invalid ones
                         if (!string.IsNullOrEmpty(dependency.Id) && !string.IsNullOrEmpty(dependency.Version))

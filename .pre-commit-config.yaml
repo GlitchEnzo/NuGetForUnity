@@ -7,7 +7,7 @@ repos:
     hooks:
       - id: "prettier"
         additional_dependencies:
-          - prettier@v2.7.1
+          - prettier@v2.8.8
           - "@prettier/plugin-xml@2.2.0"
           - prettier-plugin-ini@v1.1.0
         args:
@@ -32,7 +32,7 @@ repos:
         require_serial: true
         stages: [commit, merge-commit]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
         exclude: \.(pdf|meta|prefab|shader|controller|asset|cginc|mat|unity|anim|shadergraph)$

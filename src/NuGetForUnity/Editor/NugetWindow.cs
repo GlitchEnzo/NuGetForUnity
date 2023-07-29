@@ -25,6 +25,14 @@ namespace NugetForUnity
 
         private const string GitHubReleasesApiUrl = "https://api.github.com/repos/GlitchEnzo/NuGetForUnity/releases?per_page=10";
 
+        private static GUIStyle cachedHeaderStyle;
+
+        private static GUIStyle cachedBackgroundStyle;
+
+        private static GUIStyle cachedFoldoutStyle;
+
+        private static GUIStyle cachedContrastStyle;
+
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>
@@ -36,6 +44,11 @@ namespace NugetForUnity
         ///     Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
         private readonly HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+
+        /// <summary>
+        ///     Used to keep track of which packages are selected for uninstalling or updating.
+        /// </summary>
+        private readonly HashSet<NugetPackage> selectedPackages = new HashSet<NugetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -59,10 +72,7 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D defaultIcon;
 
-        /// <summary>
-        ///     The filtered list of package updates available.
-        /// </summary>
-        private List<NugetPackage> filteredUpdatePackages = new List<NugetPackage>();
+        private List<NugetPackage> filteredInstalledPackages;
 
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
@@ -75,12 +85,7 @@ namespace NugetForUnity
         /// </summary>
         private string installedSearchTerm = "Search";
 
-        /// <summary>
-        ///     The search term in progress while it is being typed into the search box.
-        ///     We wait until the Enter key or Search button is pressed before searching in order
-        ///     to match the way that the Online and Updates searches work.
-        /// </summary>
-        private string installedSearchTermEditBox = "Search";
+        private string lastInstalledSearchTerm;
 
         /// <summary>
         ///     The number of packages to skip when requesting a list of packages from the server.  This is used to get a new group of packages.
@@ -108,6 +113,8 @@ namespace NugetForUnity
         /// </summary>
         private bool showAllUpdateVersions;
 
+        private bool showImplicitlyInstalled;
+
         /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
@@ -129,18 +136,55 @@ namespace NugetForUnity
         /// </summary>
         private string updatesSearchTerm = "Search";
 
-        private IEnumerable<NugetPackage> FilteredInstalledPackages
+        /// <summary>
+        ///     The filtered list of package updates available.
+        /// </summary>
+        private List<NugetPackage> FilteredUpdatePackages
         {
             get
             {
-                if (installedSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
                 {
-                    return NugetHelper.InstalledPackages;
+                    return updatePackages;
                 }
 
-                return NugetHelper.InstalledPackages
-                    .Where(x => x.Id.ToLower().Contains(installedSearchTerm) || x.Title.ToLower().Contains(installedSearchTerm))
+                return updatePackages.Where(
+                        package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                                   package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
                     .ToList();
+            }
+        }
+
+        private List<NugetPackage> FilteredInstalledPackages
+        {
+            get
+            {
+                if (filteredInstalledPackages != null && lastInstalledSearchTerm == installedSearchTerm)
+                {
+                    return filteredInstalledPackages;
+                }
+
+                lastInstalledSearchTerm = installedSearchTerm;
+                if (string.IsNullOrWhiteSpace(installedSearchTerm) || installedSearchTerm == "Search")
+                {
+                    filteredInstalledPackages = NugetHelper.InstalledPackages.ToList();
+                }
+                else
+                {
+                    filteredInstalledPackages = NugetHelper.InstalledPackages.Where(
+                            package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                                       package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                        .ToList();
+                }
+
+                filteredInstalledPackages.Sort(
+                    (p1, p2) =>
+                    {
+                        var cmp = p2.IsManuallyInstalled.CompareTo(p1.IsManuallyInstalled);
+                        return cmp != 0 ? cmp : string.Compare(p1.Id, p2.Id, StringComparison.Ordinal);
+                    });
+
+                return filteredInstalledPackages;
             }
         }
 
@@ -160,6 +204,10 @@ namespace NugetForUnity
         protected static void RestorePackages()
         {
             NugetHelper.Restore(installDeps: !NugetHelper.NugetConfigFile.LockPackagesOnRestore);
+            foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
+            {
+                nugetWindow.ClearViewCache();
+            }
         }
 
         /// <summary>
@@ -277,6 +325,11 @@ namespace NugetForUnity
             Refresh(false);
         }
 
+        private void ClearViewCache()
+        {
+            filteredInstalledPackages = null;
+        }
+
         private void Refresh(bool forceFullRefresh)
         {
             var stopwatch = new Stopwatch();
@@ -314,7 +367,7 @@ namespace NugetForUnity
                     UpdateOnlinePackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                    NugetHelper.UpdateInstalledPackages();
+                    UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
                     UpdateUpdatePackages();
@@ -331,6 +384,7 @@ namespace NugetForUnity
             }
             finally
             {
+                ClearViewCache();
                 EditorUtility.ClearProgressBar();
 
                 NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
@@ -350,6 +404,12 @@ namespace NugetForUnity
                 numberToSkip);
         }
 
+        private void UpdateInstalledPackages()
+        {
+            NugetHelper.UpdateInstalledPackages();
+            ClearViewCache();
+        }
+
         /// <summary>
         ///     Updates the list of update packages.
         /// </summary>
@@ -357,34 +417,26 @@ namespace NugetForUnity
         {
             // get any available updates for the installed packages
             updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
-            filteredUpdatePackages = updatePackages;
-
-            if (updatesSearchTerm != "Search")
-            {
-                filteredUpdatePackages = updatePackages
-                    .Where(x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm))
-                    .ToList();
-            }
         }
 
         /// <summary>
         ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/
         /// </summary>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
-        private static Texture2D MakeTex(int width, int height, Color col)
+        /// <param name="color">The color to fill the texture with.</param>
+        /// <returns>The generated texture.</returns>
+        private static Texture2D CreateSingleColorTexture(Color color)
         {
-            var pix = new Color[width * height];
-
-            for (var i = 0; i < pix.Length; i++)
+            const int width = 16;
+            const int height = 16;
+            var pix = new Color32[width * height];
+            Color32 color32 = color;
+            for (var index = 0; index < pix.Length; index++)
             {
-                pix[i] = col;
+                pix[index] = color32;
             }
 
             var result = new Texture2D(width, height);
-            result.SetPixels(pix);
+            result.SetPixels32(pix);
             result.Apply();
 
             return result;
@@ -420,7 +472,14 @@ namespace NugetForUnity
 
         private void OnTabChanged()
         {
+            selectedPackages.Clear();
             openCloneWindows.Clear();
+            ResetScrollPosition();
+        }
+
+        private void ResetScrollPosition()
+        {
+            scrollPosition.y = 0f;
         }
 
         /// <summary>
@@ -429,10 +488,16 @@ namespace NugetForUnity
         /// <returns>A GUI style with the appropriate background color set.</returns>
         private static GUIStyle GetContrastStyle()
         {
-            var style = new GUIStyle();
+            if (cachedContrastStyle != null)
+            {
+                return cachedContrastStyle;
+            }
+
+            cachedContrastStyle = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
-            style.normal.background = MakeTex(16, 16, backgroundColor);
-            return style;
+            cachedContrastStyle.normal.background = CreateSingleColorTexture(backgroundColor);
+
+            return cachedContrastStyle;
         }
 
         /// <summary>
@@ -441,10 +506,51 @@ namespace NugetForUnity
         /// <returns>A GUI style with the appropriate background color set.</returns>
         private static GUIStyle GetBackgroundStyle()
         {
-            var style = new GUIStyle();
+            if (cachedBackgroundStyle != null)
+            {
+                return cachedBackgroundStyle;
+            }
+
+            cachedBackgroundStyle = new GUIStyle();
             var backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
-            style.normal.background = MakeTex(16, 16, backgroundColor);
-            return style;
+            cachedBackgroundStyle.normal.background = CreateSingleColorTexture(backgroundColor);
+
+            return cachedBackgroundStyle;
+        }
+
+        private static GUIStyle GetHeaderStyle()
+        {
+            if (cachedHeaderStyle != null)
+            {
+                return cachedHeaderStyle;
+            }
+
+            cachedHeaderStyle = new GUIStyle();
+            var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.4f, 0.4f, 0.4f);
+            cachedHeaderStyle.alignment = TextAnchor.MiddleLeft;
+            cachedHeaderStyle.normal.background = CreateSingleColorTexture(backgroundColor);
+            cachedHeaderStyle.normal.textColor = Color.white;
+
+            return cachedHeaderStyle;
+        }
+
+        private static GUIStyle GetFoldoutStyle()
+        {
+            if (cachedFoldoutStyle != null)
+            {
+                return cachedFoldoutStyle;
+            }
+
+            cachedFoldoutStyle = new GUIStyle(EditorStyles.foldout)
+            {
+                focused = { textColor = Color.white },
+                onFocused = { textColor = Color.white },
+                active = { textColor = Color.white },
+                onActive = { textColor = Color.white },
+                alignment = TextAnchor.MiddleLeft,
+            };
+
+            return cachedFoldoutStyle;
         }
 
         /// <summary>
@@ -458,9 +564,10 @@ namespace NugetForUnity
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
+            var filteredUpdatePackages = FilteredUpdatePackages;
             if (filteredUpdatePackages != null && filteredUpdatePackages.Count > 0)
             {
-                DrawPackages(filteredUpdatePackages);
+                DrawPackages(filteredUpdatePackages, true);
             }
             else
             {
@@ -486,10 +593,27 @@ namespace NugetForUnity
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            var filteredInstalledPackages = FilteredInstalledPackages.ToList();
-            if (filteredInstalledPackages != null && filteredInstalledPackages.Count > 0)
+            var installedPackages = FilteredInstalledPackages;
+            if (installedPackages.Count > 0)
             {
-                DrawPackages(filteredInstalledPackages);
+                var headerStyle = GetHeaderStyle();
+
+                EditorGUILayout.LabelField("Installed packages", headerStyle, GUILayout.Height(20));
+                DrawPackages(installedPackages.TakeWhile(package => package.IsManuallyInstalled), true);
+
+                var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
+                EditorGUI.LabelField(rectangle, "", headerStyle);
+
+                showImplicitlyInstalled = EditorGUI.Foldout(
+                    rectangle,
+                    showImplicitlyInstalled,
+                    "Implicitly installed packages",
+                    true,
+                    GetFoldoutStyle());
+                if (showImplicitlyInstalled)
+                {
+                    DrawPackages(installedPackages.SkipWhile(package => package.IsManuallyInstalled), true);
+                }
             }
             else
             {
@@ -520,16 +644,7 @@ namespace NugetForUnity
                 DrawPackages(availablePackages);
             }
 
-            var showMoreStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                showMoreStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
-
+            var showMoreStyle = GetHeaderStyle();
             EditorGUILayout.BeginVertical(showMoreStyle);
 
             // allow the user to display more results
@@ -551,21 +666,19 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(List<NugetPackage> packages)
+        private void DrawPackages(IEnumerable<NugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
 
-            for (var i = 0; i < packages.Count; i++)
+            foreach (var package in packages)
             {
                 EditorGUILayout.BeginVertical(backgroundStyle);
-                DrawPackage(packages[i], backgroundStyle, contrastStyle);
+                DrawPackage(package, backgroundStyle, contrastStyle, canBeSelected);
                 EditorGUILayout.EndVertical();
 
                 // swap styles
-                var tempStyle = backgroundStyle;
-                backgroundStyle = contrastStyle;
-                contrastStyle = tempStyle;
+                (backgroundStyle, contrastStyle) = (contrastStyle, backgroundStyle);
             }
         }
 
@@ -574,15 +687,7 @@ namespace NugetForUnity
         /// </summary>
         private void DrawOnlineHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -595,16 +700,7 @@ namespace NugetForUnity
                         UpdateOnlinePackages();
                     }
 
-                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
-                    {
-                        Refresh(true);
-                    }
-
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
-                    {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
-                    }
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -649,27 +745,35 @@ namespace NugetForUnity
         /// </summary>
         private void DrawInstalledHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
                 EditorGUILayout.BeginHorizontal();
                 {
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+                    GUILayout.FlexibleSpace();
+
+                    if (NugetHelper.InstalledPackages.Any())
                     {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
+                        if (GUILayout.Button("Uninstall All", GUILayout.Width(100)))
+                        {
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
                     }
+
+                    if (NugetHelper.InstalledPackages.Any(selectedPackages.Contains))
+                    {
+                        if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
+                        {
+                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(selectedPackages.Contains).ToList());
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -677,23 +781,11 @@ namespace NugetForUnity
                 {
                     var oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
-                    installedSearchTermEditBox = EditorGUILayout.TextField(installedSearchTermEditBox, GUILayout.Height(30));
-
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
+                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
 
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
                 EditorGUILayout.EndHorizontal();
-
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    installedSearchTerm = installedSearchTermEditBox;
-                }
             }
             EditorGUILayout.EndVertical();
         }
@@ -703,15 +795,7 @@ namespace NugetForUnity
         /// </summary>
         private void DrawUpdatesHeader()
         {
-            var headerStyle = new GUIStyle();
-            if (Application.HasProLicense())
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.05f, 0.05f, 0.05f));
-            }
-            else
-            {
-                headerStyle.normal.background = MakeTex(20, 20, new Color(0.4f, 0.4f, 0.4f));
-            }
+            var headerStyle = GetHeaderStyle();
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -724,23 +808,27 @@ namespace NugetForUnity
                         UpdateUpdatePackages();
                     }
 
-                    if (GUILayout.Button("Install All Updates", GUILayout.Width(150)))
+                    if (updatePackages.Count > 0)
                     {
-                        NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
-                        NugetHelper.UpdateInstalledPackages();
-                        UpdateUpdatePackages();
+                        if (GUILayout.Button("Update All", GUILayout.Width(100)))
+                        {
+                            NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+
+                        if (updatePackages.Any(selectedPackages.Contains))
+                        {
+                            if (GUILayout.Button("Update Selected", GUILayout.Width(120)))
+                            {
+                                NugetHelper.UpdateAll(updatePackages.Where(selectedPackages.Contains), NugetHelper.InstalledPackages);
+                                UpdateInstalledPackages();
+                                UpdateUpdatePackages();
+                            }
+                        }
                     }
 
-                    if (GUILayout.Button("Refresh", GUILayout.Width(60)))
-                    {
-                        Refresh(true);
-                    }
-
-                    if (GUILayout.Button("Preferences", GUILayout.Width(80)))
-                    {
-                        SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
-                        GetWindow<NugetWindow>().Close();
-                    }
+                    DrawMandatoryButtons();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -751,43 +839,41 @@ namespace NugetForUnity
                     UpdateUpdatePackages();
                 }
 
-                var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
                 EditorGUILayout.BeginHorizontal();
                 {
                     var oldFontSize = GUI.skin.textField.fontSize;
                     GUI.skin.textField.fontSize = 25;
                     updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GUILayout.Height(30));
 
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
-                    {
-                        // the search button emulates the Enter key
-                        enterPressed = true;
-                    }
-
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
                 EditorGUILayout.EndHorizontal();
-
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    if (updatesSearchTerm != "Search")
-                    {
-                        filteredUpdatePackages = updatePackages.Where(
-                                x => x.Id.ToLower().Contains(updatesSearchTerm) || x.Title.ToLower().Contains(updatesSearchTerm))
-                            .ToList();
-                    }
-                }
             }
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        ///     Draws the "Refresh" and "Preferences" buttons in the upper right corner, which are visible in every tab.
+        /// </summary>
+        private void DrawMandatoryButtons()
+        {
+            if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+            {
+                Refresh(true);
+            }
+
+            if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+            {
+                SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+                GetWindow<NugetWindow>().Close();
+            }
         }
 
         /// <summary>
         ///     Draws the given <see cref="NugetPackage" />.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage" /> to draw.</param>
-        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle)
+        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
@@ -802,12 +888,29 @@ namespace NugetForUnity
                 EditorGUILayout.BeginHorizontal();
                 {
                     const int iconSize = 32;
-                    var padding = EditorStyles.label.padding.vertical;
-                    var rect = GUILayoutUtility.GetRect(iconSize, iconSize);
+                    var paddingX = Math.Max(EditorStyles.label.padding.horizontal, 3);
+                    var rect = GUILayoutUtility.GetRect(0, iconSize);
+                    rect.y += Math.Max(EditorStyles.label.padding.vertical, 3);
+                    if (canBeSelected)
+                    {
+                        const int toggleSize = 18;
+                        rect.x += toggleSize;
+                        var isSelected = selectedPackages.Contains(package);
+                        var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
+                        if (shouldBeSelected != isSelected)
+                        {
+                            if (shouldBeSelected)
+                            {
+                                selectedPackages.Add(package);
+                            }
+                            else
+                            {
+                                selectedPackages.Remove(package);
+                            }
+                        }
+                    }
 
-                    // only use GetRect's Y position.  It doesn't correctly set the width, height or X position.
-                    rect.x = padding;
-                    rect.y += padding;
+                    rect.x += paddingX;
                     rect.width = iconSize;
                     rect.height = iconSize;
 
@@ -827,93 +930,95 @@ namespace NugetForUnity
                     if (icon != null)
                     {
                         GUI.DrawTexture(rect, icon, ScaleMode.StretchToFill);
+                        rect.x += iconSize + paddingX;
                     }
 
-                    rect.x = iconSize + 2 * padding;
-                    rect.width = position.width / 2 - (iconSize + padding);
-                    rect.y -= padding; // This will leave the text aligned with the top of the image
+                    // text is allowed to get the half of the available space rest is for buttons and version label
+                    rect.width = (position.width - rect.x) / 2;
 
                     EditorStyles.label.fontStyle = FontStyle.Bold;
                     EditorStyles.label.fontSize = 16;
 
                     var idSize = EditorStyles.label.CalcSize(new GUIContent(package.Id));
-                    rect.y += iconSize / 2 - idSize.y / 2 + padding;
                     GUI.Label(rect, package.Id, EditorStyles.label);
-                    rect.x += idSize.x;
+                    rect.x += Mathf.Min(idSize.x, rect.width) + paddingX;
 
                     EditorStyles.label.fontSize = 10;
                     EditorStyles.label.fontStyle = FontStyle.Normal;
-
-                    var versionSize = EditorStyles.label.CalcSize(new GUIContent(package.Version));
-                    rect.y += idSize.y - versionSize.y - padding / 2;
+                    rect.y += EditorStyles.label.fontSize / 2f;
 
                     if (!string.IsNullOrEmpty(package.Authors))
                     {
-                        var authorLabel = string.Format("by {0}", package.Authors);
+                        var authorLabel = $"by {package.Authors}";
                         var size = EditorStyles.label.CalcSize(new GUIContent(authorLabel));
                         GUI.Label(rect, authorLabel, EditorStyles.label);
-                        rect.x += size.x;
+                        rect.x += size.x + paddingX;
                     }
 
                     if (package.DownloadCount > 0)
                     {
-                        var downloadLabel = string.Format("{0} downloads", package.DownloadCount.ToString("#,#"));
-                        var size = EditorStyles.label.CalcSize(new GUIContent(downloadLabel));
+                        var downloadLabel = $"{package.DownloadCount:#,#} downloads";
                         GUI.Label(rect, downloadLabel, EditorStyles.label);
-                        rect.x += size.x;
                     }
                 }
 
                 GUILayout.FlexibleSpace();
                 if (installed != null && installed.Version != package.Version)
                 {
-                    GUILayout.Label(string.Format("Current Version {0}", installed.Version));
+                    GUILayout.Label($"Current Version {installed.FullVersion}");
                 }
 
-                GUILayout.Label(string.Format("Version {0}", package.Version));
+                GUILayout.Label($"Version {package.FullVersion}");
 
-                if (installedPackages.Contains(package))
+                if (installed != null)
                 {
-                    // This specific version is installed
+                    if (!installed.IsManuallyInstalled && package.PackageSource == null)
+                    {
+                        if (GUILayout.Button("Add as explicit"))
+                        {
+                            NugetHelper.SetManuallyInstalledFlag(installed);
+                            ClearViewCache();
+                        }
+                    }
+
+                    if (installed < package)
+                    {
+                        // An older version is installed
+                        if (GUILayout.Button("Update"))
+                        {
+                            NugetHelper.Update(installed, package);
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+                    else if (installed > package)
+                    {
+                        // A newer version is installed
+                        if (GUILayout.Button("Downgrade"))
+                        {
+                            NugetHelper.Update(installed, package);
+                            UpdateInstalledPackages();
+                            UpdateUpdatePackages();
+                        }
+                    }
+
                     if (GUILayout.Button("Uninstall"))
                     {
-                        // TODO: Perhaps use a "mark as dirty" system instead of updating all of the data all the time?
-                        NugetHelper.Uninstall(package);
-                        NugetHelper.UpdateInstalledPackages();
+                        NugetHelper.Uninstall(installed);
+                        UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
                 else
                 {
-                    if (installed != null)
+                    var alreadyInstalled = NugetHelper.IsAlreadyImportedInEngine(package, false);
+                    using (new EditorGUI.DisabledScope(alreadyInstalled))
                     {
-                        if (installed < package)
+                        if (GUILayout.Button(new GUIContent("Install", null, alreadyInstalled ? "Already imported by Unity" : null)))
                         {
-                            // An older version is installed
-                            if (GUILayout.Button("Update"))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                        else if (installed > package)
-                        {
-                            // A newer version is installed
-                            if (GUILayout.Button("Downgrade"))
-                            {
-                                NugetHelper.Update(installed, package);
-                                NugetHelper.UpdateInstalledPackages();
-                                UpdateUpdatePackages();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (GUILayout.Button("Install"))
-                        {
+                            package.IsManuallyInstalled = true;
                             NugetHelper.InstallIdentifier(package);
-                            NugetHelper.UpdateInstalledPackages();
+                            UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
