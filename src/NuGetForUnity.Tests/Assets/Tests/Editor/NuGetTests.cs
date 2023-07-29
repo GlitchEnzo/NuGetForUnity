@@ -28,6 +28,7 @@ public class NuGetTests
     }
 
     [Test]
+    [Order(1)]
     public void SimpleRestoreTest()
     {
         NugetHelper.Restore();
