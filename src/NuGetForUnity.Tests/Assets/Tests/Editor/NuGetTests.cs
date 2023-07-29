@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,10 +11,20 @@ using UnityEngine;
 
 public class NuGetTests
 {
+    private Stopwatch stopwatch;
+
+    [SetUp]
+    public void Setup()
+    {
+        stopwatch = Stopwatch.StartNew();
+        TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}");
+    }
+
     [TearDown]
     public void Cleanup()
     {
         NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
     [Test]
@@ -604,8 +615,7 @@ public class NuGetTests
 
         var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
         filepath = filepath.Substring(assetsIndex);
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[]{filepath},
-            null, null, null);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
