@@ -376,11 +376,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Builds a list of NugetPackages from the XML returned from the HTTP GET request issued at the given URL.
         ///     Note that NuGet uses an Atom-feed (XML Syndicaton) superset called OData.
-        ///     See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
+        ///     See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/.
         /// </summary>
-        /// <param name="url"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
+        /// <param name="url">The url of the package to download.</param>
+        /// <param name="username">The user-name credentials for the registry.</param>
+        /// <param name="password">The credentials for the registry.</param>
+        /// <returns>The information about the packages from the registry.</returns>
         private List<NugetPackage> GetPackagesFromUrl(string url, string username, string password)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
@@ -389,7 +390,7 @@ namespace NugetForUnity
             stopwatch.Start();
 
             var packages = new List<NugetPackage>();
-            using (var responseStream = NugetHelper.RequestUrl(url, username, password, 10000))
+            using (var responseStream = NugetHelper.RequestUrl(url, username, password, null))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {
@@ -445,13 +446,13 @@ namespace NugetForUnity
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?</param>
-        /// <param name="versionContraints">The version constraints?</param>
+        /// <param name="versionConstraints">The version constraints?</param>
         /// <returns>A list of all updates available.</returns>
         public List<NugetPackage> GetUpdates(IEnumerable<NugetPackage> installedPackages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
-            string versionContraints = "")
+            string versionConstraints = "")
         {
             if (IsLocalPath)
             {
@@ -497,7 +498,7 @@ namespace NugetForUnity
                     includePrerelease.ToString().ToLower(),
                     includeAllVersions.ToString().ToLower(),
                     targetFrameworks,
-                    versionContraints);
+                    versionConstraints);
 
                 try
                 {
@@ -512,7 +513,7 @@ namespace NugetForUnity
                     {
                         // Some web services, such as VSTS don't support the GetUpdates API. Attempt to retrieve updates via FindPackagesById.
                         NugetHelper.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
-                        return GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                        return GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
                     }
 
                     Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);

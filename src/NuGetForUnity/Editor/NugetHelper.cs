@@ -103,14 +103,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether when installing a NuGet package we also install its dependencies.
-        ///     This is required by the NuGetForUnity.Cli as the CLI only installs packages listed explicitly inside
-        ///     the <see cref="PackagesConfigFile" /> because dependency resolution wouldn't work seamlessly
-        ///     as it can't detect libraries imported by Unity <see cref="UnityPreImportedLibraryResolver" />.
-        /// </summary>
-        internal static bool InstallDependencies { get; set; } = true;
-
-        /// <summary>
         ///     The loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
         public static NugetConfigFile NugetConfigFile { get; private set; }
@@ -132,14 +124,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Invalidates the currently loaded 'packages.config' so it is reloaded when it is accessed the next time.
-        /// </summary>
-        internal static void ReloadPackagesConfig()
-        {
-            packagesConfigFile = null;
-        }
-
-        /// <summary>
         ///     Gets the packages that are actually installed in the project.
         /// </summary>
         public static IEnumerable<NugetPackage> InstalledPackages => InstalledPackagesDictionary.Values;
@@ -158,6 +142,14 @@ namespace NugetForUnity
 
                 return installedPackages;
             }
+        }
+
+        /// <summary>
+        ///     Invalidates the currently loaded 'packages.config' so it is reloaded when it is accessed the next time.
+        /// </summary>
+        internal static void ReloadPackagesConfig()
+        {
+            packagesConfigFile = null;
         }
 
         /// <summary>
@@ -905,13 +897,13 @@ namespace NugetForUnity
                 {
                     // set root packages as manually installed if none are marked as such
                     foreach (var rootPackage in GetInstalledRootPackages())
-                        {
-                            PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
-                        }
-
-                        PackagesConfigFile.Save(PackagesConfigFilePath);
+                    {
+                        PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
+
+                    PackagesConfigFile.Save(PackagesConfigFilePath);
                 }
+            }
 
             stopwatch.Stop();
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
@@ -1163,7 +1155,11 @@ namespace NugetForUnity
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine</param>
-        internal static bool InstallIdentifier(NugetPackageIdentifier package, bool refreshAssets = true, bool isUpdate = false)
+        /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
+        internal static bool InstallIdentifier(NugetPackageIdentifier package,
+            bool refreshAssets = true,
+            bool isUpdate = false,
+            bool installDependencies = true)
         {
             if (!isUpdate && IsAlreadyImportedInEngine(package, false))
             {
@@ -1173,14 +1169,14 @@ namespace NugetForUnity
 
             var foundPackage = GetSpecificPackage(package);
 
-            if (foundPackage != null)
+            if (foundPackage == null)
             {
-                foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
-                return Install(foundPackage, refreshAssets, isUpdate);
+                Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
+                return false;
             }
 
-            Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
-            return false;
+            foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
+            return Install(foundPackage, refreshAssets, isUpdate, installDependencies);
         }
 
         /// <summary>
@@ -1204,8 +1200,9 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine</param>
-        public static bool Install(NugetPackage package, bool refreshAssets = true, bool isUpdate = false)
+        /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine.</param>
+        /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
+        public static bool Install(NugetPackage package, bool refreshAssets = true, bool isUpdate = false, bool installDependencies = true)
         {
             if (!isUpdate && IsAlreadyImportedInEngine(package, false))
             {
@@ -1238,6 +1235,7 @@ namespace NugetForUnity
                             package.Version);
                         return Update(installedPackage, package, false);
                     }
+
                     LogVerbose(
                         "{0} {1} is installed. {2} or greater is needed, so using installed version.",
                         installedPackage.Id,
@@ -1266,7 +1264,7 @@ namespace NugetForUnity
                         0.1f);
                 }
 
-                if (InstallDependencies)
+                if (installDependencies)
                 {
                     // install all dependencies for target framework
                     var frameworkGroup = GetNullableBestDependencyFrameworkGroupForCurrentSettings(package);
@@ -1285,7 +1283,7 @@ namespace NugetForUnity
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
                             LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                            var installed = InstallIdentifier(dependency);
+                            var installed = InstallIdentifier(dependency, refreshAssets, installDependencies);
                             if (!installed)
                             {
                                 throw new Exception(string.Format("Failed to install dependency: {0} {1}.", dependency.Id, dependency.Version));
@@ -1424,6 +1422,7 @@ namespace NugetForUnity
         ///     Get the specified URL from the web. Throws exceptions if the request fails.
         /// </summary>
         /// <param name="url">URL that will be loaded.</param>
+        /// <param name="userName">UserName that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
         /// <returns>Stream containing the result.</returns>
@@ -1437,11 +1436,7 @@ namespace NugetForUnity
             var getRequest = (HttpWebRequest)WebRequest.Create(url);
 #pragma warning restore SYSLIB0014 // Type or member is obsolete
             getRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.None;
-            if (timeOut.HasValue)
-            {
-                getRequest.Timeout = timeOut.Value;
-                getRequest.ReadWriteTimeout = timeOut.Value;
-            }
+            getRequest.Timeout = timeOut ?? NugetConfigFile.RequestTimeoutSeconds * 1000;
 
             if (string.IsNullOrEmpty(password))
             {
@@ -1471,7 +1466,8 @@ namespace NugetForUnity
         /// <summary>
         ///     Restores all packages defined in packages.config.
         /// </summary>
-        public static void Restore()
+        /// <param name="installDependencies">True to also install all dependencies of the packages listed in the <see cref="PackagesConfigFile" />.</param>
+        public static void Restore(bool installDependencies = true)
         {
             UpdateInstalledPackages();
 
@@ -1498,7 +1494,7 @@ namespace NugetForUnity
                                 string.Format("Restoring {0} {1}", package.Id, package.Version),
                                 currentProgress);
                             LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            InstallIdentifier(package);
+                            InstallIdentifier(package, installDependencies: installDependencies);
                             somethingChanged = true;
                         }
 

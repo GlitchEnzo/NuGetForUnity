@@ -173,6 +173,24 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallStyleCopWithoutDependenciesTest()
+    {
+        var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
+        var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
+
+        NugetHelper.InstallIdentifier(styleCopPlusId, installDependencies: false);
+
+        // StyleCopPlus depends on StyleCop, so they should both be installed
+        // it depends on version 4.7.49.0, so ensure it is also installed
+        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package SHOULD NOT be installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+
+        // cleanup and uninstall everything
+        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+    }
+
+    [Test]
     public void InstallSignalRClientTest()
     {
         var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2") { IsManuallyInstalled = true };
@@ -604,8 +622,7 @@ public class NuGetTests
 
         var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
         filepath = filepath.Substring(assetsIndex);
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[]{filepath},
-            null, null, null);
+        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }

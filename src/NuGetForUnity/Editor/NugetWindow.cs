@@ -203,7 +203,7 @@ namespace NugetForUnity
         [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
-            NugetHelper.Restore();
+            NugetHelper.Restore(!NugetHelper.NugetConfigFile.LockPackagesOnRestore);
             foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
             {
                 nugetWindow.ClearViewCache();
