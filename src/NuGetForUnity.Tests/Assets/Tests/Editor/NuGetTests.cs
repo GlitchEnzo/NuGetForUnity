@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,13 +11,24 @@ using UnityEngine;
 
 public class NuGetTests
 {
+    private Stopwatch stopwatch;
+
+    [SetUp]
+    public void Setup()
+    {
+        stopwatch = Stopwatch.StartNew();
+        TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}");
+    }
+
     [TearDown]
     public void Cleanup()
     {
         NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
     [Test]
+    [Order(1)]
     public void SimpleRestoreTest()
     {
         NugetHelper.Restore();
@@ -29,6 +41,7 @@ public class NuGetTests
     }
 
     [Test]
+    [Order(2)]
     public void InstallJsonTest()
     {
         // install a specific version
@@ -260,8 +273,9 @@ public class NuGetTests
     [Test]
     public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
     {
+        NugetHelper.LoadNugetConfigFile(); // ensure 'NuGet.config' exists
         var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
-        var tempDirectoryPath = Path.GetFullPath("TempUnitTestFolder");
+        var tempDirectoryPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "TempUnitTestFolder"));
         Directory.CreateDirectory(tempDirectoryPath);
         File.Copy(NugetHelper.NugetConfigFilePath, Path.Combine(tempDirectoryPath, NugetConfigFile.FileName));
 

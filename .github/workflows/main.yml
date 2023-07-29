@@ -177,6 +177,7 @@ jobs:
         with:
           projectPath: src/NuGetForUnity.Tests
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          testMode: EditMode
 
   runTestProjectsOnLinux:
     name: Run test projects on linux
