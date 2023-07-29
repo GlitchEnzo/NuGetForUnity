@@ -28,6 +28,7 @@ public class NuGetTests
     }
 
     [Test]
+    [Order(1)]
     public void SimpleRestoreTest()
     {
         NugetHelper.Restore();
@@ -254,7 +255,7 @@ public class NuGetTests
     public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
     {
         var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
-        var tempDirectoryPath = Path.GetFullPath("TempUnitTestFolder");
+        var tempDirectoryPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "TempUnitTestFolder"));
         Directory.CreateDirectory(tempDirectoryPath);
         File.Copy(NugetHelper.NugetConfigFilePath, Path.Combine(tempDirectoryPath, NugetConfigFile.FileName));
 
