@@ -23,7 +23,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Default timeout in seconds for all web requests.
         /// </summary>
-        private const int DefaultRequestTimeout = 100;
+        private const int DefaultRequestTimeout = 10;
 
         private const string RequestTimeoutSecondsConfigKey = "RequestTimeoutSeconds";
 

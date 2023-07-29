@@ -1171,12 +1171,12 @@ namespace NugetForUnity
 
             if (foundPackage == null)
             {
-                foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
-                return Install(foundPackage, refreshAssets, isUpdate, installDependencies);
+                Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
+                return false;
             }
 
-            Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
-            return false;
+            foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
+            return Install(foundPackage, refreshAssets, isUpdate, installDependencies);
         }
 
         /// <summary>
