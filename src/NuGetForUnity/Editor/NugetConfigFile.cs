@@ -73,7 +73,7 @@ namespace NugetForUnity
         private const int defaultRequestTimeout = 10000;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the installed packages should be fixed
+        ///     Gets or sets a value indicating whether the installed packages should be fixed, so only the packages that are configure inside the 'package.config' are installed without installing the dependencies of them.
         /// </summary>
         public bool LockPackagesOnRestore { get; set; }
 
