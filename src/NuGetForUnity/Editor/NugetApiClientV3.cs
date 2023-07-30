@@ -62,68 +62,6 @@ namespace NugetForUnity
             httpClient.Dispose();
         }
 
-        private bool InitializeFromSessionState()
-        {
-            var sessionState = SessionState.GetString(GetSessionStateKey(), string.Empty);
-            if (string.IsNullOrEmpty(sessionState))
-            {
-                return false;
-            }
-
-            JsonUtility.FromJsonOverwrite(sessionState, this);
-            return searchQueryServices != null;
-        }
-
-        private void SaveToSessionState()
-        {
-            UnityMainThreadDispatcher.Dispatch(() => SessionState.SetString(GetSessionStateKey(), JsonUtility.ToJson(this)));
-        }
-
-        private string GetSessionStateKey()
-        {
-            return $"{nameof(NuGetApiClientV3)}:{apiIndexJsonUrl}";
-        }
-
-        private async void InitializeApiAddresses(NuGetPackageSourceV3 packageSource)
-        {
-            var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
-                .ConfigureAwait(false);
-            var resourceList =
-                JsonUtility.FromJson<IndexResponse>(responseString.Replace(@"""@id"":", @"""atId"":").Replace(@"""@type"":", @"""atType"":"));
-            var foundSearchQueryServices = new List<string>();
-            foreach (var resource in resourceList.resources)
-            {
-                switch (resource.atType)
-                {
-                    case "SearchQueryService":
-                        if (resource.comment.Contains("(primary)"))
-                        {
-                            foundSearchQueryServices.Insert(0, resource.atId.Trim('/') + '/');
-                        }
-                        else
-                        {
-                            foundSearchQueryServices.Add(resource.atId.Trim('/') + '/');
-                        }
-
-                        break;
-                    case "PackageBaseAddress/3.0.0":
-                        packageBaseAddress = resource.atId.Trim('/') + '/';
-                        break;
-                    case "RegistrationsBaseUrl/3.6.0":
-                        registrationsBaseUrl = resource.atId.Trim('/') + '/';
-                        break;
-                }
-            }
-
-            if (string.IsNullOrEmpty(packageBaseAddress))
-            {
-                Debug.LogErrorFormat("The NuGet package source at '{0}' has no PackageBaseAddress resource defined.", apiIndexJsonUrl);
-            }
-
-            searchQueryServices = foundSearchQueryServices;
-            SaveToSessionState();
-        }
-
         /// <summary>
         ///     Searches for NuGet packages available on the server.
         /// </summary>
@@ -147,9 +85,9 @@ namespace NugetForUnity
         ///     Token to cancel the HTTP request.
         /// </param>
         /// <returns>
-        ///     A list of <see cref="INuGetPackage" />s that match the search query.
+        ///     A list of <see cref="INugetPackage" />s that match the search query.
         /// </returns>
-        public async Task<List<INuGetPackage>> SearchPackage(
+        public async Task<List<INugetPackage>> SearchPackage(
             NuGetPackageSourceV3 packageSource,
             string searchQuery = "",
             int skip = -1,
@@ -193,7 +131,168 @@ namespace NugetForUnity
             }
 
             Debug.LogError($"There are no {nameof(searchQueryServices)} specified in the API '{apiIndexJsonUrl}' so we can't search.");
-            return new List<INuGetPackage>();
+            return new List<INugetPackage>();
+        }
+
+        /// <summary>
+        ///     Download the .nupkg file and store it inside a file at <paramref name="outputFilePath" />.
+        /// </summary>
+        /// <param name="packageSource">The package source that owns this client.</param>
+        /// <param name="package">The package to download its .nupkg from.</param>
+        /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
+        /// <returns>The async task.</returns>
+        public async Task DownloadNupkgToFile(NuGetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
+        {
+            var version = package.Version.ToLowerInvariant();
+            var id = package.Id.ToLowerInvariant();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, $"{packageBaseAddress}{id}/{version}/{id}.{version}.nupkg"))
+            {
+                AddHeadersToRequest(request, packageSource);
+                using (var response = await httpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
+                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    {
+                        using (var fileStream = File.Create(outputFilePath))
+                        {
+                            await stream.CopyToAsync(fileStream).ConfigureAwait(false);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Fetches the package details from the server.
+        /// </summary>
+        /// <param name="packageSource">The package source that owns this client.</param>
+        /// <param name="package">The package to receive the details for.</param>
+        /// <param name="cancellationToken">
+        ///     Token to cancel the request.
+        /// </param>
+        /// <returns>
+        ///     The package details or null if the package is not found.
+        /// </returns>
+        public async Task<List<NugetFrameworkGroup>> GetPackageDetails(
+            NuGetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(registrationsBaseUrl))
+            {
+                Debug.LogError(
+                    $"There are no {nameof(registrationsBaseUrl)} specified in the API '{apiIndexJsonUrl}' so we can't receive package details.");
+                return null;
+            }
+
+            var responseString = await GetStringFromServerAsync(
+                    packageSource,
+                    $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
+                    cancellationToken)
+                .ConfigureAwait(false);
+            var registrationResponse = JsonUtility.FromJson<RegistrationResponse>(responseString.Replace(@"""@id"":", @"""atId"":"));
+
+            // without a version specified, the latest version is returned
+            var getLatestVersion = string.IsNullOrEmpty(package.Version);
+            var item = getLatestVersion ?
+                registrationResponse.items.OrderByDescending(registrationItem => new NuGetPackageVersion(registrationItem.lower)).First() :
+                registrationResponse.items.FirstOrDefault(
+                    registrationItem => package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.lower)) >= 0 &&
+                                        package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.upper)) <= 0);
+            if (item is null)
+            {
+                Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
+                return null;
+            }
+
+            if (item.items is null || item.items.Count == 0)
+            {
+                // If the items property is not present in the registration page object, the URL specified in the @id must be used to fetch metadata about individual package versions. The items array is sometimes excluded from the page object as an optimization. If the number of versions of a single package ID is very large, then the registration index document will be massive and wasteful to process for a client that only cares about a specific version or small range of versions.
+                var registrationPageString = await GetStringFromServerAsync(packageSource, item.atId, cancellationToken).ConfigureAwait(false);
+                var registrationPage = JsonUtility.FromJson<RegistrationPageObject>(registrationPageString);
+                item.items = registrationPage.items;
+            }
+
+            var leafItem = getLatestVersion ?
+                item.items.OrderByDescending(registrationLeaf => new NuGetPackageVersion(registrationLeaf.catalogEntry.version)).FirstOrDefault() :
+                item.items.FirstOrDefault(leaf => new NuGetPackageVersion(leaf.catalogEntry.version) == package.PackageVersion);
+            if (leafItem is null)
+            {
+                Debug.LogError(
+                    $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {item.lower} to {item.upper} '{item.atId}'.");
+                return null;
+            }
+
+            return leafItem.catalogEntry.dependencyGroups.Select(
+                    dependencyGroup => new NugetFrameworkGroup
+                    {
+                        Dependencies = dependencyGroup.dependencies.Select(dependency => new NugetPackageIdentifier(dependency.id, dependency.range))
+                            .ToList(),
+                        TargetFramework = dependencyGroup.targetFramework,
+                    })
+                .ToList();
+        }
+
+        private bool InitializeFromSessionState()
+        {
+            var sessionState = SessionState.GetString(GetSessionStateKey(), string.Empty);
+            if (string.IsNullOrEmpty(sessionState))
+            {
+                return false;
+            }
+
+            JsonUtility.FromJsonOverwrite(sessionState, this);
+            return searchQueryServices != null;
+        }
+
+        private void SaveToSessionState()
+        {
+            UnityMainThreadDispatcher.Dispatch(() => SessionState.SetString(GetSessionStateKey(), JsonUtility.ToJson(this)));
+        }
+
+        private string GetSessionStateKey()
+        {
+            return $"{nameof(NuGetApiClientV3)}:{apiIndexJsonUrl}";
+        }
+
+        private async void InitializeApiAddresses(NuGetPackageSourceV3 packageSource)
+        {
+            var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
+                .ConfigureAwait(false);
+            var resourceList =
+                JsonUtility.FromJson<IndexResponse>(responseString.Replace(@"""@id"":", @"""atId"":").Replace(@"""@type"":", @"""atType"":"));
+            var foundSearchQueryServices = new List<string>();
+            foreach (var resource in resourceList.resources)
+            {
+                switch (resource.atType)
+                {
+                    case "SearchQueryService":
+                        if (resource.comment.Contains("(primary)"))
+                        {
+                            foundSearchQueryServices.Insert(0, resource.atId.Trim('/'));
+                        }
+                        else
+                        {
+                            foundSearchQueryServices.Add(resource.atId.Trim('/'));
+                        }
+
+                        break;
+                    case "PackageBaseAddress/3.0.0":
+                        packageBaseAddress = resource.atId.Trim('/') + '/';
+                        break;
+                    case "RegistrationsBaseUrl/3.6.0":
+                        registrationsBaseUrl = resource.atId.Trim('/') + '/';
+                        break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(packageBaseAddress))
+            {
+                Debug.LogErrorFormat("The NuGet package source at '{0}' has no PackageBaseAddress resource defined.", apiIndexJsonUrl);
+            }
+
+            searchQueryServices = foundSearchQueryServices;
+            SaveToSessionState();
         }
 
         private async Task<string> GetStringFromServerAsync(NuGetPackageSourceV3 packageSource, string url, CancellationToken cancellationToken)
@@ -236,9 +335,9 @@ namespace NugetForUnity
             }
         }
 
-        private List<INuGetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NuGetPackageSourceV3 packageSource)
+        private List<INugetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NuGetPackageSourceV3 packageSource)
         {
-            var packages = new List<INuGetPackage>(searchResults.Count);
+            var packages = new List<INugetPackage>(searchResults.Count);
             foreach (var item in searchResults)
             {
                 var versions = item.versions.Select(searchVersion => new NuGetPackageVersion(searchVersion.version)).ToList();
@@ -260,105 +359,6 @@ namespace NugetForUnity
             }
 
             return packages;
-        }
-
-        /// <summary>
-        ///     Download the .nupkg file and store it inside a file at <paramref name="outputFilePath" />.
-        /// </summary>
-        /// <param name="packageSource">The package source that owns this client.</param>
-        /// <param name="package">The package to download its .nupkg from.</param>
-        /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
-        /// <returns>The async task.</returns>
-        public async Task DownloadNupkgToFile(NuGetPackageSourceV3 packageSource, INuGetPackageIdentifier package, string outputFilePath)
-        {
-            var version = package.Version.ToLowerInvariant();
-            var id = package.Id.ToLowerInvariant();
-            using (var request = new HttpRequestMessage(HttpMethod.Get, $"{packageBaseAddress}{id}/{version}/{id}.{version}.nupkg"))
-            {
-                AddHeadersToRequest(request, packageSource);
-                using (var response = await httpClient.SendAsync(request).ConfigureAwait(false))
-                {
-                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
-                        using (var fileStream = File.Create(outputFilePath))
-                        {
-                            await stream.CopyToAsync(fileStream).ConfigureAwait(false);
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Fetches the package details from the server.
-        /// </summary>
-        /// <param name="packageSource">The package source that owns this client.</param>
-        /// <param name="package">The package to receive the details for.</param>
-        /// <param name="cancellationToken">
-        ///     Token to cancel the request.
-        /// </param>
-        /// <returns>
-        ///     The package details or null if the package is not found.
-        /// </returns>
-        public async Task<List<NugetFrameworkGroup>> GetPackageDetails(
-            NuGetPackageSourceV3 packageSource,
-            INuGetPackageIdentifier package,
-            CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrEmpty(registrationsBaseUrl))
-            {
-                Debug.LogError(
-                    $"There are no {nameof(registrationsBaseUrl)} specified in the API '{apiIndexJsonUrl}' so we can't receive package details.");
-                return null;
-            }
-
-            var responseString = await GetStringFromServerAsync(
-                    packageSource,
-                    $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
-                    cancellationToken)
-                .ConfigureAwait(false);
-            var registrationResponse = JsonUtility.FromJson<RegistrationResponse>(responseString.Replace(@"""@id"":", @"""atId"":"));
-
-            // without a version specified, the latest version is returned
-            var getLatestVersion = string.IsNullOrEmpty(package.Version);
-            var item = getLatestVersion ?
-                registrationResponse.items.OrderByDescending(registrationItem => new NuGetPackageVersion(registrationItem.lower)).First() :
-                registrationResponse.items.FirstOrDefault(
-                    registrationItem => package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.lower)) >= 0 &&
-                                        package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.upper)) <= 0);
-            if (item is null)
-            {
-                Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
-                return null;
-            }
-
-            if (item.items is null || item.items.Count == 0)
-            {
-                // If the items property is not present in the registration page object, the URL specified in the @id must be used to fetch metadata about individual package versions. The items array is sometimes excluded from the page object as an optimization. If the number of versions of a single package ID is very large, then the registration index document will be massive and wasteful to process for a client that only cares about a specific version or small range of versions.
-                var registrationPageString = await GetStringFromServerAsync(packageSource, item.atId, cancellationToken).ConfigureAwait(false);
-                var registrationPage = JsonUtility.FromJson<RegistrationPageObject>(registrationPageString);
-                item.items = registrationPage.items;
-            }
-
-            var leafItem = getLatestVersion ?
-                item.items.OrderByDescending(registrationLeaf => new NuGetPackageVersion(registrationLeaf.catalogEntry.version)).FirstOrDefault() :
-                item.items.FirstOrDefault(leaf => leaf.catalogEntry.version == package.Version);
-            if (leafItem is null)
-            {
-                Debug.LogError(
-                    $"There is no package with id '{package.Id}' and version '{package.Version}' in the registration page with the matching version rage: {item.lower} to {item.upper} '{item.atId}'.");
-                return null;
-            }
-
-            return leafItem.catalogEntry.dependencyGroups.Select(
-                    dependencyGroup => new NugetFrameworkGroup
-                    {
-                        Dependencies = dependencyGroup.dependencies.Select(dependency => new NugetPackageIdentifier(dependency.id, dependency.range))
-                            .ToList(),
-                        TargetFramework = dependencyGroup.targetFramework,
-                    })
-                .ToList();
         }
 
         private async Task EnsureResponseIsSuccess(HttpResponseMessage response)

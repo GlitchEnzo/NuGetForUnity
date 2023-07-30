@@ -7,7 +7,7 @@ using UnityEngine;
 namespace NugetForUnity
 {
     /// <summary>
-    ///     Represents a custom editor inside the Unity editor that allows easy editting of a .nuspec file.
+    ///     Represents a custom editor inside the Unity editor that allows easy editing of a .nuspec file.
     /// </summary>
     public class NuspecEditor : EditorWindow
     {
@@ -22,7 +22,7 @@ namespace NugetForUnity
         private bool dependenciesExpanded = true;
 
         /// <summary>
-        ///     The full filepath to the .nuspec file that is being edited.
+        ///     The full file-path to the .nuspec file that is being edited.
         /// </summary>
         private string filepath;
 
@@ -212,7 +212,7 @@ namespace NugetForUnity
                             var installedPackages = NugetHelper.InstalledPackages.ToList();
 
                             // default all packages to being roots
-                            var roots = new List<INuGetPackageIdentifier>(installedPackages);
+                            var roots = new List<INugetPackageIdentifier>(installedPackages);
 
                             // remove a package as a root if another package is dependent on it
                             foreach (var package in installedPackages)
@@ -244,13 +244,6 @@ namespace NugetForUnity
                         EditorGUIUtility.labelWidth = 50;
                         dependency.Id = EditorGUILayout.TextField(new GUIContent("ID", "The ID of the dependency package."), dependency.Id);
                         EditorGUILayout.EndHorizontal();
-
-                        //int oldSeletedIndex = IndexOf(ref existingComponents, dependency.Id);
-                        //int newSelectIndex = EditorGUILayout.Popup("Name", oldSeletedIndex, existingComponents);
-                        //if (oldSeletedIndex != newSelectIndex)
-                        //{
-                        //    dependency.Name = existingComponents[newSelectIndex];
-                        //}
 
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(75);

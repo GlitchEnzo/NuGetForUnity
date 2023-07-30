@@ -7,23 +7,20 @@ using UnityEngine;
 
 namespace NugetForUnity
 {
-    internal sealed class CombinedNuGetPackageSource : INuGetPackageSource
+    /// <summary>
+    ///     A package source that combines the results from multiple other package sources.
+    /// </summary>
+    internal sealed class NugetPackageSourceCombined : INugetPackageSource
     {
-        private readonly List<INuGetPackageSource> packageSources;
+        private readonly List<INugetPackageSource> packageSources;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="CombinedNuGetPackageSource" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageSourceCombined" /> class.
         /// </summary>
         /// <param name="packageSources">The package source's to combine the results from.</param>
-        public CombinedNuGetPackageSource(List<INuGetPackageSource> packageSources)
+        public NugetPackageSourceCombined(List<INugetPackageSource> packageSources)
         {
             this.packageSources = packageSources ?? throw new ArgumentNullException(nameof(packageSources));
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // packageSources are disposed by them self.
         }
 
         /// <inheritdoc />
@@ -33,6 +30,7 @@ namespace NugetForUnity
 
             set
             {
+                // this is a fixed value
             }
         }
 
@@ -40,17 +38,7 @@ namespace NugetForUnity
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />
-        public bool IsLocalPath => true;
-
-        /// <inheritdoc />
-        public string SavedPassword
-        {
-            get => null;
-
-            set
-            {
-            }
-        }
+        public bool IsLocalPath => false;
 
         /// <inheritdoc />
         public string SavedPath
@@ -59,6 +47,18 @@ namespace NugetForUnity
 
             set
             {
+                // this is a fixed value
+            }
+        }
+
+        /// <inheritdoc />
+        public string SavedPassword
+        {
+            get => null;
+
+            set
+            {
+                // multiple sources can't have credentials
             }
         }
 
@@ -69,6 +69,7 @@ namespace NugetForUnity
 
             set
             {
+                // multiple sources can't have credentials
             }
         }
 
@@ -79,17 +80,30 @@ namespace NugetForUnity
 
             set
             {
+                // multiple sources can't have passwords
             }
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> FindPackagesById(INuGetPackageIdentifier package)
+        public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
-            throw new NotImplementedException();
+            var activeSourcesCount = packageSources.Count(source => source.IsEnabled);
+            if (activeSourcesCount == 0)
+            {
+                Debug.LogWarning("There are no active package sources. Check your nuget.config.");
+                return new List<INugetPackage>();
+            }
+
+            if (activeSourcesCount == 1)
+            {
+                return packageSources.First(source => source.IsEnabled).FindPackagesById(package);
+            }
+
+            return packageSources.Where(source => source.IsEnabled).SelectMany(source => source.FindPackagesById(package)).Distinct().ToList();
         }
 
         /// <inheritdoc />
-        public INuGetPackage GetSpecificPackage(INuGetPackageIdentifier package)
+        public INugetPackage GetSpecificPackage(INugetPackageIdentifier package)
         {
             var activeSourcesCount = packageSources.Count(source => source.IsEnabled);
             if (activeSourcesCount == 0)
@@ -104,7 +118,7 @@ namespace NugetForUnity
             }
 
             // Loop through all active sources and stop once the package is found
-            INuGetPackage bestMatch = null;
+            INugetPackage bestMatch = null;
             foreach (var source in packageSources.Where(s => s.IsEnabled))
             {
                 var foundPackage = source.GetSpecificPackage(package);
@@ -143,33 +157,35 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> GetUpdates(IEnumerable<INuGetPackage> packages,
+        public List<INugetPackage> GetUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
-            string versionContraints = "")
+            string versionConstraints = "")
         {
             var activeSourcesCount = packageSources.Count(source => source.IsEnabled);
             if (activeSourcesCount == 0)
             {
                 Debug.LogWarning("There are no active package sources. Check your nuget.config.");
-                return new List<INuGetPackage>();
+                return new List<INugetPackage>();
             }
 
             if (activeSourcesCount == 1)
             {
                 return packageSources.First(source => source.IsEnabled)
-                    .GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints);
+                    .GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
             }
 
             return packageSources.Where(source => source.IsEnabled)
-                .SelectMany(source => source.GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionContraints))
+                .SelectMany(source => source.GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints))
                 .Distinct()
                 .ToList();
         }
 
         /// <inheritdoc />
-        public Task<List<INuGetPackage>> Search(string searchTerm = "",
+        public Task<List<INugetPackage>> Search(
+            string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
@@ -180,7 +196,7 @@ namespace NugetForUnity
             if (activeSourcesCount == 0)
             {
                 Debug.LogWarning("There are no active package sources. Check your nuget.config.");
-                return Task.FromResult(new List<INuGetPackage>());
+                return Task.FromResult(new List<INugetPackage>());
             }
 
             if (activeSourcesCount == 1)
@@ -193,12 +209,20 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void DownloadNupkgToFile(INuGetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
+        public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            throw new NotImplementedException("This shouldn't happen / is currently not implemented.");
+            throw new NotImplementedException(
+                "This shouldn't happen / is currently not implemented as each package has its own 'DownloadNupkgToFile' method.");
         }
 
-        private async Task<List<INuGetPackage>> SearchMultiple(string searchTerm = "",
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // packageSources are disposed by them self.
+        }
+
+        private async Task<List<INugetPackage>> SearchMultiple(
+            string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,

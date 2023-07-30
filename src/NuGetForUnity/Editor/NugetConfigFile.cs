@@ -37,13 +37,13 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
         /// </summary>
-        public List<INuGetPackageSource> PackageSources { get; private set; }
+        public List<INugetPackageSource> PackageSources { get; private set; }
 
         /// <summary>
         ///     Gets the currently active package source that is defined in the NuGet.config file.
         ///     Note: If the key/Name is set to "All" and the value/Path is set to "(Aggregate source)", all package sources are used.
         /// </summary>
-        public INuGetPackageSource ActivePackageSource { get; private set; }
+        public INugetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
         ///     Gets the local path where packages are to be installed.  It can be a full path or a relative path.
@@ -227,7 +227,7 @@ namespace NugetForUnity
         public static NugetConfigFile Load(string filePath)
         {
             var configFile = new NugetConfigFile();
-            configFile.PackageSources = new List<INuGetPackageSource>();
+            configFile.PackageSources = new List<INugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
 
@@ -241,7 +241,7 @@ namespace NugetForUnity
                 foreach (var add in adds)
                 {
                     configFile.PackageSources.Add(
-                        NuGetPackageSourceCreator.CreatePackageSource(add.Attribute("key").Value, add.Attribute("value").Value, null));
+                        NugetPackageSourceCreator.CreatePackageSource(add.Attribute("key").Value, add.Attribute("value").Value, null));
                 }
             }
 
@@ -250,7 +250,7 @@ namespace NugetForUnity
             if (activePackageSource != null)
             {
                 var add = activePackageSource.Element("add");
-                configFile.ActivePackageSource = NuGetPackageSourceCreator.CreatePackageSource(
+                configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(
                     add.Attribute("key").Value,
                     add.Attribute("value").Value,
                     configFile.PackageSources);

@@ -6,7 +6,7 @@ using System.Xml.Linq;
 namespace NugetForUnity
 {
     /// <summary>
-    ///     Provides helper methods for parsing a NuGet server OData response.
+    ///     Provides helper methods for parsing a NuGet server OData response (NuGet API v2).
     ///     OData is a superset of the Atom API.
     /// </summary>
     internal static class NugetODataResponse
@@ -40,14 +40,14 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackage" />s contained within.
+        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NuGetPackageV2Base" />s contained within.
         /// </summary>
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The list of <see cref="NugetPackage" />s read from the given XML.</returns>
-        public static List<NugetPackage> Parse(XDocument document, NuGetPackageSourceV2 packageSource)
+        /// <returns>The list of <see cref="NuGetPackageV2Base" />s read from the given XML.</returns>
+        public static List<NuGetPackageV2Base> Parse(XDocument document, NuGetPackageSourceV2 packageSource)
         {
-            var packages = new List<NugetPackage>();
+            var packages = new List<NuGetPackageV2Base>();
 
             if (document.Root == null)
             {
@@ -66,7 +66,7 @@ namespace NugetForUnity
 
             foreach (var entry in packageEntries)
             {
-                var package = new NugetPackage(packageSource)
+                var package = new NugetPackageV2(packageSource)
                 {
                     Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };

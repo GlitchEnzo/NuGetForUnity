@@ -101,8 +101,8 @@ internal static class CredentialProviderHelper
     {
         NugetHelper.LogVerbose("Getting credential for {0}", feedUri);
 
-        // Build the list of possible locations to find the credential provider. In order it should be local app data, paths set on the
-        // environment varaible, and lastly look at the root of the pacakges save location.
+        // Build the list of possible locations to find the credential provider. In order it should be local APP-Data, paths set on the
+        // environment variable, and lastly look at the root of the packages save location.
         var possibleCredentialProviderPaths = new List<string>
         {
             Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget"), "CredentialProviders"),
@@ -131,7 +131,7 @@ internal static class CredentialProviderHelper
 
         foreach (var providerPath in providerPaths.Distinct())
         {
-            // Launch the credential provider executable and get the json encoded response from the std output
+            // Launch the credential provider executable and get the JSON encoded response from the std output
             var process = new Process();
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
@@ -153,7 +153,7 @@ internal static class CredentialProviderHelper
             {
                 case CredentialProviderExitCode.ProviderNotApplicable:
                     break; // Not the right provider
-                case CredentialProviderExitCode.Failure: // Right provider, failure to get creds
+                case CredentialProviderExitCode.Failure: // Right provider, failure to get credentials
                     {
                         Debug.LogErrorFormat("Failed to get credentials from {0}!\n\tOutput\n\t{1}\n\tErrors\n\t{2}", providerPath, output, errors);
                         return null;
@@ -251,6 +251,19 @@ internal static class CredentialProviderHelper
         return anyDownloaded;
     }
 
+    /// <summary>
+    ///     Possible response codes returned by a Nuget credential provider as described here:
+    ///     https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider.
+    /// </summary>
+    private enum CredentialProviderExitCode
+    {
+        Success = 0,
+
+        ProviderNotApplicable = 1,
+
+        Failure = 2,
+    }
+
     private struct AuthenticatedFeed
     {
         public string AccountUrlPattern;
@@ -284,18 +297,5 @@ internal static class CredentialProviderHelper
         public string Username;
 
         public string Password;
-    }
-
-    /// <summary>
-    ///     Possible response codes returned by a Nuget credential provider as described here:
-    ///     https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers#creating-a-nugetexe-credential-provider.
-    /// </summary>
-    private enum CredentialProviderExitCode
-    {
-        Success = 0,
-
-        ProviderNotApplicable = 1,
-
-        Failure = 2,
     }
 }

@@ -44,12 +44,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
-        private readonly HashSet<INuGetPackage> openCloneWindows = new HashSet<INuGetPackage>();
+        private readonly HashSet<INugetPackage> openCloneWindows = new HashSet<INugetPackage>();
 
         /// <summary>
         ///     Used to keep track of which packages are selected for uninstalling or updating.
         /// </summary>
-        private readonly HashSet<INuGetPackage> selectedPackages = new HashSet<INuGetPackage>();
+        private readonly HashSet<INugetPackage> selectedPackages = new HashSet<INugetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -59,7 +59,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of NugetPackages available to install.
         /// </summary>
-        private List<INuGetPackage> availablePackages = new List<INuGetPackage>();
+        private List<INugetPackage> availablePackages = new List<INugetPackage>();
 
         /// <summary>
         ///     The currently selected tab in the window.
@@ -72,7 +72,7 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D defaultIcon;
 
-        private List<INuGetPackage> filteredInstalledPackages;
+        private List<INugetPackage> filteredInstalledPackages;
 
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
@@ -104,10 +104,10 @@ namespace NugetForUnity
         private Vector2 scrollPosition;
 
         [SerializeField]
-        private List<SerializableNuGetPackage> serializableAvailablePackages;
+        private List<SerializableNugetPackage> serializableAvailablePackages;
 
         [SerializeField]
-        private List<SerializableNuGetPackage> serializableUpdatePackages;
+        private List<SerializableNugetPackage> serializableUpdatePackages;
 
         /// <summary>
         ///     True to show all old package versions.  False to only show the latest version.
@@ -134,7 +134,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of package updates available, based on the already installed packages.
         /// </summary>
-        private List<INuGetPackage> updatePackages = new List<INuGetPackage>();
+        private List<INugetPackage> updatePackages = new List<INugetPackage>();
 
         /// <summary>
         ///     The search term to search the update packages for.
@@ -142,9 +142,9 @@ namespace NugetForUnity
         private string updatesSearchTerm = "Search";
 
         /// <summary>
-        ///     The filtered list of package updates available.
+        ///     Gets the filtered list of package updates available.
         /// </summary>
-        private List<INuGetPackage> FilteredUpdatePackages
+        private List<INugetPackage> FilteredUpdatePackages
         {
             get
             {
@@ -160,7 +160,7 @@ namespace NugetForUnity
             }
         }
 
-        private List<INuGetPackage> FilteredInstalledPackages
+        private List<INugetPackage> FilteredInstalledPackages
         {
             get
             {
@@ -196,8 +196,8 @@ namespace NugetForUnity
         /// <inheritdoc />
         public void OnBeforeSerialize()
         {
-            serializableAvailablePackages = availablePackages.Select(package => new SerializableNuGetPackage(package)).ToList();
-            serializableUpdatePackages = updatePackages.Select(package => new SerializableNuGetPackage(package)).ToList();
+            serializableAvailablePackages = availablePackages.Select(package => new SerializableNugetPackage(package)).ToList();
+            serializableUpdatePackages = updatePackages.Select(package => new SerializableNugetPackage(package)).ToList();
         }
 
         /// <inheritdoc />
@@ -699,7 +699,7 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(IEnumerable<INuGetPackage> packages, bool canBeSelected = false)
+        private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
@@ -909,7 +909,7 @@ namespace NugetForUnity
         /// <param name="packageStyle">The normal style of the package section.</param>
         /// <param name="contrastStyle">The contrast style of the package section.</param>
         /// <param name="canBeSelected">If a check-box should be shown.</param>
-        private void DrawPackage(INuGetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
+        private void DrawPackage(INugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
@@ -1125,21 +1125,29 @@ namespace NugetForUnity
                         }
 
                         // Show the dependencies
-                        if (package.Dependencies.Count > 0)
+                        if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            EditorStyles.label.wordWrap = true;
-                            EditorStyles.label.fontStyle = FontStyle.Italic;
-                            var builder = new StringBuilder();
-
                             var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-                            foreach (var dependency in frameworkGroup.Dependencies)
+                            if (frameworkGroup.Dependencies.Count > 0)
                             {
-                                builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
-                            }
+                                EditorStyles.label.wordWrap = true;
+                                EditorStyles.label.fontStyle = FontStyle.Italic;
+                                var builder = new StringBuilder();
 
+                                foreach (var dependency in frameworkGroup.Dependencies)
+                                {
+                                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                                }
+
+                                EditorGUILayout.Space();
+                                EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder));
+                                EditorStyles.label.fontStyle = FontStyle.Normal;
+                            }
+                        }
+                        else
+                        {
                             EditorGUILayout.Space();
-                            EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder));
-                            EditorStyles.label.fontStyle = FontStyle.Normal;
+                            EditorGUILayout.LabelField("Loading dependencies...");
                         }
 
                         // Create the style for putting a box around the 'Clone' button

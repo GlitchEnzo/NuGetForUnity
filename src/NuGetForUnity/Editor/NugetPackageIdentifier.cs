@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -9,7 +7,7 @@ namespace NugetForUnity
     ///     Represents an identifier for a NuGet package. It contains only an ID and a Version number.
     /// </summary>
     [Serializable]
-    public class NugetPackageIdentifier : INuGetPackageIdentifier, IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
+    public class NugetPackageIdentifier : INugetPackageIdentifier, IEquatable<NugetPackageIdentifier>, IComparable<NugetPackageIdentifier>
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageIdentifier" /> class with empty ID and Version.
@@ -34,7 +32,7 @@ namespace NugetForUnity
         /// <inheritdoc />
         public int CompareTo(NugetPackageIdentifier other)
         {
-            return CompareTo((INuGetPackageIdentifier)other);
+            return CompareTo((INugetPackageIdentifier)other);
         }
 
         /// <summary>
@@ -44,23 +42,22 @@ namespace NugetForUnity
         /// <returns>True if the package identifiers are equal, otherwise false.</returns>
         public bool Equals(NugetPackageIdentifier other)
         {
-            return Equals((INuGetPackageIdentifier)other);
+            return Equals((INugetPackageIdentifier)other);
         }
-
-        /// <summary>
-        ///     Gets or sets whether this package was installed manually or just as a dependency.
-        /// </summary>
-        [field: SerializeField]
-        public bool IsManuallyInstalled { get; set; }
 
         /// <inheritdoc />
         [field: SerializeField]
         public string Id { get; set; }
 
-        /// <summary>
-        ///     Gets or sets the version number of the NuGet package.
-        ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
-        /// </summary>
+        /// <inheritdoc />
+        [field: SerializeField]
+        public NuGetPackageVersion PackageVersion { get; internal set; }
+
+        /// <inheritdoc />
+        [field: SerializeField]
+        public bool IsManuallyInstalled { get; set; }
+
+        /// <inheritdoc />
         public string Version
         {
             get => PackageVersion.NormalizedVersion;
@@ -83,7 +80,13 @@ namespace NugetForUnity
         public string SpecificationFileName => $"{Id}.{Version}.nuspec";
 
         /// <inheritdoc />
-        public int CompareTo(INuGetPackageIdentifier other)
+        public bool IsPrerelease => PackageVersion.IsPrerelease;
+
+        /// <inheritdoc />
+        public bool HasVersionRange => PackageVersion.HasVersionRange;
+
+        /// <inheritdoc />
+        public int CompareTo(INugetPackageIdentifier other)
         {
             var idCompareResult = string.Compare(Id, other.Id, StringComparison.OrdinalIgnoreCase);
             if (idCompareResult != 0)
@@ -94,8 +97,12 @@ namespace NugetForUnity
             return PackageVersion.CompareTo(other.PackageVersion);
         }
 
-        /// <inheritdoc />
-        public bool Equals(INuGetPackageIdentifier other)
+        /// <summary>
+        ///     Checks to see if this <see cref="INugetPackageIdentifier" /> is equal to the given one.
+        /// </summary>
+        /// <param name="other">The other <see cref="INugetPackageIdentifier" /> to check equality with.</param>
+        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
+        public bool Equals(INugetPackageIdentifier other)
         {
             if (ReferenceEquals(this, other))
             {
@@ -106,17 +113,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        [field: SerializeField]
-        public NuGetPackageVersion PackageVersion { get; internal set; }
-
-        /// <inheritdoc />
-        public bool IsPrerelease => PackageVersion.IsPrerelease;
-
-        /// <inheritdoc />
-        public bool HasVersionRange => PackageVersion.HasVersionRange;
-
-        /// <inheritdoc />
-        public bool InRange(INuGetPackageIdentifier otherPackage)
+        public bool InRange(INugetPackageIdentifier otherPackage)
         {
             return PackageVersion.InRange(otherPackage.PackageVersion);
         }
@@ -125,40 +122,6 @@ namespace NugetForUnity
         public bool InRange(NuGetPackageVersion otherVersion)
         {
             return PackageVersion.InRange(otherVersion);
-        }
-
-        /// <summary>
-        ///     Full filename, including specified path, of this NuGet package's file.
-        /// </summary>
-        /// <remarks>
-        ///     Do not use this method when attempting to find a package file in a local repository; use
-        ///     <see
-        ///         cref="GetLocalPackageFilePath" />
-        ///     instead. The existence of the file is not verified.
-        /// </remarks>
-        /// <param name="baseDirectoryPath">Path in which the package file will be found.</param>
-        /// <returns>Base package filename prefixed by the indicated path.</returns>
-        public string GetPackageFilePath(string baseDirectoryPath)
-        {
-            return Path.Combine(baseDirectoryPath, PackageFileName);
-        }
-
-        /// <summary>
-        ///     Full filename, including full path, of this NuGet package's file in a local NuGet repository.
-        /// </summary>
-        /// <remarks>
-        ///     Use this method when attempting to find a package file in a local repository. Do not use
-        ///     <see cref="GetPackageFilePath(string)" /> for this purpose. The existence of the file is verified.
-        /// </remarks>
-        /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
-        /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
-        public string GetLocalPackageFilePath(string baseDirectoryPath)
-        {
-            // Find this package's file in the repository.
-            var files = Directory.GetFiles(baseDirectoryPath, PackageFileName, SearchOption.AllDirectories);
-
-            // If we found any, return the first found; otherwise return null.
-            return files.FirstOrDefault();
         }
 
         /// <summary>
@@ -277,7 +240,7 @@ namespace NugetForUnity
         ///     0 if the version of the other package equals the version of this package.
         ///     +1 if the version of the other package is greater than the version of this package.
         /// </returns>
-        public int CompareVersion(INuGetPackageIdentifier other)
+        public int CompareVersion(INugetPackageIdentifier other)
         {
             return PackageVersion.CompareTo(other.PackageVersion);
         }

@@ -11,12 +11,12 @@ namespace NugetForUnity
     /// </summary>
     public class DependencyTreeViewer : EditorWindow
     {
-        private readonly Dictionary<INuGetPackage, bool> expanded = new Dictionary<INuGetPackage, bool>();
+        private readonly Dictionary<INugetPackage, bool> expanded = new Dictionary<INugetPackage, bool>();
 
         /// <summary>
         ///     The list of packages that depend on the specified package.
         /// </summary>
-        private readonly List<INuGetPackage> parentPackages = new List<INuGetPackage>();
+        private readonly List<INugetPackage> parentPackages = new List<INugetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -36,9 +36,9 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of currently installed packages.
         /// </summary>
-        private List<INuGetPackage> installedPackages;
+        private List<INugetPackage> installedPackages;
 
-        private List<INuGetPackage> roots;
+        private List<INugetPackage> roots;
 
         private Vector2 scrollPosition;
 
@@ -175,7 +175,7 @@ namespace NugetForUnity
             }
         }
 
-        private void DrawDepencency(INuGetPackageIdentifier dependency)
+        private void DrawDepencency(INugetPackageIdentifier dependency)
         {
             var fullDependency = installedPackages.Find(p => p.Id == dependency.Id);
             if (fullDependency != null)
@@ -188,7 +188,7 @@ namespace NugetForUnity
             }
         }
 
-        private void DrawPackage(INuGetPackage package)
+        private void DrawPackage(INugetPackage package)
         {
             if (package.Dependencies != null && package.Dependencies.Count > 0)
             {

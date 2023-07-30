@@ -11,6 +11,9 @@ namespace NugetForUnity
     [Serializable]
     public class NugetFrameworkGroup
     {
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="NugetFrameworkGroup" /> class.
+        /// </summary>
         public NugetFrameworkGroup()
         {
             TargetFramework = string.Empty;

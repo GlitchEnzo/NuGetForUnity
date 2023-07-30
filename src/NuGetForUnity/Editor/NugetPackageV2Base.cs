@@ -8,39 +8,15 @@ using UnityEngine;
 namespace NugetForUnity
 {
     /// <summary>
-    ///     Represents a package available from NuGet.
+    ///     Base class for NuGet packages containing information available from API v2.
     /// </summary>
     [Serializable]
-    internal sealed class NugetPackage : NugetPackageIdentifier, INuGetPackage, ISerializationCallbackReceiver
+    internal abstract class NuGetPackageV2Base : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
         [SerializeField]
         private Texture2D icon;
 
         private Task<Texture2D> iconTask;
-
-        [SerializeField]
-        private LocalNuGetPackageSource localNuGetPackageSource;
-
-        [SerializeField]
-        private NuGetPackageSourceV2 packageSourceV2;
-
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="NugetPackage" /> class.
-        /// </summary>
-        /// <param name="packageSourceV2">The source this package was downloaded with / provided by.</param>
-        public NugetPackage(NuGetPackageSourceV2 packageSourceV2)
-        {
-            this.packageSourceV2 = packageSourceV2;
-        }
-
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="NugetPackage" /> class.
-        /// </summary>
-        /// <param name="localNuGetPackageSource">The source this package was downloaded with / provided by.</param>
-        public NugetPackage(LocalNuGetPackageSource localNuGetPackageSource)
-        {
-            this.localNuGetPackageSource = localNuGetPackageSource;
-        }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
@@ -65,7 +41,7 @@ namespace NugetForUnity
         public List<NugetFrameworkGroup> Dependencies { get; private set; } = new List<NugetFrameworkGroup>();
 
         /// <inheritdoc />
-        public List<NuGetPackageVersion> Versions => null;
+        public abstract List<NuGetPackageVersion> Versions { get; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -84,10 +60,7 @@ namespace NugetForUnity
         public string LicenseUrl { get; set; }
 
         /// <inheritdoc />
-        public INuGetPackageSource PackageSource =>
-            packageSourceV2 == null || string.IsNullOrEmpty(packageSourceV2.SavedPath) ?
-                (INuGetPackageSource)localNuGetPackageSource :
-                packageSourceV2;
+        public abstract INugetPackageSource PackageSource { get; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -137,6 +110,12 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
+        public Task<List<NugetFrameworkGroup>> GetDependenciesAsync()
+        {
+            return Task.FromResult(Dependencies);
+        }
+
+        /// <inheritdoc />
         public void DownloadNupkgToFile(string outputFilePath)
         {
             PackageSource.DownloadNupkgToFile(this, outputFilePath, DownloadUrl);
@@ -161,29 +140,16 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Creates a new <see cref="NugetPackage" /> from the given <see cref="NuspecFile" />.
+        ///     Fills the <see cref="NuGetPackageV2Base" /> with the information from the <see cref="NuspecFile" />.
         /// </summary>
-        /// <param name="nuspec">The <see cref="NuspecFile" /> to use to create the <see cref="NugetPackage" />.</param>
-        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The newly created <see cref="NugetPackage" />.</returns>
-        public static NugetPackage FromNuspec(NuspecFile nuspec, LocalNuGetPackageSource packageSource)
-        {
-            var package = new NugetPackage(packageSource);
-            return FillFromNuspec(nuspec, package);
-        }
-
-        /// <inheritdoc cref="FromNuspec(NuspecFile, LocalNuGetPackageSource)" />
-        public static NugetPackage FromNuspec(NuspecFile nuspec, NuGetPackageSourceV2 packageSource)
-        {
-            var package = new NugetPackage(packageSource);
-            return FillFromNuspec(nuspec, package);
-        }
-
-        private static NugetPackage FillFromNuspec(NuspecFile nuspec, NugetPackage package)
+        /// <param name="nuspec">The information form the <see cref="NuspecFile" />.</param>
+        /// <param name="package">The package to fill with the data from <paramref name="nuspec" />.</param>
+        protected static void FillFromNuspec(NuspecFile nuspec, NuGetPackageV2Base package)
         {
             Enum.TryParse<RepositoryType>(nuspec.RepositoryType, true, out var repositoryType);
             package.Id = nuspec.Id;
             package.PackageVersion = nuspec.PackageVersion;
+            package.Versions.Add(package.PackageVersion);
             package.Title = nuspec.Title;
             package.Authors = nuspec.Authors.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             package.Description = nuspec.Description;
@@ -209,29 +175,6 @@ namespace NugetForUnity
             {
                 package.IconUrl = $"file:///{nuspec.IconFilePath}";
             }
-
-            return package;
-        }
-
-        /// <summary>
-        ///     Loads a <see cref="NugetPackage" /> from the .nupkg file at the given file-path.
-        /// </summary>
-        /// <param name="nupkgFilepath">The file-path to the .nupkg file to load.</param>
-        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The <see cref="NugetPackage" /> loaded from the .nupkg file.</returns>
-        public static NugetPackage FromNupkgFile(string nupkgFilepath, NuGetPackageSourceV2 packageSource)
-        {
-            var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), packageSource);
-            package.DownloadUrl = nupkgFilepath;
-            return package;
-        }
-
-        /// <inheritdoc cref="FromNupkgFile(string, NuGetPackageSourceV2)" />
-        public static NugetPackage FromNupkgFile(string nupkgFilepath, LocalNuGetPackageSource packageSource)
-        {
-            var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), packageSource);
-            package.DownloadUrl = nupkgFilepath;
-            return package;
         }
     }
 }

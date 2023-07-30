@@ -9,12 +9,14 @@ namespace NugetForUnity
     ///     Represents a NuGet package that was downloaded from a NuGet server using NuGet API v3.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageV3 : NugetPackageIdentifier, INuGetPackage, ISerializationCallbackReceiver
+    internal sealed class NuGetPackageV3 : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
         [SerializeField]
         private List<NugetFrameworkGroup> dependencies;
 
         private bool dependenciesFetched;
+
+        private Task<List<NugetFrameworkGroup>> dependenciesTask;
 
         [SerializeField]
         private Texture2D icon;
@@ -87,9 +89,7 @@ namespace NugetForUnity
                     return dependencies;
                 }
 
-                dependencies = Task.Run(() => packageSource.GetPackageDetails(this)).GetAwaiter().GetResult();
-                dependenciesFetched = true;
-                return dependencies;
+                return Task.Run(() => GetDependenciesCoreAsync()).GetAwaiter().GetResult();
             }
         }
 
@@ -106,7 +106,7 @@ namespace NugetForUnity
         public string LicenseUrl { get; private set; }
 
         /// <inheritdoc />
-        public INuGetPackageSource PackageSource => packageSource;
+        public INugetPackageSource PackageSource => packageSource;
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -152,6 +152,24 @@ namespace NugetForUnity
         public string RepositoryCommit => string.Empty;
 
         /// <inheritdoc />
+        public Task<List<NugetFrameworkGroup>> GetDependenciesAsync()
+        {
+            if (dependenciesFetched)
+            {
+                return Task.FromResult(dependencies);
+            }
+
+            if (dependenciesTask != null)
+            {
+                return dependenciesTask;
+            }
+
+            dependenciesTask = GetDependenciesCoreAsync();
+
+            return dependenciesTask;
+        }
+
+        /// <inheritdoc />
         public void DownloadNupkgToFile(string outputFilePath)
         {
             packageSource.DownloadNupkgToFile(this, outputFilePath, null);
@@ -173,6 +191,15 @@ namespace NugetForUnity
             {
                 iconTask = Task.FromResult(icon);
             }
+        }
+
+        private async Task<List<NugetFrameworkGroup>> GetDependenciesCoreAsync()
+        {
+            NugetHelper.LogVerbose("Fetching dependencies for {0}", this);
+            dependencies = await packageSource.GetPackageDetails(this);
+            NugetHelper.LogVerbose("Fetched dependencies for {0}", this);
+            dependenciesFetched = true;
+            return dependencies;
         }
     }
 }

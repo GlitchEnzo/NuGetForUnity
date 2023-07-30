@@ -12,14 +12,14 @@ namespace NugetForUnity
     ///     Represents a NuGet Package Source that uses packages stored on a local or network drive.
     /// </summary>
     [Serializable]
-    internal sealed class LocalNuGetPackageSource : INuGetPackageSource
+    internal sealed class NugetPackageSourceLocal : INugetPackageSource
     {
         /// <summary>
-        ///     Initializes a new instance of the <see cref="LocalNuGetPackageSource" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageSourceLocal" /> class.
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="path">The path to the package source.</param>
-        public LocalNuGetPackageSource(string name, string path)
+        public NugetPackageSourceLocal(string name, string path)
         {
             Name = name;
             SavedPath = path;
@@ -44,12 +44,6 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void Dispose()
-        {
-            // nothing to dispose
-        }
-
-        /// <inheritdoc />
         [field: SerializeField]
         public string Name { get; set; }
 
@@ -58,12 +52,20 @@ namespace NugetForUnity
         public string SavedPath { get; set; }
 
         /// <inheritdoc />
+        [field: SerializeField]
+        public bool IsEnabled { get; set; }
+
+        /// <inheritdoc />
+        public bool IsLocalPath => true;
+
+        /// <inheritdoc />
         public string UserName
         {
             get => string.Empty;
 
             set
             {
+                // local sources don't have credentials
             }
         }
 
@@ -74,15 +76,9 @@ namespace NugetForUnity
 
             set
             {
+                // local sources don't have credentials
             }
         }
-
-        /// <inheritdoc />
-        public bool IsLocalPath => true;
-
-        /// <inheritdoc />
-        [field: SerializeField]
-        public bool IsEnabled { get; set; }
 
         /// <inheritdoc />
         public bool HasPassword
@@ -91,13 +87,14 @@ namespace NugetForUnity
 
             set
             {
+                // local sources don't have credentials
             }
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> FindPackagesById(INuGetPackageIdentifier package)
+        public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
-            List<INuGetPackage> foundPackages = null;
+            List<INugetPackage> foundPackages = null;
 
             if (!package.HasVersionRange && !string.IsNullOrEmpty(package.Version))
             {
@@ -105,12 +102,12 @@ namespace NugetForUnity
 
                 if (File.Exists(localPackagePath))
                 {
-                    var localPackage = NugetPackage.FromNupkgFile(localPackagePath, this);
-                    foundPackages = new List<INuGetPackage> { localPackage };
+                    var localPackage = NugetPackageLocal.FromNupkgFile(localPackagePath, this);
+                    foundPackages = new List<INugetPackage> { localPackage };
                 }
                 else
                 {
-                    foundPackages = new List<INuGetPackage>();
+                    foundPackages = new List<INugetPackage>();
                 }
             }
             else
@@ -130,14 +127,14 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public INuGetPackage GetSpecificPackage(INuGetPackageIdentifier package)
+        public INugetPackage GetSpecificPackage(INugetPackageIdentifier package)
         {
             // if multiple match we use the lowest version
             return FindPackagesById(package).FirstOrDefault();
         }
 
         /// <inheritdoc />
-        public Task<List<INuGetPackage>> Search(
+        public Task<List<INugetPackage>> Search(
             string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
@@ -149,8 +146,8 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> GetUpdates(
-            IEnumerable<INuGetPackage> packages,
+        public List<INugetPackage> GetUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
@@ -160,9 +157,9 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void DownloadNupkgToFile(INuGetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
+        public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            if (!string.IsNullOrEmpty(downloadUrlHint))
+            if (string.IsNullOrEmpty(downloadUrlHint))
             {
                 downloadUrlHint = GetNuPkgFilePath(package);
             }
@@ -170,7 +167,13 @@ namespace NugetForUnity
             File.Copy(downloadUrlHint, outputFilePath, true);
         }
 
-        private string GetNuPkgFilePath(INuGetPackageIdentifier package)
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // nothing to dispose
+        }
+
+        private string GetNuPkgFilePath(INugetPackageIdentifier package)
         {
             if (package.HasVersionRange)
             {
@@ -199,7 +202,7 @@ namespace NugetForUnity
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
-        private List<INuGetPackage> GetLocalPackages(
+        private List<INugetPackage> GetLocalPackages(
             string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
@@ -210,7 +213,7 @@ namespace NugetForUnity
                 searchTerm = "*";
             }
 
-            var localPackages = new List<INuGetPackage>();
+            var localPackages = new List<INugetPackage>();
             if (numberToSkip != 0)
             {
                 // we return the entire list the first time, so no more to add
@@ -231,7 +234,7 @@ namespace NugetForUnity
                     .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
                 foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
                 {
-                    var package = NugetPackage.FromNupkgFile(packagePath, this);
+                    var package = NugetPackageLocal.FromNupkgFile(packagePath, this);
 
                     if (package.IsPrerelease && !includePrerelease)
                     {
@@ -255,6 +258,12 @@ namespace NugetForUnity
                             // if the current package is newer than the existing package, swap them
                             localPackages.Remove(existingPackage);
                             localPackages.Add(package);
+                            package.Versions.AddRange(existingPackage.Versions);
+                        }
+                        else
+                        {
+                            // otherwise, just add the current package version to the existing package
+                            existingPackage.Versions.Add(package.PackageVersion);
                         }
                     }
                     else
@@ -279,16 +288,15 @@ namespace NugetForUnity
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <returns>A list of all updates available.</returns>
-        private List<INuGetPackage> GetLocalUpdates(
-            IEnumerable<INuGetPackage> packages,
+        private List<INugetPackage> GetLocalUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false)
         {
-            var updates = new List<INuGetPackage>();
-
-            var availablePackages = GetLocalPackages(string.Empty, includeAllVersions, includePrerelease);
+            var updates = new List<INugetPackage>();
             foreach (var installedPackage in packages)
             {
+                var availablePackages = GetLocalPackages($"{installedPackage.Id}*", includeAllVersions, includePrerelease);
                 foreach (var availablePackage in availablePackages)
                 {
                     if (installedPackage.Id == availablePackage.Id)

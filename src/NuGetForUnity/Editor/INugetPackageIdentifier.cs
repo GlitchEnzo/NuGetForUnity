@@ -5,7 +5,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Interface for a versioned NuGet package.
     /// </summary>
-    public interface INuGetPackageIdentifier : IEquatable<INuGetPackageIdentifier>, IComparable<INuGetPackageIdentifier>
+    public interface INugetPackageIdentifier : IEquatable<INugetPackageIdentifier>, IComparable<INugetPackageIdentifier>
     {
         /// <summary>
         ///     Gets or sets a value indicating whether this package was installed manually or just as a dependency.
@@ -19,6 +19,7 @@ namespace NugetForUnity
 
         /// <summary>
         ///     Gets the normalized version number of the NuGet package.
+        ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
         /// </summary>
         string Version { get; }
 
@@ -48,16 +49,16 @@ namespace NugetForUnity
         string SpecificationFileName { get; }
 
         /// <summary>
-        ///     Determines if the given <see cref="INuGetPackageIdentifier" />'s version <paramref name="otherPackage" /> is in the version range of this
-        ///     <see cref="INuGetPackageIdentifier" />.
+        ///     Determines if the given <see cref="INugetPackageIdentifier" />'s version <paramref name="otherPackage" /> is in the version range of this
+        ///     <see cref="INugetPackageIdentifier" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="otherPackage">The <see cref="INuGetPackageIdentifier" /> whose version to check if is in the range.</param>
+        /// <param name="otherPackage">The <see cref="INugetPackageIdentifier" /> whose version to check if is in the range.</param>
         /// <returns>True if the given version is in the range, otherwise false.</returns>
-        bool InRange(INuGetPackageIdentifier otherPackage);
+        bool InRange(INugetPackageIdentifier otherPackage);
 
         /// <summary>
-        ///     Determines if the given <paramref name="otherVersion" /> is in the version range of this <see cref="INuGetPackageIdentifier" />.
+        ///     Determines if the given <paramref name="otherVersion" /> is in the version range of this <see cref="INugetPackageIdentifier" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
         /// <param name="otherVersion">The <see cref="NuGetPackageVersion" /> to check if is in the range.</param>

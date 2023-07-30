@@ -16,7 +16,7 @@ namespace NugetForUnity
     ///     Represents a NuGet Package Source that uses a remote server with API version v2.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageSourceV2 : INuGetPackageSource, ISerializationCallbackReceiver
+    internal sealed class NuGetPackageSourceV2 : INugetPackageSource, ISerializationCallbackReceiver
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="NuGetPackageSourceV2" /> class.
@@ -98,9 +98,9 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> FindPackagesById(INuGetPackageIdentifier package)
+        public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
-            List<INuGetPackage> foundPackages;
+            List<INugetPackage> foundPackages;
 
             // See here: http://www.odata.org/documentation/odata-version-2-0/uri-conventions/
             var url = $"{ExpandedPath}FindPackagesById()?id='{package.Id}'";
@@ -123,7 +123,7 @@ namespace NugetForUnity
             }
             catch (Exception e)
             {
-                foundPackages = new List<INuGetPackage>();
+                foundPackages = new List<INugetPackage>();
                 Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
             }
 
@@ -138,7 +138,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public INuGetPackage GetSpecificPackage(INuGetPackageIdentifier package)
+        public INugetPackage GetSpecificPackage(INugetPackageIdentifier package)
         {
             if (package.HasVersionRange)
             {
@@ -159,7 +159,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public Task<List<INuGetPackage>> Search(
+        public Task<List<INugetPackage>> Search(
             string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
@@ -212,20 +212,20 @@ namespace NugetForUnity
             catch (Exception e)
             {
                 Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
-                return Task.FromResult(new List<INuGetPackage>());
+                return Task.FromResult(new List<INugetPackage>());
             }
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> GetUpdates(
-            IEnumerable<INuGetPackage> packages,
+        public List<INugetPackage> GetUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
-            var updates = new List<INuGetPackage>();
-            var packagesCollection = packages as ICollection<INuGetPackage> ?? packages.ToList();
+            var updates = new List<INugetPackage>();
+            var packagesCollection = packages as ICollection<INugetPackage> ?? packages.ToList();
 
             // check for updates in groups of 10 instead of all of them, since that causes servers to throw errors for queries that are too long
             for (var i = 0; i < packagesCollection.Count; i += 10)
@@ -294,7 +294,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void DownloadNupkgToFile(INuGetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
+        public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
             using (var objStream = NugetHelper.RequestUrl(downloadUrlHint, UserName, ExpandedPassword, null))
             {
@@ -368,14 +368,14 @@ namespace NugetForUnity
         ///     Note that NuGet uses an Atom-feed (XML Syndicaton) superset called OData.
         ///     See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/.
         /// </summary>
-        private List<INuGetPackage> GetPackagesFromUrl(string url)
+        private List<INugetPackage> GetPackagesFromUrl(string url)
         {
             NugetHelper.LogVerbose("Getting packages from: {0}", url);
 
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var packages = new List<INuGetPackage>();
+            var packages = new List<INugetPackage>();
             using (var responseStream = NugetHelper.RequestUrl(url, UserName, ExpandedPassword, 10000))
             {
                 using (var streamReader = new StreamReader(responseStream))
@@ -403,8 +403,8 @@ namespace NugetForUnity
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
-        private List<INuGetPackage> GetUpdatesFallback(
-            IEnumerable<INuGetPackage> installedPackages,
+        private List<INugetPackage> GetUpdatesFallback(
+            IEnumerable<INugetPackage> installedPackages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
@@ -416,7 +416,7 @@ namespace NugetForUnity
                 string.IsNullOrEmpty(targetFrameworks) &&
                 string.IsNullOrEmpty(versionConstraints)); // These features are not supported by this version of GetUpdates.
 
-            var updates = new List<INuGetPackage>();
+            var updates = new List<INugetPackage>();
             foreach (var installedPackage in installedPackages)
             {
                 var versionRange = $"({installedPackage.Version},)"; // Minimum of Current ID (exclusive) with no maximum (exclusive).

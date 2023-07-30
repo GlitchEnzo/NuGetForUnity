@@ -5,7 +5,10 @@ using System.Threading.Tasks;
 
 namespace NugetForUnity
 {
-    public interface INuGetPackageSource : IDisposable
+    /// <summary>
+    ///     Represents a NuGet package source that can be use to fetch NuGet packages.
+    /// </summary>
+    public interface INugetPackageSource : IDisposable
     {
         /// <summary>
         ///     Gets or sets the name of the package source.
@@ -48,21 +51,21 @@ namespace NugetForUnity
         /// <param name="package">The package to download its .nupkg from.</param>
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         /// <param name="downloadUrlHint">Hint for the url used to download the .nupkg file from.</param>
-        void DownloadNupkgToFile(INuGetPackageIdentifier package, string outputFilePath, string downloadUrlHint);
+        void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint);
 
         /// <summary>
-        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="INuGetPackageIdentifier" /> given.
+        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="INugetPackageIdentifier" /> given.
         /// </summary>
-        /// <param name="package">The <see cref="INuGetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
+        /// <param name="package">The <see cref="INugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        List<INuGetPackage> FindPackagesById(INuGetPackageIdentifier package);
+        List<INugetPackage> FindPackagesById(INugetPackageIdentifier package);
 
         /// <summary>
         ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier" /> given.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
-        INuGetPackage GetSpecificPackage(INuGetPackageIdentifier package);
+        INugetPackage GetSpecificPackage(INugetPackageIdentifier package);
 
         /// <summary>
         ///     Queries the source with the given list of installed packages to get any updates that are available.
@@ -73,8 +76,8 @@ namespace NugetForUnity
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
-        List<INuGetPackage> GetUpdates(
-            IEnumerable<INuGetPackage> packages,
+        List<INugetPackage> GetUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
@@ -91,7 +94,7 @@ namespace NugetForUnity
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <param name="cancellationToken">Token that can be used to cancel the asynchronous task.</param>
         /// <returns>The list of available packages.</returns>
-        Task<List<INuGetPackage>> Search(
+        Task<List<INugetPackage>> Search(
             string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,

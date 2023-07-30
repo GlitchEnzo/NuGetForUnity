@@ -19,7 +19,7 @@ namespace NugetForUnity
         private static Vector2 scrollPosition;
 
         /// <summary>
-        ///     Instantiate the settings provider.
+        ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
         /// </summary>
         public NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
@@ -39,6 +39,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Draws the preferences GUI inside the Unity preferences window in the Editor.
         /// </summary>
+        /// <param name="searchContext">The search context for the preferences.</param>
         public override void OnGUI(string searchContext)
         {
             var preferencesChangedThisFrame = false;
@@ -97,9 +98,9 @@ namespace NugetForUnity
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-            INuGetPackageSource sourceToMoveUp = null;
-            INuGetPackageSource sourceToMoveDown = null;
-            INuGetPackageSource sourceToRemove = null;
+            INugetPackageSource sourceToMoveUp = null;
+            INugetPackageSource sourceToMoveDown = null;
+            INugetPackageSource sourceToRemove = null;
 
             foreach (var source in NugetHelper.NugetConfigFile.PackageSources)
             {

@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace NugetForUnity
 {
-    public interface INuGetPackage : INuGetPackageIdentifier
+    /// <summary>
+    ///     Represents a NuGet package.
+    /// </summary>
+    public interface INugetPackage : INugetPackageIdentifier
     {
         /// <summary>
         ///     Gets a list of all available versions of the package.
@@ -56,9 +59,9 @@ namespace NugetForUnity
         string LicenseUrl { get; }
 
         /// <summary>
-        ///     Gets the <see cref="INuGetPackageSource" /> that contains this package.
+        ///     Gets the <see cref="INugetPackageSource" /> that contains this package.
         /// </summary>
-        INuGetPackageSource PackageSource { get; }
+        INugetPackageSource PackageSource { get; }
 
         /// <summary>
         ///     Gets the URL for the location of the package's source code.
@@ -79,6 +82,12 @@ namespace NugetForUnity
         ///     Gets the icon for the package as a task returning a <see cref="Texture2D" />.
         /// </summary>
         Task<Texture2D> IconTask { get; }
+
+        /// <summary>
+        ///     Asynchronously gets the NuGet packages that this NuGet package depends on grouped by target framework.
+        /// </summary>
+        /// <returns>The task that fetches <see cref="Dependencies" />.</returns>
+        Task<List<NugetFrameworkGroup>> GetDependenciesAsync();
 
         /// <summary>
         ///     Download the .nupkg file and store it inside a file at <paramref name="outputFilePath" />.

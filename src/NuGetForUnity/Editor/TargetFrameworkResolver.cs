@@ -106,16 +106,24 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Select the highest .NET library available that is supported
+        ///     Select the highest .NET library available that is supported by Unity.
         ///     See here: https://docs.nuget.org/ndocs/schema/target-frameworks.
         /// </summary>
-        /// <param name="availableTargetFrameworks"></param>
-        /// <returns></returns>
+        /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
+        /// <returns>The best matching target-framework.</returns>
         public static string TryGetBestTargetFramework(IReadOnlyCollection<string> availableTargetFrameworks)
         {
             return TryGetBestTargetFramework(availableTargetFrameworks, targetFramework => targetFramework);
         }
 
+        /// <summary>
+        ///     Select the highest .NET library available that is supported by Unity.
+        ///     See here: https://docs.nuget.org/ndocs/schema/target-frameworks.
+        /// </summary>
+        /// <typeparam name="T">The type of the target-framework.</typeparam>
+        /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
+        /// <param name="getTargetFrameworkString">A function to get the target-framework string.</param>
+        /// <returns>The best matching target-framework.</returns>
         public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTargetFrameworkString)
         {
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
@@ -167,6 +175,7 @@ namespace NugetForUnity
             NetStandard20Or21,
         }
 
+        // Ignore Spelling: dotnet
         private readonly struct TargetFrameworkSupport
         {
             public readonly string Name;
@@ -198,9 +207,6 @@ namespace NugetForUnity
 
             public readonly int Build;
 
-            [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
-            public static UnityVersion Current { get; private set; } = new UnityVersion(Application.unityVersion);
-
             public UnityVersion(string version)
             {
                 var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
@@ -223,6 +229,29 @@ namespace NugetForUnity
                 Revision = revision;
                 Release = release;
                 Build = build;
+            }
+
+            [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
+            public static UnityVersion Current { get; private set; } = new UnityVersion(Application.unityVersion);
+
+            public static bool operator <(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) < 0;
+            }
+
+            public static bool operator <=(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) <= 0;
+            }
+
+            public static bool operator >(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) > 0;
+            }
+
+            public static bool operator >=(UnityVersion left, UnityVersion right)
+            {
+                return left.CompareTo(right) >= 0;
             }
 
             public static int Compare(UnityVersion a, UnityVersion b)
@@ -283,26 +312,6 @@ namespace NugetForUnity
             public int CompareTo(UnityVersion other)
             {
                 return Compare(this, other);
-            }
-
-            public static bool operator <(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) < 0;
-            }
-
-            public static bool operator <=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) <= 0;
-            }
-
-            public static bool operator >(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) > 0;
-            }
-
-            public static bool operator >=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) >= 0;
             }
         }
     }

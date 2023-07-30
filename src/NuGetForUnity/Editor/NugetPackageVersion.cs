@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace NugetForUnity
 {
+    /// <summary>
+    ///     Represents a NuGet package version number.
+    /// </summary>
     [Serializable]
     public sealed class NuGetPackageVersion : IEquatable<NuGetPackageVersion>, IComparable<NuGetPackageVersion>, ISerializationCallbackReceiver
     {
@@ -13,6 +16,9 @@ namespace NugetForUnity
 
         private SemVer2Version semVer2Version;
 
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="NuGetPackageVersion" /> class.
+        /// </summary>
         public NuGetPackageVersion()
         {
             SetFromString(null);
@@ -27,6 +33,10 @@ namespace NugetForUnity
             SetFromString(version);
         }
 
+        /// <summary>
+        ///     Gets the normalized version number of the NuGet package.
+        ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
+        /// </summary>
         public string NormalizedVersion { get; private set; }
 
         /// <summary>
@@ -105,46 +115,6 @@ namespace NugetForUnity
         public void OnAfterDeserialize()
         {
             SetFromString(FullVersion);
-        }
-
-        private void SetFromString(string version)
-        {
-            minimumSemVer2Version = null;
-            maximumSemVer2Version = null;
-            if (string.IsNullOrWhiteSpace(version))
-            {
-                NormalizedVersion = string.Empty;
-                FullVersion = string.Empty;
-                semVer2Version = new SemVer2Version(false);
-                return;
-            }
-
-            version = version.Trim();
-            IsMinInclusive = version.StartsWith("[");
-            HasVersionRange = IsMinInclusive || version.StartsWith("(");
-            if (HasVersionRange)
-            {
-                semVer2Version = new SemVer2Version(false);
-                NormalizedVersion = version;
-                FullVersion = version;
-                IsPrerelease = version.Contains("-");
-                IsMaxInclusive = version.EndsWith("]");
-
-                // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                var minMax = version.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
-                var minimumVersion = minMax[0].Trim();
-                minimumSemVer2Version = string.IsNullOrEmpty(minimumVersion) ? (SemVer2Version?)null : new SemVer2Version(minimumVersion);
-                var maximumVersion = minMax.Length == 2 ? minMax[1].Trim() : null;
-                maximumSemVer2Version = string.IsNullOrEmpty(maximumVersion) ? (SemVer2Version?)null : new SemVer2Version(maximumVersion);
-            }
-            else
-            {
-                semVer2Version = new SemVer2Version(version);
-                NormalizedVersion = semVer2Version.ToString(); // normalize the version string
-                FullVersion = semVer2Version.ToString(true); // get the full version string with build-metadata
-                IsPrerelease = semVer2Version.PreRelease != null;
-                IsMaxInclusive = false;
-            }
         }
 
         /// <summary>
@@ -228,9 +198,16 @@ namespace NugetForUnity
         /// <returns>True if the given version is in the range, otherwise false.</returns>
         public bool InRange(NuGetPackageVersion other)
         {
+            if (string.IsNullOrEmpty(FullVersion))
+            {
+                // if this has no version specified, it matches everything
+                return true;
+            }
+
             if (other.HasVersionRange)
             {
-                // either other or both have a version range specified
+                // either other or both have a version range specified. So it makes no sense to check if this is in the range of other.
+                // we can only check if the version ranges are equal.
                 return string.Equals(FullVersion, other.FullVersion, StringComparison.OrdinalIgnoreCase);
             }
 
@@ -356,10 +333,51 @@ namespace NugetForUnity
             return 0;
         }
 
+        private void SetFromString(string version)
+        {
+            minimumSemVer2Version = null;
+            maximumSemVer2Version = null;
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                NormalizedVersion = string.Empty;
+                FullVersion = string.Empty;
+                semVer2Version = new SemVer2Version(false);
+                return;
+            }
+
+            version = version.Trim();
+            IsMinInclusive = version.StartsWith("[");
+            HasVersionRange = IsMinInclusive || version.StartsWith("(");
+            if (HasVersionRange)
+            {
+                semVer2Version = new SemVer2Version(false);
+                NormalizedVersion = version;
+                FullVersion = version;
+                IsPrerelease = version.Contains("-");
+                IsMaxInclusive = version.EndsWith("]");
+
+                // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
+                var minMax = version.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
+                var minimumVersion = minMax[0].Trim();
+                minimumSemVer2Version = string.IsNullOrEmpty(minimumVersion) ? (SemVer2Version?)null : new SemVer2Version(minimumVersion);
+                var maximumVersion = minMax.Length == 2 ? minMax[1].Trim() : null;
+                maximumSemVer2Version = string.IsNullOrEmpty(maximumVersion) ? (SemVer2Version?)null : new SemVer2Version(maximumVersion);
+            }
+            else
+            {
+                semVer2Version = new SemVer2Version(version);
+                NormalizedVersion = semVer2Version.ToString(); // normalize the version string
+                FullVersion = semVer2Version.ToString(true); // get the full version string with build-metadata
+                IsPrerelease = semVer2Version.PreRelease != null;
+                IsMaxInclusive = false;
+            }
+        }
+
         /// <summary>
         ///     SemVer2 <see href="https://semver.org/" />.
         ///     Complying with NuGet comparison rules <see href="https://learn.microsoft.com/en-us/nuget/concepts/package-versioning" />.
         /// </summary>
+        /// Ignore spelling: SemVer, Sem, Ver
         private readonly struct SemVer2Version
         {
             private readonly int major;
@@ -371,8 +389,6 @@ namespace NugetForUnity
             private readonly int? revision;
 
             private readonly string buildMetadata;
-
-            public string PreRelease { get; }
 
             /// <summary>
             ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
@@ -445,6 +461,8 @@ namespace NugetForUnity
                 patch = null;
                 revision = null;
             }
+
+            public string PreRelease { get; }
 
             /// <summary>
             ///     Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a prerelease tag, such as

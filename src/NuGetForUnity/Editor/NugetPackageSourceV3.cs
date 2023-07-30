@@ -12,7 +12,7 @@ namespace NugetForUnity
     ///     Online NuGet package source for NuGet API v3.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageSourceV3 : INuGetPackageSource, ISerializationCallbackReceiver
+    internal sealed class NuGetPackageSourceV3 : INugetPackageSource, ISerializationCallbackReceiver
     {
         private static readonly Dictionary<string, NuGetApiClientV3> ApiClientCache = new Dictionary<string, NuGetApiClientV3>();
 
@@ -53,13 +53,6 @@ namespace NugetForUnity
         ///     <see cref="OnAfterDeserialize" />.
         /// </summary>
         private NuGetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            apiClient?.Dispose();
-            ApiClientCache.Remove(SavedPath);
-        }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -106,7 +99,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> FindPackagesById(INuGetPackageIdentifier package)
+        public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
             // see https://github.com/NuGet/docs.microsoft.com-nuget/blob/live/docs/consume-packages/Finding-and-Choosing-Packages.md
             // it supports searching for a version but only if the version is the latest version
@@ -136,7 +129,7 @@ namespace NugetForUnity
             if (matchingVersion == null)
             {
                 // no matching version found
-                return new List<INuGetPackage>();
+                return new List<INugetPackage>();
             }
 
             // overwrite the version so it is installed
@@ -145,27 +138,27 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public INuGetPackage GetSpecificPackage(INuGetPackageIdentifier package)
+        public INugetPackage GetSpecificPackage(INugetPackageIdentifier package)
         {
             return FindPackagesById(package).FirstOrDefault();
         }
 
         /// <inheritdoc />
-        public List<INuGetPackage> GetUpdates(
-            IEnumerable<INuGetPackage> packages,
+        public List<INugetPackage> GetUpdates(
+            IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
-            var packagesToFetch = packages as IList<INuGetPackage> ?? packages.ToList();
+            var packagesToFetch = packages as IList<INugetPackage> ?? packages.ToList();
 
             var packagesFromServer = Task.Run(
                     async () =>
                     {
                         // fetch updates in groups of 20 to avoid query string length limit
                         const int batchSize = 20;
-                        var updates = new List<INuGetPackage>();
+                        var updates = new List<INugetPackage>();
                         for (var i = 0; i < packagesToFetch.Count;)
                         {
                             var searchQueryBuilder = new StringBuilder();
@@ -195,7 +188,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public Task<List<INuGetPackage>> Search(
+        public Task<List<INugetPackage>> Search(
             string searchTerm = "",
             bool includeAllVersions = false,
             bool includePrerelease = false,
@@ -207,9 +200,16 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public void DownloadNupkgToFile(INuGetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
+        public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
             Task.Run(() => ApiClient.DownloadNupkgToFile(this, package, outputFilePath)).GetAwaiter().GetResult();
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            apiClient?.Dispose();
+            ApiClientCache.Remove(SavedPath);
         }
 
         /// <inheritdoc />
@@ -228,7 +228,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc cref="NuGetApiClientV3.GetPackageDetails" />
-        public Task<List<NugetFrameworkGroup>> GetPackageDetails(INuGetPackageIdentifier package, CancellationToken cancellationToken = default)
+        public Task<List<NugetFrameworkGroup>> GetPackageDetails(INugetPackageIdentifier package, CancellationToken cancellationToken = default)
         {
             return ApiClient.GetPackageDetails(this, package, cancellationToken);
         }
