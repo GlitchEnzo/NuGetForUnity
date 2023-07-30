@@ -2,7 +2,6 @@
     <PropertyGroup>
         <!-- To support Unity 2018.4 with .NET Framework we can not 'eayily' use features of C# higher than 7.3 -->
         <LangVersion>7.3</LangVersion>
-        <RuntimeIdentifier>win</RuntimeIdentifier>
     </PropertyGroup>
 
     <!-- Packaging -->
