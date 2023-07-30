@@ -1310,8 +1310,18 @@ namespace NugetForUnity
                         upmPackageListRequest.Result.Any(package => package.name == UpmPackageName))
                     {
                         // NuGetForUnity is installed as UPM package so we can just re-add it inside the package-manager to get update (see https://docs.unity3d.com/Manual/upm-git.html)
-                        EditorUtility.DisplayProgressBar("NuGetForUnity update ...", "Installing with UPM", 0.1f);
-                        upmPackageAddRequest = Client.Add(UpmPackageGitUrl);
+                        var packageInfo = upmPackageListRequest.Result.First(package => package.name == UpmPackageName);
+                        if (packageInfo.source == PackageSource.Git)
+                        {
+                            EditorUtility.DisplayProgressBar("NuGetForUnity update ...", "Installing with UPM (git url)", 0.1f);
+                            upmPackageAddRequest = Client.Add(UpmPackageGitUrl);
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayProgressBar("NuGetForUnity update ...", "Installing with UPM (OpenUPM)", 0.1f);
+                            upmPackageAddRequest = Client.Add(UpmPackageName);
+                        }
+
                         EditorApplication.update += HandleAddRequest;
                     }
                     else
