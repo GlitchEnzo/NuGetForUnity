@@ -18,7 +18,7 @@ namespace NugetForUnity
     /// <summary>
     ///     API client for NuGet API v3.
     /// </summary>
-    internal sealed class NuGetApiClientV3 : IDisposable
+    internal sealed class NugetApiClientV3 : IDisposable
     {
         private readonly Uri apiIndexJsonUrl;
 
@@ -37,11 +37,11 @@ namespace NugetForUnity
         private List<string> searchQueryServices;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetApiClientV3" /> class.
+        ///     Initializes a new instance of the <see cref="NugetApiClientV3" /> class.
         /// </summary>
         /// <param name="url">The absolute 'index.json' URL of the API.</param>
         /// <param name="packageSource">The package source that owns this client.</param>
-        public NuGetApiClientV3(string url, NuGetPackageSourceV3 packageSource)
+        public NugetApiClientV3(string url, NugetPackageSourceV3 packageSource)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
@@ -88,7 +88,7 @@ namespace NugetForUnity
         ///     A list of <see cref="INugetPackage" />s that match the search query.
         /// </returns>
         public async Task<List<INugetPackage>> SearchPackage(
-            NuGetPackageSourceV3 packageSource,
+            NugetPackageSourceV3 packageSource,
             string searchQuery = "",
             int skip = -1,
             int take = -1,
@@ -141,7 +141,7 @@ namespace NugetForUnity
         /// <param name="package">The package to download its .nupkg from.</param>
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         /// <returns>The async task.</returns>
-        public async Task DownloadNupkgToFile(NuGetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
+        public async Task DownloadNupkgToFile(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
         {
             var version = package.Version.ToLowerInvariant();
             var id = package.Id.ToLowerInvariant();
@@ -174,7 +174,7 @@ namespace NugetForUnity
         ///     The package details or null if the package is not found.
         /// </returns>
         public async Task<List<NugetFrameworkGroup>> GetPackageDetails(
-            NuGetPackageSourceV3 packageSource,
+            NugetPackageSourceV3 packageSource,
             INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
@@ -195,10 +195,10 @@ namespace NugetForUnity
             // without a version specified, the latest version is returned
             var getLatestVersion = string.IsNullOrEmpty(package.Version);
             var item = getLatestVersion ?
-                registrationResponse.items.OrderByDescending(registrationItem => new NuGetPackageVersion(registrationItem.lower)).First() :
+                registrationResponse.items.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
                 registrationResponse.items.FirstOrDefault(
-                    registrationItem => package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.lower)) >= 0 &&
-                                        package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.upper)) <= 0);
+                    registrationItem => package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.lower)) >= 0 &&
+                                        package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.upper)) <= 0);
             if (item is null)
             {
                 Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
@@ -214,8 +214,8 @@ namespace NugetForUnity
             }
 
             var leafItem = getLatestVersion ?
-                item.items.OrderByDescending(registrationLeaf => new NuGetPackageVersion(registrationLeaf.catalogEntry.version)).FirstOrDefault() :
-                item.items.FirstOrDefault(leaf => new NuGetPackageVersion(leaf.catalogEntry.version) == package.PackageVersion);
+                item.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.catalogEntry.version)).FirstOrDefault() :
+                item.items.FirstOrDefault(leaf => new NugetPackageVersion(leaf.catalogEntry.version) == package.PackageVersion);
             if (leafItem is null)
             {
                 Debug.LogError(
@@ -252,10 +252,10 @@ namespace NugetForUnity
 
         private string GetSessionStateKey()
         {
-            return $"{nameof(NuGetApiClientV3)}:{apiIndexJsonUrl}";
+            return $"{nameof(NugetApiClientV3)}:{apiIndexJsonUrl}";
         }
 
-        private async void InitializeApiAddresses(NuGetPackageSourceV3 packageSource)
+        private async void InitializeApiAddresses(NugetPackageSourceV3 packageSource)
         {
             var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
                 .ConfigureAwait(false);
@@ -295,7 +295,7 @@ namespace NugetForUnity
             SaveToSessionState();
         }
 
-        private async Task<string> GetStringFromServerAsync(NuGetPackageSourceV3 packageSource, string url, CancellationToken cancellationToken)
+        private async Task<string> GetStringFromServerAsync(NugetPackageSourceV3 packageSource, string url, CancellationToken cancellationToken)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
@@ -310,7 +310,7 @@ namespace NugetForUnity
             }
         }
 
-        private void AddHeadersToRequest(HttpRequestMessage request, NuGetPackageSourceV3 packageSource)
+        private void AddHeadersToRequest(HttpRequestMessage request, NugetPackageSourceV3 packageSource)
         {
             request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
             request.Headers.Add("User-Agent", "NuGetForUnity");
@@ -335,15 +335,15 @@ namespace NugetForUnity
             }
         }
 
-        private List<INugetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NuGetPackageSourceV3 packageSource)
+        private List<INugetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NugetPackageSourceV3 packageSource)
         {
             var packages = new List<INugetPackage>(searchResults.Count);
             foreach (var item in searchResults)
             {
-                var versions = item.versions.Select(searchVersion => new NuGetPackageVersion(searchVersion.version)).ToList();
+                var versions = item.versions.Select(searchVersion => new NugetPackageVersion(searchVersion.version)).ToList();
                 versions.Sort();
                 packages.Add(
-                    new NuGetPackageV3(
+                    new NugetPackageV3(
                         item.id,
                         item.version,
                         item.authors,

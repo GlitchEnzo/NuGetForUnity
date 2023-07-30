@@ -952,7 +952,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Gets a list of NuGetPackages via the HTTP Search() function defined by NuGet.Server and NuGet Gallery.
+        ///     Gets a list of NugetPackages via the HTTP Search() function defined by NuGet.Server and NuGet Gallery.
         ///     This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
         ///     NOTE: See the functions and parameters defined here: https://www.nuget.org/api/v2/$metadata.
         /// </summary>

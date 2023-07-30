@@ -33,10 +33,10 @@ namespace NugetForUnity
             // The NuGet server protocol version defaults to version "2" when not pointing to a package source URL ending in .json (e.g. https://api.nuget.org/v3/index.json).
             if (path.EndsWith(".json"))
             {
-                return new NuGetPackageSourceV3(name, path);
+                return new NugetPackageSourceV3(name, path);
             }
 
-            return new NuGetPackageSourceV2(name, path);
+            return new NugetPackageSourceV2(name, path);
         }
     }
 }

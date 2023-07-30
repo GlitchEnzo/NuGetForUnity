@@ -20,7 +20,7 @@ namespace NugetForUnity
         private NugetPackageV2 packageV2;
 
         [SerializeField]
-        private NuGetPackageV3 packageV3;
+        private NugetPackageV3 packageV3;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="SerializableNugetPackage" /> class.
@@ -39,9 +39,9 @@ namespace NugetForUnity
                 packageV2 = (NugetPackageV2)packageInterface;
                 packageType = PackageType.V2;
             }
-            else if (type == typeof(NuGetPackageV3))
+            else if (type == typeof(NugetPackageV3))
             {
-                packageV3 = (NuGetPackageV3)packageInterface;
+                packageV3 = (NugetPackageV3)packageInterface;
                 packageType = PackageType.V3;
             }
             else

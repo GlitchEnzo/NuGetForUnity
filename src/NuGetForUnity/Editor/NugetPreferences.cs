@@ -233,7 +233,7 @@ namespace NugetForUnity
 
             if (GUILayout.Button("Add New Source"))
             {
-                NugetHelper.NugetConfigFile.PackageSources.Add(new NuGetPackageSourceV2("New Source", "source_path"));
+                NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSourceV2("New Source", "source_path"));
                 preferencesChangedThisFrame = true;
             }
 

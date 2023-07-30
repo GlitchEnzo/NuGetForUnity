@@ -8,7 +8,7 @@ namespace NugetForUnity
     ///     Represents a NuGet package loaded from a local file.
     /// </summary>
     [Serializable]
-    internal sealed class NugetPackageLocal : NuGetPackageV2Base
+    internal sealed class NugetPackageLocal : NugetPackageV2Base
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageLocal" /> class.
@@ -21,7 +21,7 @@ namespace NugetForUnity
 
         /// <inheritdoc />
         [field: SerializeField]
-        public override List<NuGetPackageVersion> Versions { get; } = new List<NuGetPackageVersion>();
+        public override List<NugetPackageVersion> Versions { get; } = new List<NugetPackageVersion>();
 
         /// <inheritdoc />
         [field: SerializeField]

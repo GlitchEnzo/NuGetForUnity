@@ -11,7 +11,7 @@ namespace NugetForUnity
     ///     Base class for NuGet packages containing information available from API v2.
     /// </summary>
     [Serializable]
-    internal abstract class NuGetPackageV2Base : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
+    internal abstract class NugetPackageV2Base : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
         [SerializeField]
         private Texture2D icon;
@@ -41,7 +41,7 @@ namespace NugetForUnity
         public List<NugetFrameworkGroup> Dependencies { get; private set; } = new List<NugetFrameworkGroup>();
 
         /// <inheritdoc />
-        public abstract List<NuGetPackageVersion> Versions { get; }
+        public abstract List<NugetPackageVersion> Versions { get; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -102,7 +102,7 @@ namespace NugetForUnity
 
                 if (!string.IsNullOrEmpty(IconUrl))
                 {
-                    iconTask = NuGetPackageTextureHelper.DownloadImage(IconUrl);
+                    iconTask = NugetPackageTextureHelper.DownloadImage(IconUrl);
                 }
 
                 return iconTask;
@@ -140,11 +140,11 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Fills the <see cref="NuGetPackageV2Base" /> with the information from the <see cref="NuspecFile" />.
+        ///     Fills the <see cref="NugetPackageV2Base" /> with the information from the <see cref="NuspecFile" />.
         /// </summary>
         /// <param name="nuspec">The information form the <see cref="NuspecFile" />.</param>
         /// <param name="package">The package to fill with the data from <paramref name="nuspec" />.</param>
-        protected static void FillFromNuspec(NuspecFile nuspec, NuGetPackageV2Base package)
+        protected static void FillFromNuspec(NuspecFile nuspec, NugetPackageV2Base package)
         {
             Enum.TryParse<RepositoryType>(nuspec.RepositoryType, true, out var repositoryType);
             package.Id = nuspec.Id;

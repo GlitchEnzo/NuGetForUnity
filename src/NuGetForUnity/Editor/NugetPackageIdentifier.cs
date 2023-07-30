@@ -15,7 +15,7 @@ namespace NugetForUnity
         public NugetPackageIdentifier()
         {
             Id = string.Empty;
-            PackageVersion = new NuGetPackageVersion();
+            PackageVersion = new NugetPackageVersion();
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace NugetForUnity
         public NugetPackageIdentifier(string id, string version)
         {
             Id = id;
-            PackageVersion = new NuGetPackageVersion(version);
+            PackageVersion = new NugetPackageVersion(version);
         }
 
         /// <inheritdoc />
@@ -51,7 +51,7 @@ namespace NugetForUnity
 
         /// <inheritdoc />
         [field: SerializeField]
-        public NuGetPackageVersion PackageVersion { get; internal set; }
+        public NugetPackageVersion PackageVersion { get; internal set; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -69,7 +69,7 @@ namespace NugetForUnity
                     return;
                 }
 
-                PackageVersion = new NuGetPackageVersion(value);
+                PackageVersion = new NugetPackageVersion(value);
             }
         }
 
@@ -119,7 +119,7 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public bool InRange(NuGetPackageVersion otherVersion)
+        public bool InRange(NugetPackageVersion otherVersion)
         {
             return PackageVersion.InRange(otherVersion);
         }

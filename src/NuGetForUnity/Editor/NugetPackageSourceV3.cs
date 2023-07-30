@@ -12,19 +12,19 @@ namespace NugetForUnity
     ///     Online NuGet package source for NuGet API v3.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageSourceV3 : INugetPackageSource, ISerializationCallbackReceiver
+    internal sealed class NugetPackageSourceV3 : INugetPackageSource, ISerializationCallbackReceiver
     {
-        private static readonly Dictionary<string, NuGetApiClientV3> ApiClientCache = new Dictionary<string, NuGetApiClientV3>();
+        private static readonly Dictionary<string, NugetApiClientV3> ApiClientCache = new Dictionary<string, NugetApiClientV3>();
 
-        private NuGetApiClientV3 apiClient;
+        private NugetApiClientV3 apiClient;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetPackageSourceV3" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageSourceV3" /> class.
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
         /// <param name="apiClient">The instance of the API client to use.</param>
-        public NuGetPackageSourceV3(string name, string url)
+        public NugetPackageSourceV3(string name, string url)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -52,7 +52,7 @@ namespace NugetForUnity
         ///     Gets the lazy initialized API-client. We need this because <see cref="InitializeApiClient" /> can't be called in
         ///     <see cref="OnAfterDeserialize" />.
         /// </summary>
-        private NuGetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
+        private NugetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -118,7 +118,7 @@ namespace NugetForUnity
                 Debug.LogWarning($"Found {packages.Count} packages with id {package.Id} in source {Name} but expected 1.");
             }
 
-            var fetchedPackage = (NuGetPackageV3)packages[0];
+            var fetchedPackage = (NugetPackageV3)packages[0];
             if (!package.HasVersionRange && fetchedPackage.Equals(package))
             {
                 // exact match found
@@ -227,20 +227,20 @@ namespace NugetForUnity
             }
         }
 
-        /// <inheritdoc cref="NuGetApiClientV3.GetPackageDetails" />
+        /// <inheritdoc cref="NugetApiClientV3.GetPackageDetails" />
         public Task<List<NugetFrameworkGroup>> GetPackageDetails(INugetPackageIdentifier package, CancellationToken cancellationToken = default)
         {
             return ApiClient.GetPackageDetails(this, package, cancellationToken);
         }
 
-        private NuGetApiClientV3 InitializeApiClient()
+        private NugetApiClientV3 InitializeApiClient()
         {
             if (ApiClientCache.TryGetValue(SavedPath, out apiClient))
             {
                 return apiClient;
             }
 
-            apiClient = new NuGetApiClientV3(SavedPath, this);
+            apiClient = new NugetApiClientV3(SavedPath, this);
             ApiClientCache.Add(SavedPath, apiClient);
             return apiClient;
         }

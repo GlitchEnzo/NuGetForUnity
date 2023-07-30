@@ -12,7 +12,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets a list of all available versions of the package.
         /// </summary>
-        List<NuGetPackageVersion> Versions { get; }
+        List<NugetPackageVersion> Versions { get; }
 
         /// <summary>
         ///     Gets the authors of the package.

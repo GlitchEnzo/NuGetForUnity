@@ -43,12 +43,12 @@ try:
                 # no changed file owned by solution so skip
                 continue
         buildStartTime = time.time()
-        subprocess.run(["dotnet", "build", "-property:RunAnalyzers=false", "-clp:ErrorsOnly", solutionFile], cwd = repositoryRoot, check = True)
+        subprocess.run(["dotnet", "build", "-property:RunAnalyzers=false", "-clp:ErrorsOnly", "--no-restore", solutionFile], cwd = repositoryRoot, check = True)
         clenupStartTime = time.time()
         print(f"Building solution '{relativeSolutionFile}' took: {time.strftime('%H:%M:%S', time.gmtime(clenupStartTime - buildStartTime))}")
         extentionsArg = "--eXtensions=JetBrains.Unity"
         profileArg = ""
-        subprocess.run(["dotnet", "jb", "cleanupcode", extentionsArg, profileArg, cleanupArg, solutionFile], cwd = toolsRoot, check = True)
+        subprocess.run(["dotnet", "jb", "cleanupcode", "--no-build", extentionsArg, profileArg, cleanupArg, solutionFile], cwd = toolsRoot, check = True)
         print(f"Cleanup of solution '{relativeSolutionFile}' took: {time.strftime('%H:%M:%S', time.gmtime(time.time() - clenupStartTime))}")
 
 finally:

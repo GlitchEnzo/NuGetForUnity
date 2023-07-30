@@ -36,7 +36,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the typed version number of the NuGet package.
         /// </summary>
-        NuGetPackageVersion PackageVersion { get; }
+        NugetPackageVersion PackageVersion { get; }
 
         /// <summary>
         ///     Gets the name of the '.nupkg' file that contains the whole package content as a ZIP.
@@ -61,8 +61,8 @@ namespace NugetForUnity
         ///     Determines if the given <paramref name="otherVersion" /> is in the version range of this <see cref="INugetPackageIdentifier" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="otherVersion">The <see cref="NuGetPackageVersion" /> to check if is in the range.</param>
+        /// <param name="otherVersion">The <see cref="NugetPackageVersion" /> to check if is in the range.</param>
         /// <returns>True if the given version is in the range, otherwise false.</returns>
-        bool InRange(NuGetPackageVersion otherVersion);
+        bool InRange(NugetPackageVersion otherVersion);
     }
 }

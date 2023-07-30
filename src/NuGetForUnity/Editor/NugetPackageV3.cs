@@ -9,7 +9,7 @@ namespace NugetForUnity
     ///     Represents a NuGet package that was downloaded from a NuGet server using NuGet API v3.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageV3 : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
+    internal sealed class NugetPackageV3 : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
         [SerializeField]
         private List<NugetFrameworkGroup> dependencies;
@@ -27,10 +27,10 @@ namespace NugetForUnity
         private string iconUrl;
 
         [SerializeField]
-        private NuGetPackageSourceV3 packageSource;
+        private NugetPackageSourceV3 packageSource;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetPackageV3" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.
         /// </summary>
         /// <param name="id">The id of the package.</param>
         /// <param name="version">The version.</param>
@@ -44,19 +44,19 @@ namespace NugetForUnity
         /// <param name="title">The human readably title.</param>
         /// <param name="iconUrl">The URL where the icon can be downloaded.</param>
         /// <param name="versions">All available versions.</param>
-        public NuGetPackageV3(
+        public NugetPackageV3(
             string id,
             string version,
             List<string> authors,
             string description,
             long totalDownloads,
             string licenseUrl,
-            NuGetPackageSourceV3 packageSource,
+            NugetPackageSourceV3 packageSource,
             string projectUrl,
             string summary,
             string title,
             string iconUrl,
-            List<NuGetPackageVersion> versions)
+            List<NugetPackageVersion> versions)
             : base(id, version)
         {
             Authors = authors;
@@ -73,7 +73,7 @@ namespace NugetForUnity
 
         /// <inheritdoc />
         [field: SerializeField]
-        public List<NuGetPackageVersion> Versions { get; private set; }
+        public List<NugetPackageVersion> Versions { get; private set; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -132,7 +132,7 @@ namespace NugetForUnity
 
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
-                    iconTask = NuGetPackageTextureHelper.DownloadImage(iconUrl);
+                    iconTask = NugetPackageTextureHelper.DownloadImage(iconUrl);
                 }
 
                 return iconTask;

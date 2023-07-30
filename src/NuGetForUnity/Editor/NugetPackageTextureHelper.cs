@@ -11,7 +11,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Helper for NuGet package icon download handling.
     /// </summary>
-    internal static class NuGetPackageTextureHelper
+    internal static class NugetPackageTextureHelper
     {
         /// <summary>
         ///     Downloads an image at the given URL and converts it to a Unity Texture2D.

@@ -8,7 +8,7 @@ namespace NugetForUnity
     ///     Represents a NuGet package version number.
     /// </summary>
     [Serializable]
-    public sealed class NuGetPackageVersion : IEquatable<NuGetPackageVersion>, IComparable<NuGetPackageVersion>, ISerializationCallbackReceiver
+    public sealed class NugetPackageVersion : IEquatable<NugetPackageVersion>, IComparable<NugetPackageVersion>, ISerializationCallbackReceiver
     {
         private SemVer2Version? maximumSemVer2Version;
 
@@ -17,18 +17,18 @@ namespace NugetForUnity
         private SemVer2Version semVer2Version;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetPackageVersion" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageVersion" /> class.
         /// </summary>
-        public NuGetPackageVersion()
+        public NugetPackageVersion()
         {
             SetFromString(null);
         }
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetPackageVersion" /> class with the given Version string.
+        ///     Initializes a new instance of the <see cref="NugetPackageVersion" /> class with the given Version string.
         /// </summary>
         /// <param name="version">The version number as string.</param>
-        public NuGetPackageVersion(string version)
+        public NugetPackageVersion(string version)
         {
             SetFromString(version);
         }
@@ -85,7 +85,7 @@ namespace NugetForUnity
         ///     0 if otherVersion is equal to this.
         ///     +1 if otherVersion is greater than this.
         /// </returns>
-        public int CompareTo(NuGetPackageVersion otherVersion)
+        public int CompareTo(NugetPackageVersion otherVersion)
         {
             if (HasVersionRange || otherVersion.HasVersionRange)
             {
@@ -96,11 +96,11 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Checks to see if this <see cref="NuGetPackageVersion" /> is equal to the given one.
+        ///     Checks to see if this <see cref="NugetPackageVersion" /> is equal to the given one.
         /// </summary>
-        /// <param name="other">The other <see cref="NuGetPackageVersion" /> to check equality with.</param>
+        /// <param name="other">The other <see cref="NugetPackageVersion" /> to check equality with.</param>
         /// <returns>True if the package identifiers are equal, otherwise false.</returns>
-        public bool Equals(NuGetPackageVersion other)
+        public bool Equals(NugetPackageVersion other)
         {
             return !(other is null) && other.NormalizedVersion.Equals(NormalizedVersion, StringComparison.OrdinalIgnoreCase);
         }
@@ -118,57 +118,57 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is less than the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is less than the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than the second.</returns>
-        public static bool operator <(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator <(NugetPackageVersion first, NugetPackageVersion second)
         {
             return first.CompareTo(second) < 0;
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is greater than the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is greater than the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than the second.</returns>
-        public static bool operator >(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator >(NugetPackageVersion first, NugetPackageVersion second)
         {
             return first.CompareTo(second) > 0;
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is less than or equal to the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is less than or equal to the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than or equal to the second.</returns>
-        public static bool operator <=(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator <=(NugetPackageVersion first, NugetPackageVersion second)
         {
             return first.CompareTo(second) <= 0;
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is greater than or equal to the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is greater than or equal to the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than or equal to the second.</returns>
-        public static bool operator >=(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator >=(NugetPackageVersion first, NugetPackageVersion second)
         {
             return first.CompareTo(second) >= 0;
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is equal to the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is equal to the second.
         ///     They are equal if the Id and the Version match.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is equal to the second.</returns>
-        public static bool operator ==(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator ==(NugetPackageVersion first, NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -179,24 +179,24 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Checks to see if the first <see cref="NuGetPackageVersion" /> is not equal to the second.
+        ///     Checks to see if the first <see cref="NugetPackageVersion" /> is not equal to the second.
         ///     They are not equal if the Id or the Version differ.
         /// </summary>
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is not equal to the second.</returns>
-        public static bool operator !=(NuGetPackageVersion first, NuGetPackageVersion second)
+        public static bool operator !=(NugetPackageVersion first, NugetPackageVersion second)
         {
             return !(first == second);
         }
 
         /// <summary>
-        ///     Determines if the given version is in the version range of this <see cref="NuGetPackageVersion" />.
+        ///     Determines if the given version is in the version range of this <see cref="NugetPackageVersion" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="other">The <see cref="NuGetPackageVersion" /> to check if is in the range.</param>
+        /// <param name="other">The <see cref="NugetPackageVersion" /> to check if is in the range.</param>
         /// <returns>True if the given version is in the range, otherwise false.</returns>
-        public bool InRange(NuGetPackageVersion other)
+        public bool InRange(NugetPackageVersion other)
         {
             if (string.IsNullOrEmpty(FullVersion))
             {
@@ -228,17 +228,17 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Determines if a given object is equal to this <see cref="NuGetPackageVersion" />.
+        ///     Determines if a given object is equal to this <see cref="NugetPackageVersion" />.
         /// </summary>
         /// <param name="obj">The object to check.</param>
-        /// <returns>True if the given object is equal to this <see cref="NuGetPackageVersion" />, otherwise false.</returns>
+        /// <returns>True if the given object is equal to this <see cref="NugetPackageVersion" />, otherwise false.</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as NuGetPackageVersion);
+            return Equals(obj as NugetPackageVersion);
         }
 
         /// <summary>
-        ///     Gets the hash-code for this <see cref="NuGetPackageVersion" />.
+        ///     Gets the hash-code for this <see cref="NugetPackageVersion" />.
         /// </summary>
         /// <returns>The hash-code for this instance.</returns>
         public override int GetHashCode()
@@ -251,7 +251,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Returns the string representation of this <see cref="NuGetPackageVersion" />.
+        ///     Returns the string representation of this <see cref="NugetPackageVersion" />.
         /// </summary>
         /// <returns>The version string.</returns>
         public override string ToString()
@@ -260,7 +260,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Compares the given version string with the version range of this <see cref="NuGetPackageVersion" />.
+        ///     Compares the given version string with the version range of this <see cref="NugetPackageVersion" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
         /// <param name="otherSemVer2">The version to check if is in the range.</param>

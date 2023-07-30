@@ -16,14 +16,14 @@ namespace NugetForUnity
     ///     Represents a NuGet Package Source that uses a remote server with API version v2.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageSourceV2 : INugetPackageSource, ISerializationCallbackReceiver
+    internal sealed class NugetPackageSourceV2 : INugetPackageSource, ISerializationCallbackReceiver
     {
         /// <summary>
-        ///     Initializes a new instance of the <see cref="NuGetPackageSourceV2" /> class.
+        ///     Initializes a new instance of the <see cref="NugetPackageSourceV2" /> class.
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        public NuGetPackageSourceV2(string name, string url)
+        public NugetPackageSourceV2(string name, string url)
         {
             Name = name;
             SavedPath = url;

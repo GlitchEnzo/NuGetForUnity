@@ -80,16 +80,6 @@ public class NuGetTests
         Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
     }
 
-    private static void ConfigureNugetConfig(InstallMode installMode)
-    {
-        var nugetConfigFile = NugetHelper.NugetConfigFile;
-        var packageSources = nugetConfigFile.PackageSources;
-        packageSources.Single(source => source.Name == "V3").IsEnabled = installMode == InstallMode.ApiV3Only;
-        packageSources.Single(source => source.Name == "NuGet").IsEnabled =
-            installMode == InstallMode.ApiV2Only || installMode == InstallMode.ApiV2AllowCached;
-        nugetConfigFile.InstallFromCache = installMode == InstallMode.ApiV2AllowCached;
-    }
-
     [Test]
     public void InstallRoslynAnalyzerTest([Values] InstallMode installMode)
     {
@@ -392,9 +382,9 @@ public class NuGetTests
     [TestCase("1.0.0", "1.0.0.10")]
     public void VersionComparison(string smallerVersion, string greaterVersion)
     {
-        var localNuGetPackageSource = new NugetPackageSourceLocal("test", "test");
-        var smallerPackage = new NugetPackageLocal(localNuGetPackageSource) { Id = "TestPackage", Version = smallerVersion };
-        var greaterPackage = new NugetPackageLocal(localNuGetPackageSource) { Id = "TestPackage", Version = greaterVersion };
+        var localNugetPackageSource = new NugetPackageSourceLocal("test", "test");
+        var smallerPackage = new NugetPackageLocal(localNugetPackageSource) { Id = "TestPackage", Version = smallerVersion };
+        var greaterPackage = new NugetPackageLocal(localNugetPackageSource) { Id = "TestPackage", Version = greaterVersion };
 
         Assert.IsTrue(smallerPackage.CompareTo(greaterPackage) < 0, "{0} was NOT smaller than {1}", smallerVersion, greaterVersion);
         Assert.IsTrue(greaterPackage.CompareTo(smallerPackage) > 0, "{0} was NOT greater than {1}", greaterVersion, smallerVersion);
@@ -471,7 +461,7 @@ public class NuGetTests
 
         var file = NugetConfigFile.CreateDefaultFile(path);
 
-        var inputSource = new NuGetPackageSourceV2(name, "http://localhost") { UserName = username, SavedPassword = password };
+        var inputSource = new NugetPackageSourceV2(name, "http://localhost") { UserName = username, SavedPassword = password };
 
         file.PackageSources.Add(inputSource);
         file.Save(path);
@@ -715,5 +705,15 @@ public class NuGetTests
         Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
+    }
+
+    private static void ConfigureNugetConfig(InstallMode installMode)
+    {
+        var nugetConfigFile = NugetHelper.NugetConfigFile;
+        var packageSources = nugetConfigFile.PackageSources;
+        packageSources.Single(source => source.Name == "V3").IsEnabled = installMode == InstallMode.ApiV3Only;
+        packageSources.Single(source => source.Name == "NuGet").IsEnabled =
+            installMode == InstallMode.ApiV2Only || installMode == InstallMode.ApiV2AllowCached;
+        nugetConfigFile.InstallFromCache = installMode == InstallMode.ApiV2AllowCached;
     }
 }

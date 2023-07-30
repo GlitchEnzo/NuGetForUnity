@@ -84,7 +84,7 @@ namespace NugetForUnity
             string versionConstraints = "");
 
         /// <summary>
-        ///     Gets a list of NuGetPackages from this package source.
+        ///     Gets a list of NugetPackages from this package source.
         ///     This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
         /// </summary>
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>

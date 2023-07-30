@@ -40,14 +40,14 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NuGetPackageV2Base" />s contained within.
+        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackageV2Base" />s contained within.
         /// </summary>
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The list of <see cref="NuGetPackageV2Base" />s read from the given XML.</returns>
-        public static List<NuGetPackageV2Base> Parse(XDocument document, NuGetPackageSourceV2 packageSource)
+        /// <returns>The list of <see cref="NugetPackageV2Base" />s read from the given XML.</returns>
+        public static List<NugetPackageV2Base> Parse(XDocument document, NugetPackageSourceV2 packageSource)
         {
-            var packages = new List<NuGetPackageV2Base>();
+            var packages = new List<NugetPackageV2Base>();
 
             if (document.Root == null)
             {
