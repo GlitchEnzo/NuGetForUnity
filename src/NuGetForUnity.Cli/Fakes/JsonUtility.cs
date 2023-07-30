@@ -10,5 +10,15 @@ namespace UnityEngine
         {
             return JsonSerializer.Deserialize<T>(output);
         }
+
+        public static void FromJsonOverwrite<T>(string jsonString, T target)
+        {
+            // not needed for the CLI
+        }
+
+        internal static string ToJson<T>(T value)
+        {
+            return JsonSerializer.Serialize(value);
+        }
     }
 }

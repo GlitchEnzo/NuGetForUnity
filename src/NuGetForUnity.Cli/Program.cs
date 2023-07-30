@@ -12,7 +12,7 @@ namespace NuGetForUnity.Cli
 {
     public static class Program
     {
-        private static readonly string[] helpOptions = { "-?", "-h", "--help" };
+        private static readonly string[] HelpOptions = { "-?", "-h", "--help" };
 
         private static string DefaultProjectPath => Directory.GetCurrentDirectory();
 
@@ -31,7 +31,7 @@ namespace NuGetForUnity.Cli
             string projectPath;
             if (availableArguments.Count != 0)
             {
-                projectPath = availableArguments[0].Replace("'", "").Replace("\"", "");
+                projectPath = availableArguments[0].Replace("'", string.Empty).Replace("\"", string.Empty);
                 availableArguments.RemoveAt(0);
             }
             else
@@ -120,7 +120,7 @@ namespace NuGetForUnity.Cli
 
         private static bool IsHelpOption(string argument)
         {
-            return helpOptions.Any(helpOption => argument.Equals(helpOption, StringComparison.OrdinalIgnoreCase));
+            return HelpOptions.Any(helpOption => argument.Equals(helpOption, StringComparison.OrdinalIgnoreCase));
         }
 
         private static int PrintUsage()

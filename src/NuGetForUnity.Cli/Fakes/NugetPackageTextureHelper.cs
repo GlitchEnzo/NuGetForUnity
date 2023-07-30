@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace NugetForUnity
 {
-    internal static class NuGetPackageTextureHelper
+    internal static class NugetPackageTextureHelper
     {
         [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Conform with real implementation.")]
         internal static Task<Texture2D>? DownloadImage(string url)
