@@ -27,11 +27,11 @@
     <ItemGroup>
         <Compile Remove="..\NuGetForUnity\Editor\DependencyTreeViewer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NugetPackageAssetPostprocessor.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NuGetPackageTextureHelper.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NugetPackageTextureHelper.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NugetPreferences.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NugetWindow.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NuspecEditor.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\OnLoadNuGetPackageRestorer.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
     </ItemGroup>
 </Project>
