@@ -11,7 +11,7 @@ namespace NugetForUnity
     ///     Represents a package available from NuGet.
     /// </summary>
     [Serializable]
-    internal sealed class NugetPackage : NugetPackageIdentifier, INuGetPackage, IEquatable<NugetPackage>, IEqualityComparer<NugetPackage>
+    internal sealed class NugetPackage : NugetPackageIdentifier, INuGetPackage, ISerializationCallbackReceiver
     {
         [SerializeField]
         private Texture2D icon;
@@ -43,16 +43,10 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Gets the NuGet packages that this NuGet package depends on.
-        /// </summary>
-        [field: SerializeField]
-        public List<NugetFrameworkGroup> DependenciesV2 { get; private set; } = new List<NugetFrameworkGroup>();
-
-        /// <summary>
         ///     Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
         /// </summary>
         [field: SerializeField]
-        public string DownloadUrlV2 { get; set; }
+        public string DownloadUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the icon of the NuGet package.
@@ -64,38 +58,11 @@ namespace NugetForUnity
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
         [field: SerializeField]
-        public string RepositoryBranchV2 { get; set; }
+        public string RepositoryBranch { get; set; }
 
-        /// <summary>
-        ///     Checks to see if the two given <see cref="NugetPackage" />s are equal.
-        /// </summary>
-        /// <param name="x">The first <see cref="NugetPackage" /> to compare.</param>
-        /// <param name="y">The second <see cref="NugetPackage" /> to compare.</param>
-        /// <returns>True if the packages are equal, otherwise false.</returns>
-        public bool Equals(NugetPackage x, NugetPackage y)
-        {
-            return x.Id == y.Id && x.Version == y.Version;
-        }
-
-        /// <summary>
-        ///     Gets the hash-code for the given <see cref="NugetPackage" />.
-        /// </summary>
-        /// <param name="obj">The <see cref="NugetPackage" /> to generate the hash code.</param>
-        /// <returns>The hash-code for the given <see cref="NugetPackage" />.</returns>
-        public int GetHashCode(NugetPackage obj)
-        {
-            return obj.Id.GetHashCode() ^ obj.Version.GetHashCode();
-        }
-
-        /// <summary>
-        ///     Checks to see if this <see cref="NugetPackage" /> is equal to the given one.
-        /// </summary>
-        /// <param name="other">The other <see cref="NugetPackage" /> to check equality with.</param>
-        /// <returns>True if the packages are equal, otherwise false.</returns>
-        public bool Equals(NugetPackage other)
-        {
-            return other.Id == Id && other.Version == Version;
-        }
+        /// <inheritdoc />
+        [field: SerializeField]
+        public List<NugetFrameworkGroup> Dependencies { get; private set; } = new List<NugetFrameworkGroup>();
 
         /// <inheritdoc />
         public List<NuGetPackageVersion> Versions => null;
@@ -103,9 +70,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         [field: SerializeField]
         public List<string> Authors { get; set; }
-
-        /// <inheritdoc />
-        public Task<List<NugetFrameworkGroup>> Dependencies => Task.FromResult(DependenciesV2);
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -175,30 +139,25 @@ namespace NugetForUnity
         /// <inheritdoc />
         public void DownloadNupkgToFile(string outputFilePath)
         {
-            PackageSource.DownloadNupkgToFile(this, outputFilePath, DownloadUrlV2);
+            PackageSource.DownloadNupkgToFile(this, outputFilePath, DownloadUrl);
         }
 
         /// <inheritdoc />
-        public override void OnBeforeSerialize()
+        public void OnBeforeSerialize()
         {
-            base.OnBeforeSerialize();
             if (iconTask != null)
             {
                 icon = iconTask.IsCompleted ? iconTask.Result : null;
             }
-
-            base.OnBeforeSerialize();
         }
 
         /// <inheritdoc />
-        public override void OnAfterDeserialize()
+        public void OnAfterDeserialize()
         {
             if (icon != null)
             {
                 iconTask = Task.FromResult(icon);
             }
-
-            base.OnAfterDeserialize();
         }
 
         /// <summary>
@@ -224,7 +183,7 @@ namespace NugetForUnity
         {
             Enum.TryParse<RepositoryType>(nuspec.RepositoryType, true, out var repositoryType);
             package.Id = nuspec.Id;
-            package.Version = nuspec.Version;
+            package.PackageVersion = nuspec.PackageVersion;
             package.Title = nuspec.Title;
             package.Authors = nuspec.Authors.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             package.Description = nuspec.Description;
@@ -235,9 +194,9 @@ namespace NugetForUnity
             package.IconUrl = nuspec.IconUrl;
             package.RepositoryUrl = nuspec.RepositoryUrl;
             package.RepositoryType = repositoryType;
-            package.RepositoryBranchV2 = nuspec.RepositoryBranch;
+            package.RepositoryBranch = nuspec.RepositoryBranch;
             package.RepositoryCommit = nuspec.RepositoryCommit;
-            package.DependenciesV2 = nuspec.Dependencies;
+            package.Dependencies = nuspec.Dependencies;
 
             // if there is no title, just use the ID as the title
             if (string.IsNullOrEmpty(package.Title))
@@ -263,7 +222,7 @@ namespace NugetForUnity
         public static NugetPackage FromNupkgFile(string nupkgFilepath, NuGetPackageSourceV2 packageSource)
         {
             var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), packageSource);
-            package.DownloadUrlV2 = nupkgFilepath;
+            package.DownloadUrl = nupkgFilepath;
             return package;
         }
 
@@ -271,7 +230,7 @@ namespace NugetForUnity
         public static NugetPackage FromNupkgFile(string nupkgFilepath, LocalNuGetPackageSource packageSource)
         {
             var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), packageSource);
-            package.DownloadUrlV2 = nupkgFilepath;
+            package.DownloadUrl = nupkgFilepath;
             return package;
         }
     }

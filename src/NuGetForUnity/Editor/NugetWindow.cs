@@ -72,7 +72,7 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D defaultIcon;
 
-        private List<NugetPackage> filteredInstalledPackages;
+        private List<INuGetPackage> filteredInstalledPackages;
 
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
@@ -160,7 +160,7 @@ namespace NugetForUnity
             }
         }
 
-        private List<NugetPackage> FilteredInstalledPackages
+        private List<INuGetPackage> FilteredInstalledPackages
         {
             get
             {
@@ -699,7 +699,7 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
+        private void DrawPackages(IEnumerable<INuGetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
@@ -999,12 +999,12 @@ namespace NugetForUnity
                 }
 
                 GUILayout.FlexibleSpace();
-                if (installed != null && installed.Version != package.Version)
+                if (installed != null && installed.PackageVersion != package.PackageVersion)
                 {
-                    GUILayout.Label($"Current Version {installed.FullVersion}");
+                    GUILayout.Label($"Current Version {installed.PackageVersion.FullVersion}");
                 }
 
-                GUILayout.Label($"Version {package.FullVersion}");
+                GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
 
                 if (installed != null)
                 {
@@ -1017,7 +1017,8 @@ namespace NugetForUnity
                         }
                     }
 
-                    if (installed < package)
+                    var versionComparison = installed.PackageVersion.CompareTo(package.PackageVersion);
+                    if (versionComparison < 0)
                     {
                         // An older version is installed
                         if (GUILayout.Button("Update"))
@@ -1027,7 +1028,7 @@ namespace NugetForUnity
                             UpdateUpdatePackages();
                         }
                     }
-                    else if (installed > package)
+                    else if (versionComparison > 0)
                     {
                         // A newer version is installed
                         if (GUILayout.Button("Downgrade"))
@@ -1124,13 +1125,13 @@ namespace NugetForUnity
                         }
 
                         // Show the dependencies
-                        if (package.Dependencies.IsCompleted && package.Dependencies.Result.Count > 0)
+                        if (package.Dependencies.Count > 0)
                         {
                             EditorStyles.label.wordWrap = true;
                             EditorStyles.label.fontStyle = FontStyle.Italic;
                             var builder = new StringBuilder();
 
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
+                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));

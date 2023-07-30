@@ -137,12 +137,7 @@ namespace NugetForUnity
                         var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            if (!package.Dependencies.IsCompleted)
-                            {
-                                continue;
-                            }
-
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
+                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
@@ -195,7 +190,7 @@ namespace NugetForUnity
 
         private void DrawPackage(INuGetPackage package)
         {
-            if (package.Dependencies != null && package.Dependencies.IsCompleted && package.Dependencies.Result.Count > 0)
+            if (package.Dependencies != null && package.Dependencies.Count > 0)
             {
                 expanded[package] = EditorGUILayout.Foldout(expanded[package], string.Format("{0} {1}", package.Id, package.Version));
 
@@ -203,7 +198,7 @@ namespace NugetForUnity
                 {
                     EditorGUI.indentLevel++;
 
-                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
+                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                     foreach (var dependency in frameworkGroup.Dependencies)
                     {
                         DrawDepencency(dependency);

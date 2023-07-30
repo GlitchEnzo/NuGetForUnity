@@ -19,7 +19,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the NuGet packages that this NuGet package depends on grouped by target framework.
         /// </summary>
-        Task<List<NugetFrameworkGroup>> Dependencies { get; }
+        List<NugetFrameworkGroup> Dependencies { get; }
 
         /// <summary>
         ///     Gets the description of the NuGet package.

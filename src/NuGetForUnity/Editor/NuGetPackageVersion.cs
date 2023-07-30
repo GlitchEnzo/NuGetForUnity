@@ -1,16 +1,22 @@
 ﻿using System;
-using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace NugetForUnity
 {
-    public class NuGetPackageVersion : IComparable<NuGetPackageVersion>, IEquatable<NuGetPackageVersion>
+    [Serializable]
+    public sealed class NuGetPackageVersion : IEquatable<NuGetPackageVersion>, IComparable<NuGetPackageVersion>, ISerializationCallbackReceiver
     {
-        private readonly string fullString;
+        private SemVer2Version? maximumSemVer2Version;
 
-        private readonly string preReleaseIdentifier;
+        private SemVer2Version? minimumSemVer2Version;
 
-        private readonly string versionNumberPart;
+        private SemVer2Version semVer2Version;
+
+        public NuGetPackageVersion()
+        {
+            SetFromString(null);
+        }
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NuGetPackageVersion" /> class with the given Version string.
@@ -18,68 +24,47 @@ namespace NugetForUnity
         /// <param name="version">The version number as string.</param>
         public NuGetPackageVersion(string version)
         {
-            fullString = version.Trim();
-            IsMinInclusive = fullString.StartsWith("[");
-            HasVersionRange = fullString.StartsWith("(") || IsMinInclusive;
-            if (HasVersionRange)
-            {
-                IsMaxInclusive = fullString.EndsWith("]");
-                var minMax = fullString.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
-                MinimumVersion = minMax.FirstOrDefault()?.Trim();
-
-                // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                MaximumVersion = minMax.Length == 2 ? minMax[1].Trim() : null;
-            }
-
-            var versionNumberString = HasVersionRange ? MaximumVersion ?? MinimumVersion : fullString;
-            (versionNumberPart, preReleaseIdentifier) = SplitPreReleasIdentifier(versionNumberString);
+            SetFromString(version);
         }
+
+        public string NormalizedVersion { get; private set; }
+
+        /// <summary>
+        ///     Gets the full version number of the NuGet package.
+        ///     This contains the build-metadata e.g. <b>1.0.0+b3a8</b>.
+        /// </summary>
+        [field: SerializeField]
+        public string FullVersion { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the minimum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
         /// </summary>
-        public bool IsMinInclusive { get; }
+        public bool IsMinInclusive { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the maximum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
         /// </summary>
-        public bool IsMaxInclusive { get; }
+        public bool IsMaxInclusive { get; private set; }
 
         /// <summary>
         ///     Gets the minimum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
-        public string MinimumVersion { get; }
+        public string MinimumVersion { get; private set; }
 
         /// <summary>
         ///     Gets the maximum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
-        public string MaximumVersion { get; }
+        public string MaximumVersion => maximumSemVer2Version?.ToString();
 
         /// <summary>
         ///     Gets a value indicating whether this is a pre-release package or an official release package.
         /// </summary>
-        public bool IsPrerelease => preReleaseIdentifier.Length > 0;
+        public bool IsPrerelease { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether the version number specified is a range of values.
         /// </summary>
-        public bool HasVersionRange { get; }
-
-        /// <inheritdoc />
-        public int CompareTo(NuGetPackageVersion other)
-        {
-            return CompareVersion((other.versionNumberPart, other.preReleaseIdentifier, other.HasVersionRange, other.fullString));
-        }
-
-        /// <summary>
-        ///     Checks to see if this <see cref="NuGetPackageVersion" /> is equal to the given one.
-        /// </summary>
-        /// <param name="other">The other <see cref="NuGetPackageVersion" /> to check equality with.</param>
-        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
-        public bool Equals(NuGetPackageVersion other)
-        {
-            return !(other is null) && other.fullString == fullString;
-        }
+        public bool HasVersionRange { get; private set; }
 
         /// <summary>
         ///     Compares this version with the string representation of <paramref name="otherVersion" />.
@@ -90,10 +75,76 @@ namespace NugetForUnity
         ///     0 if otherVersion is equal to this.
         ///     +1 if otherVersion is greater than this.
         /// </returns>
-        public int CompareTo(string otherVersion)
+        public int CompareTo(NuGetPackageVersion otherVersion)
         {
-            var (versionPart, preReleasePart) = SplitPreReleasIdentifier(otherVersion);
-            return CompareVersion((versionPart, preReleasePart, false, otherVersion));
+            if (HasVersionRange || otherVersion.HasVersionRange)
+            {
+                return string.Compare(NormalizedVersion, otherVersion.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return semVer2Version.Compare(otherVersion.semVer2Version);
+        }
+
+        /// <summary>
+        ///     Checks to see if this <see cref="NuGetPackageVersion" /> is equal to the given one.
+        /// </summary>
+        /// <param name="other">The other <see cref="NuGetPackageVersion" /> to check equality with.</param>
+        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
+        public bool Equals(NuGetPackageVersion other)
+        {
+            return !(other is null) && other.NormalizedVersion.Equals(NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <inheritdoc />
+        public void OnBeforeSerialize()
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
+        public void OnAfterDeserialize()
+        {
+            SetFromString(FullVersion);
+        }
+
+        private void SetFromString(string version)
+        {
+            minimumSemVer2Version = null;
+            maximumSemVer2Version = null;
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                NormalizedVersion = string.Empty;
+                FullVersion = string.Empty;
+                semVer2Version = new SemVer2Version(false);
+                return;
+            }
+
+            version = version.Trim();
+            IsMinInclusive = version.StartsWith("[");
+            HasVersionRange = IsMinInclusive || version.StartsWith("(");
+            if (HasVersionRange)
+            {
+                semVer2Version = new SemVer2Version(false);
+                NormalizedVersion = version;
+                FullVersion = version;
+                IsPrerelease = version.Contains("-");
+                IsMaxInclusive = version.EndsWith("]");
+
+                // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
+                var minMax = version.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
+                var minimumVersion = minMax[0].Trim();
+                minimumSemVer2Version = string.IsNullOrEmpty(minimumVersion) ? (SemVer2Version?)null : new SemVer2Version(minimumVersion);
+                var maximumVersion = minMax.Length == 2 ? minMax[1].Trim() : null;
+                maximumSemVer2Version = string.IsNullOrEmpty(maximumVersion) ? (SemVer2Version?)null : new SemVer2Version(maximumVersion);
+            }
+            else
+            {
+                semVer2Version = new SemVer2Version(version);
+                NormalizedVersion = semVer2Version.ToString(); // normalize the version string
+                FullVersion = semVer2Version.ToString(true); // get the full version string with build-metadata
+                IsPrerelease = semVer2Version.PreRelease != null;
+                IsMaxInclusive = false;
+            }
         }
 
         /// <summary>
@@ -177,20 +228,26 @@ namespace NugetForUnity
         /// <returns>True if the given version is in the range, otherwise false.</returns>
         public bool InRange(NuGetPackageVersion other)
         {
-            var comparison = CompareVersion((other.versionNumberPart, other.preReleaseIdentifier, other.HasVersionRange, other.fullString));
-            if (comparison == 0)
+            if (other.HasVersionRange)
             {
-                return true;
+                // either other or both have a version range specified
+                return string.Equals(FullVersion, other.FullVersion, StringComparison.OrdinalIgnoreCase);
             }
 
-            // if it has no version range specified (i.e. only a single version number) NuGet's specs
-            // state that is the minimum version number, inclusive
-            if (!HasVersionRange && comparison < 0)
+            if (HasVersionRange)
             {
-                return true;
+                var comparison = CompareVersion(other.semVer2Version);
+                if (comparison == 0)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
-            return false;
+            // if it has no version range specified (e.g. only a single version number)
+            // The NuGet's specs state that it is the minimum version number, inclusive
+            return semVer2Version.Compare(other.semVer2Version) <= 0;
         }
 
         /// <summary>
@@ -209,7 +266,11 @@ namespace NugetForUnity
         /// <returns>The hash-code for this instance.</returns>
         public override int GetHashCode()
         {
-            return fullString.GetHashCode();
+#if UNITY_2021_2_OR_NEWER
+            return FullVersion.GetHashCode(StringComparison.OrdinalIgnoreCase);
+#else
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(FullVersion);
+#endif
         }
 
         /// <summary>
@@ -218,51 +279,52 @@ namespace NugetForUnity
         /// <returns>The version string.</returns>
         public override string ToString()
         {
-            return fullString;
+            return FullVersion;
         }
 
         /// <summary>
         ///     Compares the given version string with the version range of this <see cref="NuGetPackageVersion" />.
         ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
         /// </summary>
-        /// <param name="otherVersion">The version to check if is in the range.</param>
+        /// <param name="otherSemVer2">The version to check if is in the range.</param>
         /// <returns>
         ///     -1 if otherVersion is less than the version range. 0 if otherVersion is inside the version range. +1 if otherVersion is greater than the
         ///     version range.
         /// </returns>
-        private int CompareVersion((string VersionNumberPart, string PreReleaseIdentifier, bool HasVersionRange, string FullString) otherVersion)
+        private int CompareVersion(in SemVer2Version otherSemVer2)
         {
             if (!HasVersionRange)
             {
-                return CompareVersions(fullString, otherVersion);
+                return semVer2Version.Compare(otherSemVer2);
             }
 
-            if (!string.IsNullOrEmpty(MinimumVersion))
+            var compareMinimum = 0;
+            if (minimumSemVer2Version.HasValue)
             {
-                var compare = CompareVersions(MinimumVersion, otherVersion);
+                compareMinimum = minimumSemVer2Version.Value.Compare(otherSemVer2);
 
                 // -1 = Min < other <-- Inclusive & Exclusive
                 //  0 = Min = other <-- Inclusive Only
                 // +1 = Min > other <-- OUT OF RANGE
                 if (IsMinInclusive)
                 {
-                    if (compare > 0)
+                    if (compareMinimum > 0)
                     {
                         return -1;
                     }
                 }
                 else
                 {
-                    if (compare >= 0)
+                    if (compareMinimum >= 0)
                     {
                         return -1;
                     }
                 }
             }
 
-            if (!string.IsNullOrEmpty(MaximumVersion))
+            if (maximumSemVer2Version.HasValue)
             {
-                var compare = CompareVersions(MaximumVersion, otherVersion);
+                var compare = maximumSemVer2Version.Value.Compare(otherSemVer2);
 
                 // -1 = Max < other <-- OUT OF RANGE
                 //  0 = Max = other <-- Inclusive Only
@@ -287,7 +349,7 @@ namespace NugetForUnity
                 if (IsMaxInclusive)
                 {
                     // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
-                    return CompareVersions(MinimumVersion, otherVersion);
+                    return compareMinimum;
                 }
             }
 
@@ -295,124 +357,201 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a pre-release tag, such as
-        ///     "1.3.0.1-alpha2".
-        ///     Returns:
-        ///     -1 if versionA is less than versionB
-        ///     0 if versionA is equal to versionB
-        ///     +1 if versionA is greater than versionB.
+        ///     SemVer2 <see href="https://semver.org/" />.
+        ///     Complying with NuGet comparison rules <see href="https://learn.microsoft.com/en-us/nuget/concepts/package-versioning" />.
         /// </summary>
-        /// <param name="versionA">The first version number to compare.</param>
-        /// <param name="versionB">The second version number to compare.</param>
-        /// <returns>-1 if versionA is less than versionB. 0 if versionA is equal to versionB. +1 if versionA is greater than versionB.</returns>
-        private static int CompareVersions(
-            string versionA,
-            (string VersionNumberPart, string PreReleaseIdentifier, bool HasVersionRange, string FullString) versionB)
+        private readonly struct SemVer2Version
         {
-            if (versionB.HasVersionRange)
+            private readonly int major;
+
+            private readonly int minor;
+
+            private readonly int? patch;
+
+            private readonly int? revision;
+
+            private readonly string buildMetadata;
+
+            public string PreRelease { get; }
+
+            /// <summary>
+            ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
+            /// </summary>
+            /// <param name="dummy">Dummy to allow calling this constructor.</param>
+            public SemVer2Version(bool dummy)
             {
-                // this is more or less invalid / makes no sense.
-                return string.Compare(versionA, versionB.FullString, StringComparison.Ordinal);
+                _ = dummy;
+                buildMetadata = null;
+                PreRelease = null;
+                major = -1;
+                minor = -1;
+                patch = null;
+                revision = null;
             }
 
-            return CompareVersions(versionA, (versionB.VersionNumberPart, versionB.PreReleaseIdentifier));
-        }
-
-        private static int CompareVersions(string versionA, (string VersionNumberPart, string PreReleaseIdentifier) versionB)
-        {
-            try
+            /// <summary>
+            ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
+            /// </summary>
+            /// <param name="version">The version number as string.</param>
+            public SemVer2Version(string version)
             {
-                var (versionNumberPartA, preReleaseIdentifierA) = SplitPreReleasIdentifier(versionA);
-                versionA = versionNumberPartA;
-                var prereleaseA = string.IsNullOrEmpty(preReleaseIdentifierA) ? "\uFFFF" : preReleaseIdentifierA;
-
-                var splitA = versionA.Split('.');
-                var majorA = int.Parse(splitA[0]);
-                var minorA = int.Parse(splitA[1]);
-                var patchA = 0;
-                if (splitA.Length >= 3)
+                if (!string.IsNullOrWhiteSpace(version))
                 {
-                    patchA = int.Parse(splitA[2]);
-                }
-
-                var buildA = 0;
-                if (splitA.Length >= 4)
-                {
-                    buildA = int.Parse(splitA[3]);
-                }
-
-                var versionStringB = versionB.VersionNumberPart;
-                var prereleaseB = string.IsNullOrEmpty(versionB.PreReleaseIdentifier) ? "\uFFFF" : versionB.PreReleaseIdentifier;
-
-                var splitB = versionStringB.Split('.');
-                var majorB = int.Parse(splitB[0]);
-                var minorB = int.Parse(splitB[1]);
-                var patchB = 0;
-                if (splitB.Length >= 3)
-                {
-                    patchB = int.Parse(splitB[2]);
-                }
-
-                var buildB = 0;
-                if (splitB.Length >= 4)
-                {
-                    buildB = int.Parse(splitB[3]);
-                }
-
-                var major = majorA < majorB ? -1 :
-                    majorA > majorB ? 1 : 0;
-                var minor = minorA < minorB ? -1 :
-                    minorA > minorB ? 1 : 0;
-                var patch = patchA < patchB ? -1 :
-                    patchA > patchB ? 1 : 0;
-                var build = buildA < buildB ? -1 :
-                    buildA > buildB ? 1 : 0;
-                var prerelease = string.Compare(prereleaseA, prereleaseB, StringComparison.Ordinal);
-
-                if (major == 0)
-                {
-                    // if major versions are equal, compare minor versions
-                    if (minor == 0)
+                    try
                     {
-                        if (patch == 0)
+                        buildMetadata = null;
+                        var buildMetadataStartIndex = version.IndexOf('+');
+                        if (buildMetadataStartIndex > 0)
                         {
-                            // if patch versions are equal, compare build versions
-                            if (build == 0)
-                            {
-                                // if the build versions are equal, just return the pre-release version comparison
-                                return prerelease;
-                            }
-
-                            // the build versions are different, so use them
-                            return build;
+                            buildMetadata = version.Substring(buildMetadataStartIndex + 1);
+                            version = version.Substring(0, buildMetadataStartIndex);
                         }
 
-                        // the patch versions are different, so use them
-                        return patch;
-                    }
+                        PreRelease = null;
+                        var preReleaseStartIndex = version.IndexOf('-');
+                        if (preReleaseStartIndex > 0)
+                        {
+                            PreRelease = version.Substring(preReleaseStartIndex + 1);
+                            version = version.Substring(0, preReleaseStartIndex);
+                        }
 
-                    // the minor versions are different, so use them
-                    return minor;
+                        var split = version.Split('.');
+                        major = int.Parse(split[0]);
+                        minor = int.Parse(split[1]);
+                        patch = null;
+                        if (split.Length >= 3)
+                        {
+                            patch = int.Parse(split[2]);
+                        }
+
+                        revision = null;
+                        if (split.Length >= 4)
+                        {
+                            revision = int.Parse(split[3]);
+                        }
+
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogErrorFormat("Invalid version number: '{0}'\n{1}", version, ex);
+                    }
                 }
 
-                // the major versions are different, so use them
-                return major;
+                buildMetadata = null;
+                PreRelease = null;
+                major = -1;
+                minor = -1;
+                patch = null;
+                revision = null;
             }
-            catch (Exception)
-            {
-                Debug.LogErrorFormat("Compare Error: {0} {1}", versionA, versionB);
-                return -1;
-            }
-        }
 
-        private static (string VersionNumberPart, string PreReleaseIdentifier) SplitPreReleasIdentifier(string versionNumberString)
-        {
-            var preReleaseIdentifierStart = versionNumberString.IndexOf('-');
-            var preReleaseIdentifier = preReleaseIdentifierStart == -1 ? string.Empty : versionNumberString.Substring(preReleaseIdentifierStart + 1);
-            var versionNumberPart = preReleaseIdentifierStart == -1 ?
-                versionNumberString :
-                versionNumberString.Substring(0, preReleaseIdentifierStart);
-            return (versionNumberPart, preReleaseIdentifier);
+            /// <summary>
+            ///     Compares two version numbers in the form "1.2". Also supports an optional 3rd and 4th number as well as a prerelease tag, such as
+            ///     "1.3.0.1-alpha2".
+            ///     Returns:
+            ///     -1 if this is less than other
+            ///     0 if this is equal to other
+            ///     +1 if this is greater than other.
+            /// </summary>
+            /// <param name="other">The second version number to compare.</param>
+            /// <returns>-1 if this is less than other. 0 if this is equal to other. +1 if this is greater than other.</returns>
+            public int Compare(in SemVer2Version other)
+            {
+                try
+                {
+                    var majorComparison = major.CompareTo(other.major);
+                    if (majorComparison == 0)
+                    {
+                        // if major versions are equal, compare minor versions
+                        var minorComparison = minor.CompareTo(other.minor);
+                        if (minorComparison == 0)
+                        {
+                            var patchNumber = patch ?? 0;
+                            var otherPatch = other.patch ?? 0;
+                            var patchComparison = patchNumber.CompareTo(otherPatch);
+                            if (patchComparison == 0)
+                            {
+                                // if patch versions are equal, compare build versions
+                                var revisionNumber = revision ?? 0;
+                                var otherRevision = other.revision ?? 0;
+                                var revisionComparison = revisionNumber.CompareTo(otherRevision);
+                                if (revisionComparison == 0)
+                                {
+                                    // if the build versions are equal, just return the prerelease version comparison
+                                    var prerelease = PreRelease ?? "\uFFFF";
+                                    var otherPrerelease = other.PreRelease ?? "\uFFFF";
+                                    var prereleaseComparison = string.Compare(prerelease, otherPrerelease, StringComparison.Ordinal);
+                                    return prereleaseComparison;
+                                }
+
+                                // the build versions are different, so use them
+                                return revisionComparison;
+                            }
+
+                            // the patch versions are different, so use them
+                            return patchComparison;
+                        }
+
+                        // the minor versions are different, so use them
+                        return minorComparison;
+                    }
+
+                    // the major versions are different, so use them
+                    return majorComparison;
+                }
+                catch (Exception)
+                {
+                    Debug.LogErrorFormat("Compare Error: {0} {1}", this, other);
+                    return -1;
+                }
+            }
+
+            /// <inheritdoc />
+            public override string ToString()
+            {
+                return ToString(false);
+            }
+
+            /// <summary>
+            ///     Returns the version number as a string in the form <see cref="major" />.<see cref="minor" />.<see cref="patch" />-<see cref="PreRelease" />+
+            ///     <see cref="buildMetadata" />.
+            ///     The <see cref="buildMetadata" /> can be removed.
+            /// </summary>
+            /// <param name="withBuildMetadata">If <c>true</c> the <see cref="buildMetadata" /> is included.</param>
+            /// <returns>The formatted string.</returns>
+            public string ToString(bool withBuildMetadata)
+            {
+                var stringBuilder = new StringBuilder();
+                stringBuilder.Append(major);
+                stringBuilder.Append('.');
+                stringBuilder.Append(minor);
+                if (patch.HasValue)
+                {
+                    stringBuilder.Append('.');
+                    stringBuilder.Append(patch.Value);
+                }
+
+                if (revision.HasValue)
+                {
+                    stringBuilder.Append('.');
+                    stringBuilder.Append(revision.Value);
+                }
+
+                if (!string.IsNullOrEmpty(PreRelease))
+                {
+                    stringBuilder.Append('-');
+                    stringBuilder.Append(PreRelease);
+                }
+
+                if (withBuildMetadata && !string.IsNullOrEmpty(buildMetadata))
+                {
+                    stringBuilder.Append('+');
+                    stringBuilder.Append(buildMetadata);
+                }
+
+                return stringBuilder.ToString();
+            }
         }
     }
 }

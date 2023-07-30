@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace NugetForUnity
 {
@@ -6,22 +8,25 @@ namespace NugetForUnity
     ///     Represents a grouping of items by framework type and version.
     ///     This could be a group of package dependencies, or a group of package references.
     /// </summary>
+    [Serializable]
     public class NugetFrameworkGroup
     {
         public NugetFrameworkGroup()
         {
-            TargetFramework = "";
-            Dependencies = new List<INuGetPackageIdentifier>();
+            TargetFramework = string.Empty;
+            Dependencies = new List<NugetPackageIdentifier>();
         }
 
         /// <summary>
         ///     Gets or sets the framework and version that this group targets.
         /// </summary>
+        [field: SerializeField]
         public string TargetFramework { get; set; }
 
         /// <summary>
         ///     Gets or sets the list of package dependencies that belong to this group.
         /// </summary>
-        public List<INuGetPackageIdentifier> Dependencies { get; set; }
+        [field: SerializeField]
+        public List<NugetPackageIdentifier> Dependencies { get; set; }
     }
 }

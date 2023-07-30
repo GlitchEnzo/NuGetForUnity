@@ -68,7 +68,7 @@ namespace NugetForUnity
             {
                 var package = new NugetPackage(packageSource)
                 {
-                    Id = entry.GetAtomElement("title").Value, DownloadUrlV2 = entry.GetAtomElement("content").Attribute("src")?.Value,
+                    Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };
 
                 var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace));
@@ -125,7 +125,7 @@ namespace NugetForUnity
 
                     foreach (var group in dependencyGroups.Values)
                     {
-                        package.DependenciesV2.Add(group);
+                        package.Dependencies.Add(group);
                     }
                 }
 

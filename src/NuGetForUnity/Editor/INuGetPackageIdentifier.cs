@@ -8,12 +8,17 @@ namespace NugetForUnity
     public interface INuGetPackageIdentifier : IEquatable<INuGetPackageIdentifier>, IComparable<INuGetPackageIdentifier>
     {
         /// <summary>
+        ///     Gets or sets a value indicating whether this package was installed manually or just as a dependency.
+        /// </summary>
+        bool IsManuallyInstalled { get; set; }
+
+        /// <summary>
         ///     Gets the ID of the NuGet package.
         /// </summary>
         string Id { get; }
 
         /// <summary>
-        ///     Gets the version number of the NuGet package.
+        ///     Gets the normalized version number of the NuGet package.
         /// </summary>
         string Version { get; }
 
@@ -31,6 +36,16 @@ namespace NugetForUnity
         ///     Gets the typed version number of the NuGet package.
         /// </summary>
         NuGetPackageVersion PackageVersion { get; }
+
+        /// <summary>
+        ///     Gets the name of the '.nupkg' file that contains the whole package content as a ZIP.
+        /// </summary>
+        string PackageFileName { get; }
+
+        /// <summary>
+        ///     Gets the name of the '.nuspec' file that contains metadata of this NuGet package's.
+        /// </summary>
+        string SpecificationFileName { get; }
 
         /// <summary>
         ///     Determines if the given <see cref="INuGetPackageIdentifier" />'s version <paramref name="otherPackage" /> is in the version range of this

@@ -325,8 +325,8 @@ namespace NugetForUnity
             var item = getLatestVersion ?
                 registrationResponse.items.OrderByDescending(registrationItem => new NuGetPackageVersion(registrationItem.lower)).First() :
                 registrationResponse.items.FirstOrDefault(
-                    registrationItem => package.PackageVersion.CompareTo(registrationItem.lower) >= 0 &&
-                                        package.PackageVersion.CompareTo(registrationItem.upper) <= 0);
+                    registrationItem => package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.lower)) >= 0 &&
+                                        package.PackageVersion.CompareTo(new NuGetPackageVersion(registrationItem.upper)) <= 0);
             if (item is null)
             {
                 Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
@@ -354,8 +354,7 @@ namespace NugetForUnity
             return leafItem.catalogEntry.dependencyGroups.Select(
                     dependencyGroup => new NugetFrameworkGroup
                     {
-                        Dependencies = dependencyGroup.dependencies.Select(
-                                dependency => (INuGetPackageIdentifier)new NugetPackageIdentifier(dependency.id, dependency.range))
+                        Dependencies = dependencyGroup.dependencies.Select(dependency => new NugetPackageIdentifier(dependency.id, dependency.range))
                             .ToList(),
                         TargetFramework = dependencyGroup.targetFramework,
                     })

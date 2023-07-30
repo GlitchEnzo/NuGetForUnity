@@ -304,7 +304,7 @@ public class NuGetTests
             var nugetConfig = NugetHelper.NugetConfigFile;
             nugetConfig.InstallFromCache = false;
             nugetConfig.PackageSources.Clear();
-            nugetConfig.PackageSources.Add(new NugetPackageSource("LocalUnitTestSource", tempDirectoryPath));
+            nugetConfig.PackageSources.Add(new LocalNuGetPackageSource("LocalUnitTestSource", tempDirectoryPath));
             nugetConfig.Save(NugetHelper.NugetConfigFilePath);
             NugetHelper.LoadNugetConfigFile();
 
@@ -362,8 +362,8 @@ public class NuGetTests
     [TestCase("1.0.0-rc1+123", "1.0.0-rc1+478")]
     public void VersionComparisonEqual(string version1, string version2)
     {
-        var package1 = new NugetPackage { Id = "TestPackage", Version = version1 };
-        var package2 = new NugetPackage { Id = "TestPackage", Version = version2 };
+        var package1 = new NugetPackageIdentifier { Id = "TestPackage", Version = version1 };
+        var package2 = new NugetPackageIdentifier { Id = "TestPackage", Version = version2 };
 
         Assert.IsTrue(package1.CompareTo(package2) == 0, "{0} was NOT equal to {1}", version1, version2);
         Assert.IsTrue(package2.CompareTo(package1) == 0, "{0} was NOT equal to {1}", version2, version1);
@@ -593,7 +593,7 @@ public class NuGetTests
         Assert.That(deserialized, Is.EqualTo(identifier));
         Assert.That(deserialized.IsPrerelease, Is.EqualTo(identifier.IsPrerelease));
         Assert.That(deserialized.Version, Is.EqualTo(identifier.Version));
-        Assert.That(deserialized.FullVersion, Is.EqualTo(identifier.FullVersion));
+        Assert.That(deserialized.PackageVersion.FullVersion, Is.EqualTo(identifier.PackageVersion.FullVersion));
         Assert.That(deserialized.IsManuallyInstalled, Is.EqualTo(identifier.IsManuallyInstalled));
         Assert.That(deserialized.CompareTo(identifier), Is.EqualTo(0));
 

@@ -9,9 +9,12 @@ namespace NugetForUnity
     ///     Represents a NuGet package that was downloaded from a NuGet server using NuGet API v3.
     /// </summary>
     [Serializable]
-    internal sealed class NuGetPackageV3 : NugetPackageIdentifier, INuGetPackage
+    internal sealed class NuGetPackageV3 : NugetPackageIdentifier, INuGetPackage, ISerializationCallbackReceiver
     {
+        [SerializeField]
         private List<NugetFrameworkGroup> dependencies;
+
+        private bool dependenciesFetched;
 
         [SerializeField]
         private Texture2D icon;
@@ -75,7 +78,20 @@ namespace NugetForUnity
         public List<string> Authors { get; private set; }
 
         /// <inheritdoc />
-        public Task<List<NugetFrameworkGroup>> Dependencies => dependencies != null ? Task.FromResult(dependencies) : GetDependenciesAsync();
+        public List<NugetFrameworkGroup> Dependencies
+        {
+            get
+            {
+                if (dependenciesFetched)
+                {
+                    return dependencies;
+                }
+
+                dependencies = Task.Run(() => packageSource.GetPackageDetails(this)).GetAwaiter().GetResult();
+                dependenciesFetched = true;
+                return dependencies;
+            }
+        }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -142,31 +158,21 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public override void OnBeforeSerialize()
+        public void OnBeforeSerialize()
         {
             if (iconTask != null)
             {
                 icon = iconTask.IsCompleted ? iconTask.Result : null;
             }
-
-            base.OnBeforeSerialize();
         }
 
         /// <inheritdoc />
-        public override void OnAfterDeserialize()
+        public void OnAfterDeserialize()
         {
             if (icon != null)
             {
                 iconTask = Task.FromResult(icon);
             }
-
-            base.OnAfterDeserialize();
-        }
-
-        private async Task<List<NugetFrameworkGroup>> GetDependenciesAsync()
-        {
-            dependencies = await packageSource.GetPackageDetails(this);
-            return dependencies;
         }
     }
 }

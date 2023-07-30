@@ -76,7 +76,7 @@ namespace NugetForUnity
         ///     Removes a package from the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        public bool RemovePackage(INugetPackageIdentifier package)
+        public bool RemovePackage(INuGetPackageIdentifier package)
         {
             var removed = Packages.RemoveAll(p => p.CompareTo(package) == 0);
             if (removed > 0)
@@ -87,7 +87,7 @@ namespace NugetForUnity
             return removed > 0;
         }
 
-        internal void SetManuallyInstalledFlag(NugetPackageIdentifier package)
+        internal void SetManuallyInstalledFlag(INuGetPackageIdentifier package)
         {
             package.IsManuallyInstalled = true;
             var packageConfig = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));

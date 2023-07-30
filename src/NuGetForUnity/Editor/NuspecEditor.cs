@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -213,18 +212,12 @@ namespace NugetForUnity
                             var installedPackages = NugetHelper.InstalledPackages.ToList();
 
                             // default all packages to being roots
-                            var roots = new List<INuGetPackage>(installedPackages);
+                            var roots = new List<INuGetPackageIdentifier>(installedPackages);
 
                             // remove a package as a root if another package is dependent on it
                             foreach (var package in installedPackages)
                             {
-                                if (!package.Dependencies.IsCompleted)
-                                {
-                                    throw new InvalidOperationException($"the installed package {package} has not fetched the dependencies yet.");
-                                }
-
-                                var packageFrameworkGroup =
-                                    NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies.Result);
+                                var packageFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                                 foreach (var dependency in packageFrameworkGroup.Dependencies)
                                 {
                                     roots.RemoveAll(p => p.Id == dependency.Id);
@@ -235,7 +228,7 @@ namespace NugetForUnity
                             nuspec.Dependencies.Clear();
 
                             nuspec.Dependencies.Add(new NugetFrameworkGroup());
-                            nuspec.Dependencies[0].Dependencies = roots.Cast<INuGetPackageIdentifier>().ToList();
+                            nuspec.Dependencies[0].Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
                         }
                     }
                     EditorGUILayout.EndHorizontal();
@@ -243,7 +236,7 @@ namespace NugetForUnity
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
                     var nuspecFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
-                    foreach (var dependency in nuspecFrameworkGroup.Dependencies.Cast<NugetPackageIdentifier>())
+                    foreach (var dependency in nuspecFrameworkGroup.Dependencies)
                     {
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(75);

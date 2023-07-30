@@ -71,9 +71,9 @@ internal static class CredentialProviderHelper
     }
 
     /// <summary>
-    ///     Given the URI of a nuget method, returns the URI of the feed itself without the method and query parameters.
+    ///     Given the URI of a NuGet method, returns the URI of the feed itself without the method and query parameters.
     /// </summary>
-    /// <param name="methodUri">URI of nuget method.</param>
+    /// <param name="methodUri">URI of NuGet method.</param>
     /// <returns>URI of the feed without the method and query parameters.</returns>
     private static Uri GetTruncatedFeedUri(Uri methodUri)
     {

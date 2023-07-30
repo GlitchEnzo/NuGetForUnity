@@ -492,7 +492,13 @@ namespace NugetForUnity
             }
         }
 
-        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
+        /// <summary>
+        ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
+        /// </summary>
+        /// <param name="package">The package of witch the identifier is checked.</param>
+        /// <param name="log">Whether to log a message with the result of the check.</param>
+        /// <returns>If it is included in Unity.</returns>
+        internal static bool IsAlreadyImportedInEngine(INuGetPackageIdentifier package, bool log = true)
         {
             var alreadyImportedLibs = UnityPreImportedLibraryResolver.GetAlreadyImportedLibs();
             var isAlreadyImported = alreadyImportedLibs.Contains(package.Id);
@@ -531,11 +537,21 @@ namespace NugetForUnity
         /// <summary>
         ///     Select the best target-framework group of a NuGet package.
         /// </summary>
-        /// <param name="packageDependencies">The available frameworks.</param>
+        /// <param name="nuspec">The package of witch the dependencies are selected.</param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
         internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
         {
             return GetBestDependencyFrameworkGroupForCurrentSettings(nuspec.Dependencies);
+        }
+
+        /// <summary>
+        ///     Select the best target-framework group of a NuGet package.
+        /// </summary>
+        /// <param name="package">The package of witch the dependencies are selected.</param>
+        /// <returns>The selected target framework group or a empty group if non is matching.</returns>
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(INuGetPackage package)
+        {
+            return GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
         }
 
         /// <summary>
@@ -567,11 +583,11 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Calls "nuget.exe push" to push a .nupkf file to the the server location defined in the NuGet.config file.
+        ///     Calls "nuget.exe push" to push a .nupkf file to the server location defined in the NuGet.config file.
         ///     Note: This differs slightly from NuGet's Push command by automatically calling Pack if the .nupkg doesn't already exist.
         /// </summary>
         /// <param name="nuspec">The NuspecFile which defines the package to push.  Only the ID and Version are used.</param>
-        /// <param name="nuspecFilePath">The full filepath to the .nuspec file to use.  This is required by NuGet's Push command.</param>
+        /// <param name="nuspecFilePath">The full file-path to the .nuspec file to use.  This is required by NuGet's Push command.</param>
         /// ///
         /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
         public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
@@ -723,11 +739,11 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The NugetPackage to uninstall.</param>
         /// <param name="refreshAssets">True to force Unity to refresh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
-        public static void Uninstall(INugetPackageIdentifier package, bool refreshAssets = true)
+        public static void Uninstall(INuGetPackageIdentifier package, bool refreshAssets = true)
         {
             LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
 
-            var foundPackage = package as NugetPackage ?? GetSpecificPackage(package);
+            var foundPackage = package as NugetPackage ?? package as NuGetPackageV3 ?? GetSpecificPackage(package);
 
             // update the package.config file
             if (PackagesConfigFile.RemovePackage(foundPackage))
@@ -823,7 +839,7 @@ namespace NugetForUnity
             EditorUtility.ClearProgressBar();
         }
 
-        public static void SetManuallyInstalledFlag(NugetPackageIdentifier package)
+        public static void SetManuallyInstalledFlag(INuGetPackageIdentifier package)
         {
             PackagesConfigFile.SetManuallyInstalledFlag(package);
             PackagesConfigFile.Save(PackagesConfigFilePath);
@@ -906,10 +922,10 @@ namespace NugetForUnity
             LogVerbose("Getting installed packages took {0} ms", stopwatch.ElapsedMilliseconds);
         }
 
-        internal static List<NugetPackage> GetInstalledRootPackages()
+        internal static List<INuGetPackage> GetInstalledRootPackages()
         {
             // default all packages to being roots
-            var roots = new List<NugetPackage>(installedPackages.Values);
+            var roots = new List<INuGetPackage>(installedPackages.Values);
 
             // remove a package as a root if another package is dependent on it
             foreach (var package in installedPackages.Values)
@@ -1004,7 +1020,7 @@ namespace NugetForUnity
                     if (packageId.InRange(installedPackage))
                     {
                         var configPackage = PackagesConfigFile.Packages.Find(p => p.Id == packageId.Id);
-                        if (configPackage != null && configPackage < installedPackage)
+                        if (configPackage != null && configPackage.CompareVersion(installedPackage) < 0)
                         {
                             LogVerbose(
                                 "Requested {0} {1}. {2} is already installed, but config demands lower version.",
@@ -1052,7 +1068,7 @@ namespace NugetForUnity
 
             if (NugetConfigFile.InstallFromCache && !packageId.HasVersionRange)
             {
-                var cachedPackagePath = packageId.GetLocalPackageFilePath(PackOutputDirectory);
+                var cachedPackagePath = Path.Combine(PackOutputDirectory, packageId.PackageFileName);
 
                 if (File.Exists(cachedPackagePath))
                 {
@@ -1095,7 +1111,8 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine</param>
         /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
-        internal static bool InstallIdentifier(INugetPackageIdentifier package,
+        internal static bool InstallIdentifier(
+            INuGetPackageIdentifier package,
             bool refreshAssets = true,
             bool isUpdate = false,
             bool installDependencies = true)
@@ -1158,7 +1175,7 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isUpdate">True to indicate we're calling method as result of Update and don't want to go through IsAlreadyImportedInEngine.</param>
         /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
-        public static bool Install(INugetPackage package, bool refreshAssets = true, bool isUpdate = false, bool installDependencies = true)
+        public static bool Install(INuGetPackage package, bool refreshAssets = true, bool isUpdate = false, bool installDependencies = true)
         {
             if (!isUpdate && IsAlreadyImportedInEngine(package, false))
             {
@@ -1183,7 +1200,7 @@ namespace NugetForUnity
                 if (comparisonResult > 0)
                 {
                     var configPackage = PackagesConfigFile.Packages.Find(identifier => identifier.Id == package.Id);
-                    if (configPackage != null && configPackage < installedPackage)
+                    if (configPackage != null && configPackage.CompareTo(installedPackage) < 0)
                     {
                         LogVerbose(
                             "{0} {1} is installed but config needs {2} so downgrading.",
@@ -1223,9 +1240,7 @@ namespace NugetForUnity
 
                 if (installDependencies)
                 {
-                    var dependencies = package.Dependencies.IsCompleted ?
-                        package.Dependencies.Result :
-                        Task.Run(() => package.Dependencies).GetAwaiter().GetResult();
+                    var dependencies = package.Dependencies;
 
                     // install all dependencies for target framework
                     var frameworkGroup = GetNullableBestDependencyFrameworkGroupForCurrentSettings(dependencies);
@@ -1257,7 +1272,7 @@ namespace NugetForUnity
                 PackagesConfigFile.AddPackage(package);
                 PackagesConfigFile.Save(PackagesConfigFilePath);
 
-                var cachedPackagePath = package.GetPackageFilePath(PackOutputDirectory);
+                var cachedPackagePath = Path.Combine(PackOutputDirectory, package.PackageFileName);
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
@@ -1322,7 +1337,7 @@ namespace NugetForUnity
                     }
 
                     // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, package.GetPackageFilePath(baseDirectory), true);
+                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, package.PackageFileName), true);
                 }
                 else
                 {

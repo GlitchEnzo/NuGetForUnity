@@ -14,7 +14,7 @@ namespace NugetForUnity
     internal static class TargetFrameworkResolver
     {
         // highest priority first. We use values without '.' for easier comparison.
-        private static readonly TargetFrameworkSupport[] prioritizedTargetFrameworks =
+        private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworks =
         {
             new TargetFrameworkSupport("unity"),
 
@@ -120,7 +120,7 @@ namespace NugetForUnity
         {
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
-            foreach (var targetFrameworkSupport in prioritizedTargetFrameworks)
+            foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
             {
                 if (targetFrameworkSupport.SupportedDotnetVersions.Length != 0 &&
                     !targetFrameworkSupport.SupportedDotnetVersions.Contains(currentDotnetVersion))
@@ -136,7 +136,7 @@ namespace NugetForUnity
                 var bestMatch = availableTargetFrameworks.FirstOrDefault(
                     availableTargetFramework =>
                     {
-                        var availableString = getTargetFrameworkString(availableTargetFramework).Replace(".", "");
+                        var availableString = getTargetFrameworkString(availableTargetFramework).Replace(".", string.Empty);
                         return availableString.Equals(targetFrameworkSupport.Name, StringComparison.OrdinalIgnoreCase);
                     });
 
@@ -175,7 +175,8 @@ namespace NugetForUnity
 
             public readonly DotnetVersionCompatibilityLevel[] SupportedDotnetVersions;
 
-            public TargetFrameworkSupport(string name,
+            public TargetFrameworkSupport(
+                string name,
                 UnityVersion? minimumUnityVersion = null,
                 params DotnetVersionCompatibilityLevel[] supportedDotnetVersions)
             {
