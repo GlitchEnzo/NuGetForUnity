@@ -278,6 +278,16 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallPrereleasPackage([Values] InstallMode installMode)
+    {
+        ConfigureNugetConfig(installMode);
+
+        var package = new NugetPackageIdentifier("StyleCop.Analyzers", "1.2.0-beta.507") { IsManuallyInstalled = true };
+        NugetHelper.InstallIdentifier(package);
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
     public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
     {
         NugetHelper.LoadNugetConfigFile(); // ensure 'NuGet.config' exists

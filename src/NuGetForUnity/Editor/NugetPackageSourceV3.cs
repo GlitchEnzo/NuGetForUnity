@@ -106,7 +106,9 @@ namespace NugetForUnity
             // so we need to fetch the latest version and filter them ourselves
             var searchQuery = $"packageid:{package.Id}";
 
-            var packages = Task.Run(() => ApiClient.SearchPackage(this, searchQuery, 0, 0, false, CancellationToken.None)).GetAwaiter().GetResult();
+            var packages = Task.Run(() => ApiClient.SearchPackage(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
+                .GetAwaiter()
+                .GetResult();
 
             if (packages.Count == 0)
             {
