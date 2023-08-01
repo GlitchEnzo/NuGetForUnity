@@ -48,12 +48,6 @@ namespace NugetForUnity
         /// </summary>
         public string ExpandedPassword => SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
 
-        /// <summary>
-        ///     Gets the lazy initialized API-client. We need this because <see cref="InitializeApiClient" /> can't be called in
-        ///     <see cref="OnAfterDeserialize" />.
-        /// </summary>
-        private NugetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
-
         /// <inheritdoc />
         [field: SerializeField]
         public string Name { get; set; }
@@ -98,6 +92,12 @@ namespace NugetForUnity
             }
         }
 
+        /// <summary>
+        ///     Gets the lazy initialized API-client. We need this because <see cref="InitializeApiClient" /> can't be called in
+        ///     <see cref="OnAfterDeserialize" />.
+        /// </summary>
+        private NugetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
+
         /// <inheritdoc />
         public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
@@ -125,7 +125,7 @@ namespace NugetForUnity
                 return packages;
             }
 
-            var matchingVersion = fetchedPackage.Versions.FirstOrDefault(version => package.InRange(version));
+            var matchingVersion = fetchedPackage.Versions.Find(version => package.InRange(version));
             if (matchingVersion == null)
             {
                 // no matching version found

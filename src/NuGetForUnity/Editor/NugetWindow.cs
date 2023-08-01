@@ -196,8 +196,8 @@ namespace NugetForUnity
         /// <inheritdoc />
         public void OnBeforeSerialize()
         {
-            serializableAvailablePackages = availablePackages.Select(package => new SerializableNugetPackage(package)).ToList();
-            serializableUpdatePackages = updatePackages.Select(package => new SerializableNugetPackage(package)).ToList();
+            serializableAvailablePackages = availablePackages.ConvertAll(package => new SerializableNugetPackage(package));
+            serializableUpdatePackages = updatePackages.ConvertAll(package => new SerializableNugetPackage(package));
         }
 
         /// <inheritdoc />
@@ -205,13 +205,13 @@ namespace NugetForUnity
         {
             if (serializableAvailablePackages != null)
             {
-                availablePackages = serializableAvailablePackages.Select(package => package.Interfaced).ToList();
+                availablePackages = serializableAvailablePackages.ConvertAll(package => package.Interfaced);
                 serializableAvailablePackages = null;
             }
 
             if (serializableUpdatePackages != null)
             {
-                updatePackages = serializableUpdatePackages.Select(package => package.Interfaced).ToList();
+                updatePackages = serializableUpdatePackages.ConvertAll(package => package.Interfaced);
                 serializableUpdatePackages = null;
             }
         }
@@ -336,7 +336,7 @@ namespace NugetForUnity
                 }
 
                 unitypackageDownloadUrl = release.assets
-                    .FirstOrDefault(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+                    .Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
                     ?.browser_download_url;
                 return release.tag_name.TrimStart('v');
             }
@@ -428,7 +428,7 @@ namespace NugetForUnity
 
             // we just block the main thread
             availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip))
-                .Result;
+                .GetAwaiter().GetResult();
             NugetHelper.LogVerbose(
                 "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
                 searchTerm,
@@ -684,13 +684,13 @@ namespace NugetForUnity
             {
                 numberToSkip += numberToGet;
                 availablePackages.AddRange(
-                    NugetHelper.Search(
+                 Task.Run(() => NugetHelper.Search(
                             onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
                             showAllOnlineVersions,
                             showOnlinePrerelease,
                             numberToGet,
-                            numberToSkip)
-                        .Result);
+                            numberToSkip))
+                        .GetAwaiter().GetResult());
             }
 
             EditorGUILayout.EndVertical();

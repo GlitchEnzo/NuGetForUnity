@@ -122,7 +122,7 @@ namespace NugetForUnity
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
             var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : null;
             var packageName = string.Join(".", packageNameParts.TakeWhile(part => !part.All(char.IsDigit)));
-            var packageConfig = NugetHelper.PackagesConfigFile.Packages.FirstOrDefault(
+            var packageConfig = NugetHelper.PackagesConfigFile.Packages.Find(
                 packageSettings => packageSettings.Id.Equals(packageName, StringComparison.OrdinalIgnoreCase));
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))

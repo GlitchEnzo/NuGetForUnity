@@ -26,23 +26,6 @@ namespace NugetForUnity
             IsEnabled = true;
         }
 
-        /// <summary>
-        ///     Gets path, with the values of environment variables expanded.
-        /// </summary>
-        private string ExpandedPath
-        {
-            get
-            {
-                var path = Environment.ExpandEnvironmentVariables(SavedPath);
-                if (!Path.IsPathRooted(path))
-                {
-                    path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
-                }
-
-                return path;
-            }
-        }
-
         /// <inheritdoc />
         [field: SerializeField]
         public string Name { get; set; }
@@ -88,6 +71,23 @@ namespace NugetForUnity
             set
             {
                 // local sources don't have credentials
+            }
+        }
+
+        /// <summary>
+        ///     Gets path, with the values of environment variables expanded.
+        /// </summary>
+        private string ExpandedPath
+        {
+            get
+            {
+                var path = Environment.ExpandEnvironmentVariables(SavedPath);
+                if (!Path.IsPathRooted(path))
+                {
+                    path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
+                }
+
+                return path;
             }
         }
 
@@ -249,7 +249,7 @@ namespace NugetForUnity
                         continue;
                     }
 
-                    var existingPackage = localPackages.FirstOrDefault(x => x.Id == package.Id);
+                    var existingPackage = localPackages.Find(x => x.Id == package.Id);
                     if (existingPackage != null)
                     {
                         // there is already a package with the same ID in the list

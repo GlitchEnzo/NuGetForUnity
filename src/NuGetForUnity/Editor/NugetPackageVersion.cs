@@ -77,47 +77,6 @@ namespace NugetForUnity
         public bool HasVersionRange { get; private set; }
 
         /// <summary>
-        ///     Compares this version with the string representation of <paramref name="otherVersion" />.
-        /// </summary>
-        /// <param name="otherVersion">The other version number to check if it is grater or equal to this version.</param>
-        /// <returns>
-        ///     -1 if otherVersion is less than this.
-        ///     0 if otherVersion is equal to this.
-        ///     +1 if otherVersion is greater than this.
-        /// </returns>
-        public int CompareTo(NugetPackageVersion otherVersion)
-        {
-            if (HasVersionRange || otherVersion.HasVersionRange)
-            {
-                return string.Compare(NormalizedVersion, otherVersion.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
-            }
-
-            return semVer2Version.Compare(otherVersion.semVer2Version);
-        }
-
-        /// <summary>
-        ///     Checks to see if this <see cref="NugetPackageVersion" /> is equal to the given one.
-        /// </summary>
-        /// <param name="other">The other <see cref="NugetPackageVersion" /> to check equality with.</param>
-        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
-        public bool Equals(NugetPackageVersion other)
-        {
-            return !(other is null) && other.NormalizedVersion.Equals(NormalizedVersion, StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <inheritdoc />
-        public void OnBeforeSerialize()
-        {
-            // nothing to do
-        }
-
-        /// <inheritdoc />
-        public void OnAfterDeserialize()
-        {
-            SetFromString(FullVersion);
-        }
-
-        /// <summary>
         ///     Checks to see if the first <see cref="NugetPackageVersion" /> is less than the second.
         /// </summary>
         /// <param name="first">The first to compare.</param>
@@ -125,6 +84,11 @@ namespace NugetForUnity
         /// <returns>True if the first is less than the second.</returns>
         public static bool operator <(NugetPackageVersion first, NugetPackageVersion second)
         {
+            if (first is null)
+            {
+                return true;
+            }
+
             return first.CompareTo(second) < 0;
         }
 
@@ -136,6 +100,11 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than the second.</returns>
         public static bool operator >(NugetPackageVersion first, NugetPackageVersion second)
         {
+            if (first is null)
+            {
+                return false;
+            }
+
             return first.CompareTo(second) > 0;
         }
 
@@ -147,6 +116,11 @@ namespace NugetForUnity
         /// <returns>True if the first is less than or equal to the second.</returns>
         public static bool operator <=(NugetPackageVersion first, NugetPackageVersion second)
         {
+            if (first is null)
+            {
+                return second is null;
+            }
+
             return first.CompareTo(second) <= 0;
         }
 
@@ -158,6 +132,11 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than or equal to the second.</returns>
         public static bool operator >=(NugetPackageVersion first, NugetPackageVersion second)
         {
+            if (first is null)
+            {
+                return second is null;
+            }
+
             return first.CompareTo(second) >= 0;
         }
 
@@ -188,6 +167,37 @@ namespace NugetForUnity
         public static bool operator !=(NugetPackageVersion first, NugetPackageVersion second)
         {
             return !(first == second);
+        }
+
+        /// <summary>
+        ///     Compares this version with the string representation of <paramref name="otherVersion" />.
+        /// </summary>
+        /// <param name="otherVersion">The other version number to check if it is grater or equal to this version.</param>
+        /// <returns>
+        ///     -1 if otherVersion is less than this.
+        ///     0 if otherVersion is equal to this.
+        ///     +1 if otherVersion is greater than this.
+        /// </returns>
+        public int CompareTo(NugetPackageVersion otherVersion)
+        {
+            if (HasVersionRange || otherVersion.HasVersionRange)
+            {
+                return string.Compare(NormalizedVersion, otherVersion.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return semVer2Version.Compare(otherVersion.semVer2Version);
+        }
+
+        /// <inheritdoc />
+        public void OnBeforeSerialize()
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
+        public void OnAfterDeserialize()
+        {
+            SetFromString(FullVersion);
         }
 
         /// <summary>
@@ -238,15 +248,30 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Checks to see if this <see cref="NugetPackageVersion" /> is equal to the given one.
+        /// </summary>
+        /// <param name="other">The other <see cref="NugetPackageVersion" /> to check equality with.</param>
+        /// <returns>True if the package versions are equal, otherwise false.</returns>
+        public bool Equals(NugetPackageVersion other)
+        {
+            if (other is null)
+            {
+                return false;
+            }
+
+            return string.Equals(NormalizedVersion, other.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         ///     Gets the hash-code for this <see cref="NugetPackageVersion" />.
         /// </summary>
         /// <returns>The hash-code for this instance.</returns>
         public override int GetHashCode()
         {
 #if UNITY_2021_2_OR_NEWER
-            return FullVersion.GetHashCode(StringComparison.OrdinalIgnoreCase);
+            return NormalizedVersion.GetHashCode(StringComparison.OrdinalIgnoreCase);
 #else
-            return StringComparer.OrdinalIgnoreCase.GetHashCode(FullVersion);
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(NormalizedVersion);
 #endif
         }
 
@@ -346,13 +371,13 @@ namespace NugetForUnity
             }
 
             version = version.Trim();
+            FullVersion = version;
             IsMinInclusive = version.StartsWith("[");
             HasVersionRange = IsMinInclusive || version.StartsWith("(");
             if (HasVersionRange)
             {
                 semVer2Version = new SemVer2Version(false);
                 NormalizedVersion = version;
-                FullVersion = version;
                 IsPrerelease = version.Contains("-");
                 IsMaxInclusive = version.EndsWith("]");
 
@@ -367,7 +392,6 @@ namespace NugetForUnity
             {
                 semVer2Version = new SemVer2Version(version);
                 NormalizedVersion = semVer2Version.ToString(); // normalize the version string
-                FullVersion = semVer2Version.ToString(true); // get the full version string with build-metadata
                 IsPrerelease = semVer2Version.PreRelease != null;
                 IsMaxInclusive = false;
             }
@@ -380,15 +404,15 @@ namespace NugetForUnity
         /// Ignore spelling: SemVer, Sem, Ver
         private readonly struct SemVer2Version
         {
+            private readonly string buildMetadata;
+
             private readonly int major;
 
             private readonly int minor;
 
-            private readonly int? patch;
+            private readonly int patch;
 
-            private readonly int? revision;
-
-            private readonly string buildMetadata;
+            private readonly int revision;
 
             /// <summary>
             ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
@@ -401,8 +425,8 @@ namespace NugetForUnity
                 PreRelease = null;
                 major = -1;
                 minor = -1;
-                patch = null;
-                revision = null;
+                patch = -1;
+                revision = -1;
             }
 
             /// <summary>
@@ -428,19 +452,25 @@ namespace NugetForUnity
                         if (preReleaseStartIndex > 0)
                         {
                             PreRelease = version.Substring(preReleaseStartIndex + 1);
+
                             version = version.Substring(0, preReleaseStartIndex);
                         }
 
                         var split = version.Split('.');
                         major = int.Parse(split[0]);
-                        minor = int.Parse(split[1]);
-                        patch = null;
+                        minor = 0;
+                        if (split.Length >= 2)
+                        {
+                            minor = int.Parse(split[1]);
+                        }
+
+                        patch = 0;
                         if (split.Length >= 3)
                         {
                             patch = int.Parse(split[2]);
                         }
 
-                        revision = null;
+                        revision = 0;
                         if (split.Length >= 4)
                         {
                             revision = int.Parse(split[3]);
@@ -458,8 +488,8 @@ namespace NugetForUnity
                 PreRelease = null;
                 major = -1;
                 minor = -1;
-                patch = null;
-                revision = null;
+                patch = -1;
+                revision = -1;
             }
 
             public string PreRelease { get; }
@@ -485,21 +515,21 @@ namespace NugetForUnity
                         var minorComparison = minor.CompareTo(other.minor);
                         if (minorComparison == 0)
                         {
-                            var patchNumber = patch ?? 0;
-                            var otherPatch = other.patch ?? 0;
+                            var patchNumber = patch;
+                            var otherPatch = other.patch;
                             var patchComparison = patchNumber.CompareTo(otherPatch);
                             if (patchComparison == 0)
                             {
                                 // if patch versions are equal, compare build versions
-                                var revisionNumber = revision ?? 0;
-                                var otherRevision = other.revision ?? 0;
+                                var revisionNumber = revision;
+                                var otherRevision = other.revision;
                                 var revisionComparison = revisionNumber.CompareTo(otherRevision);
                                 if (revisionComparison == 0)
                                 {
                                     // if the build versions are equal, just return the prerelease version comparison
                                     var prerelease = PreRelease ?? "\uFFFF";
                                     var otherPrerelease = other.PreRelease ?? "\uFFFF";
-                                    var prereleaseComparison = string.Compare(prerelease, otherPrerelease, StringComparison.Ordinal);
+                                    var prereleaseComparison = string.Compare(prerelease, otherPrerelease, StringComparison.OrdinalIgnoreCase);
                                     return prereleaseComparison;
                                 }
 
@@ -544,16 +574,13 @@ namespace NugetForUnity
                 stringBuilder.Append(major);
                 stringBuilder.Append('.');
                 stringBuilder.Append(minor);
-                if (patch.HasValue)
-                {
-                    stringBuilder.Append('.');
-                    stringBuilder.Append(patch.Value);
-                }
+                stringBuilder.Append('.');
+                stringBuilder.Append(patch);
 
-                if (revision.HasValue)
+                if (revision != 0)
                 {
                     stringBuilder.Append('.');
-                    stringBuilder.Append(revision.Value);
+                    stringBuilder.Append(revision);
                 }
 
                 if (!string.IsNullOrEmpty(PreRelease))

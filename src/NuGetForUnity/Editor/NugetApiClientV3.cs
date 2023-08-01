@@ -48,6 +48,11 @@ namespace NugetForUnity
                 throw new ArgumentException($"'{nameof(url)}' cannot be null or whitespace.", nameof(url));
             }
 
+            if (packageSource is null)
+            {
+                throw new ArgumentNullException(nameof(packageSource));
+            }
+
             apiIndexJsonUrl = new Uri(url);
 
             if (!InitializeFromSessionState())
@@ -196,7 +201,7 @@ namespace NugetForUnity
             var getLatestVersion = string.IsNullOrEmpty(package.Version);
             var item = getLatestVersion ?
                 registrationResponse.items.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
-                registrationResponse.items.FirstOrDefault(
+                registrationResponse.items.Find(
                     registrationItem => package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.lower)) >= 0 &&
                                         package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.upper)) <= 0);
             if (item is null)
@@ -215,7 +220,7 @@ namespace NugetForUnity
 
             var leafItem = getLatestVersion ?
                 item.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.catalogEntry.version)).FirstOrDefault() :
-                item.items.FirstOrDefault(leaf => new NugetPackageVersion(leaf.catalogEntry.version) == package.PackageVersion);
+                item.items.Find(leaf => new NugetPackageVersion(leaf.catalogEntry.version) == package.PackageVersion);
             if (leafItem is null)
             {
                 Debug.LogError(
@@ -223,14 +228,13 @@ namespace NugetForUnity
                 return null;
             }
 
-            return leafItem.catalogEntry.dependencyGroups.Select(
-                    dependencyGroup => new NugetFrameworkGroup
-                    {
-                        Dependencies = dependencyGroup.dependencies.Select(dependency => new NugetPackageIdentifier(dependency.id, dependency.range))
-                            .ToList(),
-                        TargetFramework = dependencyGroup.targetFramework,
-                    })
-                .ToList();
+            return leafItem.catalogEntry.dependencyGroups.ConvertAll(
+                dependencyGroup => new NugetFrameworkGroup
+                {
+                    Dependencies =
+                        dependencyGroup.dependencies.ConvertAll(dependency => new NugetPackageIdentifier(dependency.id, dependency.range)),
+                    TargetFramework = dependencyGroup.targetFramework,
+                });
         }
 
         private bool InitializeFromSessionState()
@@ -301,10 +305,10 @@ namespace NugetForUnity
             {
                 AddHeadersToRequest(request, packageSource);
 
-                using (var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false))
+                using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
                     await EnsureResponseIsSuccess(response).ConfigureAwait(false);
-                    var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false) ?? string.Empty;
                     return responseString;
                 }
             }
@@ -340,7 +344,7 @@ namespace NugetForUnity
             var packages = new List<INugetPackage>(searchResults.Count);
             foreach (var item in searchResults)
             {
-                var versions = item.versions.Select(searchVersion => new NugetPackageVersion(searchVersion.version)).ToList();
+                var versions = item.versions.ConvertAll(searchVersion => new NugetPackageVersion(searchVersion.version));
                 versions.Sort();
                 packages.Add(
                     new NugetPackageV3(

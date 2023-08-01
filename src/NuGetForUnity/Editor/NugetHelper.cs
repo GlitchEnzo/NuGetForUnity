@@ -559,9 +559,9 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="targetFrameworks">The available frameworks.</param>
         /// <returns>The selected target framework or null if non is matching.</returns>
-        internal static string TryGetBestTargetFrameworkForCurrentSettings(IEnumerable<string> targetFrameworks)
+        internal static string TryGetBestTargetFrameworkForCurrentSettings(IReadOnlyCollection<string> targetFrameworks)
         {
-            var result = TargetFrameworkResolver.TryGetBestTargetFramework(targetFrameworks.ToList());
+            var result = TargetFrameworkResolver.TryGetBestTargetFramework(targetFrameworks);
             LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
         }
@@ -722,7 +722,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Uninstall's all of the currently installed packages.
+        ///     Uninstalls all of the currently installed packages.
         /// </summary>
         /// <param name="packagesToUninstall">The list of packages to uninstall.</param>
         internal static void UninstallAll(List<INugetPackage> packagesToUninstall)
@@ -736,12 +736,19 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     "Uninstall's" the given package by simply deleting its folder.
+        ///     "Uninstalls" the given package by simply deleting its folder.
         /// </summary>
         /// <param name="package">The NugetPackage to uninstall.</param>
         /// <param name="refreshAssets">True to force Unity to refresh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
         public static void Uninstall(INugetPackageIdentifier package, bool refreshAssets = true)
         {
+            // Checking for pre-imported packages also ensures that the pre-imported package list is up-to-date before we uninstall packages.
+            // Without this the pre-imported package list can contain the package as we delete the .dll before we call 'AssetDatabase.Refresh()'.
+            if (IsAlreadyImportedInEngine(package, false))
+            {
+                Debug.LogWarning($"Uninstalling {package} makes no sense because it is a package that is 'pre-imported' by Unity.");
+            }
+
             LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
 
             var foundPackage = package as INugetPackage ?? GetSpecificPackage(package);
@@ -807,7 +814,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Installs all of the given updates, and uninstalls the corresponding package that is already installed.
+        ///     Installs all of the given updates, and Uninstalls the corresponding package that is already installed.
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
@@ -1032,7 +1039,7 @@ namespace NugetForUnity
                     if (packageId.InRange(installedPackage))
                     {
                         var configPackage = PackagesConfigFile.Packages.Find(p => p.Id == packageId.Id);
-                        if (configPackage != null && configPackage.CompareVersion(installedPackage) < 0)
+                        if (configPackage != null && configPackage.PackageVersion < installedPackage.PackageVersion)
                         {
                             LogVerbose(
                                 "Requested {0} {1}. {2} is already installed, but config demands lower version.",
@@ -1207,7 +1214,7 @@ namespace NugetForUnity
                 if (comparisonResult > 0)
                 {
                     var configPackage = PackagesConfigFile.Packages.Find(identifier => identifier.Id == package.Id);
-                    if (configPackage != null && configPackage.CompareTo(installedPackage) < 0)
+                    if (configPackage != null && configPackage.PackageVersion < installedPackage.PackageVersion)
                     {
                         LogVerbose(
                             "{0} {1} is installed but config needs {2} so downgrading.",

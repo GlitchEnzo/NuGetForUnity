@@ -30,22 +30,6 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public int CompareTo(NugetPackageIdentifier other)
-        {
-            return CompareTo((INugetPackageIdentifier)other);
-        }
-
-        /// <summary>
-        ///     Checks to see if this <see cref="NugetPackageIdentifier" /> is equal to the given one.
-        /// </summary>
-        /// <param name="other">The other <see cref="NugetPackageIdentifier" /> to check equality with.</param>
-        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
-        public bool Equals(NugetPackageIdentifier other)
-        {
-            return Equals((INugetPackageIdentifier)other);
-        }
-
-        /// <inheritdoc />
         [field: SerializeField]
         public string Id { get; set; }
 
@@ -85,45 +69,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         public bool HasVersionRange => PackageVersion.HasVersionRange;
 
-        /// <inheritdoc />
-        public int CompareTo(INugetPackageIdentifier other)
-        {
-            var idCompareResult = string.Compare(Id, other.Id, StringComparison.OrdinalIgnoreCase);
-            if (idCompareResult != 0)
-            {
-                return idCompareResult;
-            }
-
-            return PackageVersion.CompareTo(other.PackageVersion);
-        }
-
-        /// <summary>
-        ///     Checks to see if this <see cref="INugetPackageIdentifier" /> is equal to the given one.
-        /// </summary>
-        /// <param name="other">The other <see cref="INugetPackageIdentifier" /> to check equality with.</param>
-        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
-        public bool Equals(INugetPackageIdentifier other)
-        {
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return !(other is null) && other.Id.Equals(Id, StringComparison.OrdinalIgnoreCase) && other.PackageVersion.Equals(PackageVersion);
-        }
-
-        /// <inheritdoc />
-        public bool InRange(INugetPackageIdentifier otherPackage)
-        {
-            return PackageVersion.InRange(otherPackage.PackageVersion);
-        }
-
-        /// <inheritdoc />
-        public bool InRange(NugetPackageVersion otherVersion)
-        {
-            return PackageVersion.InRange(otherVersion);
-        }
-
         /// <summary>
         ///     Checks to see if the first <see cref="NugetPackageIdentifier" /> is less than the second.
         /// </summary>
@@ -132,6 +77,11 @@ namespace NugetForUnity
         /// <returns>True if the first is less than the second.</returns>
         public static bool operator <(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
+            if (first is null)
+            {
+                return true;
+            }
+
             return first.CompareTo(second) < 0;
         }
 
@@ -143,6 +93,11 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than the second.</returns>
         public static bool operator >(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
+            if (first is null)
+            {
+                return false;
+            }
+
             return first.CompareTo(second) > 0;
         }
 
@@ -154,6 +109,11 @@ namespace NugetForUnity
         /// <returns>True if the first is less than or equal to the second.</returns>
         public static bool operator <=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
+            if (first is null)
+            {
+                return second is null;
+            }
+
             return first.CompareTo(second) <= 0;
         }
 
@@ -165,6 +125,11 @@ namespace NugetForUnity
         /// <returns>True if the first is greater than or equal to the second.</returns>
         public static bool operator >=(NugetPackageIdentifier first, NugetPackageIdentifier second)
         {
+            if (first is null)
+            {
+                return second is null;
+            }
+
             return first.CompareTo(second) >= 0;
         }
 
@@ -202,6 +167,66 @@ namespace NugetForUnity
             return !(first == second);
         }
 
+        /// <inheritdoc />
+        public int CompareTo(NugetPackageIdentifier other)
+        {
+            return CompareTo(other as INugetPackageIdentifier);
+        }
+
+        /// <inheritdoc />
+        public int CompareTo(INugetPackageIdentifier other)
+        {
+            if (other is null)
+            {
+                return -1;
+            }
+
+            var idCompareResult = string.Compare(Id, other.Id, StringComparison.OrdinalIgnoreCase);
+            if (idCompareResult != 0)
+            {
+                return idCompareResult;
+            }
+
+            return PackageVersion.CompareTo(other.PackageVersion);
+        }
+
+        /// <inheritdoc />
+        public bool InRange(INugetPackageIdentifier otherPackage)
+        {
+            return PackageVersion.InRange(otherPackage.PackageVersion);
+        }
+
+        /// <inheritdoc />
+        public bool InRange(NugetPackageVersion otherVersion)
+        {
+            return PackageVersion.InRange(otherVersion);
+        }
+
+        /// <summary>
+        ///     Checks to see if this <see cref="NugetPackageIdentifier" /> is equal to the given one.
+        /// </summary>
+        /// <param name="other">The other <see cref="NugetPackageIdentifier" /> to check equality with.</param>
+        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
+        public bool Equals(NugetPackageIdentifier other)
+        {
+            return Equals(other as INugetPackageIdentifier);
+        }
+
+        /// <summary>
+        ///     Checks to see if this <see cref="INugetPackageIdentifier" /> is equal to the given one.
+        /// </summary>
+        /// <param name="other">The other <see cref="INugetPackageIdentifier" /> to check equality with.</param>
+        /// <returns>True if the package identifiers are equal, otherwise false.</returns>
+        public bool Equals(INugetPackageIdentifier other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            return !(other is null) && other.Id.Equals(Id, StringComparison.OrdinalIgnoreCase) && other.PackageVersion.Equals(PackageVersion);
+        }
+
         /// <summary>
         ///     Determines if a given object is equal to this <see cref="NugetPackageIdentifier" />.
         /// </summary>
@@ -209,7 +234,7 @@ namespace NugetForUnity
         /// <returns>True if the given object is equal to this <see cref="NugetPackageIdentifier" />, otherwise false.</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as NugetPackageIdentifier);
+            return Equals(obj as INugetPackageIdentifier);
         }
 
         /// <summary>
@@ -228,21 +253,6 @@ namespace NugetForUnity
         public override string ToString()
         {
             return $"{Id}.{Version}";
-        }
-
-        /// <summary>
-        ///     Compares the given version string with the version range of this <see cref="NugetPackageIdentifier" />.
-        ///     See here: https://docs.nuget.org/ndocs/create-packages/dependency-versions.
-        /// </summary>
-        /// <param name="other">The package of witch the version to check if its version is grater or less then the <see cref="PackageVersion" />.</param>
-        /// <returns>
-        ///     -1 if the version of the other package is less than the version of this package.
-        ///     0 if the version of the other package equals the version of this package.
-        ///     +1 if the version of the other package is greater than the version of this package.
-        /// </returns>
-        public int CompareVersion(INugetPackageIdentifier other)
-        {
-            return PackageVersion.CompareTo(other.PackageVersion);
         }
     }
 }

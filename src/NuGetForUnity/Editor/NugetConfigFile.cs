@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -37,6 +36,10 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
         /// </summary>
+        /// <remarks>
+        ///     The NuGet server protocol version defaults to version "2" when not pointing to a package source URL ending in .json (e.g.
+        ///     https://api.nuget.org/v3/index.json).
+        /// </remarks>
         public List<INugetPackageSource> PackageSources { get; private set; }
 
         /// <summary>
@@ -267,7 +270,7 @@ namespace NugetForUnity
                     var disabled = add.Attribute("value").Value;
                     if (string.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase))
                     {
-                        var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                        var source = configFile.PackageSources.Find(p => p.Name == name);
                         if (source != null)
                         {
                             source.IsEnabled = false;
@@ -283,7 +286,7 @@ namespace NugetForUnity
                 foreach (var sourceElement in packageSourceCredentials.Elements())
                 {
                     var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
-                    var source = configFile.PackageSources.FirstOrDefault(p => p.Name == name);
+                    var source = configFile.PackageSources.Find(p => p.Name == name);
                     if (source != null)
                     {
                         var adds = sourceElement.Elements("add");
@@ -369,7 +372,7 @@ namespace NugetForUnity
 <configuration>
   <packageSources>
     <clear />
-    <add key=""NuGet"" value=""http://www.nuget.org/api/v2/"" />
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
   </packageSources>
   <disabledPackageSources />
   <activePackageSource>
@@ -377,7 +380,6 @@ namespace NugetForUnity
   </activePackageSource>
   <config>
     <add key=""repositoryPath"" value=""./Packages"" />
-    <add key=""DefaultPushSource"" value=""http://www.nuget.org/api/v2/"" />
   </config>
 </configuration>";
 

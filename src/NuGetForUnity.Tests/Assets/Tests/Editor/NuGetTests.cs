@@ -190,32 +190,18 @@ public class NuGetTests
 
         // StyleCopPlus depends on StyleCop, so they should both be installed
         // it depends on version 4.7.49.0, so ensure it is also installed
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopId), "The package was NOT installed: {0} {1}", styleCopId.Id, styleCopId.Version);
-
-        // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package is STILL installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId, styleCopId }));
     }
 
     [Test]
     public void InstallStyleCopWithoutDependenciesTest()
     {
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
-        var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
 
         NugetHelper.InstallIdentifier(styleCopPlusId, installDependencies: false);
 
-        // StyleCopPlus depends on StyleCop, so they should both be installed
-        // it depends on version 4.7.49.0, so ensure it is also installed
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package SHOULD NOT be installed: {0} {1}", styleCopId.Id, styleCopId.Version);
-
-        // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        // StyleCopPlus depends on StyleCop, so without 'installDependencies' they are both installed
+        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId }));
     }
 
     [Test]
