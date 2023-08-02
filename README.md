@@ -184,7 +184,7 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
 
-> **Note:** NuGetForUnity does't use the standard official NuGet Client implementation form Microsoft. So authenticating against a third-party NuGet server is not currently not supported for every case. If you ran into authentication issues pleas create a issue so we can try to implement it.
+> **Note:** NuGetForUnity does't use the official NuGet Client implementation form Microsoft, so authenticating against a third-party NuGet server is currently not supported for every case. If you ran into authentication issues pleas create a issue so we can try to implement it.
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share. [Local NuGet feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds) can have two different structures:
 
