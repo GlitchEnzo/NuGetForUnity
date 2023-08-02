@@ -8,7 +8,7 @@ namespace UnityEngine
     {
         public static T? FromJson<T>(string output)
         {
-            return JsonSerializer.Deserialize<T>(output);
+            return JsonSerializer.Deserialize<T>(output, new JsonSerializerOptions { IncludeFields = true });
         }
 
         public static void FromJsonOverwrite<T>(string jsonString, T target)
@@ -18,7 +18,7 @@ namespace UnityEngine
 
         internal static string ToJson<T>(T value)
         {
-            return JsonSerializer.Serialize(value);
+            return JsonSerializer.Serialize(value, new JsonSerializerOptions { IncludeFields = true });
         }
     }
 }
