@@ -520,7 +520,7 @@ namespace NugetForUnity
                             var patchComparison = patchNumber.CompareTo(otherPatch);
                             if (patchComparison == 0)
                             {
-                                // if patch versions are equal, compare build versions
+                                // if patch versions are equal, compare revision of the versions
                                 var revisionNumber = revision;
                                 var otherRevision = other.revision;
                                 var revisionComparison = revisionNumber.CompareTo(otherRevision);
