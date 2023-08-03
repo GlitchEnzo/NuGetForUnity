@@ -28,8 +28,12 @@ namespace NugetForUnity
 
             // Find all the assemblies already installed by NuGetForUnity
             var alreadyInstalledDllFileNames = new HashSet<string>();
+            if (NugetHelper.NugetConfigFile == null)
+            {
+                NugetHelper.LoadNugetConfigFile();
+            }
 
-            if (NugetHelper.NugetConfigFile != null && Directory.Exists(NugetHelper.NugetConfigFile.RepositoryPath))
+            if (Directory.Exists(NugetHelper.NugetConfigFile.RepositoryPath))
             {
                 alreadyInstalledDllFileNames = new HashSet<string>(
                     Directory.EnumerateFiles(NugetHelper.NugetConfigFile.RepositoryPath, "*.dll", SearchOption.AllDirectories)
@@ -81,8 +85,9 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Gets all libraries that are already imported by Unity Editor so we shouldn't / don't need to install them as NuGet packages.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The list of packages.</returns>
         internal static HashSet<string> GetAlreadyImportedEditorOnlyLibraries()
         {
             if (alreadyImportedEditorOnlyLibraries == null)

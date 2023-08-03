@@ -67,7 +67,7 @@ namespace NugetForUnity
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        public void AddPackage(NugetPackageIdentifier package)
+        public void AddPackage(INugetPackageIdentifier package)
         {
             AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
         }
@@ -76,7 +76,7 @@ namespace NugetForUnity
         ///     Removes a package from the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
-        public bool RemovePackage(NugetPackageIdentifier package)
+        public bool RemovePackage(INugetPackageIdentifier package)
         {
             var removed = Packages.RemoveAll(p => p.CompareTo(package) == 0);
             if (removed > 0)
@@ -87,11 +87,15 @@ namespace NugetForUnity
             return removed > 0;
         }
 
-        internal void SetManuallyInstalledFlag(NugetPackageIdentifier package)
+        /// <summary>
+        ///     Sets the manually installed flag for the given package.
+        /// </summary>
+        /// <param name="package">The package to mark as manually installed.</param>
+        internal void SetManuallyInstalledFlag(INugetPackageIdentifier package)
         {
             package.IsManuallyInstalled = true;
             var packageConfig = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
-            if (packageConfig != null)
+            if (packageConfig != null && !packageConfig.IsManuallyInstalled)
             {
                 packageConfig.IsManuallyInstalled = true;
                 MarkAsModified();
@@ -102,19 +106,19 @@ namespace NugetForUnity
         ///     Loads a list of all currently installed packages by reading the packages.config file.
         /// </summary>
         /// <returns>A newly created <see cref="PackagesConfigFile" />.</returns>
-        public static PackagesConfigFile Load(string filepath)
+        public static PackagesConfigFile Load(string filePath)
         {
             var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
 
             // Create a package.config file, if there isn't already one in the project
-            if (!File.Exists(filepath))
+            if (!File.Exists(filePath))
             {
-                Debug.LogFormat("No packages.config file found. Creating default at {0}", filepath);
+                Debug.LogFormat("No packages.config file found. Creating default at {0}", filePath);
 
-                configFile.Save(filepath);
+                configFile.Save(filePath);
             }
 
-            var packagesFile = XDocument.Load(filepath);
+            var packagesFile = XDocument.Load(filePath);
             foreach (var packageElement in packagesFile.Root.Elements())
             {
                 var package = new PackageConfig
@@ -129,23 +133,23 @@ namespace NugetForUnity
                 configFile.Packages.Add(package);
             }
 
-            configFile.contentIsSameAsInFilePath = filepath;
+            configFile.contentIsSameAsInFilePath = filePath;
             return configFile;
         }
 
         /// <summary>
         ///     Saves the packages.config file and populates it with given installed NugetPackages.
         /// </summary>
-        /// <param name="filepath">The filepath to where this packages.config will be saved.</param>
-        public void Save(string filepath)
+        /// <param name="filePath">The file-path to where this packages.config will be saved.</param>
+        public void Save(string filePath)
         {
-            if (contentIsSameAsInFilePath == filepath)
+            if (contentIsSameAsInFilePath == filePath)
             {
                 return;
             }
 
             Packages.Sort(
-                delegate(PackageConfig x, PackageConfig y)
+                (x, y) =>
                 {
                     if (x.Id == null && y.Id == null)
                     {
@@ -164,7 +168,7 @@ namespace NugetForUnity
 
                     if (x.Id == y.Id)
                     {
-                        return x.Version.CompareTo(y.Version);
+                        return x.PackageVersion.CompareTo(y.PackageVersion);
                     }
 
                     return x.Id.CompareTo(y.Id);
@@ -192,20 +196,20 @@ namespace NugetForUnity
             }
 
             // remove the read only flag on the file, if there is one.
-            var packageExists = File.Exists(filepath);
+            var packageExists = File.Exists(filePath);
             if (packageExists)
             {
-                var attributes = File.GetAttributes(filepath);
+                var attributes = File.GetAttributes(filePath);
 
                 if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
                 {
                     attributes &= ~FileAttributes.ReadOnly;
-                    File.SetAttributes(filepath, attributes);
+                    File.SetAttributes(filePath, attributes);
                 }
             }
 
-            packagesFile.Save(filepath);
-            contentIsSameAsInFilePath = filepath;
+            packagesFile.Save(filePath);
+            contentIsSameAsInFilePath = filePath;
         }
 
         private void MarkAsModified()

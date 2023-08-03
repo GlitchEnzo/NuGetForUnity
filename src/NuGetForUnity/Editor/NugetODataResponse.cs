@@ -1,14 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
 namespace NugetForUnity
 {
     /// <summary>
-    ///     Provides helper methods for parsing a NuGet server OData response.
+    ///     Provides helper methods for parsing a NuGet server OData response (NuGet API v2).
     ///     OData is a superset of the Atom API.
     /// </summary>
-    public static class NugetODataResponse
+    internal static class NugetODataResponse
     {
         private const string AtomNamespace = "http://www.w3.org/2005/Atom";
 
@@ -31,7 +32,7 @@ namespace NugetForUnity
         ///     Gets the <see cref="XElement" /> within the Atom namespace with the given name.
         /// </summary>
         /// <param name="element">The element containing the Atom element.</param>
-        /// <param name="name">The name of the Atom element</param>
+        /// <param name="name">The name of the Atom element.</param>
         /// <returns>The Atom element.</returns>
         private static XElement GetAtomElement(this XElement element, string name)
         {
@@ -39,13 +40,14 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackage" />s contained within.
+        ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackageV2Base" />s contained within.
         /// </summary>
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
-        /// <returns>The list of <see cref="NugetPackage" />s read from the given XML.</returns>
-        public static List<NugetPackage> Parse(XDocument document)
+        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
+        /// <returns>The list of <see cref="NugetPackageV2Base" />s read from the given XML.</returns>
+        public static List<NugetPackageV2Base> Parse(XDocument document, NugetPackageSourceV2 packageSource)
         {
-            var packages = new List<NugetPackage>();
+            var packages = new List<NugetPackageV2Base>();
 
             if (document.Root == null)
             {
@@ -64,7 +66,7 @@ namespace NugetForUnity
 
             foreach (var entry in packageEntries)
             {
-                var package = new NugetPackage
+                var package = new NugetPackageV2(packageSource)
                 {
                     Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };
@@ -77,8 +79,8 @@ namespace NugetForUnity
                 package.ReleaseNotes = entryProperties.GetProperty("ReleaseNotes");
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
-                package.Authors = entryProperties.GetProperty("Authors");
-                package.DownloadCount = long.Parse(entryProperties.GetProperty("DownloadCount"));
+                package.Authors = entryProperties.GetProperty("Authors").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                package.TotalDownloads = long.Parse(entryProperties.GetProperty("DownloadCount"));
                 package.IconUrl = entryProperties.GetProperty("IconUrl");
 
                 // if there is no title, just use the ID as the title

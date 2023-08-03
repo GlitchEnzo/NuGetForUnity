@@ -11,7 +11,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Helper for NuGet package icon download handling.
     /// </summary>
-    internal static class NuGetPackageTextureHelper
+    internal static class NugetPackageTextureHelper
     {
         /// <summary>
         ///     Downloads an image at the given URL and converts it to a Unity Texture2D.
@@ -33,6 +33,14 @@ namespace NugetForUnity
                     url = "file:///" + GetFilePath(url);
                     fromCache = true;
                 }
+
+#if UNITY_2022_1_OR_NEWER
+                if (UnityEditor.PlayerSettings.insecureHttpOption == UnityEditor.InsecureHttpOption.NotAllowed && url.StartsWith("http://"))
+                {
+                    // if insecure http url is not allowed try to use https.
+                    url = url.Replace("http://", "https://");
+                }
+#endif
 
                 var taskCompletionSource = new TaskCompletionSource<Texture2D>();
                 var request = UnityWebRequest.Get(url);

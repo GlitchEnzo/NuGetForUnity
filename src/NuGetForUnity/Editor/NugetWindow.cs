@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
@@ -15,7 +16,7 @@ namespace NugetForUnity
     /// <summary>
     ///     Represents the NuGet Package Manager Window in the Unity Editor.
     /// </summary>
-    public class NugetWindow : EditorWindow
+    public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
         private const string UpmPackageName = "com.github-glitchenzo.nugetforunity";
 
@@ -43,12 +44,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
-        private readonly HashSet<NugetPackage> openCloneWindows = new HashSet<NugetPackage>();
+        private readonly HashSet<INugetPackage> openCloneWindows = new HashSet<INugetPackage>();
 
         /// <summary>
         ///     Used to keep track of which packages are selected for uninstalling or updating.
         /// </summary>
-        private readonly HashSet<NugetPackage> selectedPackages = new HashSet<NugetPackage>();
+        private readonly HashSet<INugetPackage> selectedPackages = new HashSet<INugetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -58,8 +59,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of NugetPackages available to install.
         /// </summary>
-        [SerializeField]
-        private List<NugetPackage> availablePackages = new List<NugetPackage>();
+        private List<INugetPackage> availablePackages = new List<INugetPackage>();
 
         /// <summary>
         ///     The currently selected tab in the window.
@@ -72,7 +72,7 @@ namespace NugetForUnity
         [SerializeField]
         private Texture2D defaultIcon;
 
-        private List<NugetPackage> filteredInstalledPackages;
+        private List<INugetPackage> filteredInstalledPackages;
 
         /// <summary>
         ///     True when the NugetWindow has initialized. This is used to skip time-consuming reloading operations when the assembly is reloaded.
@@ -103,6 +103,12 @@ namespace NugetForUnity
         /// </summary>
         private Vector2 scrollPosition;
 
+        [SerializeField]
+        private List<SerializableNugetPackage> serializableAvailablePackages;
+
+        [SerializeField]
+        private List<SerializableNugetPackage> serializableUpdatePackages;
+
         /// <summary>
         ///     True to show all old package versions.  False to only show the latest version.
         /// </summary>
@@ -128,8 +134,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The list of package updates available, based on the already installed packages.
         /// </summary>
-        [SerializeField]
-        private List<NugetPackage> updatePackages = new List<NugetPackage>();
+        private List<INugetPackage> updatePackages = new List<INugetPackage>();
 
         /// <summary>
         ///     The search term to search the update packages for.
@@ -137,9 +142,9 @@ namespace NugetForUnity
         private string updatesSearchTerm = "Search";
 
         /// <summary>
-        ///     The filtered list of package updates available.
+        ///     Gets the filtered list of package updates available.
         /// </summary>
-        private List<NugetPackage> FilteredUpdatePackages
+        private List<INugetPackage> FilteredUpdatePackages
         {
             get
             {
@@ -155,7 +160,7 @@ namespace NugetForUnity
             }
         }
 
-        private List<NugetPackage> FilteredInstalledPackages
+        private List<INugetPackage> FilteredInstalledPackages
         {
             get
             {
@@ -188,6 +193,29 @@ namespace NugetForUnity
             }
         }
 
+        /// <inheritdoc />
+        public void OnBeforeSerialize()
+        {
+            serializableAvailablePackages = availablePackages.ConvertAll(package => new SerializableNugetPackage(package));
+            serializableUpdatePackages = updatePackages.ConvertAll(package => new SerializableNugetPackage(package));
+        }
+
+        /// <inheritdoc />
+        public void OnAfterDeserialize()
+        {
+            if (serializableAvailablePackages != null)
+            {
+                availablePackages = serializableAvailablePackages.ConvertAll(package => package.Interfaced);
+                serializableAvailablePackages = null;
+            }
+
+            if (serializableUpdatePackages != null)
+            {
+                updatePackages = serializableUpdatePackages.ConvertAll(package => package.Interfaced);
+                serializableUpdatePackages = null;
+            }
+        }
+
         /// <summary>
         ///     Opens the NuGet Package Manager Window.
         /// </summary>
@@ -198,7 +226,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Restores all packages defined in packages.config
+        ///     Restores all packages defined in packages.config.
         /// </summary>
         [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
@@ -308,7 +336,7 @@ namespace NugetForUnity
                 }
 
                 unitypackageDownloadUrl = release.assets
-                    .FirstOrDefault(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+                    .Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
                     ?.browser_download_url;
                 return release.tag_name.TrimStart('v');
             }
@@ -322,6 +350,8 @@ namespace NugetForUnity
         /// </summary>
         private void OnEnable()
         {
+            name = "NuGetForUnity";
+            titleContent = new GUIContent("NuGet For Unity");
             Refresh(false);
         }
 
@@ -339,7 +369,7 @@ namespace NugetForUnity
             {
                 if (forceFullRefresh)
                 {
-                    NugetHelper.ClearCachedCredentials();
+                    CredentialProviderHelper.ClearCachedCredentials();
                 }
 
                 // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
@@ -353,16 +383,12 @@ namespace NugetForUnity
 
                 NugetHelper.LogVerbose(hasRefreshed ? "NugetWindow reloading config" : "NugetWindow reloading config and updating packages");
 
-                // set the window title
-                titleContent = new GUIContent("NuGet");
-
                 if (!hasRefreshed || forceFullRefresh)
                 {
                     // reset the number to skip
                     numberToSkip = 0;
 
                     // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
-
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
                     UpdateOnlinePackages();
 
@@ -396,12 +422,18 @@ namespace NugetForUnity
         /// </summary>
         private void UpdateOnlinePackages()
         {
-            availablePackages = NugetHelper.Search(
-                onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                showAllOnlineVersions,
-                showOnlinePrerelease,
-                numberToGet,
-                numberToSkip);
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
+
+            // we just block the main thread
+            availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip))
+                .GetAwaiter().GetResult();
+            NugetHelper.LogVerbose(
+                "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
+                searchTerm,
+                availablePackages.Count,
+                stopwatch.ElapsedMilliseconds);
         }
 
         private void UpdateInstalledPackages()
@@ -420,7 +452,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/
+        ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/.
         /// </summary>
         /// <param name="color">The color to fill the texture with.</param>
         /// <returns>The generated texture.</returns>
@@ -652,12 +684,13 @@ namespace NugetForUnity
             {
                 numberToSkip += numberToGet;
                 availablePackages.AddRange(
-                    NugetHelper.Search(
-                        onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                        showAllOnlineVersions,
-                        showOnlinePrerelease,
-                        numberToGet,
-                        numberToSkip));
+                 Task.Run(() => NugetHelper.Search(
+                            onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
+                            showAllOnlineVersions,
+                            showOnlinePrerelease,
+                            numberToGet,
+                            numberToSkip))
+                        .GetAwaiter().GetResult());
             }
 
             EditorGUILayout.EndVertical();
@@ -666,7 +699,7 @@ namespace NugetForUnity
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawPackages(IEnumerable<NugetPackage> packages, bool canBeSelected = false)
+        private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
             var contrastStyle = GetContrastStyle();
@@ -873,7 +906,10 @@ namespace NugetForUnity
         ///     Draws the given <see cref="NugetPackage" />.
         /// </summary>
         /// <param name="package">The <see cref="NugetPackage" /> to draw.</param>
-        private void DrawPackage(NugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
+        /// <param name="packageStyle">The normal style of the package section.</param>
+        /// <param name="contrastStyle">The contrast style of the package section.</param>
+        /// <param name="canBeSelected">If a check-box should be shown.</param>
+        private void DrawPackage(INugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = NugetHelper.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
@@ -947,28 +983,28 @@ namespace NugetForUnity
                     EditorStyles.label.fontStyle = FontStyle.Normal;
                     rect.y += EditorStyles.label.fontSize / 2f;
 
-                    if (!string.IsNullOrEmpty(package.Authors))
+                    if (package.Authors.Count > 0)
                     {
-                        var authorLabel = $"by {package.Authors}";
+                        var authorLabel = string.Format("by {0}", string.Join(", ", package.Authors));
                         var size = EditorStyles.label.CalcSize(new GUIContent(authorLabel));
                         GUI.Label(rect, authorLabel, EditorStyles.label);
                         rect.x += size.x + paddingX;
                     }
 
-                    if (package.DownloadCount > 0)
+                    if (package.TotalDownloads > 0)
                     {
-                        var downloadLabel = $"{package.DownloadCount:#,#} downloads";
+                        var downloadLabel = $"{package.TotalDownloads:#,#} downloads";
                         GUI.Label(rect, downloadLabel, EditorStyles.label);
                     }
                 }
 
                 GUILayout.FlexibleSpace();
-                if (installed != null && installed.Version != package.Version)
+                if (installed != null && installed.PackageVersion != package.PackageVersion)
                 {
-                    GUILayout.Label($"Current Version {installed.FullVersion}");
+                    GUILayout.Label($"Current Version {installed.PackageVersion.FullVersion}");
                 }
 
-                GUILayout.Label($"Version {package.FullVersion}");
+                GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
 
                 if (installed != null)
                 {
@@ -981,7 +1017,8 @@ namespace NugetForUnity
                         }
                     }
 
-                    if (installed < package)
+                    var versionComparison = installed.PackageVersion.CompareTo(package.PackageVersion);
+                    if (versionComparison < 0)
                     {
                         // An older version is installed
                         if (GUILayout.Button("Update"))
@@ -991,7 +1028,7 @@ namespace NugetForUnity
                             UpdateUpdatePackages();
                         }
                     }
-                    else if (installed > package)
+                    else if (versionComparison > 0)
                     {
                         // A newer version is installed
                         if (GUILayout.Button("Downgrade"))
@@ -1045,19 +1082,18 @@ namespace NugetForUnity
 
                     if (!package.Title.Equals(package.Id, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        summary = string.Format("{0} - {1}", package.Title, summary);
+                        summary = $"{package.Title} - {summary}";
                     }
 
                     if (summary.Length >= 240)
                     {
-                        summary = string.Format("{0}...", summary.Substring(0, 237));
+                        summary = $"{summary.Substring(0, 237)}...";
                     }
 
                     EditorGUILayout.LabelField(summary);
 
-                    bool detailsFoldout;
-                    var detailsFoldoutId = string.Format("{0}.{1}", package.Id, "Details");
-                    if (!foldouts.TryGetValue(detailsFoldoutId, out detailsFoldout))
+                    var detailsFoldoutId = $"{package.Id}.Details";
+                    if (!foldouts.TryGetValue(detailsFoldoutId, out var detailsFoldout))
                     {
                         foldouts[detailsFoldoutId] = detailsFoldout;
                     }
@@ -1089,21 +1125,29 @@ namespace NugetForUnity
                         }
 
                         // Show the dependencies
-                        if (package.Dependencies.Count > 0)
+                        if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            EditorStyles.label.wordWrap = true;
-                            EditorStyles.label.fontStyle = FontStyle.Italic;
-                            var builder = new StringBuilder();
-
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package);
-                            foreach (var dependency in frameworkGroup.Dependencies)
+                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+                            if (frameworkGroup.Dependencies.Count > 0)
                             {
-                                builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
-                            }
+                                EditorStyles.label.wordWrap = true;
+                                EditorStyles.label.fontStyle = FontStyle.Italic;
+                                var builder = new StringBuilder();
 
+                                foreach (var dependency in frameworkGroup.Dependencies)
+                                {
+                                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                                }
+
+                                EditorGUILayout.Space();
+                                EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder));
+                                EditorStyles.label.fontStyle = FontStyle.Normal;
+                            }
+                        }
+                        else
+                        {
                             EditorGUILayout.Space();
-                            EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder));
-                            EditorStyles.label.fontStyle = FontStyle.Normal;
+                            EditorGUILayout.LabelField("Loading dependencies...");
                         }
 
                         // Create the style for putting a box around the 'Clone' button

@@ -1,0 +1,8 @@
+{
+    "profiles": {
+        "NuGetForUnity.Cli": {
+            "commandName": "Project",
+            "commandLineArgs": "restore ../../../../TestProjects/ImportAndUseNuGetPackages"
+        }
+    }
+}

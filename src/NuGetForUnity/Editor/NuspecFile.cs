@@ -12,36 +12,39 @@ namespace NugetForUnity
     ///     Represents a .nuspec file used to store metadata for a NuGet package.
     /// </summary>
     /// <remarks>
-    ///     At a minumum, Id, Version, Description, and Authors is required.  Everything else is optional.
-    ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec
+    ///     At a minimum, Id, Version, Description, and Authors is required.  Everything else is optional.
+    ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec.
     /// </remarks>
     public class NuspecFile : NugetPackageIdentifier
     {
         /// <summary>
-        ///     Gets or sets the source control branch the package is from.
+        ///     Initializes a new instance of the <see cref="NuspecFile" /> class.
         /// </summary>
-        public string RepositoryBranch;
-
-        /// <summary>
-        ///     Gets or sets the source control commit the package is from.
-        /// </summary>
-        public string RepositoryCommit;
-
-        /// <summary>
-        ///     Gets or sets the type of source control software that the package's source code resides in.
-        /// </summary>
-        public string RepositoryType;
-
-        /// <summary>
-        ///     Gets or sets the url for the location of the package's source code.
-        /// </summary>
-        public string RepositoryUrl;
-
         public NuspecFile()
         {
             Dependencies = new List<NugetFrameworkGroup>();
             Files = new List<NuspecContentFile>();
         }
+
+        /// <summary>
+        ///     Gets or sets the source control branch the package is from.
+        /// </summary>
+        public string RepositoryBranch { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the source control commit the package is from.
+        /// </summary>
+        public string RepositoryCommit { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the type of source control software that the package's source code resides in.
+        /// </summary>
+        public string RepositoryType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the url for the location of the package's source code.
+        /// </summary>
+        public string RepositoryUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the title of the NuGet package.
@@ -59,7 +62,7 @@ namespace NugetForUnity
         public string LicenseUrl { get; set; }
 
         /// <summary>
-        ///     Gets or sets the URL for the location of the project webpage of the NuGet package.
+        ///     Gets or sets the URL for the location of the project web-page of the NuGet package.
         /// </summary>
         public string ProjectUrl { get; set; }
 
@@ -128,30 +131,29 @@ namespace NugetForUnity
         /// <summary>
         ///     Loads the .nuspec file inside the .nupkg file at the given file path.
         /// </summary>
-        /// <param name="nupkgFilepath">The file path to the .nupkg file to load.</param>
+        /// <param name="nupkgFilePath">The file path to the .nupkg file to load.</param>
         /// <returns>The .nuspec file loaded from inside the .nupkg file.</returns>
-        public static NuspecFile FromNupkgFile(string nupkgFilepath)
+        public static NuspecFile FromNupkgFile(string nupkgFilePath)
         {
             var nuspec = new NuspecFile();
 
-            if (File.Exists(nupkgFilepath))
+            if (File.Exists(nupkgFilePath))
             {
                 // get the .nuspec file from inside the .nupkg
-                using (var zip = ZipFile.OpenRead(nupkgFilepath))
+                using (var zip = ZipFile.OpenRead(nupkgFilePath))
                 {
-                    //var entry = zip[string.Format("{0}.nuspec", packageId)];
                     var entry = zip.Entries.First(x => x.FullName.EndsWith(".nuspec"));
 
                     using (var stream = entry.Open())
                     {
-                        nuspec = Load(stream).SetIconFilePath(nupkgFilepath);
+                        nuspec = Load(stream).SetIconFilePath(nupkgFilePath);
                     }
                 }
             }
             else
             {
-                Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilepath);
-                nuspec.Description = string.Format("COULD NOT LOAD {0}", nupkgFilepath);
+                Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilePath);
+                nuspec.Description = string.Format("COULD NOT LOAD {0}", nupkgFilePath);
             }
 
             return nuspec;
@@ -271,9 +273,27 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Saves a <see cref="NuspecFile" /> to the given filepath, automatically overwriting.
+        ///     Full filename, including full path, of this NuGet package's file in a local NuGet repository.
         /// </summary>
-        /// <param name="filePath">The full filepath to the .nuspec file to save.</param>
+        /// <remarks>
+        ///     Use this method when attempting to find a package file in a local repository. Do not use
+        ///     <see cref="GetPackageFilePath(string)" /> for this purpose. The existence of the file is verified.
+        /// </remarks>
+        /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
+        /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
+        public string GetLocalPackageFilePath(string baseDirectoryPath)
+        {
+            // Find this package's file in the repository.
+            var files = Directory.GetFiles(baseDirectoryPath, PackageFileName, SearchOption.AllDirectories);
+
+            // If we found any, return the first found; otherwise return null.
+            return files.FirstOrDefault();
+        }
+
+        /// <summary>
+        ///     Saves a <see cref="NuspecFile" /> to the given file-path, automatically overwriting.
+        /// </summary>
+        /// <param name="filePath">The full file-path to the .nuspec file to save.</param>
         public void Save(string filePath)
         {
             // TODO: Set a namespace when saving
@@ -336,7 +356,6 @@ namespace NugetForUnity
 
             if (Dependencies.Count > 0)
             {
-                //UnityEngine.Debug.Log("Saving dependencies!");
                 var dependenciesElement = new XElement("dependencies");
                 foreach (var frameworkGroup in Dependencies)
                 {
@@ -362,7 +381,6 @@ namespace NugetForUnity
 
             if (Files.Count > 0)
             {
-                //UnityEngine.Debug.Log("Saving files!");
                 var filesElement = new XElement("files");
                 foreach (var contentFile in Files)
                 {
@@ -395,7 +413,7 @@ namespace NugetForUnity
             var convertedTargetFramework = targetFramework.ToLower().Replace(".netstandard", "netstandard").Replace("native0.0", "native");
 
             convertedTargetFramework = convertedTargetFramework.StartsWith(".netframework") ?
-                convertedTargetFramework.Replace(".netframework", "net").Replace(".", "") :
+                convertedTargetFramework.Replace(".netframework", "net").Replace(".", string.Empty) :
                 convertedTargetFramework;
 
             return convertedTargetFramework;

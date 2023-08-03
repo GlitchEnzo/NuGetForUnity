@@ -39,6 +39,33 @@ namespace NugetForUnity
             throw new InvalidOperationException("Can't find property 'IsExplicitlyReferenced'.");
 
         /// <summary>
+        ///     Called when the asset database finishes importing assets.
+        ///     We use it to check if packages.config has been changed and if so, we want to restore packages.
+        /// </summary>
+        /// <param name="importedAssets">The list of assets that were imported.</param>
+        /// <param name="deletedAssets">The list of assets that were deleted.</param>
+        /// <param name="movedAssets">The list of assets that were moved.</param>
+        /// <param name="movedFromAssetPaths">The list of paths of assets that were moved.</param>
+        internal static void OnPostprocessAllAssets(
+            string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            var packagesConfigFilePath = Path.GetFullPath(NugetHelper.PackagesConfigFilePath);
+            var foundPackagesConfigAsset = importedAssets.Any(
+                importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
+
+            if (!foundPackagesConfigAsset)
+            {
+                return;
+            }
+
+            NugetHelper.ReloadPackagesConfig();
+            NugetHelper.Restore();
+        }
+
+        /// <summary>
         ///     Get informed about a new asset that is added.
         ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
         ///     so we can change the import settings before unity throws errors about incompatibility etc..
@@ -67,29 +94,8 @@ namespace NugetForUnity
             LogResults(results);
         }
 
-        /// <summary>
-        ///     Called when the asset database finishes importing assets.
-        ///     We use it to check if packages.config has been changed and if so, we want to restore packages.
-        /// </summary>
-        internal static void OnPostprocessAllAssets(string[] importedAssets,
-            string[] deletedAssets,
-            string[] movedAssets,
-            string[] movedFromAssetPaths)
-        {
-            var packagesConfigFilePath = Path.GetFullPath(NugetHelper.PackagesConfigFilePath);
-            var foundPackagesConfigAsset = importedAssets.Any(
-                importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
-
-            if (!foundPackagesConfigAsset)
-            {
-                return;
-            }
-
-            NugetHelper.ReloadPackagesConfig();
-            NugetHelper.Restore();
-        }
-
-        private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(string projectRelativeAssetPath,
+        private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(
+            string projectRelativeAssetPath,
             string absoluteRepositoryPath,
             bool reimport)
         {
@@ -116,7 +122,7 @@ namespace NugetForUnity
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
             var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : null;
             var packageName = string.Join(".", packageNameParts.TakeWhile(part => !part.All(char.IsDigit)));
-            var packageConfig = NugetHelper.PackagesConfigFile.Packages.FirstOrDefault(
+            var packageConfig = NugetHelper.PackagesConfigFile.Packages.Find(
                 packageSettings => packageSettings.Id.Equals(packageName, StringComparison.OrdinalIgnoreCase));
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
@@ -220,7 +226,7 @@ namespace NugetForUnity
         ///     This is needed for assemblies that are imported by unity but only in edit-mode so we can only import it in play-mode.
         ///     <seealso cref="UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries" />.
         /// </summary>
-        /// <param name="assemblyAssetPath">The path to the .dll file.</param>
+        /// <param name="plugin">The asset to edit.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
         private static void ModifyImportSettingsOfPlayerOnly(PluginImporter plugin, bool reimport)
         {

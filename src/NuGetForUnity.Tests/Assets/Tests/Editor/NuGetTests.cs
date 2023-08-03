@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using NugetForUnity;
 using NUnit.Framework;
 using UnityEditor;
@@ -11,6 +12,15 @@ using UnityEngine;
 
 public class NuGetTests
 {
+    public enum InstallMode
+    {
+        ApiV2Only,
+
+        ApiV3Only,
+
+        ApiV2AllowCached,
+    }
+
     private Stopwatch stopwatch;
 
     [SetUp]
@@ -18,6 +28,11 @@ public class NuGetTests
     {
         stopwatch = Stopwatch.StartNew();
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}");
+
+        if (NugetHelper.NugetConfigFile == null)
+        {
+            NugetHelper.LoadNugetConfigFile();
+        }
     }
 
     [TearDown]
@@ -42,8 +57,10 @@ public class NuGetTests
 
     [Test]
     [Order(2)]
-    public void InstallJsonTest()
+    public void InstallJsonTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         // install a specific version
         var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8") { IsManuallyInstalled = true };
         NugetHelper.InstallIdentifier(json608);
@@ -64,13 +81,10 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallRoslynAnalyzerTest()
+    public void InstallRoslynAnalyzerTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
         var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") { IsManuallyInstalled = true };
-        if (NugetHelper.NugetConfigFile == null)
-        {
-            NugetHelper.LoadNugetConfigFile();
-        }
 
         // install the package
         NugetHelper.InstallIdentifier(analyzer);
@@ -107,8 +121,10 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallProtobufTest()
+    public void InstallProtobufTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
 
         // install the package
@@ -121,12 +137,9 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallBootstrapCSSTest()
+    public void InstallBootstrapCSSTest([Values] InstallMode installMode)
     {
-        if (NugetHelper.NugetConfigFile == null)
-        {
-            NugetHelper.LoadNugetConfigFile();
-        }
+        ConfigureNugetConfig(installMode);
 
         // disable the cache for now to force getting the lowest version of the dependency
         NugetHelper.NugetConfigFile.InstallFromCache = false;
@@ -166,8 +179,10 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallStyleCopTest()
+    public void InstallStyleCopTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5") { IsManuallyInstalled = true };
         var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
 
@@ -175,37 +190,25 @@ public class NuGetTests
 
         // StyleCopPlus depends on StyleCop, so they should both be installed
         // it depends on version 4.7.49.0, so ensure it is also installed
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopId), "The package was NOT installed: {0} {1}", styleCopId.Id, styleCopId.Version);
-
-        // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package is STILL installed: {0} {1}", styleCopId.Id, styleCopId.Version);
+        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId, styleCopId }));
     }
 
     [Test]
     public void InstallStyleCopWithoutDependenciesTest()
     {
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
-        var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
 
         NugetHelper.InstallIdentifier(styleCopPlusId, installDependencies: false);
 
-        // StyleCopPlus depends on StyleCop, so they should both be installed
-        // it depends on version 4.7.49.0, so ensure it is also installed
-        Assert.IsTrue(NugetHelper.IsInstalled(styleCopPlusId), "The package was NOT installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopId), "The package SHOULD NOT be installed: {0} {1}", styleCopId.Id, styleCopId.Version);
-
-        // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(styleCopPlusId), "The package is STILL installed: {0} {1}", styleCopPlusId.Id, styleCopPlusId.Version);
+        // StyleCopPlus depends on StyleCop, so without 'installDependencies' they are both installed
+        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId }));
     }
 
     [Test]
-    public void InstallSignalRClientTest()
+    public void InstallSignalRClientTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(signalRClient);
@@ -231,8 +234,10 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallMicrosoftMlProbabilisticCompilerTest()
+    public void InstallMicrosoftMlProbabilisticCompilerTest([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         var probabilisticCompiler = new NugetPackageIdentifier("Microsoft.ML.Probabilistic.Compiler", "0.4.2301.301") { IsManuallyInstalled = true };
 
         NugetHelper.InstallIdentifier(probabilisticCompiler);
@@ -261,13 +266,25 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallPolySharp()
+    public void InstallPolySharp([Values] InstallMode installMode)
     {
+        ConfigureNugetConfig(installMode);
+
         var polySharp = new NugetPackageIdentifier("PolySharp", "1.13.2+0596138b111ff552137684c6f7c3373805d2e3d2") { IsManuallyInstalled = true };
         NugetHelper.InstallIdentifier(polySharp);
         Assert.IsTrue(NugetHelper.IsInstalled(polySharp), "The package was NOT installed: {0} {1}", polySharp.Id, polySharp.Version);
         NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
         Assert.IsFalse(NugetHelper.IsInstalled(polySharp), "The package is STILL installed: {0} {1}", polySharp.Id, polySharp.Version);
+    }
+
+    [Test]
+    public void InstallPrereleasPackage([Values] InstallMode installMode)
+    {
+        ConfigureNugetConfig(installMode);
+
+        var package = new NugetPackageIdentifier("StyleCop.Analyzers", "1.2.0-beta.507") { IsManuallyInstalled = true };
+        NugetHelper.InstallIdentifier(package);
+        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
 
     [Test]
@@ -284,8 +301,10 @@ public class NuGetTests
             // get the package file by installing it
             NugetHelper.InstallIdentifier(package);
             Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
-            var packageFilePath =
-                package.GetPackageFilePath(Path.Combine(NugetHelper.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}"));
+            var packageFilePath = Path.Combine(
+                NugetHelper.NugetConfigFile.RepositoryPath,
+                $"{package.Id}.{package.Version}",
+                package.PackageFileName);
             Assert.That(packageFilePath, Does.Exist.IgnoreDirectories);
 
             // Hierarchical folder structures are supported in NuGet 3.3+.
@@ -304,7 +323,7 @@ public class NuGetTests
             var nugetConfig = NugetHelper.NugetConfigFile;
             nugetConfig.InstallFromCache = false;
             nugetConfig.PackageSources.Clear();
-            nugetConfig.PackageSources.Add(new NugetPackageSource("LocalUnitTestSource", tempDirectoryPath));
+            nugetConfig.PackageSources.Add(new NugetPackageSourceLocal("LocalUnitTestSource", tempDirectoryPath));
             nugetConfig.Save(NugetHelper.NugetConfigFilePath);
             NugetHelper.LoadNugetConfigFile();
 
@@ -316,8 +335,24 @@ public class NuGetTests
             Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
 
             // search local package source
-            var localPackages = NugetHelper.Search();
+            var localPackages = Task.Run(() => NugetHelper.Search()).GetAwaiter().GetResult();
             Assert.That(localPackages, Is.EqualTo(new[] { package }));
+
+            // install without a version number
+            var packageWithoutVersion = new NugetPackageIdentifier("protobuf-net", string.Empty) { IsManuallyInstalled = true };
+            NugetHelper.InstallIdentifier(packageWithoutVersion);
+            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+
+            // install with a version range
+            var packageWithRange = new NugetPackageIdentifier("protobuf-net", "[1.0)") { IsManuallyInstalled = true };
+            NugetHelper.InstallIdentifier(packageWithRange);
+            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+
+            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
         }
         finally
         {
@@ -343,8 +378,9 @@ public class NuGetTests
     [TestCase("1.0.0", "1.0.0.10")]
     public void VersionComparison(string smallerVersion, string greaterVersion)
     {
-        var smallerPackage = new NugetPackage { Id = "TestPackage", Version = smallerVersion };
-        var greaterPackage = new NugetPackage { Id = "TestPackage", Version = greaterVersion };
+        var localNugetPackageSource = new NugetPackageSourceLocal("test", "test");
+        var smallerPackage = new NugetPackageLocal(localNugetPackageSource) { Id = "TestPackage", Version = smallerVersion };
+        var greaterPackage = new NugetPackageLocal(localNugetPackageSource) { Id = "TestPackage", Version = greaterVersion };
 
         Assert.IsTrue(smallerPackage.CompareTo(greaterPackage) < 0, "{0} was NOT smaller than {1}", smallerVersion, greaterVersion);
         Assert.IsTrue(greaterPackage.CompareTo(smallerPackage) > 0, "{0} was NOT greater than {1}", greaterVersion, smallerVersion);
@@ -354,20 +390,26 @@ public class NuGetTests
     [TestCase("1.0.0", "1.00.0")]
     [TestCase("1.0.0", "1.0.00")]
     [TestCase("1.0.0", "01.0.0")]
+    [TestCase("1.0.0", "1.0")]
+    [TestCase("1.0.0", "1.0.0.0")]
     [TestCase("1.0.0-rc1", "1.0.00-rc1")]
+    [TestCase("1.0.0-rc1", "1.0-rc1")]
+    [TestCase("1.0.0-rc.1", "1.0.0-RC.1")]
     [TestCase("1.0.0+123", "1.0.0")]
+    [TestCase("1.0.0+123", "1.0")]
     [TestCase("1.0.0+123", "1.0.0+478")]
     [TestCase("1.0.0-rc1+123", "1.0.0-rc1")]
     [TestCase("1.0.0-rc1+123", "1.0.0-rc1+478")]
     public void VersionComparisonEqual(string version1, string version2)
     {
-        var package1 = new NugetPackage { Id = "TestPackage", Version = version1 };
-        var package2 = new NugetPackage { Id = "TestPackage", Version = version2 };
+        var package1 = new NugetPackageIdentifier { Id = "TestPackage", Version = version1 };
+        var package2 = new NugetPackageIdentifier { Id = "TestPackage", Version = version2 };
 
         Assert.IsTrue(package1.CompareTo(package2) == 0, "{0} was NOT equal to {1}", version1, version2);
         Assert.IsTrue(package2.CompareTo(package1) == 0, "{0} was NOT equal to {1}", version2, version1);
         Assert.IsTrue(package2.Equals(package1), "{0} was NOT equal to {1}", version2, version1);
         Assert.IsTrue(package1.Equals(package2), "{0} was NOT equal to {1}", version1, version2);
+        Assert.IsTrue(package1.GetHashCode() == package2.GetHashCode(), "{0} has NOT equal hash-code to {1}", version1, version2);
     }
 
     [Test]
@@ -421,7 +463,7 @@ public class NuGetTests
 
         var file = NugetConfigFile.CreateDefaultFile(path);
 
-        var inputSource = new NugetPackageSource(name, "localhost") { UserName = username, SavedPassword = password };
+        var inputSource = new NugetPackageSourceV2(name, "http://localhost") { UserName = username, SavedPassword = password };
 
         file.PackageSources.Add(inputSource);
         file.Save(path);
@@ -438,7 +480,8 @@ public class NuGetTests
     [TestCase("2018.4.30f1", true, false, false)]
     [TestCase("2021.3.16f1", false, true, true)]
     [TestCase("2021.3.16f1", true, true, true)]
-    public void TryGetBestTargetFrameworkForCurrentSettingsTest(string unityVersion,
+    public void TryGetBestTargetFrameworkForCurrentSettingsTest(
+        string unityVersion,
         bool useNetStandard,
         bool supportsNetStandard21,
         bool supportsNet48)
@@ -591,7 +634,7 @@ public class NuGetTests
         Assert.That(deserialized, Is.EqualTo(identifier));
         Assert.That(deserialized.IsPrerelease, Is.EqualTo(identifier.IsPrerelease));
         Assert.That(deserialized.Version, Is.EqualTo(identifier.Version));
-        Assert.That(deserialized.FullVersion, Is.EqualTo(identifier.FullVersion));
+        Assert.That(deserialized.PackageVersion.FullVersion, Is.EqualTo(identifier.PackageVersion.FullVersion));
         Assert.That(deserialized.IsManuallyInstalled, Is.EqualTo(identifier.IsManuallyInstalled));
         Assert.That(deserialized.CompareTo(identifier), Is.EqualTo(0));
 
@@ -664,5 +707,15 @@ public class NuGetTests
         Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
+    }
+
+    private static void ConfigureNugetConfig(InstallMode installMode)
+    {
+        var nugetConfigFile = NugetHelper.NugetConfigFile;
+        var packageSources = nugetConfigFile.PackageSources;
+        packageSources.Single(source => source.Name == "V3").IsEnabled = installMode == InstallMode.ApiV3Only;
+        packageSources.Single(source => source.Name == "NuGet").IsEnabled =
+            installMode == InstallMode.ApiV2Only || installMode == InstallMode.ApiV2AllowCached;
+        nugetConfigFile.InstallFromCache = installMode == InstallMode.ApiV2AllowCached;
     }
 }

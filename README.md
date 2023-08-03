@@ -23,7 +23,7 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity
 ```
 
-> **_NOTE:_** To install a concreate version you can specify the version by prepending #v{version} e.g. `#v2.0.0`. For more see [Unity UPM Documentation](https://docs.unity3d.com/Manual/upm-git.html).
+> **_NOTE:_** To install a concrete version you can specify the version by prepending #v{version} e.g. `#v2.0.0`. For more see [Unity UPM Documentation](https://docs.unity3d.com/Manual/upm-git.html).
 
 #### Unity 2019.2 or earlier
 
@@ -70,17 +70,17 @@ After several seconds (it can take some time to query the server for packages), 
 
 The **Online** tab shows the packages available on the NuGet server.
 
-Enable **Show All Versions** to list all old versions of a package (doesn't work with nuget.org).
+Enable **Show All Versions** to list all old versions of a package (currently only works with local nuget feeds).
 Disable **Show All Versions** to only show the latest version of a package.
 
-Enable **Show Prelease** to list prerelease versions of packages (alpha, beta, release candidate, etc).
+Enable **Show Prerelease** to list prerelease versions of packages (alpha, beta, release candidate, etc).
 Disable **Show Prerelease** to only show stable releases.
 
 Type a search term in the **Search** box to filter what is displayed.
 
 Press the **Refresh** button to refresh the window with the latest query settings. (Useful after pushing a new package to the server and wanting to see it without closing and reopening the window.)
 
-The name of the package, the version of the package (in square brakets), and a description are displayed.
+The name of the package, the version of the package (in square brackets), and a description are displayed.
 
 Click the **View License** to open the license in a web browser.
 
@@ -97,7 +97,7 @@ The **Installed packages** part of the list shows packages directly installed as
 The **Implicitly installed packages** part shows packages that are installed as transitive dependencies.
 
 Click the **Uninstall** button to uninstall the package.
-When uninstalling an **explicitely** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled.
+When uninstalling an **explicitly** installed package, all of its dependencies that are not a dependency of any other package or the project itself will also be uninstalled.
 
 If **Add as explicit** is clicked on an **implicitly** installed package, it will be moved to the first part of the list and will **not** be automatically uninstalled in a scenario described above.
 
@@ -120,14 +120,13 @@ _The default NuGet.config file:_
 <configuration>
   <packageSources>
     <clear />
-    <add key="NuGet" value="http://www.nuget.org/api/v2/" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
   </packageSources>
   <activePackageSource>
-    <add key="NuGet" value="http://www.nuget.org/api/v2/" />
+    <add key="All" value="(Aggregate source)" />
   </activePackageSource>
   <config>
     <add key="repositoryPath" value="./Packages" />
-    <add key="DefaultPushSource" value="http://www.nuget.org/api/v2/" />
   </config>
 </configuration>
 ```
@@ -154,7 +153,7 @@ The _.nupkg_ files downloaded from the NuGet server are cached locally in the cu
 
 ## Disable automatic referencing of assemblies
 
-To disable the automatic referenceing of assemblies of a NuGet package you can sett the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
+To disable the automatic referencing of assemblies of a NuGet package you can sett the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -185,9 +184,12 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
 
-> **Note:** NuGetForUnity currently only supports NuGet Api version v2
+> **Note:** NuGetForUnity does't use the official NuGet Client implementation form Microsoft, so authenticating against a third-party NuGet server is currently not supported for every case. If you ran into authentication issues pleas create a issue so we can try to implement it.
 
-Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share.
+Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share. [Local NuGet feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds) can have two different structures:
+
+-   flat: &lt;local feed path&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
+-   hierarchical: &lt;local feed path&gt;/&lt;package id&gt;/&lt;package version&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
 
 Be sure to set the proper URL/path in the _NuGet.config_ file and you should be good to go!
 
@@ -195,12 +197,12 @@ Read more information here: [http://docs.nuget.org/create/hosting-your-own-nuget
 
 # Restoring NuGet Packages over the Command Line
 
-For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line without starting Unity. This is achieved using a seperate [NuGetForUnity.Cli](https://www.nuget.org/packages/NuGetForUnity.Cli) NuGet package containing a [.Net Tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
+For those with projects using automated build solutions like [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration), NuGetForUnity provides the ability to restore your NuGet packages directly from the command line without starting Unity. This is achieved using a separate [NuGetForUnity.Cli](https://www.nuget.org/packages/NuGetForUnity.Cli) NuGet package containing a [.Net Tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
 ## Installation
 
 -   As a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
--   If you don't have a tool manifest (local tool instalation context) first creat one with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`.
+-   If you don't have a tool manifest (local tool installation context) first create one with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`.
 
 For more information see [.Net Tool Documentaion](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
