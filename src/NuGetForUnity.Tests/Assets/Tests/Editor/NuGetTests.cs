@@ -390,8 +390,13 @@ public class NuGetTests
     [TestCase("1.0.0", "1.00.0")]
     [TestCase("1.0.0", "1.0.00")]
     [TestCase("1.0.0", "01.0.0")]
+    [TestCase("1.0.0", "1.0")]
+    [TestCase("1.0.0", "1.0.0.0")]
     [TestCase("1.0.0-rc1", "1.0.00-rc1")]
+    [TestCase("1.0.0-rc1", "1.0-rc1")]
+    [TestCase("1.0.0-rc.1", "1.0.0-RC.1")]
     [TestCase("1.0.0+123", "1.0.0")]
+    [TestCase("1.0.0+123", "1.0")]
     [TestCase("1.0.0+123", "1.0.0+478")]
     [TestCase("1.0.0-rc1+123", "1.0.0-rc1")]
     [TestCase("1.0.0-rc1+123", "1.0.0-rc1+478")]
@@ -404,6 +409,7 @@ public class NuGetTests
         Assert.IsTrue(package2.CompareTo(package1) == 0, "{0} was NOT equal to {1}", version2, version1);
         Assert.IsTrue(package2.Equals(package1), "{0} was NOT equal to {1}", version2, version1);
         Assert.IsTrue(package1.Equals(package2), "{0} was NOT equal to {1}", version1, version2);
+        Assert.IsTrue(package1.GetHashCode() == package2.GetHashCode(), "{0} has NOT equal hash-code to {1}", version1, version2);
     }
 
     [Test]
