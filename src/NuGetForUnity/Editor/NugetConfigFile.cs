@@ -82,18 +82,21 @@ namespace NugetForUnity
 
             private set
             {
-                PackagesConfigPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(value));
-
-                var packageConfigRelativePath = NugetHelper.GetProjectRelativePath(PackagesConfigPath);
-
-                // package config path is invalid (not under Assets), set to default
-                if (packageConfigRelativePath == PackagesConfigPath || packageConfigRelativePath == ".")
+                var tempValue = Environment.ExpandEnvironmentVariables(value);
+                if (tempValue == "Assets" || tempValue == "Assets/" || tempValue == "Assets\\")
                 {
-                    Debug.LogError("Path to packages.config in NuGet.config must be relative to the project root. Setting to default.");
                     PackagesConfigPath = Application.dataPath;
                 }
-
-                PackagesConfigPath = PackagesConfigPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                else if (tempValue.StartsWith("Assets/") || tempValue.StartsWith("Assets\\"))
+                {
+                    PackagesConfigPath = Path.Combine(Application.dataPath, tempValue.Substring("Assets/".Length));
+                }
+                else
+                {
+                    Debug.LogWarning($"Path to packages.config in NuGet.config must be relative to the project root (attempted path: {tempValue}). Setting to default.");
+                    PackagesConfigPath = Application.dataPath;
+                    Save(NugetHelper.NugetConfigFilePath);
+                }
             }
         }
 
