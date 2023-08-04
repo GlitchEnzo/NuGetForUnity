@@ -91,7 +91,6 @@ namespace NugetForUnity
                 {
                     Debug.LogError("Path to packages.config in NuGet.config must be relative to the project root. Setting to default.");
                     PackagesConfigPath = Application.dataPath;
-                    Save(NugetHelper.NugetConfigFilePath);
                 }
 
                 PackagesConfigPath = PackagesConfigPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
