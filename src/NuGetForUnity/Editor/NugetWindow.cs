@@ -239,13 +239,21 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Displays the version number of NuGetForUnity.
+        ///     Opens the preferences window.
         /// </summary>
-        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion, false, 10)]
+        [MenuItem("NuGet/Preferences", false, 9)]
+        protected static void DisplayPreferences()
+        {
+            SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+        }
+
+        /// <summary>
+        ///     Opens release notes for the current version.
+        /// </summary>
+        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion + " \uD83D\uDD17", false, 10)]
         protected static void DisplayVersion()
         {
-            // open the preferences window
-            SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+            Application.OpenURL($"{GitHubReleasesPageUrl}/tag/v{NugetPreferences.NuGetForUnityVersion}");
         }
 
         /// <summary>
