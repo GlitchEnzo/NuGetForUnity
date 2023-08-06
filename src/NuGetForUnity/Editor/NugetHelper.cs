@@ -56,6 +56,11 @@ namespace NugetForUnity
         private static PackagesConfigFile packagesConfigFile;
 
         /// <summary>
+        ///     Backing field for the NuGet.config file.
+        /// </summary>
+        private static NugetConfigFile nugetConfigFile;
+
+        /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
         /// </summary>
         private static INugetPackageSource activePackageSource;
@@ -78,7 +83,18 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
-        public static NugetConfigFile NugetConfigFile { get; private set; }
+        public static NugetConfigFile NugetConfigFile
+        {
+            get
+            {
+                if (nugetConfigFile is null)
+                {
+                    LoadNugetConfigFile();
+                }
+
+                return nugetConfigFile;
+            }
+        }
 
         /// <summary>
         ///     Gets the loaded packages.config file that hold the dependencies for the project.
@@ -118,6 +134,16 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Returns the path relative to project directory, or <c>"."</c> if it is the project directory.
+        /// </summary>
+        /// <param name="path">The path of witch we calculate the relative path of.</param>
+        /// <returns>The path relative to project directory, or <c>"."</c> if it is the project directory.</returns>
+        public static string GetProjectRelativePath(string path)
+        {
+            return PathHelper.GetRelativePath(AbsoluteProjectPath, path);
+        }
+
+        /// <summary>
         ///     Invalidates the currently loaded 'packages.config' so it is reloaded when it is accessed the next time.
         /// </summary>
         internal static void ReloadPackagesConfig()
@@ -132,13 +158,13 @@ namespace NugetForUnity
         {
             if (File.Exists(NugetConfigFilePath))
             {
-                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+                nugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
             }
             else
             {
                 Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
 
-                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
+                nugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
             }
 
             // parse any command line arguments
@@ -855,8 +881,6 @@ namespace NugetForUnity
         /// </summary>
         public static void UpdateInstalledPackages()
         {
-            LoadNugetConfigFile();
-
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -1579,36 +1603,6 @@ namespace NugetForUnity
             }
 
             return isInstalled;
-        }
-
-        /// <summary>
-        ///     Returns the path relative to project directory, or path if it's not relative to project directory.
-        ///     Should the project upgrade to .NET Standard 2.1, this will be removed and instead we will use Path.GetRelativePath(relativeTo, path);
-        /// </summary>
-        /// <param name="absolutePath">The destination path.</param>
-        public static string GetProjectRelativePath(string absolutePath)
-        {
-            var projectFolder = (Path.GetDirectoryName(Application.dataPath) ?? string.Empty).Replace('\\', '/');
-
-            if (string.IsNullOrEmpty(projectFolder) || string.IsNullOrEmpty(absolutePath) || !Path.IsPathRooted(absolutePath))
-            {
-                return absolutePath;
-            }
-
-            var path = absolutePath.Replace('\\', '/');
-
-            if (!path.StartsWith(projectFolder, StringComparison.Ordinal))
-            {
-                return absolutePath;
-            }
-
-            var projectFolderLength = projectFolder.Length;
-            if (path.Length > projectFolderLength && path[projectFolderLength] == '/')
-            {
-                projectFolderLength++;
-            }
-
-            return path.Length > projectFolderLength ? path.Substring(projectFolderLength) : ".";
         }
     }
 }

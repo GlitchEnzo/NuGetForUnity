@@ -175,7 +175,7 @@ namespace NugetForUnity
 
         private static bool AssetIsDllInsideNuGetRepository(string absoluteAssetPath, string absoluteRepositoryPath)
         {
-            return absoluteAssetPath.StartsWith(absoluteRepositoryPath, StringComparison.OrdinalIgnoreCase) &&
+            return absoluteAssetPath.StartsWith(absoluteRepositoryPath, PathHelper.PathComparisonType) &&
                    absoluteAssetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
                    File.Exists(absoluteAssetPath);
         }
@@ -186,11 +186,6 @@ namespace NugetForUnity
         /// <returns>The absolute path where NuGetForUnity restores NuGet packages, with trailing directory separator.</returns>
         private static string GetNuGetRepositoryPath()
         {
-            if (NugetHelper.NugetConfigFile == null)
-            {
-                NugetHelper.LoadNugetConfigFile();
-            }
-
             return NugetHelper.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 

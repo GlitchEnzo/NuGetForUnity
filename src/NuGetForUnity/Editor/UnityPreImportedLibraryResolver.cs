@@ -28,11 +28,6 @@ namespace NugetForUnity
 
             // Find all the assemblies already installed by NuGetForUnity
             var alreadyInstalledDllFileNames = new HashSet<string>();
-            if (NugetHelper.NugetConfigFile == null)
-            {
-                NugetHelper.LoadNugetConfigFile();
-            }
-
             if (Directory.Exists(NugetHelper.NugetConfigFile.RepositoryPath))
             {
                 alreadyInstalledDllFileNames = new HashSet<string>(

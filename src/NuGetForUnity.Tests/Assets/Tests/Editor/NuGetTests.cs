@@ -28,11 +28,6 @@ public class NuGetTests
     {
         stopwatch = Stopwatch.StartNew();
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}");
-
-        if (NugetHelper.NugetConfigFile == null)
-        {
-            NugetHelper.LoadNugetConfigFile();
-        }
     }
 
     [TearDown]
@@ -290,7 +285,6 @@ public class NuGetTests
     [Test]
     public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
     {
-        NugetHelper.LoadNugetConfigFile(); // ensure 'NuGet.config' exists
         var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
         var tempDirectoryPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "TempUnitTestFolder"));
         Directory.CreateDirectory(tempDirectoryPath);
@@ -582,8 +576,6 @@ public class NuGetTests
     [Test]
     public void TestUpgrading()
     {
-        NugetHelper.LoadNugetConfigFile();
-
         var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };
         var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0") { IsManuallyInstalled = true };
 
@@ -709,6 +701,42 @@ public class NuGetTests
         Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
     }
 
+    [Test]
+    [TestCase("Assets", "Assets")]
+    [TestCase(".", ".")]
+    [TestCase("", ".")]
+    [TestCase("Assets/../../", "..")]
+    [TestCase("Assets/", "Assets/")]
+    [TestCase("a/b/c", "a/b/c")]
+    [TestCase("../../", "../..")]
+    [TestCase("../..", "../..")]
+    [TestCase("Assets/../../../", "../..")]
+    public void GetProjectRelativePathTest(string projectRelativePath, string expected)
+    {
+        // allow running tests on windows and linux
+        expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        var path = Path.GetFullPath(Path.Combine(NugetHelper.AbsoluteProjectPath, projectRelativePath));
+        var relativePath = NugetHelper.GetProjectRelativePath(path);
+
+        Assert.That(relativePath, Is.EqualTo(expected));
+    }
+
+    [Test]
+    [TestCase("Assets", "Assets")]
+    [TestCase("Assets/../../", "..")]
+    [TestCase("C:/Test", "C:/Test")]
+    [TestCase("./Assets", "Assets")]
+    [TestCase("C:/Test/", "C:/Test/")]
+    [TestCase("C:/Test/test.txt", "C:/Test/test.txt")]
+    public void GetRelativePathTest(string path, string expected)
+    {
+        // allow running tests on windows and linux
+        expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        var relativePath = PathHelper.GetRelativePath(NugetHelper.AbsoluteProjectPath, path);
+        Assert.That(relativePath, Is.EqualTo(expected));
+    }
+
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
         var nugetConfigFile = NugetHelper.NugetConfigFile;
@@ -717,22 +745,5 @@ public class NuGetTests
         packageSources.Single(source => source.Name == "NuGet").IsEnabled =
             installMode == InstallMode.ApiV2Only || installMode == InstallMode.ApiV2AllowCached;
         nugetConfigFile.InstallFromCache = installMode == InstallMode.ApiV2AllowCached;
-    }
-
-    [Test]
-    [TestCase("", "Assets")]
-    [TestCase("../", ".")]
-    [TestCase("/../../", null)]
-    [TestCase("a/b/c", "Assets/a/b/c")]
-    public void PathTest(string append, string expected)
-    {
-        var path = Path.GetFullPath(Path.Combine(Application.dataPath, append));
-        var relativePath = NugetHelper.GetProjectRelativePath(path);
-        if (expected == null)
-        {
-            expected = path;
-        }
-
-        Assert.That(relativePath, Is.EqualTo(expected));
     }
 }
