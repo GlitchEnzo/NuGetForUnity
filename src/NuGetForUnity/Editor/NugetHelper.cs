@@ -134,13 +134,13 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Returns the path relative to project directory, or <c>"."</c> if it is the project directory.
+        ///     Returns the path relative to Assets directory, or <c>"."</c> if it is the Assets directory.
         /// </summary>
         /// <param name="path">The path of witch we calculate the relative path of.</param>
-        /// <returns>The path relative to project directory, or <c>"."</c> if it is the project directory.</returns>
-        public static string GetProjectRelativePath(string path)
+        /// <returns>The path relative to Assets directory, or <c>"."</c> if it is the Assets directory.</returns>
+        public static string GetAssetsRelativePath(string path)
         {
-            return PathHelper.GetRelativePath(AbsoluteProjectPath, path);
+            return PathHelper.GetRelativePath(Application.dataPath, path);
         }
 
         /// <summary>
@@ -1170,7 +1170,7 @@ namespace NugetForUnity
         /// <param name="args">The arguments for the formatted message string.</param>
         public static void LogVerbose(string format, params object[] args)
         {
-            if (NugetConfigFile != null && !NugetConfigFile.Verbose)
+            if (nugetConfigFile != null && !nugetConfigFile.Verbose)
             {
                 return;
             }

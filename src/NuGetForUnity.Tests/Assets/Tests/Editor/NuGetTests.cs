@@ -704,31 +704,16 @@ public class NuGetTests
     [Test]
     [TestCase("Assets", "Assets")]
     [TestCase(".", ".")]
-    [TestCase("", ".")]
+    [TestCase("", "")]
     [TestCase("Assets/../../", "..")]
-    [TestCase("Assets/", "Assets/")]
+    [TestCase("Assets/../../../", "../..")]
+    [TestCase("M:/Test", "M:/Test")]
+    [TestCase("./Assets", "Assets")]
     [TestCase("a/b/c", "a/b/c")]
     [TestCase("../../", "../..")]
     [TestCase("../..", "../..")]
-    [TestCase("Assets/../../../", "../..")]
-    public void GetProjectRelativePathTest(string projectRelativePath, string expected)
-    {
-        // allow running tests on windows and linux
-        expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-        var path = Path.GetFullPath(Path.Combine(NugetHelper.AbsoluteProjectPath, projectRelativePath));
-        var relativePath = NugetHelper.GetProjectRelativePath(path);
-
-        Assert.That(relativePath, Is.EqualTo(expected));
-    }
-
-    [Test]
-    [TestCase("Assets", "Assets")]
-    [TestCase("Assets/../../", "..")]
-    [TestCase("C:/Test", "C:/Test")]
-    [TestCase("./Assets", "Assets")]
-    [TestCase("C:/Test/", "C:/Test/")]
-    [TestCase("C:/Test/test.txt", "C:/Test/test.txt")]
+    [TestCase("M:/Test/", "M:/Test/")]
+    [TestCase("M:/Test/test.txt", "M:/Test/test.txt")]
     public void GetRelativePathTest(string path, string expected)
     {
         // allow running tests on windows and linux

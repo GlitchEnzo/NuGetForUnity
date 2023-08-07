@@ -215,47 +215,56 @@ namespace NugetForUnity
             contentIsSameAsInFilePath = filePath;
         }
 
+        /// <summary>
+        ///     Moves the packages.config file and its corresponding meta file to the given path. If there is no packages.config file on the current
+        ///     path, makes a default version of the file on the new path.
+        /// </summary>
+        /// <param name="newPath">Path to move packages.config file to.</param>
         internal static void Move(string newPath)
         {
             var oldFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
             var oldPath = NugetHelper.NugetConfigFile.PackagesConfigPath;
             NugetHelper.NugetConfigFile.PackagesConfigPath = newPath;
-            if (!File.Exists(oldFilePath))
+            try
             {
-                Debug.LogFormat("No packages.config file found. Creating default at {0}", newPath);
-                var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
-                configFile.Save();
-                AssetDatabase.Refresh();
-                return;
-            }
-
-            var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
-
-            // creating directory if it doesn't exist
-            if (!Directory.Exists(newPath))
-            {
-                Directory.CreateDirectory(newPath);
-            }
-
-            // moving config to the new path
-            File.Move(oldFilePath, newFilePath);
-
-            // manually moving meta file to suppress Unity warning
-            if (File.Exists(oldFilePath + ".meta"))
-            {
-                File.Move(oldFilePath + ".meta", newFilePath + ".meta");
-            }
-
-            // if the old path is now an empty directory, delete it
-            if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
-            {
-                Directory.Delete(oldPath);
-
-                // also delete its meta file if it exists
-                if (File.Exists(oldPath + ".meta"))
+                if (!File.Exists(oldFilePath))
                 {
-                    File.Delete(oldPath + ".meta");
+                    Debug.LogFormat("No packages.config file found. Creating default at {0}", newPath);
+                    var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
+                    configFile.Save();
+                    AssetDatabase.Refresh();
+                    return;
                 }
+
+                var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
+
+                Directory.CreateDirectory(newPath);
+
+                // moving config to the new path
+                File.Move(oldFilePath, newFilePath);
+
+                // manually moving meta file to suppress Unity warning
+                if (File.Exists($"{oldFilePath}.meta"))
+                {
+                    File.Move($"{oldFilePath}.meta", $"{newFilePath}.meta");
+                }
+
+                // if the old path is now an empty directory, delete it
+                if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
+                {
+                    Directory.Delete(oldPath);
+
+                    // also delete its meta file if it exists
+                    if (File.Exists($"{oldPath}.meta"))
+                    {
+                        File.Delete($"{oldPath}.meta");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                NugetHelper.NugetConfigFile.PackagesConfigPath = oldPath;
             }
         }
 

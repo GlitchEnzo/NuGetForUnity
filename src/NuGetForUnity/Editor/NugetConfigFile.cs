@@ -74,30 +74,13 @@ namespace NugetForUnity
         /// </summary>
         public bool ReadOnlyPackageFiles { get; set; }
 
-        public string PackagesConfigPath;
+        public string PackagesConfigPath { get; set; }
 
         public string RelativePackagesConfigPath
         {
-            get => NugetHelper.GetProjectRelativePath(PackagesConfigPath);
+            get => NugetHelper.GetAssetsRelativePath(PackagesConfigPath);
 
-            private set
-            {
-                var tempValue = Environment.ExpandEnvironmentVariables(value);
-                if (tempValue == "Assets" || tempValue == "Assets/" || tempValue == "Assets\\")
-                {
-                    PackagesConfigPath = Application.dataPath;
-                }
-                else if (tempValue.StartsWith("Assets/") || tempValue.StartsWith("Assets\\"))
-                {
-                    PackagesConfigPath = Path.Combine(Application.dataPath, tempValue.Substring("Assets/".Length));
-                }
-                else
-                {
-                    Debug.LogWarning($"Path to packages.config in NuGet.config must be relative to the project root (attempted path: {tempValue}). Setting to default.");
-                    PackagesConfigPath = Application.dataPath;
-                    Save(NugetHelper.NugetConfigFilePath);
-                }
-            }
+            private set => PackagesConfigPath = Path.GetFullPath(Path.Combine(Application.dataPath, value));
         }
 
         /// <summary>
@@ -269,7 +252,7 @@ namespace NugetForUnity
             configFile.PackageSources = new List<INugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
-            configFile.RelativePackagesConfigPath = "Assets";
+            configFile.RelativePackagesConfigPath = ".";
 
             var file = XDocument.Load(filePath);
 
@@ -421,7 +404,7 @@ namespace NugetForUnity
   </activePackageSource>
   <config>
     <add key=""repositoryPath"" value=""./Packages"" />
-    <add key=""PackagesConfigPath"" value=""Assets"" />
+    <add key=""PackagesConfigPath"" value=""."" />
   </config>
 </configuration>";
 

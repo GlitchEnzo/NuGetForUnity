@@ -48,11 +48,6 @@ namespace NugetForUnity
 
             EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
 
-            if (NugetHelper.NugetConfigFile == null)
-            {
-                NugetHelper.LoadNugetConfigFile();
-            }
-
             var installFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
             if (installFromCache != NugetHelper.NugetConfigFile.InstallFromCache)
             {
@@ -76,27 +71,26 @@ namespace NugetForUnity
 
             EditorGUILayout.BeginHorizontal();
             {
-                var packagesConfigPath = NugetHelper.NugetConfigFile.RelativePackagesConfigPath;
-                EditorGUILayout.LabelField($"Packages Config path: {packagesConfigPath}");
-                packagesConfigPath = Path.GetFullPath(packagesConfigPath);
+                var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigPath;
+                EditorGUILayout.LabelField(
+                    new GUIContent($"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigPath}", $"Absolute path: {packagesConfigPath}"));
                 if (GUILayout.Button("Browse"))
                 {
                     var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, "");
 
                     if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
                     {
-                        var pathCheck = NugetHelper.GetProjectRelativePath(newPath);
+                        var pathCheck = NugetHelper.GetAssetsRelativePath(newPath);
 
-                        // make sure the path is within Assets directory
-                        if (!pathCheck.StartsWith("Assets"))
+                        // if the path root is different or it is not under Assets folder, we issue a warning
+                        if (pathCheck == newPath || pathCheck.StartsWith(".."))
                         {
-                            Debug.LogError("packages.config path has to be within <project root>/Assets.");
+                            Debug.LogWarning(
+                                "Putting packages.config outside of Assets folder disables the functionality of restoring packages if the file is changed on the disk.");
                         }
-                        else
-                        {
-                            PackagesConfigFile.Move(newPath);
-                            preferencesChangedThisFrame = true;
-                        }
+
+                        PackagesConfigFile.Move(newPath);
+                        preferencesChangedThisFrame = true;
                     }
                 }
             }
