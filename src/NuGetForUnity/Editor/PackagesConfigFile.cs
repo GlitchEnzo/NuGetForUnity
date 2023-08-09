@@ -223,8 +223,8 @@ namespace NugetForUnity
         internal static void Move(string newPath)
         {
             var oldFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
-            var oldPath = NugetHelper.NugetConfigFile.PackagesConfigPath;
-            NugetHelper.NugetConfigFile.PackagesConfigPath = newPath;
+            var oldPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
+            NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = newPath;
             try
             {
                 if (!File.Exists(oldFilePath))
@@ -264,7 +264,7 @@ namespace NugetForUnity
             catch (Exception e)
             {
                 Debug.LogException(e);
-                NugetHelper.NugetConfigFile.PackagesConfigPath = oldPath;
+                NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = oldPath;
             }
         }
 

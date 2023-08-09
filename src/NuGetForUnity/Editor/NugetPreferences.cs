@@ -21,6 +21,11 @@ namespace NugetForUnity
         private static Vector2 scrollPosition;
 
         /// <summary>
+        ///     Indicates if the warning for packages.config file path should be shown in case it is outside of Assets folder.
+        /// </summary>
+        private static bool shouldShowPackagesConfigPathWarning;
+
+        /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
         /// </summary>
         public NugetPreferences()
@@ -71,7 +76,7 @@ namespace NugetForUnity
 
             EditorGUILayout.BeginHorizontal();
             {
-                var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigPath;
+                var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
                 EditorGUILayout.LabelField(
                     new GUIContent($"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigPath}", $"Absolute path: {packagesConfigPath}"));
                 if (GUILayout.Button("Browse"))
@@ -82,12 +87,8 @@ namespace NugetForUnity
                     {
                         var pathCheck = NugetHelper.GetAssetsRelativePath(newPath);
 
-                        // if the path root is different or it is not under Assets folder, we issue a warning
-                        if (pathCheck == newPath || pathCheck.StartsWith(".."))
-                        {
-                            Debug.LogWarning(
-                                "Putting packages.config outside of Assets folder disables the functionality of restoring packages if the file is changed on the disk.");
-                        }
+                        // if the path root is different or it is not under Assets folder, we want to show a warning message
+                        shouldShowPackagesConfigPathWarning = pathCheck == newPath || pathCheck.StartsWith("..");
 
                         PackagesConfigFile.Move(newPath);
                         preferencesChangedThisFrame = true;
@@ -95,6 +96,11 @@ namespace NugetForUnity
                 }
             }
             EditorGUILayout.EndHorizontal();
+            if (shouldShowPackagesConfigPathWarning)
+            {
+                EditorGUILayout.HelpBox(
+                    "Putting packages.config outside of Assets folder disables the functionality of restoring packages if the file is changed on the disk.", MessageType.Warning);
+            }
 
             var requestTimeout = EditorGUILayout.IntField(
                 new GUIContent(
