@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,19 +17,23 @@ namespace NugetForUnity
         /// <summary>
         ///     The current position of the scroll bar in the GUI.
         /// </summary>
-        private static Vector2 scrollPosition;
+        private Vector2 scrollPosition;
 
         /// <summary>
         ///     Indicates if the warning for packages.config file path should be shown in case it is outside of Assets folder.
         /// </summary>
-        private static bool shouldShowPackagesConfigPathWarning;
+        private bool shouldShowPackagesConfigPathWarning;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
+        ///     Path of packages.config file is checked here as well in case it was manually changed.
         /// </summary>
         public NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
+            var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
+            var pathCheck = NugetHelper.GetAssetsRelativePath(packagesConfigPath);
+            shouldShowPackagesConfigPathWarning = pathCheck.StartsWith("..") || Path.IsPathRooted(pathCheck);
         }
 
         /// <summary>
@@ -78,7 +81,9 @@ namespace NugetForUnity
             {
                 var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
                 EditorGUILayout.LabelField(
-                    new GUIContent($"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigPath}", $"Absolute path: {packagesConfigPath}"));
+                    new GUIContent(
+                        $"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigDirectoryPath}",
+                        $"Absolute path: {packagesConfigPath}"));
                 if (GUILayout.Button("Browse"))
                 {
                     var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, "");
@@ -88,7 +93,7 @@ namespace NugetForUnity
                         var pathCheck = NugetHelper.GetAssetsRelativePath(newPath);
 
                         // if the path root is different or it is not under Assets folder, we want to show a warning message
-                        shouldShowPackagesConfigPathWarning = pathCheck == newPath || pathCheck.StartsWith("..");
+                        shouldShowPackagesConfigPathWarning = pathCheck.StartsWith("..") || Path.IsPathRooted(pathCheck);
 
                         PackagesConfigFile.Move(newPath);
                         preferencesChangedThisFrame = true;
@@ -99,7 +104,8 @@ namespace NugetForUnity
             if (shouldShowPackagesConfigPathWarning)
             {
                 EditorGUILayout.HelpBox(
-                    "Putting packages.config outside of Assets folder disables the functionality of restoring packages if the file is changed on the disk.", MessageType.Warning);
+                    "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
+                    MessageType.Warning);
             }
 
             var requestTimeout = EditorGUILayout.IntField(

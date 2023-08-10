@@ -225,6 +225,7 @@ namespace NugetForUnity
             var oldFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
             var oldPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
             NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = newPath;
+            var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
             try
             {
                 if (!File.Exists(oldFilePath))
@@ -236,35 +237,35 @@ namespace NugetForUnity
                     return;
                 }
 
-                var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
-
                 Directory.CreateDirectory(newPath);
 
                 // moving config to the new path
                 File.Move(oldFilePath, newFilePath);
-
-                // manually moving meta file to suppress Unity warning
-                if (File.Exists($"{oldFilePath}.meta"))
-                {
-                    File.Move($"{oldFilePath}.meta", $"{newFilePath}.meta");
-                }
-
-                // if the old path is now an empty directory, delete it
-                if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
-                {
-                    Directory.Delete(oldPath);
-
-                    // also delete its meta file if it exists
-                    if (File.Exists($"{oldPath}.meta"))
-                    {
-                        File.Delete($"{oldPath}.meta");
-                    }
-                }
             }
             catch (Exception e)
             {
+                // usually unauthorized access or IO exception (trying to move to a folder where the same file exists)
                 Debug.LogException(e);
                 NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = oldPath;
+                return;
+            }
+
+            // manually moving meta file to suppress Unity warning
+            if (File.Exists($"{oldFilePath}.meta"))
+            {
+                File.Move($"{oldFilePath}.meta", $"{newFilePath}.meta");
+            }
+
+            // if the old path is now an empty directory, delete it
+            if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
+            {
+                Directory.Delete(oldPath);
+
+                // also delete its meta file if it exists
+                if (File.Exists($"{oldPath}.meta"))
+                {
+                    File.Delete($"{oldPath}.meta");
+                }
             }
         }
 

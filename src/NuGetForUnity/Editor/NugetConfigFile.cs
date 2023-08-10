@@ -81,14 +81,17 @@ namespace NugetForUnity
         /// </summary>
         public string PackagesConfigDirectoryPath { get; set; }
 
-        public string RelativePackagesConfigPath
+        /// <summary>
+        ///     Gets the relative path to directory containing packages.config file. The path is relative to the folder containing the 'NuGet.config' file.
+        /// </summary>
+        public string RelativePackagesConfigDirectoryPath
         {
             get => PathHelper.GetRelativePath(Application.dataPath, PackagesConfigDirectoryPath);
             private set => PackagesConfigDirectoryPath = Path.GetFullPath(Path.Combine(Application.dataPath, value));
         }
 
         /// <summary>
-        ///     The path to the packages.config file.
+        ///     Gets the path to the packages.config file.
         /// </summary>
         public string PackagesConfigFilePath => Path.Combine(PackagesConfigDirectoryPath, PackagesConfigFile.FileName);
 
@@ -167,7 +170,7 @@ namespace NugetForUnity
 
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", PackagesConfigDirectoryPathConfigKey));
-            addElement.Add(new XAttribute("value", RelativePackagesConfigPath));
+            addElement.Add(new XAttribute("value", RelativePackagesConfigDirectoryPath));
             config.Add(addElement);
 
             // save the default push source
@@ -256,7 +259,7 @@ namespace NugetForUnity
             configFile.PackageSources = new List<INugetPackageSource>();
             configFile.InstallFromCache = true;
             configFile.ReadOnlyPackageFiles = false;
-            configFile.RelativePackagesConfigPath = ".";
+            configFile.RelativePackagesConfigDirectoryPath = ".";
 
             var file = XDocument.Load(filePath);
 
@@ -381,7 +384,7 @@ namespace NugetForUnity
                     }
                     else if (string.Equals(key, PackagesConfigDirectoryPathConfigKey, StringComparison.OrdinalIgnoreCase))
                     {
-                        configFile.RelativePackagesConfigPath = value;
+                        configFile.RelativePackagesConfigDirectoryPath = value;
                     }
                 }
             }
