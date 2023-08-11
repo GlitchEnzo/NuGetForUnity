@@ -43,6 +43,12 @@ namespace UnityEngine
             Console.Error.WriteLine(format, args);
         }
 
+        internal static void LogException(Exception e)
+        {
+            HasError = true;
+            Console.Error.WriteLine(e.ToString());
+        }
+
         internal static void Assert(bool condition)
         {
             System.Diagnostics.Debug.Assert(condition);

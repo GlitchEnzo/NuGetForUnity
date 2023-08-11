@@ -28,11 +28,6 @@ public class NuGetTests
     {
         stopwatch = Stopwatch.StartNew();
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}");
-
-        if (NugetHelper.NugetConfigFile == null)
-        {
-            NugetHelper.LoadNugetConfigFile();
-        }
     }
 
     [TearDown]
@@ -290,7 +285,6 @@ public class NuGetTests
     [Test]
     public void InstallAndSearchLocalPackageSource([Values] bool hierarchical)
     {
-        NugetHelper.LoadNugetConfigFile(); // ensure 'NuGet.config' exists
         var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
         var tempDirectoryPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "TempUnitTestFolder"));
         Directory.CreateDirectory(tempDirectoryPath);
@@ -582,8 +576,6 @@ public class NuGetTests
     [Test]
     public void TestUpgrading()
     {
-        NugetHelper.LoadNugetConfigFile();
-
         var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };
         var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0") { IsManuallyInstalled = true };
 
@@ -649,16 +641,13 @@ public class NuGetTests
     public void TestPostprocessInstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.PackagesConfigFilePath;
+        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(package);
-        packagesConfigFile.Save(filepath);
+        packagesConfigFile.Save();
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
-
-        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
-        filepath = filepath.Substring(assetsIndex);
         NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
@@ -669,16 +658,13 @@ public class NuGetTests
     public void TestPostprocessUninstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.PackagesConfigFilePath;
+        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
 
         NugetHelper.InstallIdentifier(package);
         Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
-        packagesConfigFile.Save(filepath);
-
-        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
-        filepath = filepath.Substring(assetsIndex);
+        packagesConfigFile.Save();
         NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
@@ -691,22 +677,40 @@ public class NuGetTests
     {
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.PackagesConfigFilePath;
+        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
 
         NugetHelper.InstallIdentifier(packageOld);
         Assert.IsTrue(NugetHelper.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(packageNew);
-        packagesConfigFile.Save(filepath);
-
-        var assetsIndex = filepath.LastIndexOf("Assets", StringComparison.Ordinal);
-        filepath = filepath.Substring(assetsIndex);
+        packagesConfigFile.Save();
         NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
+    }
+
+    [Test]
+    [TestCase("Assets", "Assets")]
+    [TestCase(".", ".")]
+    [TestCase("", "")]
+    [TestCase("Assets/../../", "..")]
+    [TestCase("Assets/../../../", "../..")]
+    [TestCase("M:/Test", "M:/Test")]
+    [TestCase("./Assets", "Assets")]
+    [TestCase("a/b/c", "a/b/c")]
+    [TestCase("../../", "../..")]
+    [TestCase("../..", "../..")]
+    [TestCase("M:/Test/", "M:/Test/")]
+    [TestCase("M:/Test/test.txt", "M:/Test/test.txt")]
+    public void GetRelativePathTest(string path, string expected)
+    {
+        // allow running tests on windows and linux
+        expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        var relativePath = PathHelper.GetRelativePath(NugetHelper.AbsoluteProjectPath, path);
+        Assert.That(relativePath, Is.EqualTo(expected));
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)

@@ -20,6 +20,22 @@ namespace UnityEngine
 
         public static ApiCompatibilityLevel ApiCompatibilityLevel { get; private set; }
 
+        public static RuntimePlatform platform
+        {
+            get
+            {
+                switch (Environment.OSVersion.Platform)
+                {
+                    case PlatformID.MacOSX:
+                        return RuntimePlatform.OSXEditor;
+                    case PlatformID.Unix:
+                        return RuntimePlatform.LinuxEditor;
+                    default:
+                        return RuntimePlatform.WindowsEditor;
+                }
+            }
+        }
+
         internal static StackTraceLogType GetStackTraceLogType(LogType log)
         {
             return StackTraceLogType.None;

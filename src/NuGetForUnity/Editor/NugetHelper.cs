@@ -39,14 +39,6 @@ namespace NugetForUnity
         public static readonly string NugetConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, NugetConfigFile.FileName));
 
         /// <summary>
-        ///     The path to the packages.config file.
-        /// </summary>
-        /// <remarks>
-        ///     <see cref="PackagesConfigFile" />.
-        /// </remarks>
-        internal static readonly string PackagesConfigFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, PackagesConfigFile.FileName));
-
-        /// <summary>
         ///     Gets the absolute path to the Unity-Project root directory.
         /// </summary>
         internal static readonly string AbsoluteProjectPath = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
@@ -62,6 +54,11 @@ namespace NugetForUnity
         ///     Backing field for the packages.config file.
         /// </summary>
         private static PackagesConfigFile packagesConfigFile;
+
+        /// <summary>
+        ///     Backing field for the NuGet.config file.
+        /// </summary>
+        private static NugetConfigFile nugetConfigFile;
 
         /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
@@ -86,7 +83,18 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets the loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
-        public static NugetConfigFile NugetConfigFile { get; private set; }
+        public static NugetConfigFile NugetConfigFile
+        {
+            get
+            {
+                if (nugetConfigFile is null)
+                {
+                    LoadNugetConfigFile();
+                }
+
+                return nugetConfigFile;
+            }
+        }
 
         /// <summary>
         ///     Gets the loaded packages.config file that hold the dependencies for the project.
@@ -97,7 +105,7 @@ namespace NugetForUnity
             {
                 if (packagesConfigFile == null)
                 {
-                    packagesConfigFile = PackagesConfigFile.Load(PackagesConfigFilePath);
+                    packagesConfigFile = PackagesConfigFile.Load();
                 }
 
                 return packagesConfigFile;
@@ -126,6 +134,16 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Returns the path relative to Assets directory, or <c>"."</c> if it is the Assets directory.
+        /// </summary>
+        /// <param name="path">The path of witch we calculate the relative path of.</param>
+        /// <returns>The path relative to Assets directory, or <c>"."</c> if it is the Assets directory.</returns>
+        internal static string GetAssetsRelativePath(string path)
+        {
+            return PathHelper.GetRelativePath(Application.dataPath, path);
+        }
+
+        /// <summary>
         ///     Invalidates the currently loaded 'packages.config' so it is reloaded when it is accessed the next time.
         /// </summary>
         internal static void ReloadPackagesConfig()
@@ -140,13 +158,13 @@ namespace NugetForUnity
         {
             if (File.Exists(NugetConfigFilePath))
             {
-                NugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+                nugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
             }
             else
             {
                 Debug.LogFormat("No NuGet.config file found. Creating default at {0}", NugetConfigFilePath);
 
-                NugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
+                nugetConfigFile = NugetConfigFile.CreateDefaultFile(NugetConfigFilePath);
             }
 
             // parse any command line arguments
@@ -756,7 +774,7 @@ namespace NugetForUnity
             // update the package.config file
             if (PackagesConfigFile.RemovePackage(foundPackage))
             {
-                PackagesConfigFile.Save(PackagesConfigFilePath);
+                PackagesConfigFile.Save();
             }
 
             var packageInstallDirectory = Path.Combine(NugetConfigFile.RepositoryPath, $"{foundPackage.Id}.{foundPackage.Version}");
@@ -855,7 +873,7 @@ namespace NugetForUnity
         internal static void SetManuallyInstalledFlag(INugetPackageIdentifier package)
         {
             PackagesConfigFile.SetManuallyInstalledFlag(package);
-            PackagesConfigFile.Save(PackagesConfigFilePath);
+            PackagesConfigFile.Save();
         }
 
         /// <summary>
@@ -863,8 +881,6 @@ namespace NugetForUnity
         /// </summary>
         public static void UpdateInstalledPackages()
         {
-            LoadNugetConfigFile();
-
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -927,8 +943,7 @@ namespace NugetForUnity
                     {
                         PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
-
-                    PackagesConfigFile.Save(PackagesConfigFilePath);
+                    PackagesConfigFile.Save();
                 }
             }
 
@@ -1155,7 +1170,7 @@ namespace NugetForUnity
         /// <param name="args">The arguments for the formatted message string.</param>
         public static void LogVerbose(string format, params object[] args)
         {
-            if (NugetConfigFile != null && !NugetConfigFile.Verbose)
+            if (nugetConfigFile != null && !nugetConfigFile.Verbose)
             {
                 return;
             }
@@ -1283,7 +1298,7 @@ namespace NugetForUnity
 
                 // update packages.config
                 PackagesConfigFile.AddPackage(package);
-                PackagesConfigFile.Save(PackagesConfigFilePath);
+                PackagesConfigFile.Save();
 
                 var cachedPackagePath = Path.Combine(PackOutputDirectory, package.PackageFileName);
                 if (NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))

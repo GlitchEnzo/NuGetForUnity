@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -106,8 +107,9 @@ namespace NugetForUnity
         ///     Loads a list of all currently installed packages by reading the packages.config file.
         /// </summary>
         /// <returns>A newly created <see cref="PackagesConfigFile" />.</returns>
-        public static PackagesConfigFile Load(string filePath)
+        public static PackagesConfigFile Load()
         {
+            var filePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
             var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
 
             // Create a package.config file, if there isn't already one in the project
@@ -115,7 +117,7 @@ namespace NugetForUnity
             {
                 Debug.LogFormat("No packages.config file found. Creating default at {0}", filePath);
 
-                configFile.Save(filePath);
+                configFile.Save();
             }
 
             var packagesFile = XDocument.Load(filePath);
@@ -141,8 +143,9 @@ namespace NugetForUnity
         ///     Saves the packages.config file and populates it with given installed NugetPackages.
         /// </summary>
         /// <param name="filePath">The file-path to where this packages.config will be saved.</param>
-        public void Save(string filePath)
+        public void Save()
         {
+            var filePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
             if (contentIsSameAsInFilePath == filePath)
             {
                 return;
@@ -210,6 +213,60 @@ namespace NugetForUnity
 
             packagesFile.Save(filePath);
             contentIsSameAsInFilePath = filePath;
+        }
+
+        /// <summary>
+        ///     Moves the packages.config file and its corresponding meta file to the given path. If there is no packages.config file on the current
+        ///     path, makes a default version of the file on the new path.
+        /// </summary>
+        /// <param name="newPath">Path to move packages.config file to.</param>
+        internal static void Move(string newPath)
+        {
+            var oldFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
+            var oldPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
+            NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = newPath;
+            var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
+            try
+            {
+                if (!File.Exists(oldFilePath))
+                {
+                    Debug.LogFormat("No packages.config file found. Creating default at {0}", newPath);
+                    var configFile = new PackagesConfigFile { Packages = new List<PackageConfig>() };
+                    configFile.Save();
+                    AssetDatabase.Refresh();
+                    return;
+                }
+
+                Directory.CreateDirectory(newPath);
+
+                // moving config to the new path
+                File.Move(oldFilePath, newFilePath);
+            }
+            catch (Exception e)
+            {
+                // usually unauthorized access or IO exception (trying to move to a folder where the same file exists)
+                Debug.LogException(e);
+                NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath = oldPath;
+                return;
+            }
+
+            // manually moving meta file to suppress Unity warning
+            if (File.Exists($"{oldFilePath}.meta"))
+            {
+                File.Move($"{oldFilePath}.meta", $"{newFilePath}.meta");
+            }
+
+            // if the old path is now an empty directory, delete it
+            if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
+            {
+                Directory.Delete(oldPath);
+
+                // also delete its meta file if it exists
+                if (File.Exists($"{oldPath}.meta"))
+                {
+                    File.Delete($"{oldPath}.meta");
+                }
+            }
         }
 
         private void MarkAsModified()

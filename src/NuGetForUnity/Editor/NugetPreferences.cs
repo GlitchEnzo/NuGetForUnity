@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -16,14 +17,21 @@ namespace NugetForUnity
         /// <summary>
         ///     The current position of the scroll bar in the GUI.
         /// </summary>
-        private static Vector2 scrollPosition;
+        private Vector2 scrollPosition;
+
+        /// <summary>
+        ///     Indicates if the warning for packages.config file path should be shown in case it is outside of Assets folder.
+        /// </summary>
+        private bool shouldShowPackagesConfigPathWarning;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
+        ///     Path of packages.config file is checked here as well in case it was manually changed.
         /// </summary>
         public NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
+            shouldShowPackagesConfigPathWarning = IsPathInAssets(NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath);
         }
 
         /// <summary>
@@ -37,6 +45,17 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Checks if given path is within Assets folder.
+        /// </summary>
+        /// <param name="path">Path to check.</param>
+        /// <returns>True if path is within Assets folder, false otherwise.</returns>
+        private static bool IsPathInAssets(string path)
+        {
+            var pathCheck = NugetHelper.GetAssetsRelativePath(path);
+            return pathCheck.StartsWith("..") || Path.IsPathRooted(pathCheck);
+        }
+
+        /// <summary>
         ///     Draws the preferences GUI inside the Unity preferences window in the Editor.
         /// </summary>
         /// <param name="searchContext">The search context for the preferences.</param>
@@ -45,11 +64,6 @@ namespace NugetForUnity
             var preferencesChangedThisFrame = false;
 
             EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
-
-            if (NugetHelper.NugetConfigFile == null)
-            {
-                NugetHelper.LoadNugetConfigFile();
-            }
 
             var installFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
             if (installFromCache != NugetHelper.NugetConfigFile.InstallFromCache)
@@ -70,6 +84,35 @@ namespace NugetForUnity
             {
                 preferencesChangedThisFrame = true;
                 NugetHelper.NugetConfigFile.Verbose = verbose;
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            {
+                var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
+                EditorGUILayout.LabelField(
+                    new GUIContent(
+                        $"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigDirectoryPath}",
+                        $"Absolute path: {packagesConfigPath}"));
+                if (GUILayout.Button("Browse"))
+                {
+                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, "");
+
+                    if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
+                    {
+                        // if the path root is different or it is not under Assets folder, we want to show a warning message
+                        shouldShowPackagesConfigPathWarning = IsPathInAssets(newPath);
+
+                        PackagesConfigFile.Move(newPath);
+                        preferencesChangedThisFrame = true;
+                    }
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            if (shouldShowPackagesConfigPathWarning)
+            {
+                EditorGUILayout.HelpBox(
+                    "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
+                    MessageType.Warning);
             }
 
             var requestTimeout = EditorGUILayout.IntField(
