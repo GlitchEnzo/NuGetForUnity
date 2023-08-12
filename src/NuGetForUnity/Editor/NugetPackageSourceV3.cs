@@ -149,7 +149,6 @@ namespace NugetForUnity
         public List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
@@ -192,7 +191,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         public Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,

@@ -114,16 +114,6 @@ namespace NugetForUnity
         [SerializeField]
         private List<SerializableNugetPackage> serializableUpdatePackages;
 
-        /// <summary>
-        ///     True to show all old package versions.  False to only show the latest version.
-        /// </summary>
-        private bool showAllOnlineVersions;
-
-        /// <summary>
-        ///     True to show all old package versions.  False to only show the latest version.
-        /// </summary>
-        private bool showAllUpdateVersions;
-
         private bool showImplicitlyInstalled;
 
         /// <summary>
@@ -439,7 +429,7 @@ namespace NugetForUnity
             var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
 
             // we just block the main thread
-            availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip))
+            availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
                 .GetAwaiter()
                 .GetResult();
             NugetHelper.LogVerbose(
@@ -461,7 +451,7 @@ namespace NugetForUnity
         private void UpdateUpdatePackages()
         {
             // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates, showAllUpdateVersions);
+            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates);
         }
 
         /// <summary>
@@ -653,7 +643,7 @@ namespace NugetForUnity
                 DrawPackages(installedPackages.TakeWhile(package => package.IsManuallyInstalled), true);
 
                 var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
-                EditorGUI.LabelField(rectangle, "", headerStyle);
+                EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
 
                 showImplicitlyInstalled = EditorGUI.Foldout(
                     rectangle,
@@ -706,7 +696,6 @@ namespace NugetForUnity
                     Task.Run(
                             () => NugetHelper.Search(
                                 onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                                showAllOnlineVersions,
                                 showOnlinePrerelease,
                                 numberToGet,
                                 numberToSkip))
@@ -747,23 +736,17 @@ namespace NugetForUnity
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    var showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllOnlineVersions);
-                    if (showAllVersionsTemp != showAllOnlineVersions)
+                    var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showOnlinePrerelease);
+                    if (showPrereleaseTemp != showOnlinePrerelease)
                     {
-                        showAllOnlineVersions = showAllVersionsTemp;
+                        showOnlinePrerelease = showPrereleaseTemp;
                         UpdateOnlinePackages();
                     }
 
                     DrawMandatoryButtons();
                 }
-                EditorGUILayout.EndHorizontal();
 
-                var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showOnlinePrerelease);
-                if (showPrereleaseTemp != showOnlinePrerelease)
-                {
-                    showOnlinePrerelease = showPrereleaseTemp;
-                    UpdateOnlinePackages();
-                }
+                EditorGUILayout.EndHorizontal();
 
                 var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
@@ -855,10 +838,10 @@ namespace NugetForUnity
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    var showAllVersionsTemp = EditorGUILayout.Toggle("Show All Versions", showAllUpdateVersions);
-                    if (showAllVersionsTemp != showAllUpdateVersions)
+                    var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
+                    if (showPrereleaseTemp != showPrereleaseUpdates)
                     {
-                        showAllUpdateVersions = showAllVersionsTemp;
+                        showPrereleaseUpdates = showPrereleaseTemp;
                         UpdateUpdatePackages();
                     }
 
@@ -884,14 +867,8 @@ namespace NugetForUnity
 
                     DrawMandatoryButtons();
                 }
-                EditorGUILayout.EndHorizontal();
 
-                var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
-                if (showPrereleaseTemp != showPrereleaseUpdates)
-                {
-                    showPrereleaseUpdates = showPrereleaseTemp;
-                    UpdateUpdatePackages();
-                }
+                EditorGUILayout.EndHorizontal();
 
                 EditorGUILayout.BeginHorizontal();
                 {

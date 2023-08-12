@@ -294,8 +294,11 @@ internal static class CredentialProviderHelper
     [Serializable]
     private struct CredentialProviderResponse
     {
+        // Ignore Spelling: Username
+#pragma warning disable CS0649 // Field is assigned on serialization
         public string Username;
 
         public string Password;
+#pragma warning restore CS0649 // Field is assigned on serialization
     }
 }
