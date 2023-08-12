@@ -57,6 +57,11 @@ namespace NugetForUnity
         private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
 
         /// <summary>
+        ///     For each package this contains the currently selected version / the state of the version drop-down.
+        /// </summary>
+        private readonly Dictionary<string, VersionDropdownData> versionDropdownDataPerPackage = new Dictionary<string, VersionDropdownData>();
+
+        /// <summary>
         ///     The list of NugetPackages available to install.
         /// </summary>
         private List<INugetPackage> availablePackages = new List<INugetPackage>();
@@ -343,8 +348,7 @@ namespace NugetForUnity
                     continue;
                 }
 
-                unitypackageDownloadUrl = release.assets
-                    .Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+                unitypackageDownloadUrl = release.assets.Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
                     ?.browser_download_url;
                 return release.tag_name.TrimStart('v');
             }
@@ -436,7 +440,8 @@ namespace NugetForUnity
 
             // we just block the main thread
             availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showAllOnlineVersions, showOnlinePrerelease, numberToGet, numberToSkip))
-                .GetAwaiter().GetResult();
+                .GetAwaiter()
+                .GetResult();
             NugetHelper.LogVerbose(
                 "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
                 searchTerm,
@@ -514,6 +519,12 @@ namespace NugetForUnity
         {
             selectedPackages.Clear();
             openCloneWindows.Clear();
+            foreach (var dropdownData in versionDropdownDataPerPackage.Values)
+            {
+                // reset to latest package version else the update tab will show the same version as the installed tab
+                dropdownData.SelectedIndex = 0;
+            }
+
             ResetScrollPosition();
         }
 
@@ -692,13 +703,15 @@ namespace NugetForUnity
             {
                 numberToSkip += numberToGet;
                 availablePackages.AddRange(
-                 Task.Run(() => NugetHelper.Search(
-                            onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                            showAllOnlineVersions,
-                            showOnlinePrerelease,
-                            numberToGet,
-                            numberToSkip))
-                        .GetAwaiter().GetResult());
+                    Task.Run(
+                            () => NugetHelper.Search(
+                                onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
+                                showAllOnlineVersions,
+                                showOnlinePrerelease,
+                                numberToGet,
+                                numberToSkip))
+                        .GetAwaiter()
+                        .GetResult());
             }
 
             EditorGUILayout.EndVertical();
@@ -1012,7 +1025,35 @@ namespace NugetForUnity
                     GUILayout.Label($"Current Version {installed.PackageVersion.FullVersion}");
                 }
 
-                GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
+                if (package.Versions == null || package.Versions.Count <= 1)
+                {
+                    GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
+                }
+                else
+                {
+                    if (!versionDropdownDataPerPackage.TryGetValue(package.Id, out var versionDropdownData))
+                    {
+                        EditorStyles.popup.CalcMinMaxWidth(
+                            new GUIContent(
+                                package.Versions.Select(version => version.FullVersion).OrderByDescending(version => version.Length).First()),
+                            out var minWidth,
+                            out var maxWidth);
+                        versionDropdownData = new VersionDropdownData
+                        {
+                            SortedVersions = package.Versions.OrderByDescending(version => version).ToList(), CalculatedMaxWith = maxWidth + 5,
+                        };
+                        versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
+                        versionDropdownData.SelectedIndex = versionDropdownData.SortedVersions.IndexOf(package.PackageVersion);
+                        versionDropdownDataPerPackage.Add(package.Id, versionDropdownData);
+                    }
+
+                    GUILayout.Label("Version");
+                    versionDropdownData.SelectedIndex = EditorGUILayout.Popup(
+                        versionDropdownData.SelectedIndex,
+                        versionDropdownData.DropdownOptions,
+                        GUILayout.Width(versionDropdownData.CalculatedMaxWith));
+                    package.PackageVersion = versionDropdownData.SortedVersions[versionDropdownData.SelectedIndex];
+                }
 
                 if (installed != null)
                 {
@@ -1400,7 +1441,21 @@ namespace NugetForUnity
             }
         }
 
+        private sealed class VersionDropdownData
+        {
+            public int SelectedIndex { get; set; }
+
+            public List<NugetPackageVersion> SortedVersions { get; set; }
+
+            public float CalculatedMaxWith { get; set; }
+
+            public string[] DropdownOptions { get; set; }
+        }
+
 #pragma warning disable 0649
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+#pragma warning disable SA1401 // Fields should be private
+#pragma warning disable SA1310 // Field names should not contain underscore
 
         [Serializable]
         private sealed class GitHubReleaseApiRequestList
@@ -1424,6 +1479,9 @@ namespace NugetForUnity
             public string name;
         }
 
+#pragma warning restore SA1310 // Field names should not contain underscore
+#pragma warning restore SA1401 // Fields should be private
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning restore 0649
     }
 }
