@@ -35,7 +35,7 @@ namespace NugetForUnity
 
         /// <inheritdoc />
         [field: SerializeField]
-        public NugetPackageVersion PackageVersion { get; internal set; }
+        public NugetPackageVersion PackageVersion { get; set; }
 
         /// <inheritdoc />
         [field: SerializeField]

@@ -400,6 +400,8 @@ namespace NugetForUnity
             }
         }
 
+#pragma warning disable CS0649 // Field is assigned on serialize
+
         [Serializable]
         [SuppressMessage(
             "StyleCop.CSharp.NamingRules",
@@ -798,5 +800,6 @@ namespace NugetForUnity
             /// </summary>
             public string version;
         }
+#pragma warning restore CS0649 // Field is assigned on serialize
     }
 }

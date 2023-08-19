@@ -161,7 +161,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         public Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
@@ -175,16 +174,13 @@ namespace NugetForUnity
             url += "Search()?";
 
             // filter results
-            if (!includeAllVersions)
+            if (!includePrerelease)
             {
-                if (!includePrerelease)
-                {
-                    url += "$filter=IsLatestVersion&";
-                }
-                else
-                {
-                    url += "$filter=IsAbsoluteLatestVersion&";
-                }
+                url += "$filter=IsLatestVersion&";
+            }
+            else
+            {
+                url += "$filter=IsAbsoluteLatestVersion&";
             }
 
             // order results
@@ -220,7 +216,6 @@ namespace NugetForUnity
         public List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
@@ -257,7 +252,7 @@ namespace NugetForUnity
                 }
 
                 var url =
-                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLower()}&includeAllVersions={includeAllVersions.ToString().ToLower()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'";
+                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLower()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'";
 
                 try
                 {
@@ -271,7 +266,7 @@ namespace NugetForUnity
                     {
                         // Some web services, such as VSTS don't support the GetUpdates API. Attempt to retrieve updates via FindPackagesById.
                         NugetHelper.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
-                        return GetUpdatesFallback(packagesCollection, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
+                        return GetUpdatesFallback(packagesCollection, includePrerelease, targetFrameworks, versionConstraints);
                     }
 
                     Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
@@ -286,7 +281,7 @@ namespace NugetForUnity
             // that are returned by the GetUpdates API. Since GetUpdates isn't available when using a Visual Studio Team Services feed, the intention
             // is that this test would be conducted by using nuget.org's feed where both paths can be compared.
             List<NugetPackage> updatesReplacement =
- GetUpdatesFallback(installedPackages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
+ GetUpdatesFallback(installedPackages, includePrerelease, targetFrameworks, versionConstraints);
             ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
 #endif
 
@@ -399,14 +394,12 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="installedPackages">The list of currently installed packages.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
         private List<INugetPackage> GetUpdatesFallback(
             IEnumerable<INugetPackage> installedPackages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
@@ -433,7 +426,7 @@ namespace NugetForUnity
                     continue;
                 }
 
-                var skip = includeAllVersions ? 0 : packageUpdates.Count - 1;
+                var skip = packageUpdates.Count - 1;
                 updates.AddRange(packageUpdates.Skip(skip));
             }
 

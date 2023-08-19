@@ -34,9 +34,9 @@ namespace NugetForUnity
         bool IsPrerelease { get; }
 
         /// <summary>
-        ///     Gets the typed version number of the NuGet package.
+        ///     Gets or sets the typed version number of the NuGet package.
         /// </summary>
-        NugetPackageVersion PackageVersion { get; }
+        NugetPackageVersion PackageVersion { get; set; }
 
         /// <summary>
         ///     Gets the name of the '.nupkg' file that contains the whole package content as a ZIP.

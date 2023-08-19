@@ -943,6 +943,7 @@ namespace NugetForUnity
                     {
                         PackagesConfigFile.SetManuallyInstalledFlag(rootPackage);
                     }
+
                     PackagesConfigFile.Save();
                 }
             }
@@ -979,7 +980,6 @@ namespace NugetForUnity
         ///     NOTE: See the functions and parameters defined here: https://www.nuget.org/api/v2/$metadata.
         /// </summary>
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
@@ -987,13 +987,12 @@ namespace NugetForUnity
         /// <returns>The list of available packages.</returns>
         public static Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return activePackageSource.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+            return activePackageSource.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
         }
 
         /// <summary>
@@ -1001,18 +1000,16 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="packagesToUpdate">The list of currently installed packages.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
         public static List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packagesToUpdate,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
-            return activePackageSource.GetUpdates(packagesToUpdate, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
+            return activePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints);
         }
 
         /// <summary>

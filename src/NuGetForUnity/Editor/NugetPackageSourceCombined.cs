@@ -160,7 +160,6 @@ namespace NugetForUnity
         public List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
@@ -173,12 +172,11 @@ namespace NugetForUnity
 
             if (activeSourcesCount == 1)
             {
-                return packageSources.First(source => source.IsEnabled)
-                    .GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints);
+                return packageSources.First(source => source.IsEnabled).GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints);
             }
 
             return packageSources.Where(source => source.IsEnabled)
-                .SelectMany(source => source.GetUpdates(packages, includePrerelease, includeAllVersions, targetFrameworks, versionConstraints))
+                .SelectMany(source => source.GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints))
                 .Distinct()
                 .ToList();
         }
@@ -186,7 +184,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         public Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
@@ -202,10 +199,10 @@ namespace NugetForUnity
             if (activeSourcesCount == 1)
             {
                 return packageSources.First(source => source.IsEnabled)
-                    .Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+                    .Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
             }
 
-            return SearchMultiple(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+            return SearchMultiple(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -223,7 +220,6 @@ namespace NugetForUnity
 
         private async Task<List<INugetPackage>> SearchMultiple(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
@@ -231,8 +227,7 @@ namespace NugetForUnity
         {
             var results = await Task.WhenAll(
                 packageSources.Where(source => source.IsEnabled)
-                    .Select(
-                        source => source.Search(searchTerm, includeAllVersions, includePrerelease, numberToGet, numberToSkip, cancellationToken)));
+                    .Select(source => source.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken)));
             return results.SelectMany(result => result).Distinct().ToList();
         }
     }

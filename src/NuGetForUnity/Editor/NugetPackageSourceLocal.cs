@@ -136,24 +136,22 @@ namespace NugetForUnity
         /// <inheritdoc />
         public Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(GetLocalPackages($"*{searchTerm}*", includeAllVersions, includePrerelease, numberToSkip));
+            return Task.FromResult(GetLocalPackages($"*{searchTerm}*", false, includePrerelease, numberToSkip));
         }
 
         /// <inheritdoc />
         public List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
-            return GetLocalUpdates(packages, includePrerelease, includeAllVersions);
+            return GetLocalUpdates(packages, includePrerelease);
         }
 
         /// <inheritdoc />
@@ -198,13 +196,13 @@ namespace NugetForUnity
         ///     Gets a list of all available packages from a local source (not a web server) that match the given filters.
         /// </summary>
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
+        /// <param name="flattenAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
         private List<INugetPackage> GetLocalPackages(
             string searchTerm = "",
-            bool includeAllVersions = false,
+            bool flattenAllVersions = false,
             bool includePrerelease = false,
             int numberToSkip = 0)
         {
@@ -242,9 +240,9 @@ namespace NugetForUnity
                         continue;
                     }
 
-                    if (includeAllVersions)
+                    if (flattenAllVersions)
                     {
-                        // if all versions are being included, simply add it and move on
+                        // to flatten all versions we simply add it and move on
                         localPackages.Add(package);
                         continue;
                     }
@@ -286,17 +284,13 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="packages">The list of packages to use to find updates.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <returns>A list of all updates available.</returns>
-        private List<INugetPackage> GetLocalUpdates(
-            IEnumerable<INugetPackage> packages,
-            bool includePrerelease = false,
-            bool includeAllVersions = false)
+        private List<INugetPackage> GetLocalUpdates(IEnumerable<INugetPackage> packages, bool includePrerelease = false)
         {
             var updates = new List<INugetPackage>();
             foreach (var installedPackage in packages)
             {
-                var availablePackages = GetLocalPackages($"{installedPackage.Id}*", includeAllVersions, includePrerelease);
+                var availablePackages = GetLocalPackages($"{installedPackage.Id}*", false, includePrerelease);
                 foreach (var availablePackage in availablePackages)
                 {
                     if (installedPackage.Id == availablePackage.Id)

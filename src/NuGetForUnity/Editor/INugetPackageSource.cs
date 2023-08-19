@@ -61,9 +61,9 @@ namespace NugetForUnity
         List<INugetPackage> FindPackagesById(INugetPackageIdentifier package);
 
         /// <summary>
-        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="NugetPackageIdentifier" /> given.
+        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="INugetPackageIdentifier" /> given.
         /// </summary>
-        /// <param name="package">The <see cref="NugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
+        /// <param name="package">The <see cref="INugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         INugetPackage GetSpecificPackage(INugetPackageIdentifier package);
 
@@ -72,14 +72,12 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="packages">The list of packages to use to find updates.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
         List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
-            bool includeAllVersions = false,
             string targetFrameworks = "",
             string versionConstraints = "");
 
@@ -88,7 +86,6 @@ namespace NugetForUnity
         ///     This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
         /// </summary>
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
-        /// <param name="includeAllVersions">True to include older versions that are not the latest version.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
@@ -96,7 +93,6 @@ namespace NugetForUnity
         /// <returns>The list of available packages.</returns>
         Task<List<INugetPackage>> Search(
             string searchTerm = "",
-            bool includeAllVersions = false,
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,

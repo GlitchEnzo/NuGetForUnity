@@ -70,9 +70,6 @@ After several seconds (it can take some time to query the server for packages), 
 
 The **Online** tab shows the packages available on the NuGet server.
 
-Enable **Show All Versions** to list all old versions of a package (currently only works with local nuget feeds).
-Disable **Show All Versions** to only show the latest version of a package.
-
 Enable **Show Prerelease** to list prerelease versions of packages (alpha, beta, release candidate, etc).
 Disable **Show Prerelease** to only show stable releases.
 
