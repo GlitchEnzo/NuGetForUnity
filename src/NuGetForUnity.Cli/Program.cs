@@ -10,12 +10,20 @@ using UnityEngine;
 
 namespace NuGetForUnity.Cli
 {
+    /// <summary>
+    ///     Simple command line interface to restore NuGet packages for Unity projects.
+    /// </summary>
     public static class Program
     {
         private static readonly string[] HelpOptions = { "-?", "-h", "--help" };
 
         private static string DefaultProjectPath => Directory.GetCurrentDirectory();
 
+        /// <summary>
+        ///     Starting point of the application.
+        /// </summary>
+        /// <param name="args">The command line arguments.</param>
+        /// <returns>The application exit code.</returns>
         public static int Main(string[] args)
         {
             var availableArguments = args.ToList();
@@ -52,7 +60,7 @@ namespace NuGetForUnity.Cli
             Application.SetUnityProjectPath(projectPath);
 
             // need to disable dependency installation as UnityPreImportedLibraryResolver.GetAlreadyImportedLibs is not working outside Unity.
-            NugetHelper.Restore(false);
+            NugetPackageRestorer.Restore(false);
             FixRoslynAnalyzerImportSettings();
             return Debug.HasError ? 1 : 0;
         }
@@ -72,13 +80,13 @@ namespace NuGetForUnity.Cli
                 return;
             }
 
-            if (NugetHelper.NugetConfigFile == null || !Directory.Exists(NugetHelper.NugetConfigFile.RepositoryPath))
+            if (!Directory.Exists(ConfigurationManager.NugetConfigFile.RepositoryPath))
             {
                 return;
             }
 
             UTF8Encoding? utf8NoBom = null;
-            foreach (var packageDirectoryPath in Directory.EnumerateDirectories(NugetHelper.NugetConfigFile.RepositoryPath))
+            foreach (var packageDirectoryPath in Directory.EnumerateDirectories(ConfigurationManager.NugetConfigFile.RepositoryPath))
             {
                 var analyzersDirectoryPath = Path.Combine(packageDirectoryPath, "analyzers");
                 if (!Directory.Exists(analyzersDirectoryPath))

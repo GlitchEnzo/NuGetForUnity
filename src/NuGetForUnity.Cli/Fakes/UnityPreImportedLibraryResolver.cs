@@ -1,7 +1,5 @@
 ﻿#nullable enable
 
-using System.Collections.Generic;
-
 namespace NugetForUnity
 {
     /// <summary>
@@ -10,13 +8,15 @@ namespace NugetForUnity
     internal static class UnityPreImportedLibraryResolver
     {
         /// <summary>
-        ///     Gets all libraries that are already imported by unity so we shouldn't / don't need to install them as NuGet packages.
+        ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
         /// </summary>
-        /// <returns>A set of all names of libraries that are already imported by unity.</returns>
-        internal static HashSet<string> GetAlreadyImportedLibs()
+        /// <param name="package">The package of witch the identifier is checked.</param>
+        /// <param name="log">Whether to log a message with the result of the check.</param>
+        /// <returns>If it is included in Unity.</returns>
+        public static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
         {
             // the CLI is running outside of Unity so we can't easily detect what libraries are imported by the Unity Engine.
-            return new HashSet<string>();
+            return false;
         }
     }
 }

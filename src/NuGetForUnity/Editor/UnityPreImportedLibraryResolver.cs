@@ -16,10 +16,42 @@ namespace NugetForUnity
         private static HashSet<string> alreadyImportedEditorOnlyLibraries;
 
         /// <summary>
+        ///     Gets all libraries that are already imported by Unity Editor so we shouldn't / don't need to install them as NuGet packages.
+        /// </summary>
+        /// <returns>The list of packages.</returns>
+        internal static HashSet<string> GetAlreadyImportedEditorOnlyLibraries()
+        {
+            if (alreadyImportedEditorOnlyLibraries == null)
+            {
+                GetAlreadyImportedLibs();
+            }
+
+            return alreadyImportedEditorOnlyLibraries;
+        }
+
+        /// <summary>
+        ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
+        /// </summary>
+        /// <param name="package">The package of witch the identifier is checked.</param>
+        /// <param name="log">Whether to log a message with the result of the check.</param>
+        /// <returns>If it is included in Unity.</returns>
+        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
+        {
+            var alreadyImported = GetAlreadyImportedLibs();
+            var isAlreadyImported = alreadyImported.Contains(package.Id);
+            if (log)
+            {
+                NugetLogger.LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            }
+
+            return isAlreadyImported;
+        }
+
+        /// <summary>
         ///     Gets all libraries that are already imported by unity so we shouldn't / don't need to install them as NuGet packages.
         /// </summary>
         /// <returns>A set of all names of libraries that are already imported by unity.</returns>
-        internal static HashSet<string> GetAlreadyImportedLibs()
+        private static HashSet<string> GetAlreadyImportedLibs()
         {
             if (alreadyImportedLibs != null)
             {
@@ -77,38 +109,6 @@ namespace NugetForUnity
             NugetLogger.LogVerbose("Already imported editor only libraries: {0}", string.Join(", ", alreadyImportedEditorOnlyLibraries));
 
             return alreadyImportedLibs;
-        }
-
-        /// <summary>
-        ///     Gets all libraries that are already imported by Unity Editor so we shouldn't / don't need to install them as NuGet packages.
-        /// </summary>
-        /// <returns>The list of packages.</returns>
-        internal static HashSet<string> GetAlreadyImportedEditorOnlyLibraries()
-        {
-            if (alreadyImportedEditorOnlyLibraries == null)
-            {
-                GetAlreadyImportedLibs();
-            }
-
-            return alreadyImportedEditorOnlyLibraries;
-        }
-
-        /// <summary>
-        ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
-        /// </summary>
-        /// <param name="package">The package of witch the identifier is checked.</param>
-        /// <param name="log">Whether to log a message with the result of the check.</param>
-        /// <returns>If it is included in Unity.</returns>
-        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
-        {
-            var alreadyImported = GetAlreadyImportedLibs();
-            var isAlreadyImported = alreadyImported.Contains(package.Id);
-            if (log)
-            {
-                NugetLogger.LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
-            }
-
-            return isAlreadyImported;
         }
     }
 }
