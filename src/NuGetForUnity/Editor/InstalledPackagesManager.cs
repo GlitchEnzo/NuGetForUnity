@@ -275,53 +275,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Tries to find an already installed package that matches (or is in the range of) the given package ID.
-        /// </summary>
-        /// <param name="packageId">The <see cref="INugetPackageIdentifier" /> of the <see cref="INugetPackage" /> to find.</param>
-        /// <returns>The best <see cref="INugetPackage" /> match, if there is one, otherwise null.</returns>
-        internal static INugetPackage GetInstalledPackage(INugetPackageIdentifier packageId)
-        {
-            if (!InstalledPackagesDictionary.TryGetValue(packageId.Id, out var installedPackage))
-            {
-                return null;
-            }
-
-            if (packageId.PackageVersion == installedPackage.PackageVersion)
-            {
-                NugetLogger.LogVerbose("Found exact package already installed: {0} {1}", installedPackage.Id, installedPackage.Version);
-                return installedPackage;
-            }
-
-            if (!packageId.InRange(installedPackage))
-            {
-                NugetLogger.LogVerbose(
-                    "Requested {0} {1}. {2} is already installed, but it is out of range.",
-                    packageId.Id,
-                    packageId.Version,
-                    installedPackage.Version);
-                return null;
-            }
-
-            var configPackage = GetPackageConfigurationById(packageId.Id);
-            if (configPackage != null && configPackage.PackageVersion < installedPackage.PackageVersion)
-            {
-                NugetLogger.LogVerbose(
-                    "Requested {0} {1}. {2} is already installed, but config demands lower version.",
-                    packageId.Id,
-                    packageId.Version,
-                    installedPackage.Version);
-                return null;
-            }
-
-            NugetLogger.LogVerbose(
-                "Requested {0} {1}, but {2} is already installed, so using that.",
-                packageId.Id,
-                packageId.Version,
-                installedPackage.Version);
-            return installedPackage;
-        }
-
-        /// <summary>
         ///     Gets a list of all root packages that are installed in the project.
         ///     Root packages are packages that are not depended on by any other package.
         /// </summary>
