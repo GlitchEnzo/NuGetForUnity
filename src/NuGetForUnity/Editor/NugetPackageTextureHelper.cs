@@ -57,9 +57,9 @@ namespace NugetForUnity
                             if (!string.IsNullOrEmpty(request.error))
                             {
 #if UNITY_2020_1_OR_NEWER
-                                NugetHelper.LogVerbose("Downloading image {0} failed! Web error: {1}, Handler error: {2}.", url, request.error, downloadHandler.error);
+                                NugetLogger.LogVerbose("Downloading image {0} failed! Web error: {1}, Handler error: {2}.", url, request.error, downloadHandler.error);
 #else
-                                NugetHelper.LogVerbose("Downloading image {0} failed! Web error: {1}.", url, request.error);
+                                NugetLogger.LogVerbose("Downloading image {0} failed! Web error: {1}.", url, request.error);
 #endif
 
                                 taskCompletionSource.TrySetResult(null);
@@ -86,7 +86,7 @@ namespace NugetForUnity
             }
             catch (Exception exception)
             {
-                NugetHelper.LogVerbose("Error while downloading image from: '{0}' got error: {1}", url, exception);
+                NugetLogger.LogVerbose("Error while downloading image from: '{0}' got error: {1}", url, exception);
                 return Task.FromResult<Texture2D>(null);
             }
         }
@@ -117,9 +117,9 @@ namespace NugetForUnity
             var md5 = new MD5CryptoServiceProvider();
             var data = md5.ComputeHash(Encoding.Default.GetBytes(s));
             var sBuilder = new StringBuilder();
-            for (var i = 0; i < data.Length; i++)
+            foreach (var dataByte in data)
             {
-                sBuilder.Append(data[i].ToString("x2"));
+                sBuilder.Append(dataByte.ToString("x2"));
             }
 
             return sBuilder.ToString();

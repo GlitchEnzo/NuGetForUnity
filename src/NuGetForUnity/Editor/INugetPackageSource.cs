@@ -21,11 +21,6 @@ namespace NugetForUnity
         bool IsEnabled { get; set; }
 
         /// <summary>
-        ///     Gets a value indicating whether the path is a local path or a remote path.
-        /// </summary>
-        bool IsLocalPath { get; }
-
-        /// <summary>
         ///     Gets or sets the password used to access the feed. Null indicates that no password is used.
         /// </summary>
         string SavedPassword { get; set; }
@@ -54,14 +49,14 @@ namespace NugetForUnity
         void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint);
 
         /// <summary>
-        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="INugetPackageIdentifier" /> given.
+        ///     Gets a NugetPackage from the NuGet source that matches (or is in range of) the given <see cref="INugetPackageIdentifier" />.
         /// </summary>
         /// <param name="package">The <see cref="INugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
         List<INugetPackage> FindPackagesById(INugetPackageIdentifier package);
 
         /// <summary>
-        ///     Gets a NugetPackage from the NuGet server that matches (or is in range of) the <see cref="INugetPackageIdentifier" /> given.
+        ///     Gets a NugetPackage from the NuGet source that matches (or is in range of) the given <see cref="INugetPackageIdentifier" />.
         /// </summary>
         /// <param name="package">The <see cref="INugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
         /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>

@@ -400,6 +400,10 @@ namespace NugetForUnity
             }
         }
 
+        // ReSharper disable InconsistentNaming
+        // ReSharper disable UnassignedField.Local
+        // ReSharper disable UnusedMember.Local
+        // ReSharper disable NotAccessedField.Local
 #pragma warning disable CS0649 // Field is assigned on serialize
 
         [Serializable]
@@ -800,6 +804,11 @@ namespace NugetForUnity
             /// </summary>
             public string version;
         }
+
+        // ReSharper restore InconsistentNaming
+        // ReSharper restore UnassignedField.Local
+        // ReSharper restore UnusedMember.Local
+        // ReSharper restore NotAccessedField.Local
 #pragma warning restore CS0649 // Field is assigned on serialize
     }
 }

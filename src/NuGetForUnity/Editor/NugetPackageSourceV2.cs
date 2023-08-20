@@ -85,9 +85,6 @@ namespace NugetForUnity
         }
 
         /// <inheritdoc />
-        public bool IsLocalPath => false;
-
-        /// <inheritdoc />
         [field: SerializeField]
         public bool IsEnabled { get; set; }
 
@@ -265,7 +262,7 @@ namespace NugetForUnity
                     if (webResponse != null && webResponse.StatusCode == HttpStatusCode.NotFound)
                     {
                         // Some web services, such as VSTS don't support the GetUpdates API. Attempt to retrieve updates via FindPackagesById.
-                        NugetHelper.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
+                        NugetLogger.LogVerbose("{0} not found. Falling back to FindPackagesById.", url);
                         return GetUpdatesFallback(packagesCollection, includePrerelease, targetFrameworks, versionConstraints);
                     }
 
@@ -291,7 +288,7 @@ namespace NugetForUnity
         /// <inheritdoc />
         public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            using (var objStream = NugetHelper.RequestUrl(downloadUrlHint, UserName, ExpandedPassword, null))
+            using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, UserName, ExpandedPassword, null))
             {
                 using (var fileStream = File.Create(outputFilePath))
                 {
@@ -365,25 +362,22 @@ namespace NugetForUnity
         /// </summary>
         private List<INugetPackage> GetPackagesFromUrl(string url)
         {
-            NugetHelper.LogVerbose("Getting packages from: {0}", url);
+            NugetLogger.LogVerbose("Getting packages from: {0}", url);
 
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             var packages = new List<INugetPackage>();
-            using (var responseStream = NugetHelper.RequestUrl(url, UserName, ExpandedPassword, 10000))
+            using (var responseStream = WebRequestHelper.RequestUrl(url, UserName, ExpandedPassword, 10000))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {
                     var responsePackages = NugetODataResponse.Parse(XDocument.Load(streamReader), this);
-                    foreach (var package in responsePackages)
-                    {
-                        packages.Add(package);
-                    }
+                    packages.AddRange(responsePackages);
                 }
             }
 
-            NugetHelper.LogVerbose("Received {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
+            NugetLogger.LogVerbose("Received {0} packages in {1} ms", packages.Count, stopwatch.ElapsedMilliseconds);
 
             return packages;
         }
@@ -430,7 +424,7 @@ namespace NugetForUnity
                 updates.AddRange(packageUpdates.Skip(skip));
             }
 
-            NugetHelper.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
+            NugetLogger.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
             return updates;
         }
     }

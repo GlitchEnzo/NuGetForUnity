@@ -18,28 +18,6 @@ namespace NugetForUnity
         private const string MetaDataNamespace = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
 
         /// <summary>
-        ///     Gets the string value of a NuGet metadata property from the given properties element and property name.
-        /// </summary>
-        /// <param name="properties">The properties element.</param>
-        /// <param name="name">The name of the property to get.</param>
-        /// <returns>The string value of the property.</returns>
-        private static string GetProperty(this XElement properties, string name)
-        {
-            return (string)properties.Element(XName.Get(name, DataServicesNamespace)) ?? string.Empty;
-        }
-
-        /// <summary>
-        ///     Gets the <see cref="XElement" /> within the Atom namespace with the given name.
-        /// </summary>
-        /// <param name="element">The element containing the Atom element.</param>
-        /// <param name="name">The name of the Atom element.</param>
-        /// <returns>The Atom element.</returns>
-        private static XElement GetAtomElement(this XElement element, string name)
-        {
-            return element.Element(XName.Get(name, AtomNamespace));
-        }
-
-        /// <summary>
         ///     Parses the given <see cref="XDocument" /> and returns the list of <see cref="NugetPackageV2Base" />s contained within.
         /// </summary>
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
@@ -133,6 +111,28 @@ namespace NugetForUnity
             }
 
             return packages;
+        }
+
+        /// <summary>
+        ///     Gets the string value of a NuGet metadata property from the given properties element and property name.
+        /// </summary>
+        /// <param name="properties">The properties element.</param>
+        /// <param name="name">The name of the property to get.</param>
+        /// <returns>The string value of the property.</returns>
+        private static string GetProperty(this XElement properties, string name)
+        {
+            return (string)properties.Element(XName.Get(name, DataServicesNamespace)) ?? string.Empty;
+        }
+
+        /// <summary>
+        ///     Gets the <see cref="XElement" /> within the Atom namespace with the given name.
+        /// </summary>
+        /// <param name="element">The element containing the Atom element.</param>
+        /// <param name="name">The name of the Atom element.</param>
+        /// <returns>The Atom element.</returns>
+        private static XElement GetAtomElement(this XElement element, string name)
+        {
+            return element.Element(XName.Get(name, AtomNamespace));
         }
     }
 }

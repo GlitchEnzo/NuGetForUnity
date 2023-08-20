@@ -10,22 +10,26 @@ namespace NugetForUnity
     [Serializable]
     internal sealed class NugetPackageLocal : NugetPackageV2Base
     {
+        [SerializeField]
+        private NugetPackageSourceLocal packageSource;
+
+        [SerializeField]
+        private List<NugetPackageVersion> versions = new List<NugetPackageVersion>();
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageLocal" /> class.
         /// </summary>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
         public NugetPackageLocal(NugetPackageSourceLocal packageSource)
         {
-            PackageSource = packageSource;
+            this.packageSource = packageSource;
         }
 
         /// <inheritdoc />
-        [field: SerializeField]
-        public override List<NugetPackageVersion> Versions { get; } = new List<NugetPackageVersion>();
+        public override List<NugetPackageVersion> Versions => versions;
 
         /// <inheritdoc />
-        [field: SerializeField]
-        public override INugetPackageSource PackageSource { get; }
+        public override INugetPackageSource PackageSource => packageSource;
 
         /// <summary>
         ///     Creates a new <see cref="NugetPackageLocal" /> from the given <see cref="NuspecFile" />.

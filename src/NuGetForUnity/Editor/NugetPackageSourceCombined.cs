@@ -38,9 +38,6 @@ namespace NugetForUnity
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />
-        public bool IsLocalPath => false;
-
-        /// <inheritdoc />
         public string SavedPath
         {
             get => "(Aggregate source)";
@@ -129,11 +126,11 @@ namespace NugetForUnity
 
                 if (foundPackage.Version == package.Version)
                 {
-                    NugetHelper.LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
+                    NugetLogger.LogVerbose("{0} {1} was found in {2}", foundPackage.Id, foundPackage.Version, source.Name);
                     return foundPackage;
                 }
 
-                NugetHelper.LogVerbose(
+                NugetLogger.LogVerbose(
                     "{0} {1} was found in {2}, but wanted {3}",
                     foundPackage.Id,
                     foundPackage.Version,

@@ -195,9 +195,9 @@ namespace NugetForUnity
 
         private async Task<List<NugetFrameworkGroup>> GetDependenciesCoreAsync()
         {
-            NugetHelper.LogVerbose("Fetching dependencies for {0}", this);
+            NugetLogger.LogVerbose("Fetching dependencies for {0}", this);
             dependencies = await packageSource.GetPackageDetails(this);
-            NugetHelper.LogVerbose("Fetched dependencies for {0}", this);
+            NugetLogger.LogVerbose("Fetched dependencies for {0}", this);
             dependenciesFetched = true;
             return dependencies;
         }

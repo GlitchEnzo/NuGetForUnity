@@ -23,7 +23,6 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        /// <param name="apiClient">The instance of the API client to use.</param>
         public NugetPackageSourceV3(string name, string url)
         {
             if (string.IsNullOrEmpty(name))
@@ -63,9 +62,6 @@ namespace NugetForUnity
         /// <inheritdoc />
         [field: SerializeField]
         public string SavedPassword { get; set; }
-
-        /// <inheritdoc />
-        public bool IsLocalPath => false;
 
         /// <inheritdoc />
         [field: SerializeField]

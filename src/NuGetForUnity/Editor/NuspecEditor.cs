@@ -42,7 +42,7 @@ namespace NugetForUnity
             if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
             {
                 var selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
-                filepath = Path.Combine(NugetHelper.AbsoluteProjectPath, selectedFile);
+                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, selectedFile);
             }
 
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
@@ -51,28 +51,31 @@ namespace NugetForUnity
                 filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
             }
 
+            Debug.Assert(filepath != null, "filepath != null");
             filepath = Path.Combine(filepath, "MyPackage.nuspec");
 
             Debug.LogFormat("Creating: {0}", filepath);
 
-            var file = new NuspecFile();
-            file.Id = "MyPackage";
-            file.Version = "0.0.1";
-            file.Authors = "Your Name";
-            file.Owners = "Your Name";
-            file.LicenseUrl = "http://your_license_url_here";
-            file.ProjectUrl = "http://your_project_url_here";
-            file.Description = "A description of what this package is and does.";
-            file.Summary = "A brief description of what this package is and does.";
-            file.ReleaseNotes = "Notes for this specific release";
-            file.Copyright = "Copyright 2017";
-            file.IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png";
+            var file = new NuspecFile
+            {
+                Id = "MyPackage",
+                Version = "0.0.1",
+                Authors = "Your Name",
+                Owners = "Your Name",
+                LicenseUrl = "http://your_license_url_here",
+                ProjectUrl = "http://your_project_url_here",
+                Description = "A description of what this package is and does.",
+                Summary = "A brief description of what this package is and does.",
+                ReleaseNotes = "Notes for this specific release",
+                Copyright = "Copyright 2017",
+                IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
+            };
             file.Save(filepath);
 
             AssetDatabase.Refresh();
 
             // select the newly created .nuspec file
-            var relativeNuspecFilePath = filepath.Substring(NugetHelper.AbsoluteProjectPath.Length + 1);
+            var relativeNuspecFilePath = filepath.Substring(UnityPathHelper.AbsoluteProjectPath.Length + 1);
             Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(relativeNuspecFilePath);
 
             // automatically display the editor with the newly created .nuspec file
@@ -92,6 +95,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Validates the opening of the .nuspec file editor.
         /// </summary>
+        /// <returns>True if the editor can be opened, false otherwise.</returns>
         [MenuItem("Assets/NuGet/Open Nuspec Editor", true, 2000)]
         protected static bool DisplayNuspecEditorValidation()
         {
@@ -101,53 +105,12 @@ namespace NugetForUnity
             if (defaultAsset != null)
             {
                 var filepath = AssetDatabase.GetAssetPath(defaultAsset);
-                filepath = Path.Combine(NugetHelper.AbsoluteProjectPath, filepath);
+                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, filepath);
 
                 isNuspec = Path.GetExtension(filepath) == ".nuspec";
             }
 
             return isNuspec;
-        }
-
-        /// <summary>
-        ///     Called when enabling the window.
-        /// </summary>
-        private void OnFocus()
-        {
-            Reload();
-        }
-
-        /// <summary>
-        ///     Reloads the .nuspec file when the selection changes.
-        /// </summary>
-        private void OnSelectionChange()
-        {
-            Reload();
-        }
-
-        /// <summary>
-        ///     Reload the currently selected asset as a .nuspec file.
-        /// </summary>
-        protected void Reload()
-        {
-            var defaultAsset = Selection.activeObject as DefaultAsset;
-            if (defaultAsset != null)
-            {
-                var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
-                assetFilepath = Path.Combine(NugetHelper.AbsoluteProjectPath, assetFilepath);
-
-                var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
-
-                if (isNuspec)
-                {
-                    filepath = assetFilepath;
-                    nuspec = NuspecFile.Load(filepath);
-                    titleContent = new GUIContent(Path.GetFileNameWithoutExtension(filepath));
-
-                    // force a repaint
-                    Repaint();
-                }
-            }
         }
 
         /// <summary>
@@ -208,8 +171,7 @@ namespace NugetForUnity
                                     "Automatically Fill Dependencies",
                                     "Populates the list of dependencies with the \"root\" NuGet packages currently installed in the project.")))
                         {
-                            NugetHelper.UpdateInstalledPackages();
-                            var installedPackages = NugetHelper.InstalledPackages.ToList();
+                            var installedPackages = InstalledPackagesManager.InstalledPackages.ToList();
 
                             // default all packages to being roots
                             var roots = new List<INugetPackageIdentifier>(installedPackages);
@@ -217,7 +179,8 @@ namespace NugetForUnity
                             // remove a package as a root if another package is dependent on it
                             foreach (var package in installedPackages)
                             {
-                                var packageFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+                                var packageFrameworkGroup =
+                                    TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                                 foreach (var dependency in packageFrameworkGroup.Dependencies)
                                 {
                                     roots.RemoveAll(p => p.Id == dependency.Id);
@@ -231,11 +194,12 @@ namespace NugetForUnity
                             nuspec.Dependencies[0].Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
                         }
                     }
+
                     EditorGUILayout.EndHorizontal();
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
-                    var nuspecFrameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
+                    var nuspecFrameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
                     foreach (var dependency in nuspecFrameworkGroup.Dependencies)
                     {
                         EditorGUILayout.BeginHorizontal();
@@ -261,6 +225,7 @@ namespace NugetForUnity
                                 toDelete = dependency;
                             }
                         }
+
                         EditorGUILayout.EndHorizontal();
 
                         EditorGUILayout.Separator();
@@ -282,21 +247,22 @@ namespace NugetForUnity
                             nuspecFrameworkGroup.Dependencies.Add(new NugetPackageIdentifier());
                         }
                     }
+
                     EditorGUILayout.EndHorizontal();
                 }
 
                 EditorGUILayout.Separator();
 
-                if (GUILayout.Button(string.Format("Save {0}", Path.GetFileName(filepath))))
+                if (GUILayout.Button($"Save {Path.GetFileName(filepath)}"))
                 {
                     nuspec.Save(filepath);
                 }
 
                 EditorGUILayout.Separator();
 
-                if (GUILayout.Button(string.Format("Pack {0}.nupkg", Path.GetFileNameWithoutExtension(filepath))))
+                if (GUILayout.Button($"Pack {Path.GetFileNameWithoutExtension(filepath)}.nupkg"))
                 {
-                    NugetHelper.Pack(filepath);
+                    NugetCliHelper.Pack(filepath);
                 }
 
                 EditorGUILayout.Separator();
@@ -305,9 +271,50 @@ namespace NugetForUnity
 
                 if (GUILayout.Button("Push to Server"))
                 {
-                    NugetHelper.Push(nuspec, filepath, apiKey);
+                    NugetCliHelper.Push(nuspec, filepath, apiKey);
                 }
             }
+        }
+
+        /// <summary>
+        ///     Reload the currently selected asset as a .nuspec file.
+        /// </summary>
+        private void Reload()
+        {
+            var defaultAsset = Selection.activeObject as DefaultAsset;
+            if (defaultAsset != null)
+            {
+                var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
+                assetFilepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, assetFilepath);
+
+                var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
+
+                if (isNuspec)
+                {
+                    filepath = assetFilepath;
+                    nuspec = NuspecFile.Load(filepath);
+                    titleContent = new GUIContent(Path.GetFileNameWithoutExtension(filepath));
+
+                    // force a repaint
+                    Repaint();
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Called when enabling the window.
+        /// </summary>
+        private void OnFocus()
+        {
+            Reload();
+        }
+
+        /// <summary>
+        ///     Reloads the .nuspec file when the selection changes.
+        /// </summary>
+        private void OnSelectionChange()
+        {
+            Reload();
         }
     }
 }

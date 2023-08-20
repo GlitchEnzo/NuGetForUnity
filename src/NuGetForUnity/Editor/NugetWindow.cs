@@ -167,11 +167,11 @@ namespace NugetForUnity
                 lastInstalledSearchTerm = installedSearchTerm;
                 if (string.IsNullOrWhiteSpace(installedSearchTerm) || installedSearchTerm == "Search")
                 {
-                    filteredInstalledPackages = NugetHelper.InstalledPackages.ToList();
+                    filteredInstalledPackages = InstalledPackagesManager.InstalledPackages.ToList();
                 }
                 else
                 {
-                    filteredInstalledPackages = NugetHelper.InstalledPackages.Where(
+                    filteredInstalledPackages = InstalledPackagesManager.InstalledPackages.Where(
                             package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
                                        package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
                         .ToList();
@@ -226,7 +226,7 @@ namespace NugetForUnity
         [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
-            NugetHelper.Restore(!NugetHelper.NugetConfigFile.LockPackagesOnRestore);
+            NugetPackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
             foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
             {
                 nugetWindow.ClearViewCache();
@@ -259,7 +259,7 @@ namespace NugetForUnity
         {
             var request = UnityWebRequest.Get(GitHubReleasesApiUrl);
             var operation = request.SendWebRequest();
-            NugetHelper.LogVerbose("HTTP GET {0}", GitHubReleasesApiUrl);
+            NugetLogger.LogVerbose("HTTP GET {0}", GitHubReleasesApiUrl);
             EditorUtility.DisplayProgressBar("Checking updates", null, 0.0f);
 
             operation.completed += asyncOperation =>
@@ -285,7 +285,7 @@ namespace NugetForUnity
                     {
                         EditorUtility.DisplayDialog(
                             "Unable to Determine Updates",
-                            string.Format("Couldn't find release information at {0}. Error: {1}", GitHubReleasesApiUrl, request.error),
+                            $"Couldn't find release information at {GitHubReleasesApiUrl}. Error: {request.error}",
                             "OK");
                         return;
                     }
@@ -296,7 +296,7 @@ namespace NugetForUnity
                     {
                         EditorUtility.DisplayDialog(
                             "No Updates Available",
-                            string.Format("Your version of NuGetForUnity is up to date.\nVersion {0}.", NugetPreferences.NuGetForUnityVersion),
+                            $"Your version of NuGetForUnity is up to date.\nVersion {NugetPreferences.NuGetForUnityVersion}.",
                             "OK");
                         return;
                     }
@@ -304,13 +304,13 @@ namespace NugetForUnity
                     // New version is available. Give user options for installing it.
                     switch (EditorUtility.DisplayDialogComplex(
                                 "Update Available",
-                                string.Format("Current Version: {0}\nLatest Version: {1}", NugetPreferences.NuGetForUnityVersion, latestVersion),
+                                $"Current Version: {NugetPreferences.NuGetForUnityVersion}\nLatest Version: {latestVersion}",
                                 "Install Latest",
                                 "Open Releases Page",
                                 "Cancel"))
                     {
                         case 0:
-                            new NuGetForUnityUpdateInstaller(latestVersionDownloadUrl);
+                            _ = new NuGetForUnityUpdateInstaller(latestVersionDownloadUrl);
                             break;
                         case 1:
                             Application.OpenURL(GitHubReleasesPageUrl);
@@ -324,157 +324,6 @@ namespace NugetForUnity
                     request.Dispose();
                 }
             };
-        }
-
-        private static string GetLatestVersonFromReleasesApi(string response, out string unitypackageDownloadUrl)
-        {
-            // JsonUtility doesn't support top level arrays so we wrap it inside a object.
-            var releases = JsonUtility.FromJson<GitHubReleaseApiRequestList>(string.Concat("{ \"list\": ", response, " }"));
-            foreach (var release in releases.list)
-            {
-                // skip beta versions e.g. v2.0.0-preview
-                if (release.tag_name.Contains('-'))
-                {
-                    continue;
-                }
-
-                unitypackageDownloadUrl = release.assets.Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
-                    ?.browser_download_url;
-                return release.tag_name.TrimStart('v');
-            }
-
-            unitypackageDownloadUrl = null;
-            return null;
-        }
-
-        /// <summary>
-        ///     Called when enabling the window.
-        /// </summary>
-        private void OnEnable()
-        {
-            name = "NuGetForUnity";
-            titleContent = new GUIContent("NuGet For Unity");
-            Refresh(false);
-        }
-
-        private void ClearViewCache()
-        {
-            filteredInstalledPackages = null;
-        }
-
-        private void Refresh(bool forceFullRefresh)
-        {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            try
-            {
-                if (forceFullRefresh)
-                {
-                    CredentialProviderHelper.ClearCachedCredentials();
-                }
-
-                // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
-                NugetHelper.LoadNugetConfigFile();
-
-                // if we are entering playmode, don't do anything
-                if (EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    return;
-                }
-
-                NugetHelper.LogVerbose(hasRefreshed ? "NugetWindow reloading config" : "NugetWindow reloading config and updating packages");
-
-                if (!hasRefreshed || forceFullRefresh)
-                {
-                    // reset the number to skip
-                    numberToSkip = 0;
-
-                    // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
-                    EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
-                    UpdateOnlinePackages();
-
-                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
-                    UpdateInstalledPackages();
-
-                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
-                    UpdateUpdatePackages();
-
-                    // load the default icon from the Resources folder
-                    defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
-                }
-
-                hasRefreshed = true;
-            }
-            catch (Exception e)
-            {
-                Debug.LogErrorFormat("Error while refreshing NuGet packages list: {0}", e);
-            }
-            finally
-            {
-                ClearViewCache();
-                EditorUtility.ClearProgressBar();
-
-                NugetHelper.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
-            }
-        }
-
-        /// <summary>
-        ///     Updates the list of available packages by running a search with the server using the currently set parameters (# to get, # to skip, etc).
-        /// </summary>
-        private void UpdateOnlinePackages()
-        {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
-
-            // we just block the main thread
-            availablePackages = Task.Run(() => NugetHelper.Search(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
-                .GetAwaiter()
-                .GetResult();
-            NugetHelper.LogVerbose(
-                "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
-                searchTerm,
-                availablePackages.Count,
-                stopwatch.ElapsedMilliseconds);
-        }
-
-        private void UpdateInstalledPackages()
-        {
-            NugetHelper.UpdateInstalledPackages();
-            ClearViewCache();
-        }
-
-        /// <summary>
-        ///     Updates the list of update packages.
-        /// </summary>
-        private void UpdateUpdatePackages()
-        {
-            // get any available updates for the installed packages
-            updatePackages = NugetHelper.GetUpdates(NugetHelper.InstalledPackages, showPrereleaseUpdates);
-        }
-
-        /// <summary>
-        ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/.
-        /// </summary>
-        /// <param name="color">The color to fill the texture with.</param>
-        /// <returns>The generated texture.</returns>
-        private static Texture2D CreateSingleColorTexture(Color color)
-        {
-            const int width = 16;
-            const int height = 16;
-            var pix = new Color32[width * height];
-            Color32 color32 = color;
-            for (var index = 0; index < pix.Length; index++)
-            {
-                pix[index] = color32;
-            }
-
-            var result = new Texture2D(width, height);
-            result.SetPixels32(pix);
-            result.Apply();
-
-            return result;
         }
 
         /// <summary>
@@ -505,22 +354,80 @@ namespace NugetForUnity
             }
         }
 
-        private void OnTabChanged()
+        private static void GUILayoutLink(string url)
         {
-            selectedPackages.Clear();
-            openCloneWindows.Clear();
-            foreach (var dropdownData in versionDropdownDataPerPackage.Values)
+            var hyperLinkStyle = new GUIStyle(GUI.skin.label) { stretchWidth = false, richText = true };
+            var colorFormatString = "<color=#add8e6ff>{0}</color>";
+
+            var underline = new string('_', url.Length);
+
+            var formattedUrl = string.Format(colorFormatString, url);
+            var formattedUnderline = string.Format(colorFormatString, underline);
+            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
+
+            // Update rect for indentation
             {
-                // reset to latest package version else the update tab will show the same version as the installed tab
-                dropdownData.SelectedIndex = 0;
+                var indentedUrlRect = EditorGUI.IndentedRect(urlRect);
+                var delta = indentedUrlRect.x - urlRect.x;
+                indentedUrlRect.width += delta;
+                urlRect = indentedUrlRect;
             }
 
-            ResetScrollPosition();
+            GUI.Label(urlRect, formattedUrl, hyperLinkStyle);
+            GUI.Label(urlRect, formattedUnderline, hyperLinkStyle);
+
+            EditorGUIUtility.AddCursorRect(urlRect, MouseCursor.Link);
+            if (urlRect.Contains(Event.current.mousePosition))
+            {
+                if (Event.current.type == EventType.MouseUp)
+                {
+                    Application.OpenURL(url);
+                }
+            }
         }
 
-        private void ResetScrollPosition()
+        private static string GetLatestVersonFromReleasesApi(string response, out string unitypackageDownloadUrl)
         {
-            scrollPosition.y = 0f;
+            // JsonUtility doesn't support top level arrays so we wrap it inside a object.
+            var releases = JsonUtility.FromJson<GitHubReleaseApiRequestList>(string.Concat("{ \"list\": ", response, " }"));
+            foreach (var release in releases.list)
+            {
+                // skip beta versions e.g. v2.0.0-preview
+                if (release.tag_name.Contains('-'))
+                {
+                    continue;
+                }
+
+                unitypackageDownloadUrl = release.assets.Find(asset => asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase))
+                    ?.browser_download_url;
+                return release.tag_name.TrimStart('v');
+            }
+
+            unitypackageDownloadUrl = null;
+            return null;
+        }
+
+        /// <summary>
+        ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/.
+        /// </summary>
+        /// <param name="color">The color to fill the texture with.</param>
+        /// <returns>The generated texture.</returns>
+        private static Texture2D CreateSingleColorTexture(Color color)
+        {
+            const int width = 16;
+            const int height = 16;
+            var pix = new Color32[width * height];
+            Color32 color32 = color;
+            for (var index = 0; index < pix.Length; index++)
+            {
+                pix[index] = color32;
+            }
+
+            var result = new Texture2D(width, height);
+            result.SetPixels32(pix);
+            result.Apply();
+
+            return result;
         }
 
         /// <summary>
@@ -592,6 +499,131 @@ namespace NugetForUnity
             };
 
             return cachedFoldoutStyle;
+        }
+
+        /// <summary>
+        ///     Called when enabling the window.
+        /// </summary>
+        private void OnEnable()
+        {
+            name = "NuGetForUnity";
+            titleContent = new GUIContent("NuGet For Unity");
+            Refresh(false);
+        }
+
+        private void ClearViewCache()
+        {
+            filteredInstalledPackages = null;
+        }
+
+        private void Refresh(bool forceFullRefresh)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            try
+            {
+                if (forceFullRefresh)
+                {
+                    CredentialProviderHelper.ClearCachedCredentials();
+                }
+
+                // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
+                ConfigurationManager.LoadNugetConfigFile();
+
+                // if we are entering playmode, don't do anything
+                if (EditorApplication.isPlayingOrWillChangePlaymode)
+                {
+                    return;
+                }
+
+                NugetLogger.LogVerbose(hasRefreshed ? "NugetWindow reloading config" : "NugetWindow reloading config and updating packages");
+
+                if (!hasRefreshed || forceFullRefresh)
+                {
+                    // reset the number to skip
+                    numberToSkip = 0;
+
+                    // TODO: Do we even need to load ALL of the data, or can we just get the Online tab packages?
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Fetching packages from server...", 0.3f);
+                    UpdateOnlinePackages();
+
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting installed packages...", 0.6f);
+                    UpdateInstalledPackages();
+
+                    EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
+                    UpdateUpdatePackages();
+
+                    // load the default icon from the Resources folder
+                    defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
+                }
+
+                hasRefreshed = true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogErrorFormat("Error while refreshing NuGet packages list: {0}", e);
+            }
+            finally
+            {
+                ClearViewCache();
+                EditorUtility.ClearProgressBar();
+
+                NugetLogger.LogVerbose("NugetWindow reloading took {0} ms", stopwatch.ElapsedMilliseconds);
+            }
+        }
+
+        /// <summary>
+        ///     Updates the list of available packages by running a search with the server using the currently set parameters (# to get, # to skip, etc).
+        /// </summary>
+        private void UpdateOnlinePackages()
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
+
+            // we just block the main thread
+            availablePackages = Task.Run(() => ConfigurationManager.Search(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
+                .GetAwaiter()
+                .GetResult();
+            NugetLogger.LogVerbose(
+                "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
+                searchTerm,
+                availablePackages.Count,
+                stopwatch.ElapsedMilliseconds);
+        }
+
+        private void UpdateInstalledPackages()
+        {
+            InstalledPackagesManager.UpdateInstalledPackages();
+            ClearViewCache();
+        }
+
+        /// <summary>
+        ///     Updates the list of update packages.
+        /// </summary>
+        private void UpdateUpdatePackages()
+        {
+            // get any available updates for the installed packages
+            updatePackages = ConfigurationManager.GetUpdates(InstalledPackagesManager.InstalledPackages, showPrereleaseUpdates);
+        }
+
+        private void OnTabChanged()
+        {
+            selectedPackages.Clear();
+            openCloneWindows.Clear();
+            foreach (var dropdownData in versionDropdownDataPerPackage.Values)
+            {
+                // reset to latest package version else the update tab will show the same version as the installed tab
+                dropdownData.SelectedIndex = 0;
+            }
+
+            ResetScrollPosition();
+        }
+
+        private void ResetScrollPosition()
+        {
+            scrollPosition.y = 0f;
         }
 
         /// <summary>
@@ -692,9 +724,9 @@ namespace NugetForUnity
             if (GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
-                availablePackages.AddRange(
+                availablePackages?.AddRange(
                     Task.Run(
-                            () => NugetHelper.Search(
+                            () => ConfigurationManager.Search(
                                 onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
                                 showOnlinePrerelease,
                                 numberToGet,
@@ -764,6 +796,7 @@ namespace NugetForUnity
 
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
+
                 EditorGUILayout.EndHorizontal();
 
                 // search only if the enter key is pressed
@@ -774,6 +807,7 @@ namespace NugetForUnity
                     UpdateOnlinePackages();
                 }
             }
+
             EditorGUILayout.EndVertical();
         }
 
@@ -790,21 +824,22 @@ namespace NugetForUnity
                 {
                     GUILayout.FlexibleSpace();
 
-                    if (NugetHelper.InstalledPackages.Any())
+                    if (InstalledPackagesManager.InstalledPackages.Any())
                     {
                         if (GUILayout.Button("Uninstall All", GUILayout.Width(100)))
                         {
-                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+                            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
                     }
 
-                    if (NugetHelper.InstalledPackages.Any(selectedPackages.Contains))
+                    if (InstalledPackagesManager.InstalledPackages.Any(selectedPackages.Contains))
                     {
                         if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
                         {
-                            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.Where(selectedPackages.Contains).ToList());
+                            NugetPackageUninstaller.UninstallAll(
+                                InstalledPackagesManager.InstalledPackages.Where(selectedPackages.Contains).ToList());
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -812,6 +847,7 @@ namespace NugetForUnity
 
                     DrawMandatoryButtons();
                 }
+
                 EditorGUILayout.EndHorizontal();
 
                 EditorGUILayout.BeginHorizontal();
@@ -822,8 +858,10 @@ namespace NugetForUnity
 
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
+
                 EditorGUILayout.EndHorizontal();
             }
+
             EditorGUILayout.EndVertical();
         }
 
@@ -849,7 +887,7 @@ namespace NugetForUnity
                     {
                         if (GUILayout.Button("Update All", GUILayout.Width(100)))
                         {
-                            NugetHelper.UpdateAll(updatePackages, NugetHelper.InstalledPackages);
+                            NugetPackageUpdater.UpdateAll(updatePackages, InstalledPackagesManager.InstalledPackages);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -858,7 +896,9 @@ namespace NugetForUnity
                         {
                             if (GUILayout.Button("Update Selected", GUILayout.Width(120)))
                             {
-                                NugetHelper.UpdateAll(updatePackages.Where(selectedPackages.Contains), NugetHelper.InstalledPackages);
+                                NugetPackageUpdater.UpdateAll(
+                                    updatePackages.Where(selectedPackages.Contains),
+                                    InstalledPackagesManager.InstalledPackages);
                                 UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
@@ -878,8 +918,10 @@ namespace NugetForUnity
 
                     GUI.skin.textField.fontSize = oldFontSize;
                 }
+
                 EditorGUILayout.EndHorizontal();
             }
+
             EditorGUILayout.EndVertical();
         }
 
@@ -901,15 +943,15 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Draws the given <see cref="NugetPackage" />.
+        ///     Draws the given <see cref="INugetPackage" />.
         /// </summary>
-        /// <param name="package">The <see cref="NugetPackage" /> to draw.</param>
+        /// <param name="package">The <see cref="INugetPackage" /> to draw.</param>
         /// <param name="packageStyle">The normal style of the package section.</param>
         /// <param name="contrastStyle">The contrast style of the package section.</param>
         /// <param name="canBeSelected">If a check-box should be shown.</param>
         private void DrawPackage(INugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
-            var installedPackages = NugetHelper.InstalledPackages;
+            var installedPackages = InstalledPackagesManager.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
             EditorGUILayout.BeginHorizontal();
@@ -983,7 +1025,7 @@ namespace NugetForUnity
 
                     if (package.Authors.Count > 0)
                     {
-                        var authorLabel = string.Format("by {0}", string.Join(", ", package.Authors));
+                        var authorLabel = $"by {string.Join(", ", package.Authors)}";
                         var size = EditorStyles.label.CalcSize(new GUIContent(authorLabel));
                         GUI.Label(rect, authorLabel, EditorStyles.label);
                         rect.x += size.x + paddingX;
@@ -1013,7 +1055,7 @@ namespace NugetForUnity
                         EditorStyles.popup.CalcMinMaxWidth(
                             new GUIContent(
                                 package.Versions.Select(version => version.FullVersion).OrderByDescending(version => version.Length).First()),
-                            out var minWidth,
+                            out _,
                             out var maxWidth);
                         versionDropdownData = new VersionDropdownData
                         {
@@ -1038,7 +1080,7 @@ namespace NugetForUnity
                     {
                         if (GUILayout.Button("Add as explicit"))
                         {
-                            NugetHelper.SetManuallyInstalledFlag(installed);
+                            InstalledPackagesManager.SetManuallyInstalledFlag(installed);
                             ClearViewCache();
                         }
                     }
@@ -1049,7 +1091,7 @@ namespace NugetForUnity
                         // An older version is installed
                         if (GUILayout.Button("Update"))
                         {
-                            NugetHelper.Update(installed, package);
+                            NugetPackageUpdater.Update(installed, package);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -1059,7 +1101,7 @@ namespace NugetForUnity
                         // A newer version is installed
                         if (GUILayout.Button("Downgrade"))
                         {
-                            NugetHelper.Update(installed, package);
+                            NugetPackageUpdater.Update(installed, package);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -1067,20 +1109,20 @@ namespace NugetForUnity
 
                     if (GUILayout.Button("Uninstall"))
                     {
-                        NugetHelper.Uninstall(installed);
+                        NugetPackageUninstaller.Uninstall(installed);
                         UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
                 else
                 {
-                    var alreadyInstalled = NugetHelper.IsAlreadyImportedInEngine(package, false);
+                    var alreadyInstalled = UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false);
                     using (new EditorGUI.DisabledScope(alreadyInstalled))
                     {
                         if (GUILayout.Button(new GUIContent("Install", null, alreadyInstalled ? "Already imported by Unity" : null)))
                         {
                             package.IsManuallyInstalled = true;
-                            NugetHelper.InstallIdentifier(package);
+                            NugetPackageInstaller.InstallIdentifier(package);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -1089,6 +1131,7 @@ namespace NugetForUnity
 
                 EditorGUILayout.EndHorizontal();
             }
+
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space();
@@ -1153,7 +1196,7 @@ namespace NugetForUnity
                         // Show the dependencies
                         if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+                            var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                             if (frameworkGroup.Dependencies.Count > 0)
                             {
                                 EditorStyles.label.wordWrap = true;
@@ -1162,11 +1205,11 @@ namespace NugetForUnity
 
                                 foreach (var dependency in frameworkGroup.Dependencies)
                                 {
-                                    builder.Append(string.Format(" {0} {1};", dependency.Id, dependency.Version));
+                                    builder.Append($" {dependency.Id} {dependency.Version};");
                                 }
 
                                 EditorGUILayout.Space();
-                                EditorGUILayout.LabelField(string.Format("Depends on:{0}", builder));
+                                EditorGUILayout.LabelField($"Depends on:{builder}");
                                 EditorStyles.label.fontStyle = FontStyle.Normal;
                             }
                         }
@@ -1177,21 +1220,16 @@ namespace NugetForUnity
                         }
 
                         // Create the style for putting a box around the 'Clone' button
-                        var cloneButtonBoxStyle = new GUIStyle("box");
-                        cloneButtonBoxStyle.stretchWidth = false;
-                        cloneButtonBoxStyle.margin.top = 0;
-                        cloneButtonBoxStyle.margin.bottom = 0;
-                        cloneButtonBoxStyle.padding.bottom = 4;
+                        var cloneButtonBoxStyle =
+                            new GUIStyle("box") { stretchWidth = false, margin = { top = 0, bottom = 0 }, padding = { bottom = 4 } };
 
-                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle);
-                        normalButtonBoxStyle.normal.background = packageStyle.normal.background;
+                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle) { normal = { background = packageStyle.normal.background } };
 
                         var showCloneWindow = openCloneWindows.Contains(package);
                         cloneButtonBoxStyle.normal.background = showCloneWindow ? contrastStyle.normal.background : packageStyle.normal.background;
 
                         // Create a similar style for the 'Clone' window
-                        var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle);
-                        cloneWindowStyle.padding = new RectOffset(6, 6, 2, 6);
+                        var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle) { padding = new RectOffset(6, 6, 2, 6) };
 
                         // Show button bar
                         EditorGUILayout.BeginHorizontal();
@@ -1218,6 +1256,7 @@ namespace NugetForUnity
                                             openCloneWindows.Remove(package);
                                         }
                                     }
+
                                     EditorGUILayout.EndHorizontal();
                                 }
                             }
@@ -1236,6 +1275,7 @@ namespace NugetForUnity
                                 EditorGUILayout.EndHorizontal();
                             }
                         }
+
                         EditorGUILayout.EndHorizontal();
 
                         if (showCloneWindow)
@@ -1260,6 +1300,7 @@ namespace NugetForUnity
                                     GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
                                     EditorGUILayout.TextField(package.RepositoryUrl);
                                 }
+
                                 EditorGUILayout.EndHorizontal();
 
                                 // Clone @ commit label
@@ -1293,8 +1334,10 @@ namespace NugetForUnity
                                     EditorGUILayout.TextArea(commands);
                                     EditorGUILayout.EndVertical();
                                 }
+
                                 EditorGUILayout.EndHorizontal();
                             }
+
                             EditorGUILayout.EndVertical();
                         }
 
@@ -1304,44 +1347,11 @@ namespace NugetForUnity
                     EditorGUILayout.Separator();
                     EditorGUILayout.Separator();
                 }
+
                 EditorGUILayout.EndVertical();
             }
+
             EditorGUILayout.EndHorizontal();
-        }
-
-        public static void GUILayoutLink(string url)
-        {
-            var hyperLinkStyle = new GUIStyle(GUI.skin.label);
-            hyperLinkStyle.stretchWidth = false;
-            hyperLinkStyle.richText = true;
-
-            var colorFormatString = "<color=#add8e6ff>{0}</color>";
-
-            var underline = new string('_', url.Length);
-
-            var formattedUrl = string.Format(colorFormatString, url);
-            var formattedUnderline = string.Format(colorFormatString, underline);
-            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
-
-            // Update rect for indentation
-            {
-                var indentedUrlRect = EditorGUI.IndentedRect(urlRect);
-                var delta = indentedUrlRect.x - urlRect.x;
-                indentedUrlRect.width += delta;
-                urlRect = indentedUrlRect;
-            }
-
-            GUI.Label(urlRect, formattedUrl, hyperLinkStyle);
-            GUI.Label(urlRect, formattedUnderline, hyperLinkStyle);
-
-            EditorGUIUtility.AddCursorRect(urlRect, MouseCursor.Link);
-            if (urlRect.Contains(Event.current.mousePosition))
-            {
-                if (Event.current.type == EventType.MouseUp)
-                {
-                    Application.OpenURL(url);
-                }
-            }
         }
 
         /// <summary>
@@ -1429,6 +1439,7 @@ namespace NugetForUnity
             public string[] DropdownOptions { get; set; }
         }
 
+        // ReSharper disable InconsistentNaming
 #pragma warning disable 0649
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning disable SA1401 // Fields should be private
@@ -1456,6 +1467,7 @@ namespace NugetForUnity
             public string name;
         }
 
+        // ReSharper restore InconsistentNaming
 #pragma warning restore SA1310 // Field names should not contain underscore
 #pragma warning restore SA1401 // Fields should be private
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter

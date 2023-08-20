@@ -39,9 +39,6 @@ namespace NugetForUnity
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />
-        public bool IsLocalPath => true;
-
-        /// <inheritdoc />
         public string UserName
         {
             get => string.Empty;
@@ -84,7 +81,7 @@ namespace NugetForUnity
                 var path = Environment.ExpandEnvironmentVariables(SavedPath);
                 if (!Path.IsPathRooted(path))
                 {
-                    path = Path.Combine(Path.GetDirectoryName(NugetHelper.NugetConfigFilePath), path);
+                    path = Path.Combine(ConfigurationManager.NugetConfigFileDirectoryPath, path);
                 }
 
                 return path;
@@ -94,7 +91,7 @@ namespace NugetForUnity
         /// <inheritdoc />
         public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
-            List<INugetPackage> foundPackages = null;
+            List<INugetPackage> foundPackages;
 
             if (!package.HasVersionRange && !string.IsNullOrEmpty(package.Version))
             {

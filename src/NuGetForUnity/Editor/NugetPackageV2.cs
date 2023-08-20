@@ -42,15 +42,15 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Loads a <see cref="NugetPackage" /> from the .nupkg file at the given file-path.
+        ///     Loads a <see cref="NugetPackageV2" /> from the .nupkg file at the given file-path.
         /// </summary>
-        /// <param name="nupkgFilepath">The file-path to the .nupkg file to load.</param>
+        /// <param name="nupkgFilePath">The file-path to the .nupkg file to load.</param>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The <see cref="NugetPackage" /> loaded from the .nupkg file.</returns>
-        public static NugetPackageV2 FromNupkgFile(string nupkgFilepath, NugetPackageSourceV2 packageSource)
+        /// <returns>The <see cref="NugetPackageV2" /> loaded from the .nupkg file.</returns>
+        public static NugetPackageV2 FromNupkgFile(string nupkgFilePath, NugetPackageSourceV2 packageSource)
         {
-            var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilepath), packageSource);
-            package.DownloadUrl = nupkgFilepath;
+            var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilePath), packageSource);
+            package.DownloadUrl = nupkgFilePath;
             return package;
         }
     }

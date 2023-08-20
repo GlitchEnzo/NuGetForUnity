@@ -1,4 +1,4 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
 using UnityEditor;
 using UnityEngine;
 
@@ -28,10 +28,10 @@ namespace NugetForUnity
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
         ///     Path of packages.config file is checked here as well in case it was manually changed.
         /// </summary>
-        public NugetPreferences()
+        private NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
-            shouldShowPackagesConfigPathWarning = IsPathInAssets(NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath);
+            shouldShowPackagesConfigPathWarning = UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
         }
 
         /// <summary>
@@ -39,20 +39,10 @@ namespace NugetForUnity
         /// </summary>
         /// <returns>The instance of the settings provider.</returns>
         [SettingsProvider]
+        [SuppressMessage("ReSharper", "UnusedMember.Global", Justification = "Used by unity.")]
         public static SettingsProvider Create()
         {
             return new NugetPreferences();
-        }
-
-        /// <summary>
-        ///     Checks if given path is within Assets folder.
-        /// </summary>
-        /// <param name="path">Path to check.</param>
-        /// <returns>True if path is within Assets folder, false otherwise.</returns>
-        private static bool IsPathInAssets(string path)
-        {
-            var pathCheck = NugetHelper.GetAssetsRelativePath(path);
-            return pathCheck.StartsWith("..") || Path.IsPathRooted(pathCheck);
         }
 
         /// <summary>
@@ -63,50 +53,51 @@ namespace NugetForUnity
         {
             var preferencesChangedThisFrame = false;
 
-            EditorGUILayout.LabelField(string.Format("Version: {0}", NuGetForUnityVersion));
+            EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
 
-            var installFromCache = EditorGUILayout.Toggle("Install From the Cache", NugetHelper.NugetConfigFile.InstallFromCache);
-            if (installFromCache != NugetHelper.NugetConfigFile.InstallFromCache)
+            var installFromCache = EditorGUILayout.Toggle("Install From the Cache", ConfigurationManager.NugetConfigFile.InstallFromCache);
+            if (installFromCache != ConfigurationManager.NugetConfigFile.InstallFromCache)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.InstallFromCache = installFromCache;
+                ConfigurationManager.NugetConfigFile.InstallFromCache = installFromCache;
             }
 
-            var readOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", NugetHelper.NugetConfigFile.ReadOnlyPackageFiles);
-            if (readOnlyPackageFiles != NugetHelper.NugetConfigFile.ReadOnlyPackageFiles)
+            var readOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles);
+            if (readOnlyPackageFiles != ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.ReadOnlyPackageFiles = readOnlyPackageFiles;
+                ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles = readOnlyPackageFiles;
             }
 
-            var verbose = EditorGUILayout.Toggle("Use Verbose Logging", NugetHelper.NugetConfigFile.Verbose);
-            if (verbose != NugetHelper.NugetConfigFile.Verbose)
+            var verbose = EditorGUILayout.Toggle("Use Verbose Logging", ConfigurationManager.NugetConfigFile.Verbose);
+            if (verbose != ConfigurationManager.NugetConfigFile.Verbose)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.Verbose = verbose;
+                ConfigurationManager.NugetConfigFile.Verbose = verbose;
             }
 
             EditorGUILayout.BeginHorizontal();
             {
-                var packagesConfigPath = NugetHelper.NugetConfigFile.PackagesConfigDirectoryPath;
+                var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
                 EditorGUILayout.LabelField(
                     new GUIContent(
-                        $"Packages Config path: {NugetHelper.NugetConfigFile.RelativePackagesConfigDirectoryPath}",
+                        $"Packages Config path: {ConfigurationManager.NugetConfigFile.RelativePackagesConfigDirectoryPath}",
                         $"Absolute path: {packagesConfigPath}"));
                 if (GUILayout.Button("Browse"))
                 {
-                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, "");
+                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, string.Empty);
 
                     if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
                     {
                         // if the path root is different or it is not under Assets folder, we want to show a warning message
-                        shouldShowPackagesConfigPathWarning = IsPathInAssets(newPath);
+                        shouldShowPackagesConfigPathWarning = UnityPathHelper.IsPathInAssets(newPath);
 
                         PackagesConfigFile.Move(newPath);
                         preferencesChangedThisFrame = true;
                     }
                 }
             }
+
             EditorGUILayout.EndHorizontal();
             if (shouldShowPackagesConfigPathWarning)
             {
@@ -119,22 +110,22 @@ namespace NugetForUnity
                 new GUIContent(
                     "Request Timeout in seconds",
                     "Timeout used for web requests to the package source. A value of -1 can be used to disable timeout."),
-                NugetHelper.NugetConfigFile.RequestTimeoutSeconds);
-            if (requestTimeout != NugetHelper.NugetConfigFile.RequestTimeoutSeconds)
+                ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds);
+            if (requestTimeout != ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.RequestTimeoutSeconds = requestTimeout;
+                ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds = requestTimeout;
             }
 
             var lockPackagesOnRestore = EditorGUILayout.Toggle(
                 new GUIContent(
                     "Lock Packages on Restore",
                     "When lock packages on restore is enabled only packages explicitly listed inside the 'packages.config' file will be installed. No dependencies are installed. This feature should only be used when having issues that unneeded or broken packages are installed."),
-                NugetHelper.NugetConfigFile.LockPackagesOnRestore);
-            if (lockPackagesOnRestore != NugetHelper.NugetConfigFile.LockPackagesOnRestore)
+                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
+            if (lockPackagesOnRestore != ConfigurationManager.NugetConfigFile.LockPackagesOnRestore)
             {
                 preferencesChangedThisFrame = true;
-                NugetHelper.NugetConfigFile.LockPackagesOnRestore = lockPackagesOnRestore;
+                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore = lockPackagesOnRestore;
             }
 
             EditorGUILayout.LabelField("Package Sources:");
@@ -145,7 +136,7 @@ namespace NugetForUnity
             INugetPackageSource sourceToMoveDown = null;
             INugetPackageSource sourceToRemove = null;
 
-            foreach (var source in NugetHelper.NugetConfigFile.PackageSources)
+            foreach (var source in ConfigurationManager.NugetConfigFile.PackageSources)
             {
                 EditorGUILayout.BeginVertical();
                 {
@@ -161,6 +152,7 @@ namespace NugetForUnity
                                 source.IsEnabled = isEnabled;
                             }
                         }
+
                         EditorGUILayout.EndVertical();
 
                         EditorGUILayout.BeginVertical();
@@ -179,8 +171,10 @@ namespace NugetForUnity
                                 source.SavedPath = savedPath;
                             }
                         }
+
                         EditorGUILayout.EndVertical();
                     }
+
                     EditorGUILayout.EndHorizontal();
 
                     EditorGUILayout.BeginHorizontal();
@@ -220,6 +214,7 @@ namespace NugetForUnity
                         EditorGUIUtility.labelWidth = 0;
                         EditorGUILayout.EndVertical();
                     }
+
                     EditorGUILayout.EndHorizontal();
 
                     EditorGUILayout.BeginHorizontal();
@@ -239,18 +234,20 @@ namespace NugetForUnity
                             sourceToRemove = source;
                         }
                     }
+
                     EditorGUILayout.EndHorizontal();
                 }
+
                 EditorGUILayout.EndVertical();
             }
 
             if (sourceToMoveUp != null)
             {
-                var index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
+                var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
                 if (index > 0)
                 {
-                    NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index - 1];
-                    NugetHelper.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
+                    ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index - 1];
+                    ConfigurationManager.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
                 }
 
                 preferencesChangedThisFrame = true;
@@ -258,11 +255,11 @@ namespace NugetForUnity
 
             if (sourceToMoveDown != null)
             {
-                var index = NugetHelper.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
-                if (index < NugetHelper.NugetConfigFile.PackageSources.Count - 1)
+                var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
+                if (index < ConfigurationManager.NugetConfigFile.PackageSources.Count - 1)
                 {
-                    NugetHelper.NugetConfigFile.PackageSources[index] = NugetHelper.NugetConfigFile.PackageSources[index + 1];
-                    NugetHelper.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
+                    ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index + 1];
+                    ConfigurationManager.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
                 }
 
                 preferencesChangedThisFrame = true;
@@ -270,13 +267,13 @@ namespace NugetForUnity
 
             if (sourceToRemove != null)
             {
-                NugetHelper.NugetConfigFile.PackageSources.Remove(sourceToRemove);
+                ConfigurationManager.NugetConfigFile.PackageSources.Remove(sourceToRemove);
                 preferencesChangedThisFrame = true;
             }
 
             if (GUILayout.Button("Add New Source"))
             {
-                NugetHelper.NugetConfigFile.PackageSources.Add(new NugetPackageSourceV2("New Source", "source_path"));
+                ConfigurationManager.NugetConfigFile.PackageSources.Add(new NugetPackageSourceV2("New Source", "source_path"));
                 preferencesChangedThisFrame = true;
             }
 
@@ -284,14 +281,14 @@ namespace NugetForUnity
 
             if (GUILayout.Button("Reset To Default"))
             {
-                NugetConfigFile.CreateDefaultFile(NugetHelper.NugetConfigFilePath);
-                NugetHelper.LoadNugetConfigFile();
+                NugetConfigFile.CreateDefaultFile(ConfigurationManager.NugetConfigFilePath);
+                ConfigurationManager.LoadNugetConfigFile();
                 preferencesChangedThisFrame = true;
             }
 
             if (preferencesChangedThisFrame)
             {
-                NugetHelper.NugetConfigFile.Save(NugetHelper.NugetConfigFilePath);
+                ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using UnityEngine;
 
@@ -221,20 +222,14 @@ namespace NugetForUnity
                 return string.Equals(FullVersion, other.FullVersion, StringComparison.OrdinalIgnoreCase);
             }
 
-            if (HasVersionRange)
+            if (!HasVersionRange)
             {
-                var comparison = CompareVersion(other.semVer2Version);
-                if (comparison == 0)
-                {
-                    return true;
-                }
-
-                return false;
+                // if it has no version range specified (e.g. only a single version number)
+                // The NuGet's specs state that it is the minimum version number, inclusive
+                return semVer2Version.Compare(other.semVer2Version) <= 0;
             }
 
-            // if it has no version range specified (e.g. only a single version number)
-            // The NuGet's specs state that it is the minimum version number, inclusive
-            return semVer2Version.Compare(other.semVer2Version) <= 0;
+            return string.Equals(NormalizedVersion, other.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -266,6 +261,10 @@ namespace NugetForUnity
         ///     Gets the hash-code for this <see cref="NugetPackageVersion" />.
         /// </summary>
         /// <returns>The hash-code for this instance.</returns>
+        [SuppressMessage(
+            "ReSharper",
+            "NonReadonlyMemberInGetHashCode",
+            Justification = "We only edit the version before we use the hash (stroe it in a dictionary).")]
         public override int GetHashCode()
         {
 #if UNITY_2021_2_OR_NEWER

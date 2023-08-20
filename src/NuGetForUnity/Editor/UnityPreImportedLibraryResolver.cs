@@ -28,11 +28,11 @@ namespace NugetForUnity
 
             // Find all the assemblies already installed by NuGetForUnity
             var alreadyInstalledDllFileNames = new HashSet<string>();
-            if (Directory.Exists(NugetHelper.NugetConfigFile.RepositoryPath))
+            var repositoryPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
+            if (Directory.Exists(repositoryPath))
             {
                 alreadyInstalledDllFileNames = new HashSet<string>(
-                    Directory.EnumerateFiles(NugetHelper.NugetConfigFile.RepositoryPath, "*.dll", SearchOption.AllDirectories)
-                        .Select(Path.GetFileNameWithoutExtension));
+                    Directory.EnumerateFiles(repositoryPath, "*.dll", SearchOption.AllDirectories).Select(Path.GetFileNameWithoutExtension));
             }
 
             // Search the all project assemblies that are not editor only.
@@ -73,8 +73,8 @@ namespace NugetForUnity
                 alreadyImportedEditorOnlyLibraries.Add("System.CodeDom");
             }
 
-            NugetHelper.LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
-            NugetHelper.LogVerbose("Already imported editor only libraries: {0}", string.Join(", ", alreadyImportedEditorOnlyLibraries));
+            NugetLogger.LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
+            NugetLogger.LogVerbose("Already imported editor only libraries: {0}", string.Join(", ", alreadyImportedEditorOnlyLibraries));
 
             return alreadyImportedLibs;
         }
@@ -91,6 +91,24 @@ namespace NugetForUnity
             }
 
             return alreadyImportedEditorOnlyLibraries;
+        }
+
+        /// <summary>
+        ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
+        /// </summary>
+        /// <param name="package">The package of witch the identifier is checked.</param>
+        /// <param name="log">Whether to log a message with the result of the check.</param>
+        /// <returns>If it is included in Unity.</returns>
+        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
+        {
+            var alreadyImported = GetAlreadyImportedLibs();
+            var isAlreadyImported = alreadyImported.Contains(package.Id);
+            if (log)
+            {
+                NugetLogger.LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+            }
+
+            return isAlreadyImported;
         }
     }
 }

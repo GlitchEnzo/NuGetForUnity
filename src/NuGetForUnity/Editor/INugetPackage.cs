@@ -51,6 +51,7 @@ namespace NugetForUnity
 
         /// <summary>
         ///     Gets the total number of downloads all versions of the package have in total.
+        /// </summary>
         long TotalDownloads { get; }
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -241,6 +242,10 @@ namespace NugetForUnity
         ///     Gets the hash-code for this <see cref="NugetPackageIdentifier" />.
         /// </summary>
         /// <returns>The hash-code for this instance.</returns>
+        [SuppressMessage(
+            "ReSharper",
+            "NonReadonlyMemberInGetHashCode",
+            Justification = "We only edit the version / id before we use the hash (stroe it in a dictionary).")]
         public override int GetHashCode()
         {
             return Id.GetHashCode() ^ PackageVersion.GetHashCode();

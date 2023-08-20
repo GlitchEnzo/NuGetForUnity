@@ -157,6 +157,62 @@ namespace NugetForUnity
             return default;
         }
 
+        /// <summary>
+        ///     Select the best target-framework group of a NuGet package.
+        /// </summary>
+        /// <param name="packageDependencies">The available frameworks.</param>
+        /// <returns>The selected target framework group or null if non is matching.</returns>
+        internal static NugetFrameworkGroup GetNullableBestDependencyFrameworkGroupForCurrentSettings(List<NugetFrameworkGroup> packageDependencies)
+        {
+            var bestTargetFramework = TryGetBestTargetFramework(packageDependencies, frameworkGroup => frameworkGroup.TargetFramework);
+            NugetLogger.LogVerbose(
+                "Selecting {0} as the best target framework for current settings",
+                bestTargetFramework?.TargetFramework ?? "(null)");
+            return bestTargetFramework;
+        }
+
+        /// <summary>
+        ///     Select the best target-framework group of a NuGet package.
+        /// </summary>
+        /// <param name="packageDependencies">The available frameworks.</param>
+        /// <returns>The selected target framework group or a empty group if non is matching.</returns>
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(List<NugetFrameworkGroup> packageDependencies)
+        {
+            return GetNullableBestDependencyFrameworkGroupForCurrentSettings(packageDependencies) ?? new NugetFrameworkGroup();
+        }
+
+        /// <summary>
+        ///     Select the best target-framework group of a NuGet package.
+        /// </summary>
+        /// <param name="nuspec">The package of witch the dependencies are selected.</param>
+        /// <returns>The selected target framework group or a empty group if non is matching.</returns>
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
+        {
+            return GetBestDependencyFrameworkGroupForCurrentSettings(nuspec.Dependencies);
+        }
+
+        /// <summary>
+        ///     Select the best target-framework group of a NuGet package.
+        /// </summary>
+        /// <param name="package">The package of witch the dependencies are selected.</param>
+        /// <returns>The selected target framework group or a empty group if non is matching.</returns>
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(INugetPackage package)
+        {
+            return GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+        }
+
+        /// <summary>
+        ///     Select the best target-framework name.
+        /// </summary>
+        /// <param name="targetFrameworks">The available frameworks.</param>
+        /// <returns>The selected target framework or null if non is matching.</returns>
+        internal static string TryGetBestTargetFrameworkForCurrentSettings(IReadOnlyCollection<string> targetFrameworks)
+        {
+            var result = TryGetBestTargetFramework(targetFrameworks);
+            NugetLogger.LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
+            return result;
+        }
+
         private enum DotnetVersionCompatibilityLevel
         {
             None = 0,
@@ -178,9 +234,9 @@ namespace NugetForUnity
         // Ignore Spelling: dotnet
         private readonly struct TargetFrameworkSupport
         {
-            public readonly string Name;
-
             public readonly UnityVersion? MinimumUnityVersion;
+
+            public readonly string Name;
 
             public readonly DotnetVersionCompatibilityLevel[] SupportedDotnetVersions;
 
@@ -197,15 +253,15 @@ namespace NugetForUnity
 
         private readonly struct UnityVersion : IComparable<UnityVersion>
         {
+            public readonly int Build;
+
             public readonly int Major;
 
             public readonly int Minor;
 
-            public readonly int Revision;
-
             public readonly char Release;
 
-            public readonly int Build;
+            public readonly int Revision;
 
             public UnityVersion(string version)
             {

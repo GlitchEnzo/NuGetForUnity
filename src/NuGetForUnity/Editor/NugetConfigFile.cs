@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -105,6 +105,182 @@ namespace NugetForUnity
         ///     'package.config' are installed without installing the dependencies of them.
         /// </summary>
         public bool LockPackagesOnRestore { get; set; }
+
+        /// <summary>
+        ///     Loads a NuGet.config file at the given file-path.
+        /// </summary>
+        /// <param name="filePath">The full file-path to the NuGet.config file to load.</param>
+        /// <returns>The newly loaded <see cref="NugetConfigFile" />.</returns>
+        public static NugetConfigFile Load(string filePath)
+        {
+            var configFile = new NugetConfigFile
+            {
+                PackageSources = new List<INugetPackageSource>(),
+                InstallFromCache = true,
+                ReadOnlyPackageFiles = false,
+                RelativePackagesConfigDirectoryPath = ".",
+            };
+
+            var file = XDocument.Load(filePath);
+
+            // read the full list of package sources (some may be disabled below)
+            var packageSources = file.Root?.Element("packageSources");
+            if (packageSources != null)
+            {
+                var adds = packageSources.Elements("add");
+                foreach (var add in adds)
+                {
+                    configFile.PackageSources.Add(
+                        NugetPackageSourceCreator.CreatePackageSource(add.Attribute("key")?.Value, add.Attribute("value")?.Value, null));
+                }
+            }
+
+            // read the active package source (may be an aggregate of all enabled sources!)
+            var activePackageSource = file.Root?.Element("activePackageSource");
+            if (activePackageSource != null)
+            {
+                var add = activePackageSource.Element("add");
+                configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(
+                    add?.Attribute("key")?.Value,
+                    add?.Attribute("value")?.Value,
+                    configFile.PackageSources);
+            }
+
+            // disable all listed disabled package sources
+            var disabledPackageSources = file.Root?.Element("disabledPackageSources");
+            if (disabledPackageSources != null)
+            {
+                var adds = disabledPackageSources.Elements("add");
+                foreach (var add in adds)
+                {
+                    var name = add.Attribute("key")?.Value;
+                    var disabled = add.Attribute("value")?.Value;
+                    if (string.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var source = configFile.PackageSources.Find(p => p.Name == name);
+                        if (source != null)
+                        {
+                            source.IsEnabled = false;
+                        }
+                    }
+                }
+            }
+
+            // set all listed passwords for package source credentials
+            var packageSourceCredentials = file.Root?.Element("packageSourceCredentials");
+            if (packageSourceCredentials != null)
+            {
+                foreach (var sourceElement in packageSourceCredentials.Elements())
+                {
+                    var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
+                    var source = configFile.PackageSources.Find(p => p.Name == name);
+                    if (source != null)
+                    {
+                        var adds = sourceElement.Elements("add");
+                        foreach (var add in adds)
+                        {
+                            if (string.Equals(add.Attribute("key")?.Value, "userName", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var userName = add.Attribute("value")?.Value;
+                                source.UserName = userName;
+                            }
+
+                            if (string.Equals(add.Attribute("key")?.Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var password = add.Attribute("value")?.Value;
+                                source.SavedPassword = password;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // read the configuration data
+            var config = file.Root?.Element("config");
+            if (config == null)
+            {
+                return configFile;
+            }
+
+            var addElements = config.Elements("add");
+            foreach (var add in addElements)
+            {
+                var key = add.Attribute("key").Value;
+                var value = add.Attribute("value").Value;
+
+                if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.savedRepositoryPath = value;
+                    configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
+
+                    if (!Path.IsPathRooted(configFile.RepositoryPath))
+                    {
+                        configFile.RepositoryPath = Path.Combine(Application.dataPath, configFile.RepositoryPath);
+                    }
+
+                    configFile.RepositoryPath = Path.GetFullPath(
+                        configFile.RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                }
+                else if (string.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.DefaultPushSource = value;
+                }
+                else if (string.Equals(key, "verbose", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.Verbose = bool.Parse(value);
+                }
+                else if (string.Equals(key, "InstallFromCache", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.InstallFromCache = bool.Parse(value);
+                }
+                else if (string.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.ReadOnlyPackageFiles = bool.Parse(value);
+                }
+                else if (string.Equals(key, RequestTimeoutSecondsConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.RequestTimeoutSeconds = int.Parse(value);
+                }
+                else if (string.Equals(key, LockPackagesOnRestoreConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.LockPackagesOnRestore = bool.Parse(value);
+                }
+                else if (string.Equals(key, PackagesConfigDirectoryPathConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.RelativePackagesConfigDirectoryPath = value;
+                }
+            }
+
+            return configFile;
+        }
+
+        /// <summary>
+        ///     Creates a NuGet.config file with the default settings at the given full file-path.
+        /// </summary>
+        /// <param name="filePath">The full file-path where to create the NuGet.config file.</param>
+        /// <returns>The loaded <see cref="NugetConfigFile" /> loaded off of the newly created default file.</returns>
+        public static NugetConfigFile CreateDefaultFile(string filePath)
+        {
+            const string contents = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
+  </packageSources>
+  <disabledPackageSources />
+  <activePackageSource>
+    <add key=""All"" value=""(Aggregate source)"" />
+  </activePackageSource>
+  <config>
+    <add key=""repositoryPath"" value=""./Packages"" />
+    <add key=""PackagesConfigDirectoryPath"" value=""."" />
+  </config>
+</configuration>";
+
+            File.WriteAllText(filePath, contents, new UTF8Encoding());
+
+            return Load(filePath);
+        }
 
         /// <summary>
         ///     Saves this NuGet.config file to disk.
@@ -246,178 +422,6 @@ namespace NugetForUnity
             }
 
             configFile.Save(filePath);
-        }
-
-        /// <summary>
-        ///     Loads a NuGet.config file at the given file-path.
-        /// </summary>
-        /// <param name="filePath">The full file-path to the NuGet.config file to load.</param>
-        /// <returns>The newly loaded <see cref="NugetConfigFile" />.</returns>
-        public static NugetConfigFile Load(string filePath)
-        {
-            var configFile = new NugetConfigFile();
-            configFile.PackageSources = new List<INugetPackageSource>();
-            configFile.InstallFromCache = true;
-            configFile.ReadOnlyPackageFiles = false;
-            configFile.RelativePackagesConfigDirectoryPath = ".";
-
-            var file = XDocument.Load(filePath);
-
-            // read the full list of package sources (some may be disabled below)
-            var packageSources = file.Root.Element("packageSources");
-            if (packageSources != null)
-            {
-                var adds = packageSources.Elements("add");
-                foreach (var add in adds)
-                {
-                    configFile.PackageSources.Add(
-                        NugetPackageSourceCreator.CreatePackageSource(add.Attribute("key").Value, add.Attribute("value").Value, null));
-                }
-            }
-
-            // read the active package source (may be an aggregate of all enabled sources!)
-            var activePackageSource = file.Root.Element("activePackageSource");
-            if (activePackageSource != null)
-            {
-                var add = activePackageSource.Element("add");
-                configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(
-                    add.Attribute("key").Value,
-                    add.Attribute("value").Value,
-                    configFile.PackageSources);
-            }
-
-            // disable all listed disabled package sources
-            var disabledPackageSources = file.Root.Element("disabledPackageSources");
-            if (disabledPackageSources != null)
-            {
-                var adds = disabledPackageSources.Elements("add");
-                foreach (var add in adds)
-                {
-                    var name = add.Attribute("key").Value;
-                    var disabled = add.Attribute("value").Value;
-                    if (string.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var source = configFile.PackageSources.Find(p => p.Name == name);
-                        if (source != null)
-                        {
-                            source.IsEnabled = false;
-                        }
-                    }
-                }
-            }
-
-            // set all listed passwords for package source credentials
-            var packageSourceCredentials = file.Root.Element("packageSourceCredentials");
-            if (packageSourceCredentials != null)
-            {
-                foreach (var sourceElement in packageSourceCredentials.Elements())
-                {
-                    var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
-                    var source = configFile.PackageSources.Find(p => p.Name == name);
-                    if (source != null)
-                    {
-                        var adds = sourceElement.Elements("add");
-                        foreach (var add in adds)
-                        {
-                            if (string.Equals(add.Attribute("key").Value, "userName", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var userName = add.Attribute("value").Value;
-                                source.UserName = userName;
-                            }
-
-                            if (string.Equals(add.Attribute("key").Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var password = add.Attribute("value").Value;
-                                source.SavedPassword = password;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // read the configuration data
-            var config = file.Root.Element("config");
-            if (config != null)
-            {
-                var adds = config.Elements("add");
-                foreach (var add in adds)
-                {
-                    var key = add.Attribute("key").Value;
-                    var value = add.Attribute("value").Value;
-
-                    if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.savedRepositoryPath = value;
-                        configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
-
-                        if (!Path.IsPathRooted(configFile.RepositoryPath))
-                        {
-                            configFile.RepositoryPath = Path.Combine(Application.dataPath, configFile.RepositoryPath);
-                        }
-
-                        configFile.RepositoryPath = Path.GetFullPath(
-                            configFile.RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-                    }
-                    else if (string.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.DefaultPushSource = value;
-                    }
-                    else if (string.Equals(key, "verbose", StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.Verbose = bool.Parse(value);
-                    }
-                    else if (string.Equals(key, "InstallFromCache", StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.InstallFromCache = bool.Parse(value);
-                    }
-                    else if (string.Equals(key, "ReadOnlyPackageFiles", StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.ReadOnlyPackageFiles = bool.Parse(value);
-                    }
-                    else if (string.Equals(key, RequestTimeoutSecondsConfigKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.RequestTimeoutSeconds = int.Parse(value);
-                    }
-                    else if (string.Equals(key, LockPackagesOnRestoreConfigKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.LockPackagesOnRestore = bool.Parse(value);
-                    }
-                    else if (string.Equals(key, PackagesConfigDirectoryPathConfigKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        configFile.RelativePackagesConfigDirectoryPath = value;
-                    }
-                }
-            }
-
-            return configFile;
-        }
-
-        /// <summary>
-        ///     Creates a NuGet.config file with the default settings at the given full file-path.
-        /// </summary>
-        /// <param name="filePath">The full file-path where to create the NuGet.config file.</param>
-        /// <returns>The loaded <see cref="NugetConfigFile" /> loaded off of the newly created default file.</returns>
-        public static NugetConfigFile CreateDefaultFile(string filePath)
-        {
-            const string contents = @"<?xml version=""1.0"" encoding=""utf-8""?>
-<configuration>
-  <packageSources>
-    <clear />
-    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
-  </packageSources>
-  <disabledPackageSources />
-  <activePackageSource>
-    <add key=""All"" value=""(Aggregate source)"" />
-  </activePackageSource>
-  <config>
-    <add key=""repositoryPath"" value=""./Packages"" />
-    <add key=""PackagesConfigDirectoryPath"" value=""."" />
-  </config>
-</configuration>";
-
-            File.WriteAllText(filePath, contents, new UTF8Encoding());
-
-            return Load(filePath);
         }
     }
 }

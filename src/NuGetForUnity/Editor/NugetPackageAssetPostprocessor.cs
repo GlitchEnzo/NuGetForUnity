@@ -58,7 +58,7 @@ namespace NugetForUnity
                 return;
             }
 
-            var packagesConfigFilePath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
+            var packagesConfigFilePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
             var foundPackagesConfigAsset = importedAssets.Any(
                 importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
 
@@ -67,37 +67,8 @@ namespace NugetForUnity
                 return;
             }
 
-            NugetHelper.ReloadPackagesConfig();
-            NugetHelper.Restore();
-        }
-
-        /// <summary>
-        ///     Get informed about a new asset that is added.
-        ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
-        ///     so we can change the import settings before unity throws errors about incompatibility etc..
-        ///     <para>
-        ///         Currently we change the import settings of:
-        ///     </para>
-        ///     <list type="bullet">
-        ///         <item>
-        ///             <term>Roslyn-Analyzers:</term> are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
-        ///         </item>
-        ///         <item>
-        ///             <term>NuGetForUnity config files:</term> so they are not exported to WSA
-        ///         </item>
-        ///         <item>
-        ///             <term>PlayerOnly assemblies:</term> configure the assemblies to be excluded form edit-mode
-        ///         </item>
-        ///         <item>
-        ///             <term>Normal assemblies (*.dll):</term> apply the IsExplicitlyReferenced setting read from the <c>package.config</c>.
-        ///         </item>
-        ///     </list>
-        /// </summary>
-        private void OnPreprocessAsset()
-        {
-            var absoluteRepositoryPath = GetNuGetRepositoryPath();
-            var results = HandleAsset(assetPath, absoluteRepositoryPath, false);
-            LogResults(results);
+            InstalledPackagesManager.ReloadPackagesConfig();
+            NugetPackageRestorer.Restore();
         }
 
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(
@@ -116,7 +87,7 @@ namespace NugetForUnity
                 yield break;
             }
 
-            var absoluteAssetPath = Path.GetFullPath(Path.Combine(NugetHelper.AbsoluteProjectPath, projectRelativeAssetPath));
+            var absoluteAssetPath = Path.GetFullPath(Path.Combine(UnityPathHelper.AbsoluteProjectPath, projectRelativeAssetPath));
             if (!AssetIsDllInsideNuGetRepository(absoluteAssetPath, absoluteRepositoryPath))
             {
                 yield break;
@@ -126,9 +97,9 @@ namespace NugetForUnity
 
             // the first component is the package name with version number
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
-            var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : null;
+            var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : Array.Empty<string>();
             var packageName = string.Join(".", packageNameParts.TakeWhile(part => !part.All(char.IsDigit)));
-            var packageConfig = NugetHelper.PackagesConfigFile.Packages.Find(
+            var packageConfig = InstalledPackagesManager.PackagesConfigFile.Packages.Find(
                 packageSettings => packageSettings.Id.Equals(packageName, StringComparison.OrdinalIgnoreCase));
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
@@ -186,7 +157,7 @@ namespace NugetForUnity
         /// <returns>The absolute path where NuGetForUnity restores NuGet packages, with trailing directory separator.</returns>
         private static string GetNuGetRepositoryPath()
         {
-            return NugetHelper.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
+            return ConfigurationManager.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 
         private static void ModifyImportSettingsOfRoslynAnalyzer(PluginImporter plugin, bool reimport)
@@ -206,7 +177,7 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
+            NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
         }
 
         private static void ModifyImportSettingsOfGeneralPlugin(PackageConfig packageConfig, PluginImporter plugin, bool reimport)
@@ -242,7 +213,7 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Configured asset '{0}' as a Player Only.", plugin.assetPath);
+            NugetLogger.LogVerbose("Configured asset '{0}' as a Player Only.", plugin.assetPath);
         }
 
         /// <summary>
@@ -271,7 +242,7 @@ namespace NugetForUnity
                 plugin.SaveAndReimport();
             }
 
-            NugetHelper.LogVerbose("Disabling WSA platform on asset settings for {0}", plugin.assetPath);
+            NugetLogger.LogVerbose("Disabling WSA platform on asset settings for {0}", plugin.assetPath);
             return ResultStatus.Success;
         }
 
@@ -284,9 +255,9 @@ namespace NugetForUnity
             var grouped = results.GroupBy(result => result.Status);
             foreach (var groupEntry in grouped)
             {
-                if (groupEntry.Key == ResultStatus.Success && NugetHelper.NugetConfigFile.Verbose)
+                if (groupEntry.Key == ResultStatus.Success && ConfigurationManager.NugetConfigFile.Verbose)
                 {
-                    NugetHelper.LogVerbose(
+                    NugetLogger.LogVerbose(
                         "NuGetForUnity: successfully processed: {0}",
                         string.Join(",", groupEntry.Select(asset => $"'{asset.AssetPath}' ({asset.AssetType})")));
                 }
@@ -317,7 +288,7 @@ namespace NugetForUnity
                 return false;
             }
 
-            NugetHelper.LogVerbose("Plug-in loaded for file: {0}", assetPath);
+            NugetLogger.LogVerbose("Plug-in loaded for file: {0}", assetPath);
 
             return true;
         }
@@ -332,6 +303,35 @@ namespace NugetForUnity
         private static bool AlreadyProcessed(Object asset)
         {
             return AssetDatabase.GetLabels(asset).Contains(ProcessedLabel);
+        }
+
+        /// <summary>
+        ///     Get informed about a new asset that is added.
+        ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
+        ///     so we can change the import settings before unity throws errors about incompatibility etc..
+        ///     <para>
+        ///         Currently we change the import settings of:
+        ///     </para>
+        ///     <list type="bullet">
+        ///         <item>
+        ///             <term>Roslyn-Analyzers:</term> are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
+        ///         </item>
+        ///         <item>
+        ///             <term>NuGetForUnity config files:</term> so they are not exported to WSA
+        ///         </item>
+        ///         <item>
+        ///             <term>PlayerOnly assemblies:</term> configure the assemblies to be excluded form edit-mode
+        ///         </item>
+        ///         <item>
+        ///             <term>Normal assemblies (*.dll):</term> apply the IsExplicitlyReferenced setting read from the <c>package.config</c>.
+        ///         </item>
+        ///     </list>
+        /// </summary>
+        private void OnPreprocessAsset()
+        {
+            var absoluteRepositoryPath = GetNuGetRepositoryPath();
+            var results = HandleAsset(assetPath, absoluteRepositoryPath, false);
+            LogResults(results);
         }
 
         private enum ResultStatus

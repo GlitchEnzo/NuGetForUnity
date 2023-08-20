@@ -54,54 +54,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Called when enabling the window.
-        /// </summary>
-        private void OnEnable()
-        {
-            try
-            {
-                // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
-                NugetHelper.LoadNugetConfigFile();
-
-                // set the window title
-                titleContent = new GUIContent("Dependencies");
-
-                EditorUtility.DisplayProgressBar("Building Dependency Tree", "Reading installed packages...", 0.5f);
-
-                NugetHelper.UpdateInstalledPackages();
-                installedPackages = NugetHelper.InstalledPackages.ToList();
-                var installedPackageNames = new List<string>();
-
-                foreach (var package in installedPackages)
-                {
-                    if (!expanded.ContainsKey(package))
-                    {
-                        expanded.Add(package, false);
-                    }
-
-                    installedPackageNames.Add(package.Id);
-                }
-
-                installedPackageIds = installedPackageNames.ToArray();
-
-                BuildTree();
-            }
-            catch (Exception e)
-            {
-                Debug.LogErrorFormat("{0}", e);
-            }
-            finally
-            {
-                EditorUtility.ClearProgressBar();
-            }
-        }
-
-        private void BuildTree()
-        {
-            roots = NugetHelper.GetInstalledRootPackages();
-        }
-
-        /// <summary>
         ///     Automatically called by Unity to draw the GUI.
         /// </summary>
         protected void OnGUI()
@@ -137,7 +89,7 @@ namespace NugetForUnity
                         var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+                            var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                             foreach (var dependency in frameworkGroup.Dependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
@@ -175,14 +127,62 @@ namespace NugetForUnity
             }
         }
 
-        private void DrawDepencency(INugetPackageIdentifier dependency)
+        /// <summary>
+        ///     Called when enabling the window.
+        /// </summary>
+        private void OnEnable()
+        {
+            try
+            {
+                // reload the NuGet.config file, in case it was changed after Unity opened, but before the manager window opened (now)
+                ConfigurationManager.LoadNugetConfigFile();
+
+                // set the window title
+                titleContent = new GUIContent("Dependencies");
+
+                EditorUtility.DisplayProgressBar("Building Dependency Tree", "Reading installed packages...", 0.5f);
+
+                InstalledPackagesManager.UpdateInstalledPackages();
+                installedPackages = InstalledPackagesManager.InstalledPackages.ToList();
+                var installedPackageNames = new List<string>();
+
+                foreach (var package in installedPackages)
+                {
+                    if (!expanded.ContainsKey(package))
+                    {
+                        expanded.Add(package, false);
+                    }
+
+                    installedPackageNames.Add(package.Id);
+                }
+
+                installedPackageIds = installedPackageNames.ToArray();
+
+                BuildTree();
+            }
+            catch (Exception e)
+            {
+                Debug.LogErrorFormat("{0}", e);
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        private void BuildTree()
+        {
+            roots = InstalledPackagesManager.GetInstalledRootPackages();
+        }
+
+        private void DrawDependency(INugetPackageIdentifier dependency)
         {
             var fullDependency = installedPackages.Find(p => p.Id == dependency.Id);
             if (fullDependency != null)
             {
                 DrawPackage(fullDependency);
             }
-            else if (!NugetHelper.IsInstalled(dependency))
+            else if (!InstalledPackagesManager.IsInstalled(dependency))
             {
                 Debug.LogErrorFormat("{0} {1} is not installed!", dependency.Id, dependency.Version);
             }
@@ -192,16 +192,16 @@ namespace NugetForUnity
         {
             if (package.Dependencies != null && package.Dependencies.Count > 0)
             {
-                expanded[package] = EditorGUILayout.Foldout(expanded[package], string.Format("{0} {1}", package.Id, package.Version));
+                expanded[package] = EditorGUILayout.Foldout(expanded[package], $"{package.Id} {package.Version}");
 
                 if (expanded[package])
                 {
                     EditorGUI.indentLevel++;
 
-                    var frameworkGroup = NugetHelper.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
+                    var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
                     foreach (var dependency in frameworkGroup.Dependencies)
                     {
-                        DrawDepencency(dependency);
+                        DrawDependency(dependency);
                     }
 
                     EditorGUI.indentLevel--;
@@ -209,7 +209,7 @@ namespace NugetForUnity
             }
             else
             {
-                EditorGUILayout.LabelField(string.Format("{0} {1}", package.Id, package.Version));
+                EditorGUILayout.LabelField($"{package.Id} {package.Version}");
             }
         }
     }
