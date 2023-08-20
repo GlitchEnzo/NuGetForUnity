@@ -229,7 +229,8 @@ namespace NugetForUnity
                 return semVer2Version.Compare(other.semVer2Version) <= 0;
             }
 
-            return string.Equals(NormalizedVersion, other.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+            // version comparison with respect to the version range
+            return CompareVersion(other.semVer2Version) == 0;
         }
 
         /// <summary>
