@@ -7,6 +7,6 @@ namespace UnityEngine
 
         WindowsEditor = 7,
 
-        LinuxEditor = 16
+        LinuxEditor = 16,
     }
 }

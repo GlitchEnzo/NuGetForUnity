@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using NugetForUnity.Data;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,10 +27,10 @@ namespace NugetForUnity
 
             NugetLogger.LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
 
-            var foundPackage = package as INugetPackage ?? NugetCacheManager.GetPackageFromCacheOrSource(package);
+            var foundPackage = package as INugetPackage ?? PackageCacheManager.GetPackageFromCacheOrSource(package);
 
             InstalledPackagesManager.RemovePackage(foundPackage);
-            NugetPackageContentManager.DeletePackageContentPackage(foundPackage);
+            PackageContentManager.DeletePackageContentPackage(foundPackage);
 
             // uninstall all non manually installed dependencies that are not a dependency of another installed package
             var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(foundPackage);

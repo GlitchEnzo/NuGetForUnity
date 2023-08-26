@@ -2,6 +2,8 @@
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using NugetForUnity.Configuration;
+using NugetForUnity.Data;
 using UnityEditor;
 using UnityEngine;
 
@@ -28,7 +30,7 @@ namespace NugetForUnity
                 return true;
             }
 
-            var foundPackage = NugetCacheManager.GetPackageFromCacheOrSource(package);
+            var foundPackage = PackageCacheManager.GetPackageFromCacheOrSource(package);
 
             if (foundPackage == null)
             {
@@ -139,7 +141,7 @@ namespace NugetForUnity
                 // update packages.config
                 InstalledPackagesManager.AddPackageToConfig(package);
 
-                var cachedPackagePath = Path.Combine(NugetCacheManager.CacheOutputDirectory, package.PackageFileName);
+                var cachedPackagePath = Path.Combine(PackageCacheManager.CacheOutputDirectory, package.PackageFileName);
                 if (ConfigurationManager.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
                 {
                     NugetLogger.LogVerbose("Cached package found for {0} {1}", package.Id, package.Version);
@@ -205,7 +207,7 @@ namespace NugetForUnity
                 }
 
                 // clean
-                NugetPackageContentManager.CleanInstallationDirectory(package);
+                PackageContentManager.CleanInstallationDirectory(package);
 
                 // update the installed packages list
                 InstalledPackagesManager.AddPackageToInstalled(package);

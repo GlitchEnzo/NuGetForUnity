@@ -1,5 +1,7 @@
 ﻿#nullable enable
 
+using NugetForUnity.Data;
+
 namespace NugetForUnity
 {
     /// <summary>

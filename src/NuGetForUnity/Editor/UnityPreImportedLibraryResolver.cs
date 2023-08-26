@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NugetForUnity.Configuration;
+using NugetForUnity.Data;
 using UnityEditor;
 using UnityEditor.Compilation;
 

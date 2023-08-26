@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using NugetForUnity.Configuration;
+using UnityEditor;
 
 namespace NugetForUnity
 {
@@ -31,7 +32,7 @@ namespace NugetForUnity
             ConfigurationManager.LoadNugetConfigFile();
 
             // restore packages - this will be called EVERY time the project is loaded
-            NugetPackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
+            PackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
         }
     }
 }

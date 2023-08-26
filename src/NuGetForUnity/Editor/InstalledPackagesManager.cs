@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using NugetForUnity.Configuration;
+using NugetForUnity.Data;
+using NugetForUnity.Helper;
+using NugetForUnity.PackageSource;
 using Debug = UnityEngine.Debug;
 
 namespace NugetForUnity

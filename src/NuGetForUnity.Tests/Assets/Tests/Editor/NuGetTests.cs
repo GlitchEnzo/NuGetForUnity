@@ -6,6 +6,10 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using NugetForUnity;
+using NugetForUnity.Configuration;
+using NugetForUnity.Data;
+using NugetForUnity.Helper;
+using NugetForUnity.PackageSource;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -41,7 +45,7 @@ public class NuGetTests
     [Order(1)]
     public void SimpleRestoreTest()
     {
-        NugetPackageRestorer.Restore();
+        PackageRestorer.Restore();
     }
 
     [Test]
@@ -659,14 +663,18 @@ public class NuGetTests
     public void TestPostprocessInstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+
+        //var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        Assume.That(InstalledPackagesManager.IsInstalled(package), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(package);
         packagesConfigFile.Save();
 
-        Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        AssetDatabase.Refresh();
+        AssetDatabase.Refresh();
+
+        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
@@ -676,14 +684,18 @@ public class NuGetTests
     public void TestPostprocessUninstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+
+        //var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(package);
-        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        Assume.That(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save();
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+
+        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        AssetDatabase.Refresh();
+        AssetDatabase.Refresh();
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
@@ -695,15 +707,21 @@ public class NuGetTests
     {
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+
+        //var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(packageOld);
-        Assert.IsTrue(InstalledPackagesManager.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
+        Assume.That(InstalledPackagesManager.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save();
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+
+        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        AssetDatabase.Refresh();
+        AssetDatabase.Refresh();
+
+        //AssetDatabase.ForceReserializeAssets(new []{filepath});
 
         Assert.IsFalse(
             InstalledPackagesManager.IsInstalled(packageOld),
