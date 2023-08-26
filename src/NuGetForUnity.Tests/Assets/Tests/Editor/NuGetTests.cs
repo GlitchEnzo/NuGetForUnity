@@ -671,11 +671,7 @@ public class NuGetTests
         packagesConfigFile.AddPackage(package);
         packagesConfigFile.Save();
 
-        AssetDatabase.Refresh();
-        AssetDatabase.ForceReserializeAssets(new[] { filepath });
-        AssetDatabase.Refresh();
-
-        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
@@ -694,10 +690,7 @@ public class NuGetTests
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save();
 
-        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
-        AssetDatabase.Refresh();
-        AssetDatabase.ForceReserializeAssets(new[] { filepath });
-        AssetDatabase.Refresh();
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
@@ -719,12 +712,7 @@ public class NuGetTests
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save();
 
-        //NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
-        AssetDatabase.Refresh();
-        AssetDatabase.ForceReserializeAssets(new[] { filepath });
-        AssetDatabase.Refresh();
-
-
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
         Assert.IsFalse(
             InstalledPackagesManager.IsInstalled(packageOld),
