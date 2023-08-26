@@ -109,7 +109,7 @@ namespace NugetForUnity
         /// <returns>The best <see cref="INugetPackage" /> match, if there is one, otherwise null.</returns>
         private static INugetPackage GetInstalledPackage(INugetPackageIdentifier packageId)
         {
-            if (!InstalledPackagesManager.GetInstalledPackageById(packageId.Id, out var installedPackage))
+            if (!InstalledPackagesManager.TryGetById(packageId.Id, out var installedPackage))
             {
                 return null;
             }

@@ -58,7 +58,7 @@ namespace NugetForUnity
             }
 
             // check if the package (any version) is already installed
-            if (InstalledPackagesManager.GetInstalledPackageById(package.Id, out var installedPackage))
+            if (InstalledPackagesManager.TryGetById(package.Id, out var installedPackage))
             {
                 var comparisonResult = installedPackage.CompareTo(package);
                 if (comparisonResult < 0)

@@ -82,7 +82,7 @@ namespace NugetForUnity.Helper
             var truncatedUriString = methodUri.GetLeftPart(UriPartial.Path);
 
             // Pull off the function if there is one
-            if (truncatedUriString.EndsWith(")"))
+            if (truncatedUriString.EndsWith(")", StringComparison.Ordinal))
             {
                 var lastSeparatorIndex = truncatedUriString.LastIndexOf('/');
                 if (lastSeparatorIndex != -1)

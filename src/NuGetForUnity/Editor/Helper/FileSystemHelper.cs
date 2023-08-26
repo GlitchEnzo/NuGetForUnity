@@ -67,56 +67,6 @@ namespace NugetForUnity.Helper
         }
 
         /// <summary>
-        ///     Recursively copies all files and sub-directories from one directory to another.
-        /// </summary>
-        /// <param name="sourceDirectoryPath">The path to the folder to copy from.</param>
-        /// <param name="destDirectoryPath">The path to the folder to copy to.</param>
-        internal static void DirectoryCopy(string sourceDirectoryPath, string destDirectoryPath)
-        {
-            var sourceDirectory = new DirectoryInfo(sourceDirectoryPath);
-            if (!sourceDirectory.Exists)
-            {
-                throw new DirectoryNotFoundException("Source directory does not exist or could not be found: " + sourceDirectoryPath);
-            }
-
-            // if the destination directory doesn't exist, create it
-            if (!Directory.Exists(destDirectoryPath))
-            {
-                NugetLogger.LogVerbose("Creating new directory: {0}", destDirectoryPath);
-                Directory.CreateDirectory(destDirectoryPath);
-            }
-
-            // get the files in the directory and copy them to the new location
-            var files = sourceDirectory.GetFiles();
-            foreach (var file in files)
-            {
-                var newFilePath = Path.Combine(destDirectoryPath, file.Name);
-
-                try
-                {
-                    NugetLogger.LogVerbose("Moving {0} to {1}", file.ToString(), newFilePath);
-                    file.CopyTo(newFilePath, true);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarningFormat(
-                        "{0} couldn't be moved to {1}. It may be a native plugin already locked by Unity. Please trying closing Unity and manually moving it. \n{2}",
-                        file,
-                        newFilePath,
-                        e);
-                }
-            }
-
-            // copy sub-directories and their contents to new location
-            var directories = sourceDirectory.GetDirectories();
-            foreach (var subdir in directories)
-            {
-                var temppath = Path.Combine(destDirectoryPath, subdir.Name);
-                DirectoryCopy(subdir.FullName, temppath);
-            }
-        }
-
-        /// <summary>
         ///     Recursively deletes the folder at the given path.
         ///     NOTE: Directory.Delete() doesn't delete Read-Only files, whereas this does.
         /// </summary>

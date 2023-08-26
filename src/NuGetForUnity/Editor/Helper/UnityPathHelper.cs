@@ -32,7 +32,8 @@ namespace NugetForUnity.Helper
         /// <returns>True if path is within Assets folder, false otherwise.</returns>
         internal static bool IsPathInAssets(string path)
         {
-            return Path.IsPathRooted(path) || GetAssetsRelativePath(path).StartsWith("..");
+            var assetsRelativePath = GetAssetsRelativePath(path);
+            return !Path.IsPathRooted(assetsRelativePath) && !assetsRelativePath.StartsWith("..");
         }
 
         /// <summary>

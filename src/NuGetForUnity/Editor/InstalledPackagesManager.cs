@@ -142,7 +142,7 @@ namespace NugetForUnity
         /// <param name="id">The id of the package to search in the currently installed packages.</param>
         /// <param name="package">The found installed package.</param>
         /// <returns>True if a package was found.</returns>
-        internal static bool GetInstalledPackageById(string id, out INugetPackage package)
+        internal static bool TryGetById(string id, out INugetPackage package)
         {
             return InstalledPackagesDictionary.TryGetValue(id, out package);
         }
