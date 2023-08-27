@@ -87,7 +87,7 @@ namespace NugetForUnity.Helper
             var directoryInfo = new DirectoryInfo(directoryPath);
 
             // delete any sub-folders first
-            foreach (var childInfo in directoryInfo.GetFileSystemInfos())
+            foreach (var childInfo in directoryInfo.EnumerateDirectories())
             {
                 DeleteDirectory(childInfo.FullName, false);
             }
