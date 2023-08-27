@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using NugetForUnity.Configuration;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 using Debug = UnityEngine.Debug;
 
 namespace NugetForUnity.Helper

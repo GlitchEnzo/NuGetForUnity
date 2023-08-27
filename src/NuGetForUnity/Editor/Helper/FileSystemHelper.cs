@@ -26,7 +26,7 @@ namespace NugetForUnity.Helper
             }
 
             // move the files
-            var files = Directory.GetFiles(sourceDirectoryPath);
+            var files = Directory.EnumerateFiles(sourceDirectoryPath);
             foreach (var file in files)
             {
                 var newFilePath = Path.Combine(destDirectoryPath, Path.GetFileName(file));
@@ -44,7 +44,7 @@ namespace NugetForUnity.Helper
             }
 
             // move the directories
-            var directories = Directory.GetDirectories(sourceDirectoryPath);
+            var directories = Directory.EnumerateDirectories(sourceDirectoryPath);
             foreach (var directory in directories)
             {
                 var newDirectoryPath = Path.Combine(destDirectoryPath, Path.GetFileName(directory));
@@ -93,7 +93,7 @@ namespace NugetForUnity.Helper
             }
 
             // remove the read-only flag on all files
-            var files = directoryInfo.GetFiles();
+            var files = directoryInfo.EnumerateFiles();
             foreach (var file in files)
             {
                 file.Attributes = FileAttributes.Normal;
@@ -102,7 +102,7 @@ namespace NugetForUnity.Helper
             // remove the read-only flag on the directory
             directoryInfo.Attributes = FileAttributes.Normal;
 
-            // recursively delete the directory
+            // delete the directory
             directoryInfo.Delete(true);
         }
 
@@ -146,7 +146,7 @@ namespace NugetForUnity.Helper
         /// <param name="filter">The filter of the files to delete, in the form "*.ext".</param>
         internal static void DeleteAllFiles(string directoryPath, string filter)
         {
-            var files = Directory.GetFiles(directoryPath, filter, SearchOption.AllDirectories);
+            var files = Directory.EnumerateFiles(directoryPath, filter, SearchOption.AllDirectories);
             foreach (var file in files)
             {
                 DeleteFile(file);
@@ -166,13 +166,13 @@ namespace NugetForUnity.Helper
                 directoryPath = directoryPath.Replace("%20", " ");
             }
 
-            var subdirectories = Directory.GetDirectories(directoryPath);
+            var subdirectories = Directory.EnumerateDirectories(directoryPath);
             foreach (var subDir in subdirectories)
             {
                 FixSpaces(subDir);
             }
 
-            var files = Directory.GetFiles(directoryPath);
+            var files = Directory.EnumerateFiles(directoryPath);
             foreach (var file in files)
             {
                 if (file.Contains("%20"))

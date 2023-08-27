@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 
 namespace NugetForUnity.PackageSource
 {

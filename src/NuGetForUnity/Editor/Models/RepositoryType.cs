@@ -1,4 +1,4 @@
-﻿namespace NugetForUnity.Data
+﻿namespace NugetForUnity.Models
 {
     /// <summary>
     ///     The type of repository that a package is from.

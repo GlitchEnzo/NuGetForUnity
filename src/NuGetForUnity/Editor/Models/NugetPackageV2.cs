@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Represents a package available from NuGet.

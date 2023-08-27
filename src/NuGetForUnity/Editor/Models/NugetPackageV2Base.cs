@@ -7,7 +7,7 @@ using NugetForUnity.Helper;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Base class for NuGet packages containing information available from API v2.

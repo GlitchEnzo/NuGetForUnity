@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using NugetForUnity.Configuration;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 
 namespace NugetForUnity

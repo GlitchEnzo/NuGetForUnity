@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Represents a NuGet package version number.

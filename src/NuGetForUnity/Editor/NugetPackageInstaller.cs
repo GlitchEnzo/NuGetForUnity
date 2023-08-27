@@ -3,7 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using NugetForUnity.Configuration;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
 

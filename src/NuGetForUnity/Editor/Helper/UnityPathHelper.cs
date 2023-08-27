@@ -41,7 +41,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="path">The path of witch we calculate the relative path of.</param>
         /// <returns>The path relative to Assets directory, or <c>"."</c> if it is the Assets directory.</returns>
-        internal static string GetAssetsRelativePath(string path)
+        private static string GetAssetsRelativePath(string path)
         {
             return PathHelper.GetRelativePath(Application.dataPath, path);
         }

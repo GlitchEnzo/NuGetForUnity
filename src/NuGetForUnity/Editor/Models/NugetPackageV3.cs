@@ -5,7 +5,7 @@ using NugetForUnity.Helper;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Represents a NuGet package that was downloaded from a NuGet server using NuGet API v3.

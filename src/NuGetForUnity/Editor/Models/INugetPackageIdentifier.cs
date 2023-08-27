@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Interface for a versioned NuGet package.

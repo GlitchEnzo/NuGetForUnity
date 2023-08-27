@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
 using NugetForUnity.Configuration;
-using NugetForUnity.Data;
 using NugetForUnity.Helper;
+using NugetForUnity.Models;
 using UnityEngine;
 
 namespace NugetForUnity

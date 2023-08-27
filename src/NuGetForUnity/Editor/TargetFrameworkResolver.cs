@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
 

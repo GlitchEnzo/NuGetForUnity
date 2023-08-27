@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
-using NugetForUnity.Data;
+using NugetForUnity.Models;
 using UnityEngine;
 
 namespace NugetForUnity

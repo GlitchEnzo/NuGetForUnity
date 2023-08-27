@@ -7,8 +7,8 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using NugetForUnity.Data;
 using NugetForUnity.Helper;
+using NugetForUnity.Models;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 

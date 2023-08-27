@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Represents a NuGet package loaded from a local file.

@@ -4,8 +4,8 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using NugetForUnity.Data;
 using NugetForUnity.Helper;
+using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 

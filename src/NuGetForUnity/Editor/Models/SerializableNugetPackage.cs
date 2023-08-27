@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace NugetForUnity.Data
+namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Wrapper to make a interfaced <see cref="INugetPackage" /> able to be serialized using Unity (Unity can only serialize concrete classes not
