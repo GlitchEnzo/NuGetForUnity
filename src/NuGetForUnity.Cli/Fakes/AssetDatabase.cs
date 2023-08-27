@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace UnityEditor
+﻿namespace UnityEditor
 {
     internal static class AssetDatabase
     {

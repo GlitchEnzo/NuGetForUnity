@@ -402,8 +402,8 @@ namespace NugetForUnity.PackageSource
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             Debug.Assert(
-                string.IsNullOrEmpty(targetFrameworks) &&
-                string.IsNullOrEmpty(versionConstraints)); // These features are not supported by this version of GetUpdates.
+                string.IsNullOrEmpty(targetFrameworks) && string.IsNullOrEmpty(versionConstraints),
+                "targetFrameworks and versionConstraints is not supported by GetUpdatesFallback");
 
             var updates = new List<INugetPackage>();
             foreach (var installedPackage in installedPackages)

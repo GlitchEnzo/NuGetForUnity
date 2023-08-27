@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace UnityEngine
+﻿namespace UnityEngine
 {
     public sealed class Texture2D
     {
