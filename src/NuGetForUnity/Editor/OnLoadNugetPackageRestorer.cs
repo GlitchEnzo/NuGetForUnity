@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using NugetForUnity.Configuration;
+using UnityEditor;
 
 namespace NugetForUnity
 {
@@ -21,17 +22,17 @@ namespace NugetForUnity
 
             SessionState.SetBool("NugetForUnity.FirstProjectOpen", true);
 
-            // if we are entering playmode, don't do anything
+            // if we are entering play-mode, don't do anything
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 return;
             }
 
             // Load the NuGet.config file
-            NugetHelper.LoadNugetConfigFile();
+            ConfigurationManager.LoadNugetConfigFile();
 
             // restore packages - this will be called EVERY time the project is loaded
-            NugetHelper.Restore(!NugetHelper.NugetConfigFile.LockPackagesOnRestore);
+            PackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
         }
     }
 }

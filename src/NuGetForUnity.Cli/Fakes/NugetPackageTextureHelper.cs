@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace NugetForUnity
+namespace NugetForUnity.Helper
 {
     internal static class NugetPackageTextureHelper
     {

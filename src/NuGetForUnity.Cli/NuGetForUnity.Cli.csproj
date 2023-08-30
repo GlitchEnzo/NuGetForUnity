@@ -25,12 +25,9 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <Compile Remove="..\NuGetForUnity\Editor\DependencyTreeViewer.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NugetPackageAssetPostprocessor.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NugetPackageTextureHelper.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NugetPreferences.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NugetWindow.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\NuspecEditor.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\Ui\*.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\NugetAssetPostprocessor.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\Helper\NugetPackageTextureHelper.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
     </ItemGroup>

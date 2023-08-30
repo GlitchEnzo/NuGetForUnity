@@ -1,0 +1,7 @@
+[*.cs]
+resharper_check_namespace_highlighting=none
+resharper_class_never_instantiated_global_highlighting=none
+resharper_unused_member_in_super_global_highlighting=none
+dotnet_diagnostic.SA1600.severity=none
+dotnet_diagnostic.SA1602.severity=none
+dotnet_diagnostic.SA1300.severity=none

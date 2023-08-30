@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace UnityEngine
+﻿namespace UnityEngine
 {
     internal interface ISerializationCallbackReceiver
     {

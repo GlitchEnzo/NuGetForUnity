@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using NugetForUnity.Models;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -153,7 +155,7 @@ namespace NugetForUnity
             else
             {
                 Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilePath);
-                nuspec.Description = string.Format("COULD NOT LOAD {0}", nupkgFilePath);
+                nuspec.Description = $"COULD NOT LOAD {nupkgFilePath}";
             }
 
             return nuspec;
@@ -190,10 +192,11 @@ namespace NugetForUnity
         {
             var nuspec = new NuspecFile();
 
-            var nuspecNamespace = nuspecDocument.Root.GetDefaultNamespace().ToString();
+            var nuspecNamespace = nuspecDocument.Root?.GetDefaultNamespace().ToString() ?? string.Empty;
 
             var package = nuspecDocument.Element(XName.Get("package", nuspecNamespace));
-            var metadata = package.Element(XName.Get("metadata", nuspecNamespace));
+            var metadata = package?.Element(XName.Get("metadata", nuspecNamespace)) ??
+                           throw new InvalidOperationException("There is on package->metadata element inside the nuspec file.");
 
             nuspec.Id = (string)metadata.Element(XName.Get("id", nuspecNamespace)) ?? string.Empty;
             nuspec.Version = (string)metadata.Element(XName.Get("version", nuspecNamespace)) ?? string.Empty;
@@ -227,8 +230,11 @@ namespace NugetForUnity
                 // Dependencies specified for specific target frameworks
                 foreach (var frameworkGroup in dependenciesElement.Elements(XName.Get("group", nuspecNamespace)))
                 {
-                    var group = new NugetFrameworkGroup();
-                    group.TargetFramework = ConvertFromNupkgTargetFrameworkName((string)frameworkGroup.Attribute("targetFramework") ?? string.Empty);
+                    var group = new NugetFrameworkGroup
+                    {
+                        TargetFramework =
+                            ConvertFromNupkgTargetFrameworkName((string)frameworkGroup.Attribute("targetFramework") ?? string.Empty),
+                    };
 
                     foreach (var dependencyElement in frameworkGroup.Elements(XName.Get("dependency", nuspecNamespace)))
                     {
@@ -262,9 +268,11 @@ namespace NugetForUnity
             {
                 foreach (var fileElement in filesElement.Elements(XName.Get("file", nuspecNamespace)))
                 {
-                    var file = new NuspecContentFile();
-                    file.Source = (string)fileElement.Attribute("src") ?? string.Empty;
-                    file.Target = (string)fileElement.Attribute("target") ?? string.Empty;
+                    var file = new NuspecContentFile
+                    {
+                        Source = (string)fileElement.Attribute("src") ?? string.Empty,
+                        Target = (string)fileElement.Attribute("target") ?? string.Empty,
+                    };
                     nuspec.Files.Add(file);
                 }
             }
@@ -276,8 +284,7 @@ namespace NugetForUnity
         ///     Full filename, including full path, of this NuGet package's file in a local NuGet repository.
         /// </summary>
         /// <remarks>
-        ///     Use this method when attempting to find a package file in a local repository. Do not use
-        ///     <see cref="GetPackageFilePath(string)" /> for this purpose. The existence of the file is verified.
+        ///     The existence of the file is verified.
         /// </remarks>
         /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
         /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
@@ -296,8 +303,6 @@ namespace NugetForUnity
         /// <param name="filePath">The full file-path to the .nuspec file to save.</param>
         public void Save(string filePath)
         {
-            // TODO: Set a namespace when saving
-
             var file = new XDocument();
             var packageElement = new XElement("package");
             file.Add(packageElement);
@@ -423,7 +428,10 @@ namespace NugetForUnity
         {
             if (!string.IsNullOrEmpty(Icon))
             {
-                IconFilePath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(containingFilePath)), Icon);
+                IconFilePath = Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(containingFilePath)) ??
+                    throw new ArgumentException($"Path doesn't contain a directory name '{containingFilePath}'.", nameof(containingFilePath)),
+                    Icon);
             }
 
             return this;

@@ -6,6 +6,10 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using NugetForUnity;
+using NugetForUnity.Configuration;
+using NugetForUnity.Helper;
+using NugetForUnity.Models;
+using NugetForUnity.PackageSource;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -33,7 +37,7 @@ public class NuGetTests
     [TearDown]
     public void Cleanup()
     {
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
@@ -41,13 +45,13 @@ public class NuGetTests
     [Order(1)]
     public void SimpleRestoreTest()
     {
-        NugetHelper.Restore();
+        PackageRestorer.Restore();
     }
 
     [Test]
     public void LoadConfigFileTest()
     {
-        NugetHelper.LoadNugetConfigFile();
+        ConfigurationManager.LoadNugetConfigFile();
     }
 
     [Test]
@@ -58,21 +62,21 @@ public class NuGetTests
 
         // install a specific version
         var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8") { IsManuallyInstalled = true };
-        NugetHelper.InstallIdentifier(json608);
-        Assert.IsTrue(NugetHelper.IsInstalled(json608), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
+        NugetPackageInstaller.InstallIdentifier(json608);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(json608), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
 
         // install a newer version
         var json701 = new NugetPackageIdentifier("Newtonsoft.Json", "7.0.1");
-        NugetHelper.InstallIdentifier(json701);
-        Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+        NugetPackageInstaller.InstallIdentifier(json701);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
 
         // try to install an old version while a newer is already installed
-        NugetHelper.InstallIdentifier(json608);
-        Assert.IsTrue(NugetHelper.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
+        NugetPackageInstaller.InstallIdentifier(json608);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(json701), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
 
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(json608), "The package is STILL installed: {0} {1}", json608.Id, json608.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(json608), "The package is STILL installed: {0} {1}", json608.Id, json608.Version);
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(json701), "The package is STILL installed: {0} {1}", json701.Id, json701.Version);
     }
 
     [Test]
@@ -82,16 +86,16 @@ public class NuGetTests
         var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") { IsManuallyInstalled = true };
 
         // install the package
-        NugetHelper.InstallIdentifier(analyzer);
+        NugetPackageInstaller.InstallIdentifier(analyzer);
         try
         {
             AssetDatabase.Refresh();
             var path = $"Assets/Packages/{analyzer.Id}.{analyzer.Version}/analyzers/dotnet/cs/ErrorProne.NET.Core.dll";
-            var meta = AssetImporter.GetAtPath(path) as PluginImporter;
+            var meta = (PluginImporter)AssetImporter.GetAtPath(path);
             meta.SaveAndReimport();
             AssetDatabase.Refresh();
 
-            Assert.IsTrue(NugetHelper.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id, analyzer.Version);
+            Assert.IsTrue(InstalledPackagesManager.IsInstalled(analyzer), "The package was NOT installed: {0} {1}", analyzer.Id, analyzer.Version);
 
             // Verify analyzer dll import settings
             meta = AssetImporter.GetAtPath(path) as PluginImporter;
@@ -110,8 +114,8 @@ public class NuGetTests
         finally
         {
             // uninstall the package
-            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-            Assert.IsFalse(NugetHelper.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id, analyzer.Version);
+            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+            Assert.IsFalse(InstalledPackagesManager.IsInstalled(analyzer), "The package is STILL installed: {0} {1}", analyzer.Id, analyzer.Version);
         }
     }
 
@@ -123,12 +127,12 @@ public class NuGetTests
         var protobuf = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
 
         // install the package
-        NugetHelper.InstallIdentifier(protobuf);
-        Assert.IsTrue(NugetHelper.IsInstalled(protobuf), "The package was NOT installed: {0} {1}", protobuf.Id, protobuf.Version);
+        NugetPackageInstaller.InstallIdentifier(protobuf);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(protobuf), "The package was NOT installed: {0} {1}", protobuf.Id, protobuf.Version);
 
         // uninstall the package
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(protobuf), "The package is STILL installed: {0} {1}", protobuf.Id, protobuf.Version);
     }
 
     [Test]
@@ -137,40 +141,48 @@ public class NuGetTests
         ConfigureNugetConfig(installMode);
 
         // disable the cache for now to force getting the lowest version of the dependency
-        NugetHelper.NugetConfigFile.InstallFromCache = false;
+        ConfigurationManager.NugetConfigFile.InstallFromCache = false;
 
         var bootstrap337 = new NugetPackageIdentifier("bootstrap", "3.3.7") { IsManuallyInstalled = true };
 
-        NugetHelper.InstallIdentifier(bootstrap337);
-        Assert.IsTrue(NugetHelper.IsInstalled(bootstrap337), "The package was NOT installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
+        NugetPackageInstaller.InstallIdentifier(bootstrap337);
+        Assert.IsTrue(
+            InstalledPackagesManager.IsInstalled(bootstrap337),
+            "The package was NOT installed: {0} {1}",
+            bootstrap337.Id,
+            bootstrap337.Version);
 
         // Bootstrap CSS 3.3.7 has a dependency on jQuery [1.9.1, 4.0.0) ... 1.9.1 <= x < 4.0.0
         // Therefore it should install 1.9.1 since that is the lowest compatible version available
         var jQuery191 = new NugetPackageIdentifier("jQuery", "1.9.1");
-        Assert.IsTrue(NugetHelper.IsInstalled(jQuery191), "The package was NOT installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(jQuery191), "The package was NOT installed: {0} {1}", jQuery191.Id, jQuery191.Version);
 
         // now upgrade jQuery to 3.1.1
         var jQuery311 = new NugetPackageIdentifier("jQuery", "3.1.1") { IsManuallyInstalled = true };
-        NugetHelper.InstallIdentifier(jQuery311);
-        Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+        NugetPackageInstaller.InstallIdentifier(jQuery311);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // reinstall bootstrap, which should use the currently installed jQuery 3.1.1
-        NugetHelper.Uninstall(bootstrap337, false);
-        NugetHelper.InstallIdentifier(bootstrap337);
+        NugetPackageUninstaller.Uninstall(bootstrap337, false);
+        NugetPackageInstaller.InstallIdentifier(bootstrap337);
 
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
-        Assert.IsTrue(NugetHelper.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(jQuery191), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(jQuery311), "The package was NOT installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
 
         // confirm they are uninstalled
-        Assert.IsFalse(NugetHelper.IsInstalled(bootstrap337), "The package is STILL installed: {0} {1}", bootstrap337.Id, bootstrap337.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery191), "The package is STILL installed: {0} {1}", jQuery191.Id, jQuery191.Version);
-        Assert.IsFalse(NugetHelper.IsInstalled(jQuery311), "The package is STILL installed: {0} {1}", jQuery311.Id, jQuery311.Version);
+        Assert.IsFalse(
+            InstalledPackagesManager.IsInstalled(bootstrap337),
+            "The package is STILL installed: {0} {1}",
+            bootstrap337.Id,
+            bootstrap337.Version);
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(jQuery191), "The package is STILL installed: {0} {1}", jQuery191.Id, jQuery191.Version);
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(jQuery311), "The package is STILL installed: {0} {1}", jQuery311.Id, jQuery311.Version);
 
         // turn cache back on
-        NugetHelper.NugetConfigFile.InstallFromCache = true;
+        ConfigurationManager.NugetConfigFile.InstallFromCache = true;
     }
 
     [Test]
@@ -181,11 +193,11 @@ public class NuGetTests
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5") { IsManuallyInstalled = true };
         var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
 
-        NugetHelper.InstallIdentifier(styleCopPlusId);
+        NugetPackageInstaller.InstallIdentifier(styleCopPlusId);
 
         // StyleCopPlus depends on StyleCop, so they should both be installed
         // it depends on version 4.7.49.0, so ensure it is also installed
-        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId, styleCopId }));
+        Assert.That(InstalledPackagesManager.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId, styleCopId }));
     }
 
     [Test]
@@ -193,10 +205,10 @@ public class NuGetTests
     {
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
 
-        NugetHelper.InstallIdentifier(styleCopPlusId, installDependencies: false);
+        NugetPackageInstaller.InstallIdentifier(styleCopPlusId, installDependencies: false);
 
         // StyleCopPlus depends on StyleCop, so without 'installDependencies' they are both installed
-        Assert.That(NugetHelper.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId }));
+        Assert.That(InstalledPackagesManager.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId }));
     }
 
     [Test]
@@ -206,12 +218,18 @@ public class NuGetTests
 
         var signalRClient = new NugetPackageIdentifier("Microsoft.AspNet.SignalR.Client", "2.2.2") { IsManuallyInstalled = true };
 
-        NugetHelper.InstallIdentifier(signalRClient);
-        Assert.IsTrue(NugetHelper.IsInstalled(signalRClient), "The package was NOT installed: {0} {1}", signalRClient.Id, signalRClient.Version);
+        NugetPackageInstaller.InstallIdentifier(signalRClient);
+        Assert.IsTrue(
+            InstalledPackagesManager.IsInstalled(signalRClient),
+            "The package was NOT installed: {0} {1}",
+            signalRClient.Id,
+            signalRClient.Version);
 
         var directory45 = Path.Combine(
-            NugetHelper.NugetConfigFile.RepositoryPath,
-            string.Format("{0}.{1}\\lib\\net45", signalRClient.Id, signalRClient.Version));
+            ConfigurationManager.NugetConfigFile.RepositoryPath,
+            $"{signalRClient.Id}.{signalRClient.Version}",
+            "lib",
+            "net45");
 
         // SignalR 2.2.2 only contains .NET 4.0 and .NET 4.5 libraries, so it should install .NET 4.5 when using .NET 4.6 in Unity, and be empty in other cases
         if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
@@ -224,8 +242,12 @@ public class NuGetTests
         }
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(signalRClient), "The package is STILL installed: {0} {1}", signalRClient.Id, signalRClient.Version);
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+        Assert.IsFalse(
+            InstalledPackagesManager.IsInstalled(signalRClient),
+            "The package is STILL installed: {0} {1}",
+            signalRClient.Id,
+            signalRClient.Version);
     }
 
     [Test]
@@ -235,15 +257,15 @@ public class NuGetTests
 
         var probabilisticCompiler = new NugetPackageIdentifier("Microsoft.ML.Probabilistic.Compiler", "0.4.2301.301") { IsManuallyInstalled = true };
 
-        NugetHelper.InstallIdentifier(probabilisticCompiler);
+        NugetPackageInstaller.InstallIdentifier(probabilisticCompiler);
         Assert.IsTrue(
-            NugetHelper.IsInstalled(probabilisticCompiler),
+            InstalledPackagesManager.IsInstalled(probabilisticCompiler),
             "The package was NOT installed: {0} {1}",
             probabilisticCompiler.Id,
             probabilisticCompiler.Version);
 
         var libraryDirectory = Path.Combine(
-            NugetHelper.NugetConfigFile.RepositoryPath,
+            ConfigurationManager.NugetConfigFile.RepositoryPath,
             $"{probabilisticCompiler.Id}.{probabilisticCompiler.Version}",
             "lib",
             "netstandard2.0");
@@ -252,9 +274,9 @@ public class NuGetTests
         Assert.That(Path.Combine(libraryDirectory, "cs"), Does.Not.Exist);
 
         // cleanup and uninstall everything
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
         Assert.IsFalse(
-            NugetHelper.IsInstalled(probabilisticCompiler),
+            InstalledPackagesManager.IsInstalled(probabilisticCompiler),
             "The package is STILL installed: {0} {1}",
             probabilisticCompiler.Id,
             probabilisticCompiler.Version);
@@ -266,10 +288,10 @@ public class NuGetTests
         ConfigureNugetConfig(installMode);
 
         var polySharp = new NugetPackageIdentifier("PolySharp", "1.13.2+0596138b111ff552137684c6f7c3373805d2e3d2") { IsManuallyInstalled = true };
-        NugetHelper.InstallIdentifier(polySharp);
-        Assert.IsTrue(NugetHelper.IsInstalled(polySharp), "The package was NOT installed: {0} {1}", polySharp.Id, polySharp.Version);
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-        Assert.IsFalse(NugetHelper.IsInstalled(polySharp), "The package is STILL installed: {0} {1}", polySharp.Id, polySharp.Version);
+        NugetPackageInstaller.InstallIdentifier(polySharp);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(polySharp), "The package was NOT installed: {0} {1}", polySharp.Id, polySharp.Version);
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(polySharp), "The package is STILL installed: {0} {1}", polySharp.Id, polySharp.Version);
     }
 
     [Test]
@@ -278,8 +300,8 @@ public class NuGetTests
         ConfigureNugetConfig(installMode);
 
         var package = new NugetPackageIdentifier("StyleCop.Analyzers", "1.2.0-beta.507") { IsManuallyInstalled = true };
-        NugetHelper.InstallIdentifier(package);
-        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        NugetPackageInstaller.InstallIdentifier(package);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
 
     [Test]
@@ -288,15 +310,15 @@ public class NuGetTests
         var package = new NugetPackageIdentifier("protobuf-net", "2.0.0.668") { IsManuallyInstalled = true };
         var tempDirectoryPath = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "TempUnitTestFolder"));
         Directory.CreateDirectory(tempDirectoryPath);
-        File.Copy(NugetHelper.NugetConfigFilePath, Path.Combine(tempDirectoryPath, NugetConfigFile.FileName));
+        File.Copy(ConfigurationManager.NugetConfigFilePath, Path.Combine(tempDirectoryPath, NugetConfigFile.FileName));
 
         try
         {
             // get the package file by installing it
-            NugetHelper.InstallIdentifier(package);
-            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+            NugetPackageInstaller.InstallIdentifier(package);
+            Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
             var packageFilePath = Path.Combine(
-                NugetHelper.NugetConfigFile.RepositoryPath,
+                ConfigurationManager.NugetConfigFile.RepositoryPath,
                 $"{package.Id}.{package.Version}",
                 package.PackageFileName);
             Assert.That(packageFilePath, Does.Exist.IgnoreDirectories);
@@ -310,48 +332,48 @@ public class NuGetTests
                 hierarchical ? $"{package.Id}{Path.DirectorySeparatorChar}{package.Version}" : string.Empty);
             Directory.CreateDirectory(targetDirectory);
             File.Copy(packageFilePath, Path.Combine(targetDirectory, Path.GetFileName(packageFilePath)));
-            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+            Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
 
             // force the package source to be the local directory
-            var nugetConfig = NugetHelper.NugetConfigFile;
+            var nugetConfig = ConfigurationManager.NugetConfigFile;
             nugetConfig.InstallFromCache = false;
             nugetConfig.PackageSources.Clear();
             nugetConfig.PackageSources.Add(new NugetPackageSourceLocal("LocalUnitTestSource", tempDirectoryPath));
-            nugetConfig.Save(NugetHelper.NugetConfigFilePath);
-            NugetHelper.LoadNugetConfigFile();
+            nugetConfig.Save(ConfigurationManager.NugetConfigFilePath);
+            ConfigurationManager.LoadNugetConfigFile();
 
             // install the package from the local file
-            NugetHelper.InstallIdentifier(package);
-            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+            NugetPackageInstaller.InstallIdentifier(package);
+            Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
-            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+            Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
 
             // search local package source
-            var localPackages = Task.Run(() => NugetHelper.Search()).GetAwaiter().GetResult();
+            var localPackages = Task.Run(() => ConfigurationManager.Search()).GetAwaiter().GetResult();
             Assert.That(localPackages, Is.EqualTo(new[] { package }));
 
             // install without a version number
             var packageWithoutVersion = new NugetPackageIdentifier("protobuf-net", string.Empty) { IsManuallyInstalled = true };
-            NugetHelper.InstallIdentifier(packageWithoutVersion);
-            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+            NugetPackageInstaller.InstallIdentifier(packageWithoutVersion);
+            Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
-            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+            Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
 
             // install with a version range
             var packageWithRange = new NugetPackageIdentifier("protobuf-net", "[1.0)") { IsManuallyInstalled = true };
-            NugetHelper.InstallIdentifier(packageWithRange);
-            Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+            NugetPackageInstaller.InstallIdentifier(packageWithRange);
+            Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
-            NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
-            Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+            Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
         }
         finally
         {
-            File.Copy(Path.Combine(tempDirectoryPath, NugetConfigFile.FileName), NugetHelper.NugetConfigFilePath, true);
-            NugetHelper.LoadNugetConfigFile();
+            File.Copy(Path.Combine(tempDirectoryPath, NugetConfigFile.FileName), ConfigurationManager.NugetConfigFilePath, true);
+            ConfigurationManager.LoadNugetConfigFile();
             Directory.Delete(tempDirectoryPath, true);
         }
     }
@@ -533,7 +555,7 @@ public class NuGetTests
             var foundBestMatch = new List<string>();
             while (allFrameworks.Count > 0)
             {
-                var bestMatch = NugetHelper.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks);
+                var bestMatch = TargetFrameworkResolver.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks);
                 foundBestMatch.Add(bestMatch);
                 var expectedMatchIndex = 0;
                 if (!useNetStandard)
@@ -579,9 +601,9 @@ public class NuGetTests
         var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };
         var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0") { IsManuallyInstalled = true };
 
-        NugetHelper.InstallIdentifier(componentModelAnnotation47);
+        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation47);
         Assert.IsTrue(
-            NugetHelper.IsInstalled(componentModelAnnotation47),
+            InstalledPackagesManager.IsInstalled(componentModelAnnotation47),
             "The package was NOT installed: {0} {1}",
             componentModelAnnotation47.Id,
             componentModelAnnotation47.Version);
@@ -591,22 +613,22 @@ public class NuGetTests
         Assume.That(field, Is.Not.Null, "Failed to find the field 'alreadyImportedLibs' in UnityPreImportedLibraryResolver");
         field.SetValue(null, null);
 
-        NugetHelper.InstallIdentifier(componentModelAnnotation5);
+        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation5);
         Assert.IsTrue(
-            NugetHelper.IsInstalled(componentModelAnnotation5),
+            InstalledPackagesManager.IsInstalled(componentModelAnnotation5),
             "The package was NOT installed: {0} {1}",
             componentModelAnnotation5.Id,
             componentModelAnnotation5.Version);
         Assert.IsFalse(
-            NugetHelper.IsInstalled(componentModelAnnotation47),
+            InstalledPackagesManager.IsInstalled(componentModelAnnotation47),
             "The package is STILL installed: {0} {1}",
             componentModelAnnotation47.Id,
             componentModelAnnotation47.Version);
 
-        NugetHelper.UninstallAll(NugetHelper.InstalledPackages.ToList());
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
 
         Assert.IsFalse(
-            NugetHelper.IsInstalled(componentModelAnnotation5),
+            InstalledPackagesManager.IsInstalled(componentModelAnnotation5),
             "The package is STILL installed: {0} {1}",
             componentModelAnnotation5.Id,
             componentModelAnnotation5.Version);
@@ -641,16 +663,17 @@ public class NuGetTests
     public void TestPostprocessInstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
+
+        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        Assume.That(InstalledPackagesManager.IsInstalled(package), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(package);
         packagesConfigFile.Save();
 
-        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package IS installed: {0} {1}", package.Id, package.Version);
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
-        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
 
     [Test]
@@ -658,16 +681,18 @@ public class NuGetTests
     public void TestPostprocessUninstall(string packageId, string packageVersion)
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
 
-        NugetHelper.InstallIdentifier(package);
-        Assert.IsTrue(NugetHelper.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+
+        NugetPackageInstaller.InstallIdentifier(package);
+        Assume.That(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save();
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
-        Assert.IsFalse(NugetHelper.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
     [Test]
@@ -677,19 +702,29 @@ public class NuGetTests
     {
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
-        var filepath = NugetHelper.NugetConfigFile.PackagesConfigFilePath;
 
-        NugetHelper.InstallIdentifier(packageOld);
-        Assert.IsTrue(NugetHelper.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
+        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+
+        NugetPackageInstaller.InstallIdentifier(packageOld);
+        Assume.That(InstalledPackagesManager.IsInstalled(packageOld), "The package was NOT installed: {0} {1}", packageOld.Id, packageOld.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save();
-        NugetPackageAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
-        Assert.IsFalse(NugetHelper.IsInstalled(packageOld), "The old package version IS STILL installed: {0} {1}", packageOld.Id, packageOld.Version);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
 
-        Assert.IsTrue(NugetHelper.IsInstalled(packageNew), "The new package version was NOT installed: {0} {1}", packageNew.Id, packageNew.Version);
+        Assert.IsFalse(
+            InstalledPackagesManager.IsInstalled(packageOld),
+            "The old package version IS STILL installed: {0} {1}",
+            packageOld.Id,
+            packageOld.Version);
+
+        Assert.IsTrue(
+            InstalledPackagesManager.IsInstalled(packageNew),
+            "The new package version was NOT installed: {0} {1}",
+            packageNew.Id,
+            packageNew.Version);
     }
 
     [Test]
@@ -709,13 +744,13 @@ public class NuGetTests
     {
         // allow running tests on windows and linux
         expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-        var relativePath = PathHelper.GetRelativePath(NugetHelper.AbsoluteProjectPath, path);
+        var relativePath = PathHelper.GetRelativePath(UnityPathHelper.AbsoluteProjectPath, path);
         Assert.That(relativePath, Is.EqualTo(expected));
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
-        var nugetConfigFile = NugetHelper.NugetConfigFile;
+        var nugetConfigFile = ConfigurationManager.NugetConfigFile;
         var packageSources = nugetConfigFile.PackageSources;
         packageSources.Single(source => source.Name == "V3").IsEnabled = installMode == InstallMode.ApiV3Only;
         packageSources.Single(source => source.Name == "NuGet").IsEnabled =
