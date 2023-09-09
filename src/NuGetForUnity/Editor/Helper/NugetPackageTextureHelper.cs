@@ -116,15 +116,7 @@ namespace NugetForUnity.Helper
 
             var md5 = new MD5CryptoServiceProvider();
             var data = md5.ComputeHash(Encoding.Default.GetBytes(s));
-
-            // Convert byte array to hexadecimal string
-            var sb = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
-            {
-                sb.Append(data[i].ToString("x2"));
-            }
-
-            return sb.ToString();
+            return Convert.ToBase64String(data).Replace('+', '-').Replace('/', '_').Replace("=", null);
         }
     }
 }
