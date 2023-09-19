@@ -171,44 +171,15 @@ namespace NugetForUnity
                     // unzip the package
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))
                     {
-                        var libs = new Dictionary<string, List<ZipArchiveEntry>>();
-
-                        foreach (var entry in zip.Entries)
+                        void ExtractPackageEntry(ZipArchiveEntry entry)
                         {
-                            var entryFullName = entry.FullName;
-                            var filePath = Path.Combine(baseDirectory, entryFullName);
-
-                            if (ShouldSkipUnpackingOnPath(entryFullName, package.Id))
-                            {
-                                continue;
-                            }
-
-                            // we don't want to unpack all lib folders and then delete all but one; rather we will decide the best
-                            // target framework before unpacking, but first we need to collect all lib entries from zip
-                            if (entryFullName.StartsWith("lib"))
-                            {
-                                const int frameworkStartIndex = 4; // length of "lib/"
-                                var secondSlashIndex = entryFullName.IndexOf("/", frameworkStartIndex, StringComparison.Ordinal);
-                                var framework = entryFullName.Substring(frameworkStartIndex, secondSlashIndex - frameworkStartIndex);
-                                if (libs.ContainsKey(framework))
-                                {
-                                    libs[framework].Add(entry);
-                                }
-                                else
-                                {
-                                    libs[framework] = new List<ZipArchiveEntry> { entry };
-                                }
-
-                                continue;
-                            }
-
-                            var directory = Path.GetDirectoryName(filePath) ??
-                                            throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
+                            var filePath = Path.Combine(baseDirectory, entry.FullName);
+                            var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
                             Directory.CreateDirectory(directory);
                             if (Directory.Exists(filePath))
                             {
                                 Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                                continue;
+                                return;
                             }
 
                             entry.ExtractToFile(filePath, true);
@@ -220,30 +191,45 @@ namespace NugetForUnity
                             }
                         }
 
+                        var libs = new Dictionary<string, List<ZipArchiveEntry>>();
+
+                        foreach (var entry in zip.Entries)
+                        {
+                            var entryFullName = entry.FullName;
+                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName, package.Id))
+                            {
+                                continue;
+                            }
+
+                            // we don't want to unpack all lib folders and then delete all but one; rather we will decide the best
+                            // target framework before unpacking, but first we need to collect all lib entries from zip
+                            if (entryFullName.StartsWith("lib"))
+                            {
+                                const int frameworkStartIndex = 4; // length of "lib/"
+                                var secondSlashIndex = entryFullName.IndexOf("/", frameworkStartIndex, StringComparison.Ordinal);
+                                var framework = entryFullName.Substring(frameworkStartIndex, secondSlashIndex - frameworkStartIndex);
+                                if (libs.TryGetValue(framework, out var entryList))
+                                {
+                                    entryList.Add(entry);
+                                }
+                                else
+                                {
+                                    libs[framework] = new List<ZipArchiveEntry> { entry };
+                                }
+
+                                continue;
+                            }
+
+                            ExtractPackageEntry(entry);
+                        }
+
                         // go through all lib zip entries and find the best target framework, then unpack it
                         var bestFramework = TargetFrameworkResolver.TryGetBestTargetFramework(libs.Keys, key => key);
                         if (bestFramework != null)
                         {
                             foreach (var entry in libs[bestFramework])
                             {
-                                var filePath = Path.Combine(baseDirectory, entry.FullName);
-
-                                var directory = Path.GetDirectoryName(filePath) ??
-                                    throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
-                                Directory.CreateDirectory(directory);
-                                if (Directory.Exists(filePath))
-                                {
-                                    Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                                    continue;
-                                }
-
-                                entry.ExtractToFile(filePath, true);
-
-                                if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
-                                {
-                                    var extractedFile = new FileInfo(filePath);
-                                    extractedFile.Attributes |= FileAttributes.ReadOnly;
-                                }
+                                ExtractPackageEntry(entry);
                             }
                         }
                     }
@@ -282,65 +268,6 @@ namespace NugetForUnity
                     EditorUtility.ClearProgressBar();
                 }
             }
-        }
-
-        private static bool ShouldSkipUnpackingOnPath(string path, string packageId)
-        {
-            // skip a remnant .meta file that may exist from packages created by Unity
-            if (path.EndsWith($"{packageId}.nuspec.meta", StringComparison.Ordinal)) return true;
-
-            // skip directories & files that NuGet normally deletes
-            if (path.StartsWith("_rels", StringComparison.Ordinal) || path.Contains("/_rels/")) return true;
-            if (path.StartsWith("package", StringComparison.Ordinal) || path.Contains("/package/")) return true;
-            if (path.EndsWith($"{packageId}.nuspec", StringComparison.Ordinal)) return true;
-            if (path.EndsWith("[Content_Types].xml", StringComparison.Ordinal)) return true;
-
-            // Unity has no use for the build directory
-            if (path.StartsWith("build", StringComparison.Ordinal) || path.Contains("/build/")) return true;
-
-            // For now, skip src. We may use it later...
-            if (path.StartsWith("src", StringComparison.Ordinal) || path.Contains("/src/")) return true;
-
-            // Since we don't automatically fix up the runtime dll platforms, skip them until we improve support
-            // for this newer feature of nuget packages.
-            if (path.StartsWith("runtimes", StringComparison.Ordinal) || path.Contains("/runtimes/")) return true;
-
-            // Skip documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
-            if (path.StartsWith("docs", StringComparison.Ordinal) || path.Contains("/docs/")) return true;
-
-            // Skip ref folder, as it is just used for compile-time reference and does not contain implementations.
-            // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
-            if (path.StartsWith("ref", StringComparison.Ordinal) || path.Contains("/ref/")) return true;
-
-            // Skip all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
-            if (path.EndsWith(".pdb", StringComparison.Ordinal)) return true;
-
-            // Skip all folders that contain localization resource file
-            // Format of these entries is lib/<framework>/<language-code>/...
-            if (path.StartsWith("lib", StringComparison.Ordinal) || path.Contains("/lib/"))
-            {
-                var libSlashIndex = path.IndexOf("lib/", StringComparison.Ordinal) + 4;
-
-                var secondSlashIndex = path.IndexOf("/", libSlashIndex, StringComparison.Ordinal);
-                if (secondSlashIndex == -1)
-                {
-                    return false;
-                }
-
-                var thirdSlashIndex = path.IndexOf("/", secondSlashIndex + 1, StringComparison.Ordinal);
-                if (thirdSlashIndex == -1)
-                {
-                    return false;
-                }
-
-                var langLength = thirdSlashIndex - secondSlashIndex - 1;
-                if (langLength == 2 || langLength > 2 && path[secondSlashIndex + 3] == '-')
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }
