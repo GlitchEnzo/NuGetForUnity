@@ -217,7 +217,7 @@ namespace NugetForUnity
                     // copy the .nupkg inside the Unity project
                     File.Copy(cachedPackagePath, Path.Combine(baseDirectory, package.PackageFileName), true);
 
-                    static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
+                    void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
                     {
                         var filePath = Path.Combine(baseDir, entry.FullName);
                         var directory = Path.GetDirectoryName(filePath) ??
