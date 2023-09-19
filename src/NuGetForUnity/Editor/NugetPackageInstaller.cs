@@ -171,26 +171,6 @@ namespace NugetForUnity
                     // unzip the package
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))
                     {
-                        void ExtractPackageEntry(ZipArchiveEntry entry)
-                        {
-                            var filePath = Path.Combine(baseDirectory, entry.FullName);
-                            var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
-                            Directory.CreateDirectory(directory);
-                            if (Directory.Exists(filePath))
-                            {
-                                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                                return;
-                            }
-
-                            entry.ExtractToFile(filePath, true);
-
-                            if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
-                            {
-                                var extractedFile = new FileInfo(filePath);
-                                extractedFile.Attributes |= FileAttributes.ReadOnly;
-                            }
-                        }
-
                         var libs = new Dictionary<string, List<ZipArchiveEntry>>();
 
                         foreach (var entry in zip.Entries)
@@ -220,7 +200,7 @@ namespace NugetForUnity
                                 continue;
                             }
 
-                            ExtractPackageEntry(entry);
+                            ExtractPackageEntry(entry, baseDirectory);
                         }
 
                         // go through all lib zip entries and find the best target framework, then unpack it
@@ -229,13 +209,34 @@ namespace NugetForUnity
                         {
                             foreach (var entry in libs[bestFramework])
                             {
-                                ExtractPackageEntry(entry);
+                                ExtractPackageEntry(entry, baseDirectory);
                             }
                         }
                     }
 
                     // copy the .nupkg inside the Unity project
                     File.Copy(cachedPackagePath, Path.Combine(baseDirectory, package.PackageFileName), true);
+
+                    static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
+                    {
+                        var filePath = Path.Combine(baseDir, entry.FullName);
+                        var directory = Path.GetDirectoryName(filePath) ??
+                            throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
+                        Directory.CreateDirectory(directory);
+                        if (Directory.Exists(filePath))
+                        {
+                            Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
+                            return;
+                        }
+
+                        entry.ExtractToFile(filePath, true);
+
+                        if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
+                        {
+                            var extractedFile = new FileInfo(filePath);
+                            extractedFile.Attributes |= FileAttributes.ReadOnly;
+                        }
+                    }
                 }
                 else
                 {
