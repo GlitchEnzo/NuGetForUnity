@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
@@ -104,36 +105,37 @@ namespace NugetForUnity
             if (path.EndsWith($"{packageId}.nuspec.meta", StringComparison.Ordinal)) return true;
 
             // skip directories & files that NuGet normally deletes
-            if (path.StartsWith("_rels", StringComparison.Ordinal) || path.Contains("/_rels/")) return true;
-            if (path.StartsWith("package", StringComparison.Ordinal) || path.Contains("/package/")) return true;
+            if (path.StartsWith("_rels/", StringComparison.Ordinal) || path.Contains("/_rels/")) return true;
+            if (path.StartsWith("package/", StringComparison.Ordinal) || path.Contains("/package/")) return true;
             if (path.EndsWith($"{packageId}.nuspec", StringComparison.Ordinal)) return true;
             if (path.EndsWith("[Content_Types].xml", StringComparison.Ordinal)) return true;
 
             // Unity has no use for the build directory
-            if (path.StartsWith("build", StringComparison.Ordinal) || path.Contains("/build/")) return true;
+            if (path.StartsWith("build/", StringComparison.Ordinal) || path.Contains("/build/")) return true;
 
             // For now, skip src. We may use it later...
-            if (path.StartsWith("src", StringComparison.Ordinal) || path.Contains("/src/")) return true;
+            if (path.StartsWith("src/", StringComparison.Ordinal) || path.Contains("/src/")) return true;
 
             // Since we don't automatically fix up the runtime dll platforms, skip them until we improve support
             // for this newer feature of nuget packages.
-            if (path.StartsWith("runtimes", StringComparison.Ordinal) || path.Contains("/runtimes/")) return true;
+            if (path.StartsWith("runtimes/", StringComparison.Ordinal) || path.Contains("/runtimes/")) return true;
 
             // Skip documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
-            if (path.StartsWith("docs", StringComparison.Ordinal) || path.Contains("/docs/")) return true;
+            if (path.StartsWith("docs/", StringComparison.Ordinal) || path.Contains("/docs/")) return true;
 
             // Skip ref folder, as it is just used for compile-time reference and does not contain implementations.
             // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
-            if (path.StartsWith("ref", StringComparison.Ordinal) || path.Contains("/ref/")) return true;
+            if (path.StartsWith("ref/", StringComparison.Ordinal) || path.Contains("/ref/")) return true;
 
             // Skip all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
             if (path.EndsWith(".pdb", StringComparison.Ordinal)) return true;
 
             // Skip all folders that contain localization resource file
             // Format of these entries is lib/<framework>/<language-code>/...
-            if (path.StartsWith("lib", StringComparison.Ordinal) || path.Contains("/lib/"))
+            const string libDirectoryName = "lib/";
+            if (path.StartsWith(libDirectoryName, StringComparison.Ordinal) || path.Contains("/lib/"))
             {
-                var libSlashIndex = path.IndexOf("lib/", StringComparison.Ordinal) + 4;
+                var libSlashIndex = path.IndexOf(libDirectoryName, StringComparison.Ordinal) + libDirectoryName.Length;
 
                 var secondSlashIndex = path.IndexOf("/", libSlashIndex, StringComparison.Ordinal);
                 if (secondSlashIndex == -1)
@@ -155,6 +157,26 @@ namespace NugetForUnity
             }
 
             return false;
+        }
+
+        internal static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
+        {
+            var filePath = Path.Combine(baseDir, entry.FullName);
+            var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
+            Directory.CreateDirectory(directory);
+            if (Directory.Exists(filePath))
+            {
+                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
+                return;
+            }
+
+            entry.ExtractToFile(filePath, true);
+
+            if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
+            {
+                var extractedFile = new FileInfo(filePath);
+                extractedFile.Attributes |= FileAttributes.ReadOnly;
+            }
         }
 
         private static string GetPackageInstallDirectory(INugetPackageIdentifier package)

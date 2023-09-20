@@ -183,60 +183,45 @@ namespace NugetForUnity
 
                             // we don't want to unpack all lib folders and then delete all but one; rather we will decide the best
                             // target framework before unpacking, but first we need to collect all lib entries from zip
-                            if (entryFullName.StartsWith("lib"))
+                            const string libDirectoryName = "lib/";
+                            if (entryFullName.StartsWith(libDirectoryName))
                             {
-                                const int frameworkStartIndex = 4; // length of "lib/"
-                                var secondSlashIndex = entryFullName.IndexOf("/", frameworkStartIndex, StringComparison.Ordinal);
-                                var framework = entryFullName.Substring(frameworkStartIndex, secondSlashIndex - frameworkStartIndex);
-                                if (libs.TryGetValue(framework, out var entryList))
+                                var frameworkStartIndex = libDirectoryName.Length;
+                                var secondSlashIndex = entryFullName.IndexOf('/', frameworkStartIndex);
+                                if (secondSlashIndex == -1)
                                 {
-                                    entryList.Add(entry);
+                                    // a file inside lib folder -> we skip it
+                                    continue;
                                 }
-                                else
+
+                                var framework = entryFullName.Substring(libDirectoryName.Length, secondSlashIndex - frameworkStartIndex);
+                                if (!libs.TryGetValue(framework, out var entryList))
                                 {
-                                    libs[framework] = new List<ZipArchiveEntry> { entry };
+                                    entryList = new List<ZipArchiveEntry>();
+                                    libs.Add(framework, entryList);
                                 }
+
+                                entryList.Add(entry);
 
                                 continue;
                             }
 
-                            ExtractPackageEntry(entry, baseDirectory);
+                            PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                         }
 
                         // go through all lib zip entries and find the best target framework, then unpack it
-                        var bestFramework = TargetFrameworkResolver.TryGetBestTargetFramework(libs.Keys, key => key);
-                        if (bestFramework != null)
+                        var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs.Keys, framework => framework);
+                        if (bestFrameworkMatch != null)
                         {
-                            foreach (var entry in libs[bestFramework])
+                            foreach (var entry in libs[bestFrameworkMatch])
                             {
-                                ExtractPackageEntry(entry, baseDirectory);
+                                PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                             }
                         }
                     }
 
                     // copy the .nupkg inside the Unity project
                     File.Copy(cachedPackagePath, Path.Combine(baseDirectory, package.PackageFileName), true);
-
-                    void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
-                    {
-                        var filePath = Path.Combine(baseDir, entry.FullName);
-                        var directory = Path.GetDirectoryName(filePath) ??
-                            throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
-                        Directory.CreateDirectory(directory);
-                        if (Directory.Exists(filePath))
-                        {
-                            Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                            return;
-                        }
-
-                        entry.ExtractToFile(filePath, true);
-
-                        if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
-                        {
-                            var extractedFile = new FileInfo(filePath);
-                            extractedFile.Attributes |= FileAttributes.ReadOnly;
-                        }
-                    }
                 }
                 else
                 {
