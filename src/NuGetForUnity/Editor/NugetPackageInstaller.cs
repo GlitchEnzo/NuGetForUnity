@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -170,26 +171,60 @@ namespace NugetForUnity
                     // unzip the package
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))
                     {
+                        var libs = new Dictionary<string, List<ZipArchiveEntry>>();
+
                         foreach (var entry in zip.Entries)
                         {
-                            var filePath = Path.Combine(baseDirectory, entry.FullName);
-
-                            var directory = Path.GetDirectoryName(filePath) ??
-                                            throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
-                            Directory.CreateDirectory(directory);
-                            if (Directory.Exists(filePath))
+                            var entryFullName = entry.FullName;
+                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName, package.Id))
                             {
-                                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
                                 continue;
                             }
 
-                            entry.ExtractToFile(filePath, true);
-
-                            if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
+                            // we don't want to unpack all lib folders and then delete all but one; rather we will decide the best
+                            // target framework before unpacking, but first we need to collect all lib entries from zip
+                            const string libDirectoryName = "lib/";
+                            if (entryFullName.StartsWith(libDirectoryName))
                             {
-                                var extractedFile = new FileInfo(filePath);
-                                extractedFile.Attributes |= FileAttributes.ReadOnly;
+                                var frameworkStartIndex = libDirectoryName.Length;
+                                var secondSlashIndex = entryFullName.IndexOf('/', frameworkStartIndex);
+                                if (secondSlashIndex == -1)
+                                {
+                                    // a file inside lib folder -> we skip it
+                                    continue;
+                                }
+
+                                var framework = entryFullName.Substring(libDirectoryName.Length, secondSlashIndex - frameworkStartIndex);
+                                if (!libs.TryGetValue(framework, out var entryList))
+                                {
+                                    entryList = new List<ZipArchiveEntry>();
+                                    libs.Add(framework, entryList);
+                                }
+
+                                entryList.Add(entry);
+
+                                continue;
                             }
+
+                            PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+                        }
+
+                        // go through all lib zip entries and find the best target framework, then unpack it
+                        var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
+                        if (bestFrameworkMatch.Value != null)
+                        {
+                            NugetLogger.LogVerbose(
+                                "Selecting target framework directory '{0}' as best match for the package {1}",
+                                bestFrameworkMatch.Key,
+                                package);
+                            foreach (var entry in bestFrameworkMatch.Value)
+                            {
+                                PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
                         }
                     }
 

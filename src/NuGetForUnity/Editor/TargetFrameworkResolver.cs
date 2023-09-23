@@ -149,7 +149,7 @@ namespace NugetForUnity
                         return availableString.Equals(targetFrameworkSupport.Name, StringComparison.OrdinalIgnoreCase);
                     });
 
-                if (bestMatch != null)
+                if (!Equals(bestMatch, default(T)))
                 {
                     return bestMatch;
                 }

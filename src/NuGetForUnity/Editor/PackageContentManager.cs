@@ -1,5 +1,6 @@
-﻿using System.IO;
-using System.Linq;
+﻿using System;
+using System.IO;
+using System.IO.Compression;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
@@ -41,78 +42,6 @@ namespace NugetForUnity
 
             FileSystemHelper.FixSpaces(packageInstallDirectory);
 
-            // delete a remnant .meta file that may exist from packages created by Unity
-            FileSystemHelper.DeleteFile(Path.Combine(packageInstallDirectory, $"{package.Id}.nuspec.meta"));
-
-            // delete directories & files that NuGet normally deletes, but since we are installing "manually" they exist
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "_rels"), false);
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "package"), false);
-            FileSystemHelper.DeleteFile(Path.Combine(packageInstallDirectory, $"{package.Id}.nuspec"));
-            FileSystemHelper.DeleteFile(Path.Combine(packageInstallDirectory, "[Content_Types].xml"));
-
-            // Unity has no use for the build directory
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "build"), false);
-
-            // For now, delete src.  We may use it later...
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "src"), false);
-
-            // Since we don't automatically fix up the runtime dll platforms, remove them until we improve support
-            // for this newer feature of nuget packages.
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "runtimes"), false);
-
-            // Delete documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "docs"), false);
-
-            // Delete ref folder, as it is just used for compile-time reference and does not contain implementations.
-            // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
-            FileSystemHelper.DeleteDirectory(Path.Combine(packageInstallDirectory, "ref"), false);
-
-            var packageLibsDirectory = Path.Combine(packageInstallDirectory, "lib");
-            if (Directory.Exists(packageLibsDirectory))
-            {
-                // go through the library folders in descending order (highest to lowest version)
-                var libDirectories = new DirectoryInfo(packageLibsDirectory).GetDirectories();
-
-                var bestLibDirectory = TargetFrameworkResolver.TryGetBestTargetFramework(libDirectories, directory => directory.Name);
-                if (bestLibDirectory == null)
-                {
-                    Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
-                }
-                else
-                {
-                    NugetLogger.LogVerbose(
-                        "Selecting directory '{0}' with the best target framework {1} for current settings",
-                        bestLibDirectory,
-                        bestLibDirectory.Name);
-                }
-
-                // delete all of the libraries except for the selected one
-                foreach (var directory in libDirectories)
-                {
-                    // we use reference equality as the TargetFrameworkResolver returns the input reference.
-                    if (directory != bestLibDirectory)
-                    {
-                        FileSystemHelper.DeleteDirectory(directory.FullName, false);
-                    }
-                }
-
-                if (bestLibDirectory != null)
-                {
-                    // some older packages e.g. Microsoft.CodeAnalysis.Common 2.10.0 have multiple localization resource files
-                    // e.g. Microsoft.CodeAnalysis.resources.dll each inside a folder with the language name as a folder name e.g. zh-Hant or fr
-                    // unity doesn't support importing multiple assemblies with the same file name.
-                    // for now we just delete all folders so the language neutral version is used and Unity is happy.
-                    var languageSupFolders = bestLibDirectory.GetDirectories();
-                    if (languageSupFolders.All(languageSupFolder => languageSupFolder.Name.Split('-').FirstOrDefault()?.Length == 2))
-                    {
-                        foreach (var languageSupFolder in languageSupFolders)
-                        {
-                            languageSupFolder.Delete(true);
-                        }
-                    }
-                }
-            }
-
             var packageToolsDirectory = Path.Combine(packageInstallDirectory, "tools");
             if (Directory.Exists(packageToolsDirectory))
             {
@@ -129,9 +58,6 @@ namespace NugetForUnity
 
                 Directory.Move(packageToolsDirectory, toolsInstallDirectory);
             }
-
-            // delete all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
-            FileSystemHelper.DeleteAllFiles(packageInstallDirectory, "*.pdb");
 
             // if there are native DLLs, copy them to the Unity project root (1 up from Assets)
             var packageOutputDirectory = Path.Combine(packageInstallDirectory, "output");
@@ -170,6 +96,136 @@ namespace NugetForUnity
                 // delete the package's StreamingAssets folder and .meta file
                 FileSystemHelper.DeleteDirectory(packageStreamingAssetsDirectory, true);
                 FileSystemHelper.DeleteFile($"{packageStreamingAssetsDirectory}.meta");
+            }
+        }
+
+        /// <summary>
+        ///     Specifies if a file should be extracted from a .nupkg, because NuGetForUnity needs it.
+        /// </summary>
+        /// <param name="path">
+        ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
+        ///     platforms.
+        /// </param>
+        /// <param name="packageId">The id of the package that is extracted.</param>
+        /// <returns>True if the file can be skipped, is not needed.</returns>
+        internal static bool ShouldSkipUnpackingOnPath(string path, string packageId)
+        {
+            // skip a remnant .meta file that may exist from packages created by Unity
+            if (path.EndsWith($"{packageId}.nuspec.meta", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            // skip directories & files that NuGet normally deletes
+            if (path.StartsWith("_rels/", StringComparison.Ordinal) || path.Contains("/_rels/"))
+            {
+                return true;
+            }
+
+            if (path.StartsWith("package/", StringComparison.Ordinal) || path.Contains("/package/"))
+            {
+                return true;
+            }
+
+            if (path.EndsWith($"{packageId}.nuspec", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (path.EndsWith("[Content_Types].xml", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            // Unity has no use for the build directory
+            if (path.StartsWith("build/", StringComparison.Ordinal) || path.Contains("/build/"))
+            {
+                return true;
+            }
+
+            // For now, skip src. We may use it later...
+            if (path.StartsWith("src/", StringComparison.Ordinal) || path.Contains("/src/"))
+            {
+                return true;
+            }
+
+            // Since we don't automatically fix up the runtime dll platforms, skip them until we improve support
+            // for this newer feature of nuget packages.
+            if (path.StartsWith("runtimes/", StringComparison.Ordinal) || path.Contains("/runtimes/"))
+            {
+                return true;
+            }
+
+            // Skip documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
+            if (path.StartsWith("docs/", StringComparison.Ordinal) || path.Contains("/docs/"))
+            {
+                return true;
+            }
+
+            // Skip ref folder, as it is just used for compile-time reference and does not contain implementations.
+            // Leaving it results in "assembly loading" and "multiple pre-compiled assemblies with same name" errors
+            if (path.StartsWith("ref/", StringComparison.Ordinal) || path.Contains("/ref/"))
+            {
+                return true;
+            }
+
+            // Skip all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
+            if (path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Skip all folders that contain localization resource file
+            // Format of these entries is lib/<framework>/<language-code>/...
+            const string libDirectoryName = "lib/";
+            if (path.StartsWith(libDirectoryName, StringComparison.Ordinal) || path.Contains("/lib/"))
+            {
+                var libSlashIndex = path.IndexOf(libDirectoryName, StringComparison.Ordinal) + libDirectoryName.Length;
+
+                var secondSlashIndex = path.IndexOf('/', libSlashIndex);
+                if (secondSlashIndex == -1)
+                {
+                    return false;
+                }
+
+                var thirdSlashIndex = path.IndexOf('/', secondSlashIndex + 1);
+                if (thirdSlashIndex == -1)
+                {
+                    return false;
+                }
+
+                var langLength = thirdSlashIndex - secondSlashIndex - 1;
+                if (langLength == 2 || (langLength > 2 && path[secondSlashIndex + 3] == '-'))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Extracts a file from a .nupkg <see cref="ZipArchive" /> into the <paramref name="baseDir" />.
+        /// </summary>
+        /// <param name="entry">The file entry from the .nupkg zip file.</param>
+        /// <param name="baseDir">The path of the directory where the package output should be placed.</param>
+        internal static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
+        {
+            var filePath = Path.Combine(baseDir, entry.FullName);
+            var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
+            Directory.CreateDirectory(directory);
+            if (Directory.Exists(filePath))
+            {
+                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
+                return;
+            }
+
+            entry.ExtractToFile(filePath, true);
+
+            if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
+            {
+                var extractedFile = new FileInfo(filePath);
+                extractedFile.Attributes |= FileAttributes.ReadOnly;
             }
         }
 
