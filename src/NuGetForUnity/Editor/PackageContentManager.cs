@@ -99,6 +99,15 @@ namespace NugetForUnity
             }
         }
 
+        /// <summary>
+        ///     Specifies if a file should be extracted from a .nupkg, because NuGetForUnity needs it.
+        /// </summary>
+        /// <param name="path">
+        ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
+        ///     platforms.
+        /// </param>
+        /// <param name="packageId">The id of the package that is extracted.</param>
+        /// <returns>True if the file can be skipped, is not needed.</returns>
         internal static bool ShouldSkipUnpackingOnPath(string path, string packageId)
         {
             // skip a remnant .meta file that may exist from packages created by Unity
