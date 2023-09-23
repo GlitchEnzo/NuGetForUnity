@@ -27,6 +27,8 @@ namespace NugetForUnity.PackageSource
         private readonly HttpClient httpClient = new HttpClient(
             new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate });
 
+        private bool initializationFailed;
+
         // Example: https://api.nuget.org/v3-flatcontainer/
         [SerializeField]
         private string packageBaseAddress;
@@ -102,6 +104,12 @@ namespace NugetForUnity.PackageSource
             bool includePreRelease = false,
             CancellationToken cancellationToken = default)
         {
+            if (initializationFailed)
+            {
+                Debug.LogError($"Initialization of api client for '{apiIndexJsonUrl}' failed so we can't search in it (see other error).");
+                return new List<INugetPackage>();
+            }
+
             while (searchQueryServices == null)
             {
                 // waiting for InitializeApiAddresses to complete
@@ -263,42 +271,50 @@ namespace NugetForUnity.PackageSource
 
         private async void InitializeApiAddresses(NugetPackageSourceV3 packageSource)
         {
-            var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
-                .ConfigureAwait(false);
-            var resourceList =
-                JsonUtility.FromJson<IndexResponse>(responseString.Replace(@"""@id"":", @"""atId"":").Replace(@"""@type"":", @"""atType"":"));
-            var foundSearchQueryServices = new List<string>();
-            foreach (var resource in resourceList.resources)
+            try
             {
-                switch (resource.atType)
+                var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
+                    .ConfigureAwait(false);
+                var resourceList =
+                    JsonUtility.FromJson<IndexResponse>(responseString.Replace(@"""@id"":", @"""atId"":").Replace(@"""@type"":", @"""atType"":"));
+                var foundSearchQueryServices = new List<string>();
+                foreach (var resource in resourceList.resources)
                 {
-                    case "SearchQueryService":
-                        if (resource.comment.Contains("(primary)"))
-                        {
-                            foundSearchQueryServices.Insert(0, resource.atId.Trim('/'));
-                        }
-                        else
-                        {
-                            foundSearchQueryServices.Add(resource.atId.Trim('/'));
-                        }
+                    switch (resource.atType)
+                    {
+                        case "SearchQueryService":
+                            if (resource.comment.Contains("(primary)"))
+                            {
+                                foundSearchQueryServices.Insert(0, resource.atId.Trim('/'));
+                            }
+                            else
+                            {
+                                foundSearchQueryServices.Add(resource.atId.Trim('/'));
+                            }
 
-                        break;
-                    case "PackageBaseAddress/3.0.0":
-                        packageBaseAddress = resource.atId.Trim('/') + '/';
-                        break;
-                    case "RegistrationsBaseUrl/3.6.0":
-                        registrationsBaseUrl = resource.atId.Trim('/') + '/';
-                        break;
+                            break;
+                        case "PackageBaseAddress/3.0.0":
+                            packageBaseAddress = resource.atId.Trim('/') + '/';
+                            break;
+                        case "RegistrationsBaseUrl/3.6.0":
+                            registrationsBaseUrl = resource.atId.Trim('/') + '/';
+                            break;
+                    }
                 }
-            }
 
-            if (string.IsNullOrEmpty(packageBaseAddress))
+                if (string.IsNullOrEmpty(packageBaseAddress))
+                {
+                    Debug.LogErrorFormat("The NuGet package source at '{0}' has no PackageBaseAddress resource defined.", apiIndexJsonUrl);
+                }
+
+                searchQueryServices = foundSearchQueryServices;
+                SaveToSessionState();
+            }
+            catch (Exception exception)
             {
-                Debug.LogErrorFormat("The NuGet package source at '{0}' has no PackageBaseAddress resource defined.", apiIndexJsonUrl);
+                Debug.LogErrorFormat("Failed to initialize the NuGet package source '{0}'. Error: {1}", apiIndexJsonUrl, exception);
+                initializationFailed = true;
             }
-
-            searchQueryServices = foundSearchQueryServices;
-            SaveToSessionState();
         }
 
         private async Task<string> GetStringFromServerAsync(NugetPackageSourceV3 packageSource, string url, CancellationToken cancellationToken)
