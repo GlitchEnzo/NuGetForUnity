@@ -125,7 +125,7 @@ namespace NugetForUnity
         /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
         /// <param name="getTargetFrameworkString">A function to get the target-framework string.</param>
         /// <returns>The best matching target-framework.</returns>
-        public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTargetFrameworkString) where T : class
+        public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTargetFrameworkString)
         {
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
@@ -148,7 +148,6 @@ namespace NugetForUnity
                         var availableString = getTargetFrameworkString(availableTargetFramework).Replace(".", string.Empty);
                         return availableString.Equals(targetFrameworkSupport.Name, StringComparison.OrdinalIgnoreCase);
                     });
-
 
                 if (bestMatch != null)
                 {

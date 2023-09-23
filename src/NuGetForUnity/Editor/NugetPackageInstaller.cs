@@ -210,13 +210,21 @@ namespace NugetForUnity
                         }
 
                         // go through all lib zip entries and find the best target framework, then unpack it
-                        var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs.Keys, framework => framework);
-                        if (bestFrameworkMatch != null)
+                        var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
+                        if (bestFrameworkMatch.Value != null)
                         {
-                            foreach (var entry in libs[bestFrameworkMatch])
+                            NugetLogger.LogVerbose(
+                                "Selecting target framework directory '{0}' as best match for the package {1}",
+                                bestFrameworkMatch.Key,
+                                package);
+                            foreach (var entry in bestFrameworkMatch.Value)
                             {
                                 PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                             }
+                        }
+                        else
+                        {
+                            Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
                         }
                     }
 
