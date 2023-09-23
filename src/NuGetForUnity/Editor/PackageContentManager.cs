@@ -204,6 +204,11 @@ namespace NugetForUnity
             return false;
         }
 
+        /// <summary>
+        ///     Extracts a file from a .nupkg <see cref="ZipArchive" /> into the <paramref name="baseDir" />.
+        /// </summary>
+        /// <param name="entry">The file entry from the .nupkg zip file.</param>
+        /// <param name="baseDir">The path of the directory where the package output should be placed.</param>
         internal static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
         {
             var filePath = Path.Combine(baseDir, entry.FullName);
