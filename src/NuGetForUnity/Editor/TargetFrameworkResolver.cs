@@ -303,7 +303,8 @@ namespace NugetForUnity
                 this.build = build;
             }
 
-            private UnityVersion(string version)
+            [SuppressMessage("ReSharper", "MemberCanBePrivate.Local", Justification = "Called by Unit Test.")]
+            public UnityVersion(string version)
             {
                 var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
                 if (!match.Success)
