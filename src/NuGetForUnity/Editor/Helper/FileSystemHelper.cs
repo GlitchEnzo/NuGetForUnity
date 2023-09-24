@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace NugetForUnity.Helper
@@ -15,7 +16,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="sourceDirectoryPath">The path to the folder to move from.</param>
         /// <param name="destDirectoryPath">The path to the folder to move to.</param>
-        internal static void DirectoryMove(string sourceDirectoryPath, string destDirectoryPath)
+        internal static void DirectoryMove([NotNull] string sourceDirectoryPath, [NotNull] string destDirectoryPath)
         {
             if (!Directory.Exists(destDirectoryPath))
             {
@@ -72,7 +73,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="directoryPath">The path of the folder to delete.</param>
         /// <param name="log">Whether to log the deletion.</param>
-        internal static void DeleteDirectory(string directoryPath, bool log)
+        internal static void DeleteDirectory([NotNull] string directoryPath, bool log)
         {
             if (!Directory.Exists(directoryPath))
             {
@@ -110,7 +111,7 @@ namespace NugetForUnity.Helper
         ///     Deletes a file at the given file-path.
         /// </summary>
         /// <param name="filePath">The file-path to the file to delete.</param>
-        internal static void DeleteFile(string filePath)
+        internal static void DeleteFile([NotNull] string filePath)
         {
             if (!File.Exists(filePath))
             {
@@ -127,7 +128,7 @@ namespace NugetForUnity.Helper
         /// <param name="sourceFilePath">The path of the file that should be moved.</param>
         /// <param name="destFilePath">The target path where the file should be moved to.</param>
         /// <param name="checkSourceExists">Whether we should check if there is a file located at <paramref name="sourceFilePath" />.</param>
-        internal static void MoveFile(string sourceFilePath, string destFilePath, bool checkSourceExists)
+        internal static void MoveFile([NotNull] string sourceFilePath, [NotNull] string destFilePath, bool checkSourceExists)
         {
             if (checkSourceExists && !File.Exists(sourceFilePath))
             {
@@ -144,7 +145,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="directoryPath">The path to the directory to delete all files of the given extension from.</param>
         /// <param name="filter">The filter of the files to delete, in the form "*.ext".</param>
-        internal static void DeleteAllFiles(string directoryPath, string filter)
+        internal static void DeleteAllFiles([NotNull] string directoryPath, [NotNull] string filter)
         {
             var files = Directory.EnumerateFiles(directoryPath, filter, SearchOption.AllDirectories);
             foreach (var file in files)
@@ -157,7 +158,7 @@ namespace NugetForUnity.Helper
         ///     Replace all %20 encodings with a normal space.
         /// </summary>
         /// <param name="directoryPath">The path to the directory.</param>
-        internal static void FixSpaces(string directoryPath)
+        internal static void FixSpaces([NotNull] string directoryPath)
         {
             if (directoryPath.Contains("%20"))
             {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace NugetForUnity
         /// <param name="newVersion">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the assets inside Unity. False to ignore them (for now). Defaults to true.</param>
         /// <returns>True if the package was successfully updated. False otherwise.</returns>
-        public static bool Update(INugetPackageIdentifier currentVersion, INugetPackage newVersion, bool refreshAssets = true)
+        public static bool Update([NotNull] INugetPackageIdentifier currentVersion, [NotNull] INugetPackage newVersion, bool refreshAssets = true)
         {
             NugetLogger.LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
             NugetPackageUninstaller.Uninstall(currentVersion, false);
@@ -31,7 +32,9 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="updates">The list of all updates to install.</param>
         /// <param name="packagesToUpdate">The list of all packages currently installed.</param>
-        public static void UpdateAll(IEnumerable<INugetPackage> updates, IEnumerable<INugetPackage> packagesToUpdate)
+        public static void UpdateAll(
+            [NotNull] [ItemNotNull] IEnumerable<INugetPackage> updates,
+            [NotNull] [ItemNotNull] IEnumerable<INugetPackage> packagesToUpdate)
         {
             var updatesCollection = updates as IReadOnlyCollection<INugetPackage> ?? updates.ToList();
             var packagesToUpdateCollection = packagesToUpdate as IReadOnlyCollection<INugetPackage> ?? packagesToUpdate.ToList();

@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
@@ -21,11 +22,13 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
         /// </summary>
+        [CanBeNull]
         private static INugetPackageSource activePackageSource;
 
         /// <summary>
         ///     Backing field for the NuGet.config file.
         /// </summary>
+        [CanBeNull]
         private static NugetConfigFile nugetConfigFile;
 
         static ConfigurationManager()
@@ -40,11 +43,13 @@ namespace NugetForUnity.Configuration
         /// <remarks>
         ///     <see cref="NugetConfigFile" />.
         /// </remarks>
+        [NotNull]
         public static string NugetConfigFilePath { get; }
 
         /// <summary>
         ///     Gets the loaded NuGet.config file that holds the settings for NuGet.
         /// </summary>
+        [NotNull]
         public static NugetConfigFile NugetConfigFile
         {
             get
@@ -54,6 +59,7 @@ namespace NugetForUnity.Configuration
                     LoadNugetConfigFile();
                 }
 
+                Debug.Assert(nugetConfigFile != null, nameof(nugetConfigFile) + " != null");
                 return nugetConfigFile;
             }
         }
@@ -61,6 +67,7 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     Gets the path to the directory containing the NuGet.config file.
         /// </summary>
+        [NotNull]
         internal static string NugetConfigFileDirectoryPath { get; }
 
         /// <summary>
@@ -69,6 +76,24 @@ namespace NugetForUnity.Configuration
         ///     But this will not load the NuGet.config file to prevent endless loops wen we log while we load the <c>NuGet.config</c> file.
         /// </summary>
         internal static bool IsVerboseLoggingEnabled => nugetConfigFile?.Verbose ?? false;
+
+        /// <summary>
+        ///     Gets the <see cref="INugetPackageSource" /> to use.
+        /// </summary>
+        [NotNull]
+        private static INugetPackageSource ActivePackageSource
+        {
+            get
+            {
+                if (activePackageSource is null)
+                {
+                    LoadNugetConfigFile();
+                }
+
+                Debug.Assert(activePackageSource != null, nameof(activePackageSource) + " != null");
+                return activePackageSource;
+            }
+        }
 
         /// <summary>
         ///     Loads the NuGet.config file.
@@ -93,7 +118,7 @@ namespace NugetForUnity.Configuration
             {
                 if (readingSources)
                 {
-                    if (arg.StartsWith("-"))
+                    if (arg.StartsWith("-", StringComparison.Ordinal))
                     {
                         readingSources = false;
                     }
@@ -138,14 +163,16 @@ namespace NugetForUnity.Configuration
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <param name="cancellationToken">Token that can be used to cancel the asynchronous task.</param>
         /// <returns>The list of available packages.</returns>
+        [NotNull]
+        [ItemNotNull]
         public static Task<List<INugetPackage>> Search(
-            string searchTerm = "",
+            [NotNull] string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return activePackageSource.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+            return ActivePackageSource.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
         }
 
         /// <summary>
@@ -156,19 +183,22 @@ namespace NugetForUnity.Configuration
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
+        [NotNull]
+        [ItemNotNull]
         public static List<INugetPackage> GetUpdates(
-            IEnumerable<INugetPackage> packagesToUpdate,
+            [NotNull] IEnumerable<INugetPackage> packagesToUpdate,
             bool includePrerelease = false,
             string targetFrameworks = "",
             string versionConstraints = "")
         {
-            return activePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints);
+            return ActivePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints);
         }
 
         /// <inheritdoc cref="INugetPackageSource.GetSpecificPackage(INugetPackageIdentifier)" />
-        public static INugetPackage GetSpecificPackage(INugetPackageIdentifier nugetPackageIdentifier)
+        [CanBeNull]
+        public static INugetPackage GetSpecificPackage([NotNull] INugetPackageIdentifier nugetPackageIdentifier)
         {
-            return activePackageSource.GetSpecificPackage(nugetPackageIdentifier);
+            return ActivePackageSource.GetSpecificPackage(nugetPackageIdentifier);
         }
     }
 }

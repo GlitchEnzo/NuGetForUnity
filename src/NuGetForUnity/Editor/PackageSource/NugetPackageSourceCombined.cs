@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEngine;
 
@@ -13,13 +14,15 @@ namespace NugetForUnity.PackageSource
     /// </summary>
     internal sealed class NugetPackageSourceCombined : INugetPackageSource
     {
+        [NotNull]
+        [ItemNotNull]
         private readonly List<INugetPackageSource> packageSources;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageSourceCombined" /> class.
         /// </summary>
         /// <param name="packageSources">The package source's to combine the results from.</param>
-        public NugetPackageSourceCombined(List<INugetPackageSource> packageSources)
+        public NugetPackageSourceCombined([NotNull] [ItemNotNull] List<INugetPackageSource> packageSources)
         {
             this.packageSources = packageSources ?? throw new ArgumentNullException(nameof(packageSources));
         }
@@ -216,6 +219,8 @@ namespace NugetForUnity.PackageSource
             // packageSources are disposed by them self.
         }
 
+        [NotNull]
+        [ItemNotNull]
         private async Task<List<INugetPackage>> SearchMultiple(
             string searchTerm = "",
             bool includePrerelease = false,

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using Debug = UnityEngine.Debug;
@@ -22,7 +23,7 @@ namespace NugetForUnity.Helper
         ///     Calls "nuget.exe pack" to create a .nupkg file based on the given .nuspec file.
         /// </summary>
         /// <param name="nuspecFilePath">The full file-path to the .nuspec file to use.</param>
-        public static void Pack(string nuspecFilePath)
+        public static void Pack([NotNull] string nuspecFilePath)
         {
             Directory.CreateDirectory(PackageCacheManager.CacheOutputDirectory);
 
@@ -42,7 +43,7 @@ namespace NugetForUnity.Helper
         /// <param name="nuspecFilePath">The full file-path to the .nuspec file to use.  This is required by NuGet's Push command.</param>
         /// ///
         /// <param name="apiKey">The API key to use when pushing a package to the server.  This is optional.</param>
-        public static void Push(NuspecFile nuspec, string nuspecFilePath, string apiKey = "")
+        public static void Push([NotNull] NuspecFile nuspec, [NotNull] string nuspecFilePath, [NotNull] string apiKey = "")
         {
             var packagePath = nuspec.GetLocalPackageFilePath(PackageCacheManager.CacheOutputDirectory);
             if (!File.Exists(packagePath))
@@ -67,7 +68,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="arguments">The arguments to run nuget.exe with.</param>
         /// <param name="logOutput">True to output debug information to the Unity console.  Defaults to true.</param>
-        private static void RunNugetProcess(string arguments, bool logOutput = true)
+        private static void RunNugetProcess([NotNull] string arguments, bool logOutput = true)
         {
             // Try to find any nuget.exe in the package tools installation location
             var toolsPackagesFolder = Path.Combine(UnityPathHelper.AbsoluteProjectPath, "Packages");

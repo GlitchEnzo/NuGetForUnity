@@ -1,12 +1,26 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
 
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 namespace NugetForUnity
 {
     /// <summary>
@@ -15,6 +29,7 @@ namespace NugetForUnity
     internal static class TargetFrameworkResolver
     {
         // highest priority first. We use values without '.' for easier comparison.
+        [NotNull]
         private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworks =
         {
             new TargetFrameworkSupport("unity"),
@@ -112,7 +127,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
         /// <returns>The best matching target-framework.</returns>
-        public static string TryGetBestTargetFramework(IReadOnlyCollection<string> availableTargetFrameworks)
+        [CanBeNull]
+        public static string TryGetBestTargetFramework([NotNull] [ItemNotNull] IReadOnlyCollection<string> availableTargetFrameworks)
         {
             return TryGetBestTargetFramework(availableTargetFrameworks, targetFramework => targetFramework);
         }
@@ -125,7 +141,10 @@ namespace NugetForUnity
         /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
         /// <param name="getTargetFrameworkString">A function to get the target-framework string.</param>
         /// <returns>The best matching target-framework.</returns>
-        public static T TryGetBestTargetFramework<T>(IReadOnlyCollection<T> availableTargetFrameworks, Func<T, string> getTargetFrameworkString)
+        [CanBeNull]
+        public static T TryGetBestTargetFramework<T>(
+            [NotNull] [ItemNotNull] IReadOnlyCollection<T> availableTargetFrameworks,
+            [NotNull] Func<T, string> getTargetFrameworkString)
         {
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
@@ -163,7 +182,9 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="packageDependencies">The available frameworks.</param>
         /// <returns>The selected target framework group or null if non is matching.</returns>
-        internal static NugetFrameworkGroup GetNullableBestDependencyFrameworkGroupForCurrentSettings(List<NugetFrameworkGroup> packageDependencies)
+        [CanBeNull]
+        internal static NugetFrameworkGroup GetNullableBestDependencyFrameworkGroupForCurrentSettings(
+            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies)
         {
             var bestTargetFramework = TryGetBestTargetFramework(packageDependencies, frameworkGroup => frameworkGroup.TargetFramework);
             NugetLogger.LogVerbose(
@@ -177,7 +198,9 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="packageDependencies">The available frameworks.</param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
-        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(List<NugetFrameworkGroup> packageDependencies)
+        [NotNull]
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(
+            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies)
         {
             return GetNullableBestDependencyFrameworkGroupForCurrentSettings(packageDependencies) ?? new NugetFrameworkGroup();
         }
@@ -187,7 +210,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="nuspec">The package of witch the dependencies are selected.</param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
-        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(NuspecFile nuspec)
+        [NotNull]
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings([NotNull] NuspecFile nuspec)
         {
             return GetBestDependencyFrameworkGroupForCurrentSettings(nuspec.Dependencies);
         }
@@ -197,7 +221,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The package of witch the dependencies are selected.</param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
-        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(INugetPackage package)
+        [NotNull]
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings([NotNull] INugetPackage package)
         {
             return GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
         }
@@ -207,13 +232,18 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="targetFrameworks">The available frameworks.</param>
         /// <returns>The selected target framework or null if non is matching.</returns>
-        internal static string TryGetBestTargetFrameworkForCurrentSettings(IReadOnlyCollection<string> targetFrameworks)
+        [CanBeNull]
+        internal static string TryGetBestTargetFrameworkForCurrentSettings([NotNull] [ItemNotNull] IReadOnlyCollection<string> targetFrameworks)
         {
             var result = TryGetBestTargetFramework(targetFrameworks);
             NugetLogger.LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
         }
 
+        [SuppressMessage(
+            "StyleCop.CSharp.OrderingRules",
+            "SA1201:Elements should appear in the correct order",
+            Justification = "We like private enums at the botom of the file.")]
         private enum DotnetVersionCompatibilityLevel
         {
             None = 0,
@@ -235,12 +265,6 @@ namespace NugetForUnity
         // Ignore Spelling: dotnet
         private readonly struct TargetFrameworkSupport
         {
-            public readonly UnityVersion? MinimumUnityVersion;
-
-            public readonly string Name;
-
-            public readonly DotnetVersionCompatibilityLevel[] SupportedDotnetVersions;
-
             public TargetFrameworkSupport(
                 string name,
                 UnityVersion? minimumUnityVersion = null,
@@ -250,21 +274,36 @@ namespace NugetForUnity
                 MinimumUnityVersion = minimumUnityVersion;
                 SupportedDotnetVersions = supportedDotnetVersions;
             }
+
+            public UnityVersion? MinimumUnityVersion { get; }
+
+            public string Name { get; }
+
+            public DotnetVersionCompatibilityLevel[] SupportedDotnetVersions { get; }
         }
 
         private readonly struct UnityVersion : IComparable<UnityVersion>
         {
-            public readonly int Build;
+            private readonly int build;
 
-            public readonly int Major;
+            private readonly int major;
 
-            public readonly int Minor;
+            private readonly int minor;
 
-            public readonly char Release;
+            private readonly char release;
 
-            public readonly int Revision;
+            private readonly int revision;
 
-            public UnityVersion(string version)
+            public UnityVersion(int major, int minor, int revision, char release, int build)
+            {
+                this.major = major;
+                this.minor = minor;
+                this.revision = revision;
+                this.release = release;
+                this.build = build;
+            }
+
+            private UnityVersion(string version)
             {
                 var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
                 if (!match.Success)
@@ -272,20 +311,11 @@ namespace NugetForUnity
                     throw new ArgumentException("Invalid unity version");
                 }
 
-                Major = int.Parse(match.Groups[1].Value);
-                Minor = int.Parse(match.Groups[2].Value);
-                Revision = int.Parse(match.Groups[3].Value);
-                Release = match.Groups[4].Value[0];
-                Build = int.Parse(match.Groups[5].Value);
-            }
-
-            public UnityVersion(int major, int minor, int revision, char release, int build)
-            {
-                Major = major;
-                Minor = minor;
-                Revision = revision;
-                Release = release;
-                Build = build;
+                major = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                minor = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+                revision = int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+                release = match.Groups[4].Value[0];
+                build = int.Parse(match.Groups[5].Value, CultureInfo.InvariantCulture);
             }
 
             [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
@@ -311,64 +341,64 @@ namespace NugetForUnity
                 return left.CompareTo(right) >= 0;
             }
 
-            public static int Compare(UnityVersion a, UnityVersion b)
+            public int CompareTo(UnityVersion other)
             {
-                if (a.Major < b.Major)
+                return Compare(this, other);
+            }
+
+            private static int Compare(UnityVersion a, UnityVersion b)
+            {
+                if (a.major < b.major)
                 {
                     return -1;
                 }
 
-                if (a.Major > b.Major)
+                if (a.major > b.major)
                 {
                     return 1;
                 }
 
-                if (a.Minor < b.Minor)
+                if (a.minor < b.minor)
                 {
                     return -1;
                 }
 
-                if (a.Minor > b.Minor)
+                if (a.minor > b.minor)
                 {
                     return 1;
                 }
 
-                if (a.Revision < b.Revision)
+                if (a.revision < b.revision)
                 {
                     return -1;
                 }
 
-                if (a.Revision > b.Revision)
+                if (a.revision > b.revision)
                 {
                     return 1;
                 }
 
-                if (a.Release < b.Release)
+                if (a.release < b.release)
                 {
                     return -1;
                 }
 
-                if (a.Release > b.Release)
+                if (a.release > b.release)
                 {
                     return 1;
                 }
 
-                if (a.Build < b.Build)
+                if (a.build < b.build)
                 {
                     return -1;
                 }
 
-                if (a.Build > b.Build)
+                if (a.build > b.build)
                 {
                     return 1;
                 }
 
                 return 0;
-            }
-
-            public int CompareTo(UnityVersion other)
-            {
-                return Compare(this, other);
             }
         }
     }

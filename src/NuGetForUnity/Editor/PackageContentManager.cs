@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
@@ -17,7 +18,7 @@ namespace NugetForUnity
         ///     Deletes all files and folders associated with a package.
         /// </summary>
         /// <param name="package">The package to remove all its content of.</param>
-        internal static void DeletePackageContentPackage(INugetPackageIdentifier package)
+        internal static void DeletePackageContentPackage([NotNull] INugetPackageIdentifier package)
         {
             var packageInstallDirectory = GetPackageInstallDirectory(package);
             FileSystemHelper.DeleteDirectory(packageInstallDirectory, true);
@@ -34,7 +35,7 @@ namespace NugetForUnity
         ///     Since we are in Unity, we can make certain assumptions on which files will NOT be used, so we can delete them.
         /// </summary>
         /// <param name="package">The NugetPackage to clean.</param>
-        internal static void CleanInstallationDirectory(INugetPackageIdentifier package)
+        internal static void CleanInstallationDirectory([NotNull] INugetPackageIdentifier package)
         {
             var packageInstallDirectory = GetPackageInstallDirectory(package);
 
@@ -108,7 +109,7 @@ namespace NugetForUnity
         /// </param>
         /// <param name="packageId">The id of the package that is extracted.</param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
-        internal static bool ShouldSkipUnpackingOnPath(string path, string packageId)
+        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, [NotNull] string packageId)
         {
             // skip a remnant .meta file that may exist from packages created by Unity
             if (path.EndsWith($"{packageId}.nuspec.meta", StringComparison.Ordinal))
@@ -209,9 +210,25 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="entry">The file entry from the .nupkg zip file.</param>
         /// <param name="baseDir">The path of the directory where the package output should be placed.</param>
-        internal static void ExtractPackageEntry(ZipArchiveEntry entry, string baseDir)
+        internal static void ExtractPackageEntry([NotNull] ZipArchiveEntry entry, [NotNull] string baseDir)
         {
-            var filePath = Path.Combine(baseDir, entry.FullName);
+            // Normalizes the path.
+            baseDir = Path.GetFullPath(baseDir);
+
+            // Ensures that the last character on the extraction path is the directory separator char.
+            if (!baseDir.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+            {
+                baseDir += Path.DirectorySeparatorChar;
+            }
+
+            // Gets the full path to ensure that relative segments are removed.
+            var filePath = Path.GetFullPath(Path.Combine(baseDir, entry.FullName));
+            if (!filePath.StartsWith(baseDir, StringComparison.Ordinal))
+            {
+                Debug.LogWarning($"Entry {entry.FullName} is trying to leave the output directory. We skip it.");
+                return;
+            }
+
             var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
             Directory.CreateDirectory(directory);
             if (Directory.Exists(filePath))
@@ -229,12 +246,14 @@ namespace NugetForUnity
             }
         }
 
-        private static string GetPackageInstallDirectory(INugetPackageIdentifier package)
+        [NotNull]
+        private static string GetPackageInstallDirectory([NotNull] INugetPackageIdentifier package)
         {
             return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
         }
 
-        private static string GetPackageOutsideInstallDirectory(INugetPackageIdentifier package)
+        [NotNull]
+        private static string GetPackageOutsideInstallDirectory([NotNull] INugetPackageIdentifier package)
         {
             return Path.Combine(UnityPathHelper.AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}");
         }

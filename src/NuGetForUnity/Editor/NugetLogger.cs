@@ -1,4 +1,5 @@
-﻿using NugetForUnity.Configuration;
+﻿using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using UnityEngine;
 #if !UNITY_2019_1_OR_NEWER
 using System.Threading;
@@ -16,7 +17,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="format">The formatted message string.</param>
         /// <param name="args">The arguments for the formatted message string.</param>
-        public static void LogVerbose(string format, params object[] args)
+        public static void LogVerbose([NotNull] string format, [CanBeNull] [ItemCanBeNull] params object[] args)
         {
             if (ConfigurationManager.IsVerboseLoggingEnabled)
             {

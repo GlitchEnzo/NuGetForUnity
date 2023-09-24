@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using UnityEditor;
@@ -26,11 +28,13 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The full file-path to the .nuspec file that is being edited.
         /// </summary>
+        [CanBeNull]
         private string filepath;
 
         /// <summary>
         ///     The NuspecFile that was loaded from the .nuspec file.
         /// </summary>
+        [CanBeNull]
         private NuspecFile nuspec;
 
         /// <summary>
@@ -49,8 +53,8 @@ namespace NugetForUnity.Ui
 
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
             {
-                // if it was a file that was selected, replace the filename
-                filepath = filepath.Replace(Path.GetFileName(filepath), string.Empty);
+                // if it was a file that was selected, use containing directory
+                filepath = Path.GetDirectoryName(filepath);
             }
 
             Debug.Assert(filepath != null, "filepath != null");
@@ -109,7 +113,7 @@ namespace NugetForUnity.Ui
                 var filepath = AssetDatabase.GetAssetPath(defaultAsset);
                 filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, filepath);
 
-                isNuspec = Path.GetExtension(filepath) == ".nuspec";
+                isNuspec = string.Equals(Path.GetExtension(filepath), ".nuspec", StringComparison.OrdinalIgnoreCase);
             }
 
             return isNuspec;
@@ -132,6 +136,13 @@ namespace NugetForUnity.Ui
             }
             else
             {
+                if (filepath == null)
+                {
+                    titleContent = new GUIContent("[NO PATH]");
+                    EditorGUILayout.LabelField("There is no directory selected.");
+                    return;
+                }
+
                 EditorGUIUtility.labelWidth = 100;
                 nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The name of the package."), nuspec.Id);
                 nuspec.Version = EditorGUILayout.TextField(new GUIContent("Version", "The semantic version of the package."), nuspec.Version);
@@ -284,23 +295,27 @@ namespace NugetForUnity.Ui
         private void Reload()
         {
             var defaultAsset = Selection.activeObject as DefaultAsset;
-            if (defaultAsset != null)
+            if (defaultAsset == null)
             {
-                var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
-                assetFilepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, assetFilepath);
-
-                var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
-
-                if (isNuspec)
-                {
-                    filepath = assetFilepath;
-                    nuspec = NuspecFile.Load(filepath);
-                    titleContent = new GUIContent(Path.GetFileNameWithoutExtension(filepath));
-
-                    // force a repaint
-                    Repaint();
-                }
+                return;
             }
+
+            var assetFilepath = AssetDatabase.GetAssetPath(defaultAsset);
+            assetFilepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, assetFilepath);
+
+            var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
+
+            if (!isNuspec)
+            {
+                return;
+            }
+
+            filepath = assetFilepath;
+            nuspec = NuspecFile.Load(filepath);
+            titleContent = new GUIContent(Path.GetFileNameWithoutExtension(filepath));
+
+            // force a repaint
+            Repaint();
         }
 
         /// <summary>
