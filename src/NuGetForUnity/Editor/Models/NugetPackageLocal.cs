@@ -57,5 +57,18 @@ namespace NugetForUnity.Models
             package.DownloadUrl = nupkgFilePath;
             return package;
         }
+
+        /// <summary>
+        ///     Loads a <see cref="NugetPackageLocal" /> from the .nuspec file at the given file-path.
+        /// </summary>
+        /// <param name="nuspecFilePath">The file-path to the .nuspec file to load.</param>
+        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
+        /// <returns>The <see cref="NugetPackageLocal" /> loaded from the .nuspec file.</returns>
+        public static NugetPackageLocal FromNuspecFile(string nuspecFilePath, NugetPackageSourceLocal packageSource)
+        {
+            var package = FromNuspec(NuspecFile.Load(nuspecFilePath), packageSource);
+            package.DownloadUrl = nuspecFilePath;
+            return package;
+        }
     }
 }

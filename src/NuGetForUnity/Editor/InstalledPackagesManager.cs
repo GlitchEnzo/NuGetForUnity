@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
@@ -171,13 +172,32 @@ namespace NugetForUnity
             var manuallyInstalledPackagesNumber = 0;
 
             // a package that was installed via NuGet will have the .nupkg it came from inside the folder
+            // NOTE : this is useful only for backwards compatibility
             var nupkgFiles = Directory.GetFiles(ConfigurationManager.NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
             foreach (var nupkgFile in nupkgFiles)
             {
-                var package = NugetPackageLocal.FromNupkgFile(
-                    nupkgFile,
-                    new NugetPackageSourceLocal("Nupkg file from Project", Path.GetDirectoryName(nupkgFile)));
-                AddPackageToInstalledInternal(package, ref manuallyInstalledPackagesNumber);
+                using (var zip = ZipFile.OpenRead(nupkgFile))
+                {
+                    foreach (var entry in zip.Entries)
+                    {
+                        var entryFullName = entry.FullName;
+
+                        // extract only .nuspec and .nuspec.meta files
+                        if (entryFullName.EndsWith(".nuspec.meta", StringComparison.Ordinal) ||
+                            entryFullName.EndsWith(".nuspec", StringComparison.Ordinal))
+                        {
+                            PackageContentManager.ExtractPackageEntry(entry, Path.GetDirectoryName(nupkgFile));
+                        }
+                    }
+                }
+
+                // delete .nupkg and its .meta file to sync compatibility
+                File.Delete(nupkgFile);
+                var metaFile = $"{nupkgFile}.meta";
+                if (File.Exists(metaFile))
+                {
+                    File.Delete($"{nupkgFile}.meta");
+                }
             }
 
             // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
@@ -226,16 +246,17 @@ namespace NugetForUnity
                     continue;
                 }
 
-                var pkgPath = Path.Combine(folder, $"{folderName}.nupkg");
-                if (!File.Exists(pkgPath))
+                Directory.GetFiles(folder, "*.nuspec");
+                var nuspecPath = Directory.GetFiles(folder, "*.nuspec").FirstOrDefault();
+                if (!File.Exists(nuspecPath))
                 {
-                    // ignore folder not containing a nuget-package
+                    // ignore folder not containing a nuspec file
                     continue;
                 }
 
-                var package = NugetPackageLocal.FromNupkgFile(
-                    pkgPath,
-                    new NugetPackageSourceLocal("Nupkg file already installed", Path.GetDirectoryName(pkgPath)));
+                var package = NugetPackageLocal.FromNuspecFile(
+                    nuspecPath,
+                    new NugetPackageSourceLocal("Nupkg file already installed", Path.GetDirectoryName(nuspecPath)));
 
                 var installed = PackagesConfigFile.Packages.Any(packageId => packageId.Equals(package));
 

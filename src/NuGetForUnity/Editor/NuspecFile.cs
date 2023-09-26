@@ -139,7 +139,7 @@ namespace NugetForUnity
         {
             var nuspec = new NuspecFile();
 
-            if (File.Exists(nupkgFilePath))
+            try
             {
                 // get the .nuspec file from inside the .nupkg
                 using (var zip = ZipFile.OpenRead(nupkgFilePath))
@@ -152,8 +152,9 @@ namespace NugetForUnity
                     }
                 }
             }
-            else
+            catch (Exception e)
             {
+                Debug.LogException(e);
                 Debug.LogErrorFormat("Package could not be read: {0}", nupkgFilePath);
                 nuspec.Description = $"COULD NOT LOAD {nupkgFilePath}";
             }

@@ -176,7 +176,7 @@ namespace NugetForUnity
                         foreach (var entry in zip.Entries)
                         {
                             var entryFullName = entry.FullName;
-                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName, package.Id))
+                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName))
                             {
                                 continue;
                             }
@@ -227,9 +227,6 @@ namespace NugetForUnity
                             Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
                         }
                     }
-
-                    // copy the .nupkg inside the Unity project
-                    File.Copy(cachedPackagePath, Path.Combine(baseDirectory, package.PackageFileName), true);
                 }
                 else
                 {

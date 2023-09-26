@@ -317,21 +317,21 @@ public class NuGetTests
             // get the package file by installing it
             NugetPackageInstaller.InstallIdentifier(package);
             Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
-            var packageFilePath = Path.Combine(
+            var nuspecFilePath = Path.Combine(
                 ConfigurationManager.NugetConfigFile.RepositoryPath,
                 $"{package.Id}.{package.Version}",
-                package.PackageFileName);
-            Assert.That(packageFilePath, Does.Exist.IgnoreDirectories);
+                package.SpecificationFileName);
+            Assert.That(nuspecFilePath, Does.Exist.IgnoreDirectories);
 
             // Hierarchical folder structures are supported in NuGet 3.3+.
             // └─<packageID>
             //   └─<version>
-            //     └─<packageID>.<version>.nupkg
+            //     └─<packageID>.nuspec
             var targetDirectory = Path.Combine(
                 tempDirectoryPath,
                 hierarchical ? $"{package.Id}{Path.DirectorySeparatorChar}{package.Version}" : string.Empty);
             Directory.CreateDirectory(targetDirectory);
-            File.Copy(packageFilePath, Path.Combine(targetDirectory, Path.GetFileName(packageFilePath)));
+            File.Copy(nuspecFilePath, Path.Combine(targetDirectory, Path.GetFileName(nuspecFilePath)));
             NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
             Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
 
