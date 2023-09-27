@@ -279,7 +279,7 @@ namespace NugetForUnity.Ui
 
                     if (response != null)
                     {
-                        latestVersion = GetLatestVersonFromReleasesApi(response, out latestVersionDownloadUrl);
+                        latestVersion = GetLatestVersionFromReleasesApi(response, out latestVersionDownloadUrl);
                     }
 
                     EditorUtility.ClearProgressBar();
@@ -389,7 +389,7 @@ namespace NugetForUnity.Ui
             }
         }
 
-        private static string GetLatestVersonFromReleasesApi(string response, out string unitypackageDownloadUrl)
+        private static string GetLatestVersionFromReleasesApi(string response, out string unitypackageDownloadUrl)
         {
             // JsonUtility doesn't support top level arrays so we wrap it inside a object.
             var releases = JsonUtility.FromJson<GitHubReleaseApiRequestList>(string.Concat("{ \"list\": ", response, " }"));
