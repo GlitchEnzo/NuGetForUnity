@@ -97,11 +97,11 @@ namespace NugetForUnity.PackageSource
 
             if (!package.HasVersionRange && !string.IsNullOrEmpty(package.Version))
             {
-                var localNuspecPath = GetNuspecFilePath(package);
+                var localPackagePath = GetNuPkgFilePath(package);
 
-                if (File.Exists(localNuspecPath))
+                if (File.Exists(localPackagePath))
                 {
-                    var localPackage = NugetPackageLocal.FromNuspecFile(localNuspecPath, this);
+                    var localPackage = NugetPackageLocal.FromNupkgFile(localPackagePath, this);
                     foundPackages = new List<INugetPackage> { localPackage };
                 }
                 else
@@ -191,27 +191,6 @@ namespace NugetForUnity.PackageSource
             return localPackagePath;
         }
 
-        private string GetNuspecFilePath(INugetPackageIdentifier package)
-        {
-            if (package.HasVersionRange)
-            {
-                throw new InvalidOperationException($"The package '{package}' has a version range witch is not supported for this function.");
-            }
-
-            var localNuspecPath = Path.Combine(ExpandedPath, $"{package.Id}.nuspec");
-
-            if (!File.Exists(localNuspecPath))
-            {
-                // Hierarchical folder structures are supported in NuGet 3.3+.
-                // └─<packageID>
-                //   └─<version>
-                //     └─<packageID>.nuspec
-                localNuspecPath = Path.Combine(ExpandedPath, package.Id, package.Version, $"{package.Id}.nuspec");
-            }
-
-            return localNuspecPath;
-        }
-
         /// <summary>
         ///     Gets a list of all available packages from a local source (not a web server) that match the given filters.
         /// </summary>
@@ -241,18 +220,18 @@ namespace NugetForUnity.PackageSource
             var path = ExpandedPath;
             if (Directory.Exists(path))
             {
-                var packagePaths = Directory.GetFiles(path, $"{searchTerm}.nuspec");
+                var packagePaths = Directory.GetFiles(path, $"{searchTerm}.nupkg");
 
                 // Hierarchical folder structures are supported in NuGet 3.3+.
                 // └─<packageID>
                 //   └─<version>
-                //     └─<packageID>.<version>.nuspec
-                var nuspecsFromFolders = Directory.GetDirectories(path, searchTerm)
+                //     └─<packageID>.<version>.nupkg
+                var packagesFromFolders = Directory.GetDirectories(path, searchTerm)
                     .SelectMany(nameFolder => Directory.GetDirectories(nameFolder))
-                    .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nuspec"));
-                foreach (var nuspecPath in packagePaths.Concat(nuspecsFromFolders))
+                    .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
+                foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
                 {
-                    var package = NugetPackageLocal.FromNuspecFile(nuspecPath, this);
+                    var package = NugetPackageLocal.FromNupkgFile(packagePath, this);
 
                     if (package.IsPrerelease && !includePrerelease)
                     {
