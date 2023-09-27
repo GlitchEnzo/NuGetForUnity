@@ -30,5 +30,6 @@
         <Compile Remove="..\NuGetForUnity\Editor\Helper\NugetPackageTextureHelper.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\TargetFrameworkResolver.cs" />
     </ItemGroup>
 </Project>
