@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NugetForUnity.Models;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -14,6 +15,10 @@ namespace NugetForUnity
     /// </summary>
     internal static class TargetFrameworkResolver
     {
+        public static ApiCompatibilityLevel CurrentApiCompatibilityLevel =>
+            PlayerSettings.GetApiCompatibilityLevel(NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+
+
         // highest priority first. We use values without '.' for easier comparison.
         private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworks =
         {
@@ -91,20 +96,12 @@ namespace NugetForUnity
         };
 
         private static DotnetVersionCompatibilityLevel CurrentBuildTargetDotnetVersionCompatibilityLevel
-        {
-            get
+            => CurrentApiCompatibilityLevel switch
             {
-                switch (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup))
-                {
-                    case ApiCompatibilityLevel.NET_4_6:
-                        return DotnetVersionCompatibilityLevel.NetFramework46Or48;
-                    case ApiCompatibilityLevel.NET_Standard_2_0:
-                        return DotnetVersionCompatibilityLevel.NetStandard20Or21;
-                    default:
-                        return DotnetVersionCompatibilityLevel.None;
-                }
-            }
-        }
+                ApiCompatibilityLevel.NET_4_6 => DotnetVersionCompatibilityLevel.NetFramework46Or48,
+                ApiCompatibilityLevel.NET_Standard_2_0 => DotnetVersionCompatibilityLevel.NetStandard20Or21,
+                _ => DotnetVersionCompatibilityLevel.None,
+            };
 
         /// <summary>
         ///     Select the highest .NET library available that is supported by Unity.
@@ -131,8 +128,7 @@ namespace NugetForUnity
             var currentUnityVersion = UnityVersion.Current;
             foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
             {
-                if (targetFrameworkSupport.SupportedDotnetVersions.Length != 0 &&
-                    !targetFrameworkSupport.SupportedDotnetVersions.Contains(currentDotnetVersion))
+                if (targetFrameworkSupport.SupportedDotnetVersions.Length != 0 && !targetFrameworkSupport.SupportedDotnetVersions.Contains(currentDotnetVersion))
                 {
                     continue;
                 }
@@ -291,85 +287,14 @@ namespace NugetForUnity
             [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
             public static UnityVersion Current { get; private set; } = new UnityVersion(Application.unityVersion);
 
-            public static bool operator <(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) < 0;
-            }
+            public static bool operator <(UnityVersion left, UnityVersion right) => left.CompareTo(right) < 0;
+            public static bool operator <=(UnityVersion left, UnityVersion right) => left.CompareTo(right) <= 0;
+            public static bool operator >(UnityVersion left, UnityVersion right) => left.CompareTo(right) > 0;
+            public static bool operator >=(UnityVersion left, UnityVersion right) => left.CompareTo(right) >= 0;
 
-            public static bool operator <=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) <= 0;
-            }
+            public static int Compare(UnityVersion a, UnityVersion b) => (a.Major, a.Minor, a.Revision, a.Release, a.Build).CompareTo((b.Major, b.Minor, b.Revision, b.Release, b.Build));
 
-            public static bool operator >(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) > 0;
-            }
-
-            public static bool operator >=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) >= 0;
-            }
-
-            public static int Compare(UnityVersion a, UnityVersion b)
-            {
-                if (a.Major < b.Major)
-                {
-                    return -1;
-                }
-
-                if (a.Major > b.Major)
-                {
-                    return 1;
-                }
-
-                if (a.Minor < b.Minor)
-                {
-                    return -1;
-                }
-
-                if (a.Minor > b.Minor)
-                {
-                    return 1;
-                }
-
-                if (a.Revision < b.Revision)
-                {
-                    return -1;
-                }
-
-                if (a.Revision > b.Revision)
-                {
-                    return 1;
-                }
-
-                if (a.Release < b.Release)
-                {
-                    return -1;
-                }
-
-                if (a.Release > b.Release)
-                {
-                    return 1;
-                }
-
-                if (a.Build < b.Build)
-                {
-                    return -1;
-                }
-
-                if (a.Build > b.Build)
-                {
-                    return 1;
-                }
-
-                return 0;
-            }
-
-            public int CompareTo(UnityVersion other)
-            {
-                return Compare(this, other);
-            }
+            public int CompareTo(UnityVersion other) => Compare(this, other);
         }
     }
 }

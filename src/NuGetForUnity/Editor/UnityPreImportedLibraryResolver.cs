@@ -37,7 +37,7 @@ namespace NugetForUnity
         /// <param name="package">The package of witch the identifier is checked.</param>
         /// <param name="log">Whether to log a message with the result of the check.</param>
         /// <returns>If it is included in Unity.</returns>
-        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
+        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = false)
         {
             var alreadyImported = GetAlreadyImportedLibs();
             var isAlreadyImported = alreadyImported.Contains(package.Id);
@@ -85,7 +85,7 @@ namespace NugetForUnity
                 projectReferences.Select(Path.GetFileNameWithoutExtension)
                     .Where(assemblyName => !alreadyInstalledDllFileNames.Contains(assemblyName)));
 
-            if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_Standard_2_0)
+            if (TargetFrameworkResolver.CurrentApiCompatibilityLevel == ApiCompatibilityLevel.NET_Standard_2_0)
             {
                 // mark NuGet packages that contain the .net standard references as already imported
                 alreadyImportedLibs.Add("NETStandard.Library");
