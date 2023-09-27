@@ -6,6 +6,16 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.github-joc0de.visual-studio-solution-generator": {
+      "version": "1.0.8",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.ide.visualstudio": "2.0.21",
+        "com.unity.settings-manager": "2.0.1"
+      },
+      "url": "https://package.openupm.com"
+    },
     "com.unity.ext.nunit": {
       "version": "1.0.6",
       "depth": 2,
@@ -14,12 +24,19 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.visualstudio": {
-      "version": "2.0.18",
-      "depth": 0,
+      "version": "2.0.21",
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.test-framework": "1.1.9"
       },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.settings-manager": {
+      "version": "2.0.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
       "url": "https://packages.unity.com"
     },
     "com.unity.test-framework": {

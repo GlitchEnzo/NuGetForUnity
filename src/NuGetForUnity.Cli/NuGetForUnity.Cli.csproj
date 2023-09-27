@@ -31,4 +31,7 @@
         <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
     </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2023.2.0" />
+    </ItemGroup>
 </Project>

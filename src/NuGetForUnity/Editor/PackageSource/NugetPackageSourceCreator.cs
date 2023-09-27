@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace NugetForUnity.PackageSource
 {
@@ -15,23 +16,28 @@ namespace NugetForUnity.PackageSource
         /// <param name="path">The path or url of the source.</param>
         /// <param name="packageSources">The list of all source that should be used when creating a combined package source.</param>
         /// <returns>The created source.</returns>
-        public static INugetPackageSource CreatePackageSource(string name, string path, List<INugetPackageSource> packageSources)
+        [NotNull]
+        public static INugetPackageSource CreatePackageSource(
+            [NotNull] string name,
+            [NotNull] string path,
+            [CanBeNull] [ItemNotNull] List<INugetPackageSource> packageSources)
         {
             name = name.Trim();
             path = path.Trim();
             if (name.Equals("All", StringComparison.OrdinalIgnoreCase) && path.Equals("(Aggregate source)", StringComparison.OrdinalIgnoreCase))
             {
-                return new NugetPackageSourceCombined(packageSources);
+                return new NugetPackageSourceCombined(
+                    packageSources ?? throw new ArgumentNullException(nameof(packageSources), "For creating combined packages we need a list."));
             }
 
-            if (!path.StartsWith("http"))
+            if (!path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
                 return new NugetPackageSourceLocal(name, path);
             }
 
             // see: https://learn.microsoft.com/en-us/nuget/reference/nuget-config-file
             // The NuGet server protocol version defaults to version "2" when not pointing to a package source URL ending in .json (e.g. https://api.nuget.org/v3/index.json).
-            if (path.EndsWith(".json"))
+            if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
                 return new NugetPackageSourceV3(name, path);
             }

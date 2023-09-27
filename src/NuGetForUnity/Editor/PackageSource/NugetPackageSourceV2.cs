@@ -1,4 +1,6 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,10 +9,23 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity.PackageSource
 {
@@ -25,7 +40,7 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        public NugetPackageSourceV2(string name, string url)
+        public NugetPackageSourceV2([NotNull] string name, [NotNull] string url)
         {
             Name = name;
             SavedPath = url;
@@ -43,6 +58,7 @@ namespace NugetForUnity.PackageSource
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
         /// </summary>
+        [NotNull]
         public string ExpandedPath
         {
             get
@@ -63,6 +79,7 @@ namespace NugetForUnity.PackageSource
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>
+        [CanBeNull]
         public string ExpandedPassword => SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
 
         /// <inheritdoc />
@@ -126,13 +143,9 @@ namespace NugetForUnity.PackageSource
                 Debug.LogErrorFormat("Unable to retrieve package list from {0}\n{1}", url, e);
             }
 
-            if (foundPackages != null)
-            {
-                // Return all the packages in the range of versions specified by 'package'.
-                foundPackages.RemoveAll(p => !package.InRange(p));
-                foundPackages.Sort();
-            }
-
+            // Return all the packages in the range of versions specified by 'package'.
+            foundPackages.RemoveAll(p => !package.InRange(p));
+            foundPackages.Sort();
             return foundPackages;
         }
 
@@ -158,6 +171,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "API uses lower case.")]
         public Task<List<INugetPackage>> Search(
             string searchTerm = "",
             bool includePrerelease = false,
@@ -198,7 +212,7 @@ namespace NugetForUnity.PackageSource
             url += "targetFramework=''&";
 
             // should we include prerelease packages?
-            url += $"includePrerelease={includePrerelease.ToString().ToLower()}";
+            url += $"includePrerelease={includePrerelease.ToString().ToLowerInvariant()}";
 
             try
             {
@@ -212,6 +226,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "API uses lower case.")]
         public List<INugetPackage> GetUpdates(
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
@@ -251,7 +266,7 @@ namespace NugetForUnity.PackageSource
                 }
 
                 var url =
-                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLower()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'";
+                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLowerInvariant()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'";
 
                 try
                 {
@@ -290,6 +305,11 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
+            if (downloadUrlHint is null)
+            {
+                throw new ArgumentNullException(nameof(downloadUrlHint));
+            }
+
             using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, UserName, ExpandedPassword, null))
             {
                 using (var fileStream = File.Create(outputFilePath))
@@ -362,7 +382,9 @@ namespace NugetForUnity.PackageSource
         ///     Note that NuGet uses an Atom-feed (XML Syndicaton) superset called OData.
         ///     See here http://www.odata.org/documentation/odata-version-2-0/uri-conventions/.
         /// </summary>
-        private List<INugetPackage> GetPackagesFromUrl(string url)
+        [NotNull]
+        [ItemNotNull]
+        private List<INugetPackage> GetPackagesFromUrl([NotNull] string url)
         {
             NugetLogger.LogVerbose("Getting packages from: {0}", url);
 
@@ -393,8 +415,10 @@ namespace NugetForUnity.PackageSource
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
+        [NotNull]
+        [ItemNotNull]
         private List<INugetPackage> GetUpdatesFallback(
-            IEnumerable<INugetPackage> installedPackages,
+            [NotNull] [ItemNotNull] IEnumerable<INugetPackage> installedPackages,
             bool includePrerelease = false,
             string targetFrameworks = "",
             string versionConstraints = "")

@@ -1,12 +1,27 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEngine;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity
 {
@@ -31,58 +46,69 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
+        [CanBeNull]
         public string RepositoryBranch { get; set; }
 
         /// <summary>
         ///     Gets or sets the source control commit the package is from.
         /// </summary>
+        [CanBeNull]
         public string RepositoryCommit { get; set; }
 
         /// <summary>
         ///     Gets or sets the type of source control software that the package's source code resides in.
         /// </summary>
+        [CanBeNull]
         public string RepositoryType { get; set; }
 
         /// <summary>
         ///     Gets or sets the url for the location of the package's source code.
         /// </summary>
+        [CanBeNull]
         public string RepositoryUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the title of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Title { get; set; }
 
         /// <summary>
         ///     Gets or sets the owners of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Owners { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the license of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string LicenseUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the project web-page of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string ProjectUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the icon of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string IconUrl { get; set; }
 
         /// <summary>
         ///     Gets the path to a icon file. The path is relative to the root folder of the package. This is a alternative to using a URL <see cref="IconUrl" />
         ///     .
         /// </summary>
+        [CanBeNull]
         public string Icon { get; private set; }
 
         /// <summary>
         ///     Gets the full path to a icon file. This is only set if the .nuspec file contains a <see cref="Icon" />. This is a alternative to using a URL
         ///     <see cref="IconUrl" />.
         /// </summary>
+        [CanBeNull]
         public string IconFilePath { get; private set; }
 
         /// <summary>
@@ -91,51 +117,60 @@ namespace NugetForUnity
         public bool RequireLicenseAcceptance { get; set; }
 
         /// <summary>
-        ///     Gets or sets the NuGet packages that this NuGet package depends on.
+        ///     Gets the NuGet packages that this NuGet package depends on.
         /// </summary>
-        public List<NugetFrameworkGroup> Dependencies { get; set; }
+        [NotNull]
+        public List<NugetFrameworkGroup> Dependencies { get; }
 
         /// <summary>
         ///     Gets or sets the release notes of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string ReleaseNotes { get; set; }
 
         /// <summary>
         ///     Gets or sets the copyright of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Copyright { get; set; }
 
         /// <summary>
         ///     Gets or sets the tags of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Tags { get; set; }
 
         /// <summary>
-        ///     Gets or sets the list of content files listed in the .nuspec file.
+        ///     Gets the list of content files listed in the .nuspec file.
         /// </summary>
-        public List<NuspecContentFile> Files { get; set; }
+        [NotNull]
+        public List<NuspecContentFile> Files { get; }
 
         /// <summary>
         ///     Gets or sets the description of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Description { get; set; }
 
         /// <summary>
         ///     Gets or sets the description of the NuGet package.
         /// </summary>
+        [CanBeNull]
         public string Summary { get; set; }
 
         /// <summary>
         ///     Gets or sets the authors of the NuGet package.
         /// </summary>
-        public string Authors { get; set; }
+        [NotNull]
+        public string Authors { get; set; } = string.Empty;
 
         /// <summary>
         ///     Loads the .nuspec file inside the .nupkg file at the given file path.
         /// </summary>
         /// <param name="nupkgFilePath">The file path to the .nupkg file to load.</param>
         /// <returns>The .nuspec file loaded from inside the .nupkg file.</returns>
-        public static NuspecFile FromNupkgFile(string nupkgFilePath)
+        [NotNull]
+        public static NuspecFile FromNupkgFile([NotNull] string nupkgFilePath)
         {
             var nuspec = new NuspecFile();
 
@@ -144,7 +179,7 @@ namespace NugetForUnity
                 // get the .nuspec file from inside the .nupkg
                 using (var zip = ZipFile.OpenRead(nupkgFilePath))
                 {
-                    var entry = zip.Entries.First(x => x.FullName.EndsWith(".nuspec"));
+                    var entry = zip.Entries.First(x => x.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase));
 
                     using (var stream = entry.Open())
                     {
@@ -166,7 +201,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="filePath">The full file path to the .nuspec file to load.</param>
         /// <returns>The newly loaded <see cref="NuspecFile" />.</returns>
-        public static NuspecFile Load(string filePath)
+        [NotNull]
+        public static NuspecFile Load([NotNull] string filePath)
         {
             return Load(XDocument.Load(filePath)).SetIconFilePath(filePath);
         }
@@ -176,11 +212,14 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="stream">The stream containing the .nuspec file to load.</param>
         /// <returns>The newly loaded <see cref="NuspecFile" />.</returns>
-        public static NuspecFile Load(Stream stream)
+        [NotNull]
+        public static NuspecFile Load([NotNull] Stream stream)
         {
-            XmlReader reader = new XmlTextReader(stream);
-            var document = XDocument.Load(reader);
-            return Load(document);
+            using (var reader = XmlReader.Create(stream, new XmlReaderSettings { XmlResolver = null }))
+            {
+                var document = XDocument.Load(reader);
+                return Load(document);
+            }
         }
 
         /// <summary>
@@ -188,7 +227,8 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="nuspecDocument">The .nuspec file as an <see cref="XDocument" />.</param>
         /// <returns>The newly loaded <see cref="NuspecFile" />.</returns>
-        public static NuspecFile Load(XDocument nuspecDocument)
+        [NotNull]
+        public static NuspecFile Load([NotNull] XDocument nuspecDocument)
         {
             var nuspec = new NuspecFile();
 
@@ -288,7 +328,8 @@ namespace NugetForUnity
         /// </remarks>
         /// <param name="baseDirectoryPath">Path to the local repository's root directory.</param>
         /// <returns>The full path to the file, if it exists in the repository, or <c>null</c> otherwise.</returns>
-        public string GetLocalPackageFilePath(string baseDirectoryPath)
+        [CanBeNull]
+        public string GetLocalPackageFilePath([NotNull] string baseDirectoryPath)
         {
             // Find this package's file in the repository.
             var files = Directory.GetFiles(baseDirectoryPath, PackageFileName, SearchOption.AllDirectories);
@@ -301,7 +342,7 @@ namespace NugetForUnity
         ///     Saves a <see cref="NuspecFile" /> to the given file-path, automatically overwriting.
         /// </summary>
         /// <param name="filePath">The full file-path to the .nuspec file to save.</param>
-        public void Save(string filePath)
+        public void Save([NotNull] string filePath)
         {
             var file = new XDocument();
             var packageElement = new XElement("package");
@@ -413,18 +454,21 @@ namespace NugetForUnity
             file.Save(filePath);
         }
 
-        private static string ConvertFromNupkgTargetFrameworkName(string targetFramework)
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
+        [NotNull]
+        private static string ConvertFromNupkgTargetFrameworkName([NotNull] string targetFramework)
         {
-            var convertedTargetFramework = targetFramework.ToLower().Replace(".netstandard", "netstandard").Replace("native0.0", "native");
+            var convertedTargetFramework = targetFramework.ToLowerInvariant().Replace(".netstandard", "netstandard").Replace("native0.0", "native");
 
-            convertedTargetFramework = convertedTargetFramework.StartsWith(".netframework") ?
+            convertedTargetFramework = convertedTargetFramework.StartsWith(".netframework", StringComparison.Ordinal) ?
                 convertedTargetFramework.Replace(".netframework", "net").Replace(".", string.Empty) :
                 convertedTargetFramework;
 
             return convertedTargetFramework;
         }
 
-        private NuspecFile SetIconFilePath(string containingFilePath)
+        [NotNull]
+        private NuspecFile SetIconFilePath([NotNull] string containingFilePath)
         {
             if (!string.IsNullOrEmpty(Icon))
             {

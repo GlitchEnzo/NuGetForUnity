@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEngine;
 
@@ -15,8 +16,11 @@ namespace NugetForUnity.PackageSource
     [Serializable]
     internal sealed class NugetPackageSourceV3 : INugetPackageSource, ISerializationCallbackReceiver
     {
+        [NotNull]
         private static readonly Dictionary<string, NugetApiClientV3> ApiClientCache = new Dictionary<string, NugetApiClientV3>();
 
+        [CanBeNull]
+        [NonSerialized]
         private NugetApiClientV3 apiClient;
 
         /// <summary>
@@ -24,7 +28,7 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        public NugetPackageSourceV3(string name, string url)
+        public NugetPackageSourceV3([NotNull] string name, [NotNull] string url)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -46,6 +50,7 @@ namespace NugetForUnity.PackageSource
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>
+        [CanBeNull]
         public string ExpandedPassword => SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
 
         /// <inheritdoc />
@@ -93,6 +98,7 @@ namespace NugetForUnity.PackageSource
         ///     Gets the lazy initialized API-client. We need this because <see cref="InitializeApiClient" /> can't be called in
         ///     <see cref="OnAfterDeserialize" />.
         /// </summary>
+        [NotNull]
         private NugetApiClientV3 ApiClient => apiClient ?? InitializeApiClient();
 
         /// <inheritdoc />
@@ -164,7 +170,7 @@ namespace NugetForUnity.PackageSource
                             {
                                 if (i > 0)
                                 {
-                                    searchQueryBuilder.Append(" ");
+                                    searchQueryBuilder.Append(' ');
                                 }
 
                                 searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
@@ -225,15 +231,21 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc cref="NugetApiClientV3.GetPackageDetails" />
-        public Task<List<NugetFrameworkGroup>> GetPackageDetails(INugetPackageIdentifier package, CancellationToken cancellationToken = default)
+        [NotNull]
+        [ItemNotNull]
+        public Task<List<NugetFrameworkGroup>> GetPackageDetails(
+            [NotNull] INugetPackageIdentifier package,
+            CancellationToken cancellationToken = default)
         {
             return ApiClient.GetPackageDetails(this, package, cancellationToken);
         }
 
+        [NotNull]
         private NugetApiClientV3 InitializeApiClient()
         {
             if (ApiClientCache.TryGetValue(SavedPath, out apiClient))
             {
+                Debug.Assert(apiClient != null, nameof(apiClient) + " != null");
                 return apiClient;
             }
 

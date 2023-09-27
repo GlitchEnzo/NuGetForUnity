@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
@@ -21,17 +22,20 @@ namespace NugetForUnity.Configuration
 
         private const string AutoReferencedAttributeName = "autoReferenced";
 
+        [CanBeNull]
         private string contentIsSameAsInFilePath;
 
         /// <summary>
         ///     Gets the <see cref="NugetPackageIdentifier" />s contained in the package.config file.
         /// </summary>
+        [NotNull]
         public List<PackageConfig> Packages { get; private set; } = new List<PackageConfig>();
 
         /// <summary>
         ///     Loads a list of all currently installed packages by reading the packages.config file.
         /// </summary>
         /// <returns>A newly created <see cref="PackagesConfigFile" />.</returns>
+        [NotNull]
         public static PackagesConfigFile Load()
         {
             var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
@@ -55,8 +59,12 @@ namespace NugetForUnity.Configuration
             {
                 var package = new PackageConfig
                 {
-                    Id = packageElement.Attribute("id")?.Value,
-                    Version = packageElement.Attribute("version")?.Value,
+                    Id =
+                        packageElement.Attribute("id")?.Value ??
+                        throw new InvalidOperationException($"package element misses 'id' attribute. Element:\n{packageElement}"),
+                    Version =
+                        packageElement.Attribute("version")?.Value ??
+                        throw new InvalidOperationException($"package element misses 'version' attribute. Element:\n{packageElement}"),
                     IsManuallyInstalled =
                         packageElement.Attribute("manuallyInstalled")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
@@ -73,7 +81,7 @@ namespace NugetForUnity.Configuration
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        public void AddPackage(INugetPackageIdentifier package)
+        public void AddPackage([NotNull] INugetPackageIdentifier package)
         {
             AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
         }
@@ -83,7 +91,7 @@ namespace NugetForUnity.Configuration
         /// </summary>
         /// <param name="package">The NugetPackage to remove from the packages.config file.</param>
         /// <returns>True if the package was removed, false otherwise.</returns>
-        public bool RemovePackage(INugetPackageIdentifier package)
+        public bool RemovePackage([NotNull] INugetPackageIdentifier package)
         {
             var removed = Packages.RemoveAll(p => p.Equals(package));
             if (removed > 0)
@@ -108,21 +116,6 @@ namespace NugetForUnity.Configuration
             Packages.Sort(
                 (x, y) =>
                 {
-                    if (x.Id == null && y.Id == null)
-                    {
-                        return 0;
-                    }
-
-                    if (x.Id == null)
-                    {
-                        return -1;
-                    }
-
-                    if (y.Id == null)
-                    {
-                        return 1;
-                    }
-
                     if (x.Id == y.Id)
                     {
                         return x.PackageVersion.CompareTo(y.PackageVersion);
@@ -136,7 +129,7 @@ namespace NugetForUnity.Configuration
             foreach (var package in Packages)
             {
                 var packageElement = new XElement("package");
-                packageElement.Add(new XAttribute("id", package.Id));
+                packageElement.Add(new XAttribute("id", package.Id ?? throw new InvalidOperationException("Can't save a package without a Id.")));
                 packageElement.Add(new XAttribute("version", package.Version));
 
                 if (package.IsManuallyInstalled)
@@ -174,7 +167,7 @@ namespace NugetForUnity.Configuration
         ///     path, makes a default version of the file on the new path.
         /// </summary>
         /// <param name="newPath">Path to move packages.config file to.</param>
-        internal static void Move(string newPath)
+        internal static void Move([NotNull] string newPath)
         {
             var nugetConfig = ConfigurationManager.NugetConfigFile;
             var oldFilePath = nugetConfig.PackagesConfigFilePath;
@@ -228,10 +221,10 @@ namespace NugetForUnity.Configuration
         ///     Sets the manually installed flag for the given package.
         /// </summary>
         /// <param name="package">The package to mark as manually installed.</param>
-        internal void SetManuallyInstalledFlag(INugetPackageIdentifier package)
+        internal void SetManuallyInstalledFlag([NotNull] INugetPackageIdentifier package)
         {
             package.IsManuallyInstalled = true;
-            var packageConfig = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+            var packageConfig = Packages.Find(p => string.Equals(p.Id, package.Id, StringComparison.OrdinalIgnoreCase));
             if (packageConfig != null && !packageConfig.IsManuallyInstalled)
             {
                 packageConfig.IsManuallyInstalled = true;
@@ -243,9 +236,9 @@ namespace NugetForUnity.Configuration
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        private void AddPackage(PackageConfig package)
+        private void AddPackage([NotNull] PackageConfig package)
         {
-            var existingPackage = Packages.Find(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+            var existingPackage = Packages.Find(p => string.Equals(p.Id, package.Id, StringComparison.OrdinalIgnoreCase));
             if (existingPackage != null)
             {
                 var compared = existingPackage.CompareTo(package);

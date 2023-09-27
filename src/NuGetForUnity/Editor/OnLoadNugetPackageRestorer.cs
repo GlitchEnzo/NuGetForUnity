@@ -1,4 +1,4 @@
-﻿using NugetForUnity.Configuration;
+using NugetForUnity.Configuration;
 using UnityEditor;
 
 namespace NugetForUnity

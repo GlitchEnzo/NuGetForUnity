@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using UnityEditor;
@@ -23,7 +24,7 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        public static bool InstallIdentifier(INugetPackageIdentifier package, bool refreshAssets = true, bool installDependencies = true)
+        public static bool InstallIdentifier([NotNull] INugetPackageIdentifier package, bool refreshAssets = true, bool installDependencies = true)
         {
             if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
             {
@@ -50,7 +51,7 @@ namespace NugetForUnity
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        private static bool Install(INugetPackage package, bool refreshAssets, bool installDependencies)
+        private static bool Install([NotNull] INugetPackage package, bool refreshAssets, bool installDependencies)
         {
             if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
             {
@@ -184,7 +185,7 @@ namespace NugetForUnity
                             // we don't want to unpack all lib folders and then delete all but one; rather we will decide the best
                             // target framework before unpacking, but first we need to collect all lib entries from zip
                             const string libDirectoryName = "lib/";
-                            if (entryFullName.StartsWith(libDirectoryName))
+                            if (entryFullName.StartsWith(libDirectoryName, StringComparison.Ordinal))
                             {
                                 var frameworkStartIndex = libDirectoryName.Length;
                                 var secondSlashIndex = entryFullName.IndexOf('/', frameworkStartIndex);

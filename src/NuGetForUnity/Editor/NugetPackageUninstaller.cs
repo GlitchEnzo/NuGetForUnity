@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The NugetPackage to uninstall.</param>
         /// <param name="refreshAssets">True to force Unity to refresh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
-        public static void Uninstall(INugetPackageIdentifier package, bool refreshAssets = true)
+        public static void Uninstall([NotNull] INugetPackageIdentifier package, bool refreshAssets = true)
         {
             // Checking for pre-imported packages also ensures that the pre-imported package list is up-to-date before we uninstall packages.
             // Without this the pre-imported package list can contain the package as we delete the .dll before we call 'AssetDatabase.Refresh()'.
@@ -28,6 +29,11 @@ namespace NugetForUnity
             NugetLogger.LogVerbose("Uninstalling: {0} {1}", package.Id, package.Version);
 
             var foundPackage = package as INugetPackage ?? PackageCacheManager.GetPackageFromCacheOrSource(package);
+
+            if (foundPackage is null)
+            {
+                return;
+            }
 
             InstalledPackagesManager.RemovePackage(foundPackage);
             PackageContentManager.DeletePackageContentPackage(foundPackage);
@@ -61,7 +67,7 @@ namespace NugetForUnity
         ///     Uninstalls all of the currently installed packages.
         /// </summary>
         /// <param name="packagesToUninstall">The list of packages to uninstall.</param>
-        internal static void UninstallAll(List<INugetPackage> packagesToUninstall)
+        internal static void UninstallAll([NotNull] [ItemNotNull] List<INugetPackage> packagesToUninstall)
         {
             foreach (var package in packagesToUninstall)
             {

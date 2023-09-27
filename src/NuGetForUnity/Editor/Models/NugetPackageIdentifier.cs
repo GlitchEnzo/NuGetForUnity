@@ -1,7 +1,20 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
+using JetBrains.Annotations;
 using UnityEngine;
 
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 namespace NugetForUnity.Models
 {
     /// <summary>
@@ -24,7 +37,7 @@ namespace NugetForUnity.Models
         /// </summary>
         /// <param name="id">The ID of the package.</param>
         /// <param name="version">The version number of the package.</param>
-        public NugetPackageIdentifier(string id, string version)
+        public NugetPackageIdentifier([NotNull] string id, [CanBeNull] string version)
         {
             Id = id;
             PackageVersion = new NugetPackageVersion(version);
@@ -76,7 +89,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than the second.</returns>
-        public static bool operator <(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator <([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             if (first is null)
             {
@@ -92,7 +105,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than the second.</returns>
-        public static bool operator >(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator >([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             if (first is null)
             {
@@ -108,7 +121,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than or equal to the second.</returns>
-        public static bool operator <=(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator <=([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             if (first is null)
             {
@@ -124,7 +137,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than or equal to the second.</returns>
-        public static bool operator >=(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator >=([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             if (first is null)
             {
@@ -141,7 +154,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is equal to the second.</returns>
-        public static bool operator ==(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator ==([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             if (ReferenceEquals(first, second))
             {
@@ -163,19 +176,19 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is not equal to the second.</returns>
-        public static bool operator !=(NugetPackageIdentifier first, NugetPackageIdentifier second)
+        public static bool operator !=([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             return !(first == second);
         }
 
         /// <inheritdoc />
-        public int CompareTo(NugetPackageIdentifier other)
+        public int CompareTo([CanBeNull] NugetPackageIdentifier other)
         {
             return CompareTo(other as INugetPackageIdentifier);
         }
 
         /// <inheritdoc />
-        public int CompareTo(INugetPackageIdentifier other)
+        public int CompareTo([CanBeNull] INugetPackageIdentifier other)
         {
             if (other is null)
             {
@@ -225,7 +238,7 @@ namespace NugetForUnity.Models
                 return true;
             }
 
-            return !(other is null) && other.Id.Equals(Id, StringComparison.OrdinalIgnoreCase) && other.PackageVersion.Equals(PackageVersion);
+            return !(other is null) && string.Equals(other.Id, Id, StringComparison.OrdinalIgnoreCase) && other.PackageVersion.Equals(PackageVersion);
         }
 
         /// <summary>
