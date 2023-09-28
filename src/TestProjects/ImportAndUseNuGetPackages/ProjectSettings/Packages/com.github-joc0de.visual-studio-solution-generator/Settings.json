@@ -1,0 +1,51 @@
+{
+    "m_Dictionary": {
+        "m_DictionaryValues": [
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.IsEnabled",
+                "value": "{\"m_Value\":true}"
+            },
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.TrackMetaDeletion",
+                "value": "{\"m_Value\":false}"
+            },
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.EnableNullableReferenceTypes",
+                "value": "{\"m_Value\":false}"
+            },
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.GenerateSdkStyleProjects",
+                "value": "{\"m_Value\":true}"
+            },
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.LogVerbose",
+                "value": "{\"m_Value\":false}"
+            },
+            {
+                "type": "System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "general.GenerateReSharperProjectSettings",
+                "value": "{\"m_Value\":false}"
+            },
+            {
+                "type": "System.Collections.Generic.List`1[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "legacy-style.ExcludedAnalyzers",
+                "value": "{\"m_Value\":[\"*/Unity.SourceGenerators.dll\"]}"
+            },
+            {
+                "type": "System.Collections.Generic.List`1[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "sdk-style.SdkExcludedFilePatterns",
+                "value": "{\"m_Value\":[\"**/*.meta\",\"**/*.asset\",\"**/*.prefab\"]}"
+            },
+            {
+                "type": "System.Collections.Generic.List`1[[UnityVisualStudioSolutionGenerator.Configuration.PropertyGroupSetting, UnityVisualStudioSolutionGenerator, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+                "key": "sdk-style.SdkAdditionalProperties",
+                "value": "{\"m_Value\":[{\"<Name>k__BackingField\":\"EnableNETAnalyzers\",\"<Value>k__BackingField\":\"true\"},{\"<Name>k__BackingField\":\"AnalysisLevel\",\"<Value>k__BackingField\":\"latest\"},{\"<Name>k__BackingField\":\"AnalysisMode\",\"<Value>k__BackingField\":\"AllEnabledByDefault\"}]}"
+            }
+        ]
+    }
+}

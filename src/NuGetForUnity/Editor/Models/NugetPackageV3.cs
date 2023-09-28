@@ -1,9 +1,24 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.PackageSource;
 using UnityEngine;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity.Models
 {
@@ -13,22 +28,33 @@ namespace NugetForUnity.Models
     [Serializable]
     internal sealed class NugetPackageV3 : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
+        [CanBeNull]
         [SerializeField]
         private List<NugetFrameworkGroup> dependencies;
 
+        [SerializeField]
         private bool dependenciesFetched;
 
+        [CanBeNull]
+        [NonSerialized]
         private Task<List<NugetFrameworkGroup>> dependenciesTask;
 
+        [CanBeNull]
         [SerializeField]
+        [SuppressMessage("Usage", "CA2235:Mark all non-serializable fields", Justification = "It is a Unity object that can be serialized.")]
         private Texture2D icon;
 
+        [ItemCanBeNull]
+        [CanBeNull]
+        [NonSerialized]
         private Task<Texture2D> iconTask;
 
+        [CanBeNull]
         [SerializeField]
         private string iconUrl;
 
         [SerializeField]
+        [NotNull]
         private NugetPackageSourceV3 packageSource;
 
         /// <summary>
@@ -47,17 +73,17 @@ namespace NugetForUnity.Models
         /// <param name="iconUrl">The URL where the icon can be downloaded.</param>
         /// <param name="versions">All available versions.</param>
         public NugetPackageV3(
-            string id,
-            string version,
-            List<string> authors,
-            string description,
+            [NotNull] string id,
+            [NotNull] string version,
+            [NotNull] List<string> authors,
+            [CanBeNull] string description,
             long totalDownloads,
-            string licenseUrl,
-            NugetPackageSourceV3 packageSource,
-            string projectUrl,
-            string summary,
-            string title,
-            string iconUrl,
+            [CanBeNull] string licenseUrl,
+            [NotNull] NugetPackageSourceV3 packageSource,
+            [CanBeNull] string projectUrl,
+            [CanBeNull] string summary,
+            [CanBeNull] string title,
+            [CanBeNull] string iconUrl,
             List<NugetPackageVersion> versions)
             : base(id, version)
         {
@@ -88,10 +114,11 @@ namespace NugetForUnity.Models
             {
                 if (dependenciesFetched)
                 {
+                    Debug.Assert(dependencies != null, nameof(dependencies) + " != null");
                     return dependencies;
                 }
 
-                return Task.Run(() => GetDependenciesCoreAsync()).GetAwaiter().GetResult();
+                return Task.Run(GetDependenciesCoreAsync).GetAwaiter().GetResult();
             }
         }
 
@@ -195,6 +222,8 @@ namespace NugetForUnity.Models
             }
         }
 
+        [NotNull]
+        [ItemNotNull]
         private async Task<List<NugetFrameworkGroup>> GetDependenciesCoreAsync()
         {
             NugetLogger.LogVerbose("Fetching dependencies for {0}", this);

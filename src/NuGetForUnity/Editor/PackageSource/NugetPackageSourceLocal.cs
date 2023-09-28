@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="path">The path to the package source.</param>
-        public NugetPackageSourceLocal(string name, string path)
+        public NugetPackageSourceLocal([NotNull] string name, [NotNull] string path)
         {
             Name = name;
             SavedPath = path;
@@ -43,7 +44,7 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         public string UserName
         {
-            get => string.Empty;
+            get => null;
 
             set
             {
@@ -54,7 +55,7 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         public string SavedPassword
         {
-            get => string.Empty;
+            get => null;
 
             set
             {
@@ -76,6 +77,7 @@ namespace NugetForUnity.PackageSource
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
         /// </summary>
+        [NotNull]
         private string ExpandedPath
         {
             get
@@ -115,13 +117,9 @@ namespace NugetForUnity.PackageSource
                 foundPackages = GetLocalPackages($"{package.Id}*", true, true);
             }
 
-            if (foundPackages != null)
-            {
-                // Return all the packages in the range of versions specified by 'package'.
-                foundPackages.RemoveAll(p => !package.InRange(p));
-                foundPackages.Sort();
-            }
-
+            // Return all the packages in the range of versions specified by 'package'.
+            foundPackages.RemoveAll(p => !package.InRange(p));
+            foundPackages.Sort();
             return foundPackages;
         }
 
@@ -170,7 +168,8 @@ namespace NugetForUnity.PackageSource
             // nothing to dispose
         }
 
-        private string GetNuPkgFilePath(INugetPackageIdentifier package)
+        [NotNull]
+        private string GetNuPkgFilePath([NotNull] INugetPackageIdentifier package)
         {
             if (package.HasVersionRange)
             {
@@ -199,6 +198,8 @@ namespace NugetForUnity.PackageSource
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <returns>The list of available packages.</returns>
+        [NotNull]
+        [ItemNotNull]
         private List<INugetPackage> GetLocalPackages(
             string searchTerm = "",
             bool flattenAllVersions = false,
@@ -220,15 +221,15 @@ namespace NugetForUnity.PackageSource
             var path = ExpandedPath;
             if (Directory.Exists(path))
             {
-                var packagePaths = Directory.GetFiles(path, $"{searchTerm}.nupkg");
+                var packagePaths = Directory.EnumerateFiles(path, $"{searchTerm}.nupkg");
 
                 // Hierarchical folder structures are supported in NuGet 3.3+.
                 // └─<packageID>
                 //   └─<version>
                 //     └─<packageID>.<version>.nupkg
-                var packagesFromFolders = Directory.GetDirectories(path, searchTerm)
-                    .SelectMany(nameFolder => Directory.GetDirectories(nameFolder))
-                    .SelectMany(versionFolder => Directory.GetFiles(versionFolder, "*.nupkg"));
+                var packagesFromFolders = Directory.EnumerateDirectories(path, searchTerm)
+                    .SelectMany(Directory.EnumerateDirectories)
+                    .SelectMany(versionFolder => Directory.EnumerateFiles(versionFolder, "*.nupkg"));
                 foreach (var packagePath in packagePaths.Concat(packagesFromFolders))
                 {
                     var package = NugetPackageLocal.FromNupkgFile(packagePath, this);
@@ -284,7 +285,9 @@ namespace NugetForUnity.PackageSource
         /// <param name="packages">The list of packages to use to find updates.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <returns>A list of all updates available.</returns>
-        private List<INugetPackage> GetLocalUpdates(IEnumerable<INugetPackage> packages, bool includePrerelease = false)
+        [NotNull]
+        [ItemNotNull]
+        private List<INugetPackage> GetLocalUpdates([NotNull] [ItemNotNull] IEnumerable<INugetPackage> packages, bool includePrerelease = false)
         {
             var updates = new List<INugetPackage>();
             foreach (var installedPackage in packages)

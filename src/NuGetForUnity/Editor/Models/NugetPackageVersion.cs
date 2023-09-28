@@ -1,7 +1,22 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
+using System.Globalization;
 using System.Text;
+using JetBrains.Annotations;
 using UnityEngine;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity.Models
 {
@@ -11,10 +26,13 @@ namespace NugetForUnity.Models
     [Serializable]
     public sealed class NugetPackageVersion : IEquatable<NugetPackageVersion>, IComparable<NugetPackageVersion>, ISerializationCallbackReceiver
     {
+        [NonSerialized]
         private SemVer2Version? maximumSemVer2Version;
 
+        [NonSerialized]
         private SemVer2Version? minimumSemVer2Version;
 
+        [NonSerialized]
         private SemVer2Version semVer2Version;
 
         /// <summary>
@@ -29,7 +47,7 @@ namespace NugetForUnity.Models
         ///     Initializes a new instance of the <see cref="NugetPackageVersion" /> class with the given Version string.
         /// </summary>
         /// <param name="version">The version number as string.</param>
-        public NugetPackageVersion(string version)
+        public NugetPackageVersion([CanBeNull] string version)
         {
             SetFromString(version);
         }
@@ -38,14 +56,16 @@ namespace NugetForUnity.Models
         ///     Gets the normalized version number of the NuGet package.
         ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
         /// </summary>
-        public string NormalizedVersion { get; private set; }
+        [NotNull]
+        public string NormalizedVersion { get; private set; } = string.Empty;
 
         /// <summary>
         ///     Gets the full version number of the NuGet package.
         ///     This contains the build-metadata e.g. <b>1.0.0+b3a8</b>.
         /// </summary>
         [field: SerializeField]
-        public string FullVersion { get; private set; }
+        [NotNull]
+        public string FullVersion { get; private set; } = string.Empty;
 
         /// <summary>
         ///     Gets a value indicating whether the minimum version number (only valid when HasVersionRange is true) is inclusive (true) or exclusive (false).
@@ -60,11 +80,13 @@ namespace NugetForUnity.Models
         /// <summary>
         ///     Gets the minimum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
+        [CanBeNull]
         public string MinimumVersion { get; private set; }
 
         /// <summary>
         ///     Gets the maximum version number of the NuGet package. Only valid when HasVersionRange is true.
         /// </summary>
+        [CanBeNull]
         public string MaximumVersion => maximumSemVer2Version?.ToString();
 
         /// <summary>
@@ -83,7 +105,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than the second.</returns>
-        public static bool operator <(NugetPackageVersion first, NugetPackageVersion second)
+        public static bool operator <([CanBeNull] NugetPackageVersion first, [CanBeNull] NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -99,7 +121,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than the second.</returns>
-        public static bool operator >(NugetPackageVersion first, NugetPackageVersion second)
+        public static bool operator >([CanBeNull] NugetPackageVersion first, [CanBeNull] NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -115,7 +137,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is less than or equal to the second.</returns>
-        public static bool operator <=(NugetPackageVersion first, NugetPackageVersion second)
+        public static bool operator <=([CanBeNull] NugetPackageVersion first, [CanBeNull] NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -131,7 +153,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is greater than or equal to the second.</returns>
-        public static bool operator >=(NugetPackageVersion first, NugetPackageVersion second)
+        public static bool operator >=([CanBeNull] NugetPackageVersion first, [CanBeNull] NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -148,7 +170,7 @@ namespace NugetForUnity.Models
         /// <param name="first">The first to compare.</param>
         /// <param name="second">The second to compare.</param>
         /// <returns>True if the first is equal to the second.</returns>
-        public static bool operator ==(NugetPackageVersion first, NugetPackageVersion second)
+        public static bool operator ==([CanBeNull] NugetPackageVersion first, [CanBeNull] NugetPackageVersion second)
         {
             if (first is null)
             {
@@ -171,22 +193,27 @@ namespace NugetForUnity.Models
         }
 
         /// <summary>
-        ///     Compares this version with the string representation of <paramref name="otherVersion" />.
+        ///     Compares this version with the string representation of <paramref name="other" />.
         /// </summary>
-        /// <param name="otherVersion">The other version number to check if it is grater or equal to this version.</param>
+        /// <param name="other">The other version number to check if it is grater or equal to this version.</param>
         /// <returns>
-        ///     -1 if otherVersion is less than this.
-        ///     0 if otherVersion is equal to this.
-        ///     +1 if otherVersion is greater than this.
+        ///     -1 if other is less than this.
+        ///     0 if other is equal to this.
+        ///     +1 if other is greater than this.
         /// </returns>
-        public int CompareTo(NugetPackageVersion otherVersion)
+        public int CompareTo([CanBeNull] NugetPackageVersion other)
         {
-            if (HasVersionRange || otherVersion.HasVersionRange)
+            if (other is null)
             {
-                return string.Compare(NormalizedVersion, otherVersion.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+                return -1;
             }
 
-            return semVer2Version.Compare(otherVersion.semVer2Version);
+            if (HasVersionRange || other.HasVersionRange)
+            {
+                return string.Compare(NormalizedVersion, other.NormalizedVersion, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return semVer2Version.Compare(other.semVer2Version);
         }
 
         /// <inheritdoc />
@@ -207,7 +234,7 @@ namespace NugetForUnity.Models
         /// </summary>
         /// <param name="other">The <see cref="NugetPackageVersion" /> to check if is in the range.</param>
         /// <returns>True if the given version is in the range, otherwise false.</returns>
-        public bool InRange(NugetPackageVersion other)
+        public bool InRange([NotNull] NugetPackageVersion other)
         {
             if (string.IsNullOrEmpty(FullVersion))
             {
@@ -290,7 +317,7 @@ namespace NugetForUnity.Models
         /// </summary>
         /// <param name="otherSemVer2">The version to check if is in the range.</param>
         /// <returns>
-        ///     -1 if otherVersion is less than the version range. 0 if otherVersion is inside the version range. +1 if otherVersion is greater than the
+        ///     -1 if other is less than the version range. 0 if other is inside the version range. +1 if other is greater than the
         ///     version range.
         /// </returns>
         private int CompareVersion(in SemVer2Version otherSemVer2)
@@ -358,7 +385,7 @@ namespace NugetForUnity.Models
             return 0;
         }
 
-        private void SetFromString(string version)
+        private void SetFromString([CanBeNull] string version)
         {
             minimumSemVer2Version = null;
             maximumSemVer2Version = null;
@@ -372,14 +399,14 @@ namespace NugetForUnity.Models
 
             version = version.Trim();
             FullVersion = version;
-            IsMinInclusive = version.StartsWith("[");
-            HasVersionRange = IsMinInclusive || version.StartsWith("(");
+            IsMinInclusive = version.StartsWith("[", StringComparison.Ordinal);
+            HasVersionRange = IsMinInclusive || version.StartsWith("(", StringComparison.Ordinal);
             if (HasVersionRange)
             {
                 semVer2Version = new SemVer2Version(false);
                 NormalizedVersion = version;
-                IsPrerelease = version.Contains("-");
-                IsMaxInclusive = version.EndsWith("]");
+                IsPrerelease = version.IndexOf('-') >= 0;
+                IsMaxInclusive = version.EndsWith("]", StringComparison.Ordinal);
 
                 // if there is no MaxVersion specified, but the Max is Inclusive, then it is an EXACT version match with the stored MINIMUM
                 var minMax = version.TrimStart('[', '(').TrimEnd(']', ')').Split(',');
@@ -404,6 +431,7 @@ namespace NugetForUnity.Models
         /// Ignore spelling: SemVer, Sem, Ver
         private readonly struct SemVer2Version
         {
+            [CanBeNull]
             private readonly string buildMetadata;
 
             private readonly int major;
@@ -433,7 +461,7 @@ namespace NugetForUnity.Models
             ///     Initializes a new instance of the <see cref="SemVer2Version" /> struct.
             /// </summary>
             /// <param name="version">The version number as string.</param>
-            public SemVer2Version(string version)
+            public SemVer2Version([CanBeNull] string version)
             {
                 if (!string.IsNullOrWhiteSpace(version))
                 {
@@ -457,23 +485,23 @@ namespace NugetForUnity.Models
                         }
 
                         var split = version.Split('.');
-                        major = int.Parse(split[0]);
+                        major = int.Parse(split[0], CultureInfo.InvariantCulture);
                         minor = 0;
                         if (split.Length >= 2)
                         {
-                            minor = int.Parse(split[1]);
+                            minor = int.Parse(split[1], CultureInfo.InvariantCulture);
                         }
 
                         patch = 0;
                         if (split.Length >= 3)
                         {
-                            patch = int.Parse(split[2]);
+                            patch = int.Parse(split[2], CultureInfo.InvariantCulture);
                         }
 
                         revision = 0;
                         if (split.Length >= 4)
                         {
-                            revision = int.Parse(split[3]);
+                            revision = int.Parse(split[3], CultureInfo.InvariantCulture);
                         }
 
                         return;
@@ -492,6 +520,7 @@ namespace NugetForUnity.Models
                 revision = -1;
             }
 
+            [CanBeNull]
             public string PreRelease { get; }
 
             /// <summary>
@@ -568,6 +597,7 @@ namespace NugetForUnity.Models
             /// </summary>
             /// <param name="withBuildMetadata">If <c>true</c> the <see cref="buildMetadata" /> is included.</param>
             /// <returns>The formatted string.</returns>
+            [NotNull]
             public string ToString(bool withBuildMetadata)
             {
                 var stringBuilder = new StringBuilder();

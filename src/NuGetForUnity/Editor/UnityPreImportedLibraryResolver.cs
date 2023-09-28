@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEditor.Compilation;
+using UnityEngine;
 
 namespace NugetForUnity
 {
@@ -13,14 +15,17 @@ namespace NugetForUnity
     /// </summary>
     internal static class UnityPreImportedLibraryResolver
     {
+        [CanBeNull]
         private static HashSet<string> alreadyImportedLibs;
 
+        [CanBeNull]
         private static HashSet<string> alreadyImportedEditorOnlyLibraries;
 
         /// <summary>
         ///     Gets all libraries that are already imported by Unity Editor so we shouldn't / don't need to install them as NuGet packages.
         /// </summary>
         /// <returns>The list of packages.</returns>
+        [NotNull]
         internal static HashSet<string> GetAlreadyImportedEditorOnlyLibraries()
         {
             if (alreadyImportedEditorOnlyLibraries == null)
@@ -28,6 +33,7 @@ namespace NugetForUnity
                 GetAlreadyImportedLibs();
             }
 
+            Debug.Assert(alreadyImportedEditorOnlyLibraries != null, nameof(alreadyImportedEditorOnlyLibraries) + " != null");
             return alreadyImportedEditorOnlyLibraries;
         }
 
@@ -37,7 +43,7 @@ namespace NugetForUnity
         /// <param name="package">The package of witch the identifier is checked.</param>
         /// <param name="log">Whether to log a message with the result of the check.</param>
         /// <returns>If it is included in Unity.</returns>
-        internal static bool IsAlreadyImportedInEngine(INugetPackageIdentifier package, bool log = true)
+        internal static bool IsAlreadyImportedInEngine([NotNull] INugetPackageIdentifier package, bool log = true)
         {
             var alreadyImported = GetAlreadyImportedLibs();
             var isAlreadyImported = alreadyImported.Contains(package.Id);
@@ -53,6 +59,7 @@ namespace NugetForUnity
         ///     Gets all libraries that are already imported by unity so we shouldn't / don't need to install them as NuGet packages.
         /// </summary>
         /// <returns>A set of all names of libraries that are already imported by unity.</returns>
+        [NotNull]
         private static HashSet<string> GetAlreadyImportedLibs()
         {
             if (alreadyImportedLibs != null)

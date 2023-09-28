@@ -1,13 +1,28 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
+#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity
 {
@@ -73,9 +88,10 @@ namespace NugetForUnity
             PackageRestorer.Restore();
         }
 
+        [NotNull]
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(
-            string projectRelativeAssetPath,
-            string absoluteRepositoryPath,
+            [NotNull] string projectRelativeAssetPath,
+            [NotNull] string absoluteRepositoryPath,
             bool reimport)
         {
             var assetFileName = Path.GetFileName(projectRelativeAssetPath);
@@ -141,12 +157,13 @@ namespace NugetForUnity
             }
         }
 
-        private static string[] GetPathComponents(string path)
+        [NotNull]
+        private static string[] GetPathComponents([NotNull] string path)
         {
             return path.Split(Path.DirectorySeparatorChar);
         }
 
-        private static bool AssetIsDllInsideNuGetRepository(string absoluteAssetPath, string absoluteRepositoryPath)
+        private static bool AssetIsDllInsideNuGetRepository([NotNull] string absoluteAssetPath, [NotNull] string absoluteRepositoryPath)
         {
             return absoluteAssetPath.StartsWith(absoluteRepositoryPath, PathHelper.PathComparisonType) &&
                    absoluteAssetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
@@ -157,12 +174,13 @@ namespace NugetForUnity
         ///     Gets the absolute path where NuGetForUnity restores NuGet packages, with trailing directory separator.
         /// </summary>
         /// <returns>The absolute path where NuGetForUnity restores NuGet packages, with trailing directory separator.</returns>
+        [NotNull]
         private static string GetNuGetRepositoryPath()
         {
             return ConfigurationManager.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 
-        private static void ModifyImportSettingsOfRoslynAnalyzer(PluginImporter plugin, bool reimport)
+        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, bool reimport)
         {
             plugin.SetCompatibleWithAnyPlatform(false);
             plugin.SetCompatibleWithEditor(false);
@@ -182,7 +200,7 @@ namespace NugetForUnity
             NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
         }
 
-        private static void ModifyImportSettingsOfGeneralPlugin(PackageConfig packageConfig, PluginImporter plugin, bool reimport)
+        private static void ModifyImportSettingsOfGeneralPlugin([NotNull] PackageConfig packageConfig, [NotNull] PluginImporter plugin, bool reimport)
         {
             PluginImporterIsExplicitlyReferencedProperty.SetValue(plugin, !packageConfig.AutoReferenced);
 
@@ -202,7 +220,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="plugin">The asset to edit.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        private static void ModifyImportSettingsOfPlayerOnly(PluginImporter plugin, bool reimport)
+        private static void ModifyImportSettingsOfPlayerOnly([NotNull] PluginImporter plugin, bool reimport)
         {
             plugin.SetCompatibleWithAnyPlatform(true);
             plugin.SetExcludeEditorFromAnyPlatform(true);
@@ -223,7 +241,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="analyzerAssetPath">The path to the .config file.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        private static ResultStatus ModifyImportSettingsOfConfigurationFile(string analyzerAssetPath, bool reimport)
+        private static ResultStatus ModifyImportSettingsOfConfigurationFile([NotNull] string analyzerAssetPath, bool reimport)
         {
             if (!GetPluginImporter(analyzerAssetPath, out var plugin))
             {
@@ -252,7 +270,7 @@ namespace NugetForUnity
         ///     Logs the aggregated result of the processing of the assets.
         /// </summary>
         /// <param name="results">The aggregated result status.</param>
-        private static void LogResults(IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> results)
+        private static void LogResults([NotNull] IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> results)
         {
             var grouped = results.GroupBy(result => result.Status);
             foreach (var groupEntry in grouped)
@@ -279,7 +297,7 @@ namespace NugetForUnity
         /// <param name="assetFilePath">Path to the assets.</param>
         /// <param name="plugin">The loaded PluginImporter.</param>
         /// <returns>True if the plug-in importer for the asset could be loaded.</returns>
-        private static bool GetPluginImporter(string assetFilePath, out PluginImporter plugin)
+        private static bool GetPluginImporter([NotNull] string assetFilePath, out PluginImporter plugin)
         {
             var assetPath = assetFilePath;
             plugin = AssetImporter.GetAtPath(assetPath) as PluginImporter;
@@ -302,7 +320,7 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="asset">Asset to check.</param>
         /// <returns>True if already processed.</returns>
-        private static bool AlreadyProcessed(Object asset)
+        private static bool AlreadyProcessed([NotNull] Object asset)
         {
             return AssetDatabase.GetLabels(asset).Contains(ProcessedLabel);
         }
@@ -329,6 +347,7 @@ namespace NugetForUnity
         ///         </item>
         ///     </list>
         /// </summary>
+        [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Called by Unity.")]
         private void OnPreprocessAsset()
         {
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
@@ -336,6 +355,10 @@ namespace NugetForUnity
             LogResults(results);
         }
 
+        [SuppressMessage(
+            "StyleCop.CSharp.OrderingRules",
+            "SA1201:Elements should appear in the correct order",
+            Justification = "We like private enums at the botom of the file.")]
         private enum ResultStatus
         {
             Success,

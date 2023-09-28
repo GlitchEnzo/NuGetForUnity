@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using JetBrains.Annotations;
 using NugetForUnity.Models;
 
 namespace NugetForUnity.PackageSource
@@ -24,7 +26,9 @@ namespace NugetForUnity.PackageSource
         /// <param name="document">The <see cref="XDocument" /> that is the OData XML response from the NuGet server.</param>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
         /// <returns>The list of <see cref="NugetPackageV2Base" />s read from the given XML.</returns>
-        public static List<NugetPackageV2Base> Parse(XDocument document, NugetPackageSourceV2 packageSource)
+        [NotNull]
+        [ItemNotNull]
+        public static List<NugetPackageV2Base> Parse([NotNull] XDocument document, [NotNull] NugetPackageSourceV2 packageSource)
         {
             var packages = new List<NugetPackageV2Base>();
 
@@ -50,7 +54,8 @@ namespace NugetForUnity.PackageSource
                     Id = entry.GetAtomElement("title").Value, DownloadUrl = entry.GetAtomElement("content").Attribute("src")?.Value,
                 };
 
-                var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace));
+                var entryProperties = entry.Element(XName.Get("properties", MetaDataNamespace)) ??
+                                      throw new InvalidOperationException("Missing 'properties' element.");
                 package.Title = entryProperties.GetProperty("Title");
                 package.Version = entryProperties.GetProperty("Version");
                 package.Description = entryProperties.GetProperty("Description");
@@ -59,7 +64,7 @@ namespace NugetForUnity.PackageSource
                 package.LicenseUrl = entryProperties.GetProperty("LicenseUrl");
                 package.ProjectUrl = entryProperties.GetProperty("ProjectUrl");
                 package.Authors = entryProperties.GetProperty("Authors").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                package.TotalDownloads = long.Parse(entryProperties.GetProperty("DownloadCount"));
+                package.TotalDownloads = long.Parse(entryProperties.GetProperty("DownloadCount"), CultureInfo.InvariantCulture);
                 package.IconUrl = entryProperties.GetProperty("IconUrl");
 
                 // if there is no title, just use the ID as the title
@@ -120,7 +125,8 @@ namespace NugetForUnity.PackageSource
         /// <param name="properties">The properties element.</param>
         /// <param name="name">The name of the property to get.</param>
         /// <returns>The string value of the property.</returns>
-        private static string GetProperty(this XElement properties, string name)
+        [NotNull]
+        private static string GetProperty([NotNull] this XElement properties, [NotNull] string name)
         {
             return (string)properties.Element(XName.Get(name, DataServicesNamespace)) ?? string.Empty;
         }
@@ -131,9 +137,11 @@ namespace NugetForUnity.PackageSource
         /// <param name="element">The element containing the Atom element.</param>
         /// <param name="name">The name of the Atom element.</param>
         /// <returns>The Atom element.</returns>
-        private static XElement GetAtomElement(this XElement element, string name)
+        [NotNull]
+        private static XElement GetAtomElement([NotNull] this XElement element, [NotNull] string name)
         {
-            return element.Element(XName.Get(name, AtomNamespace));
+            return element.Element(XName.Get(name, AtomNamespace)) ??
+                   throw new InvalidOperationException($"Can't find element with name {name} inside:\n{element}");
         }
     }
 }

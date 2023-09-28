@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using JetBrains.Annotations;
 using UnityEditor;
 
 namespace NugetForUnity.Helper
@@ -12,18 +13,14 @@ namespace NugetForUnity.Helper
     {
         private static readonly List<Action> PreInitializedActionQueue = new List<Action>();
 
-        private static SynchronizationContext synchronizationContext;
-
-        static UnityMainThreadDispatcher()
-        {
-            synchronizationContext = SynchronizationContext.Current;
-        }
+        [CanBeNull]
+        private static SynchronizationContext synchronizationContext = SynchronizationContext.Current;
 
         /// <summary>
         ///     Add a action to be executed on the Unity Main thread.
         /// </summary>
         /// <param name="action">The action that is executed on the main thread.</param>
-        public static void Dispatch(Action action)
+        public static void Dispatch([NotNull] Action action)
         {
             if (action is null)
             {

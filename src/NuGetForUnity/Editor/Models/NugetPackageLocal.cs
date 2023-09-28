@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using NugetForUnity.PackageSource;
 using UnityEngine;
 
@@ -12,21 +13,24 @@ namespace NugetForUnity.Models
     internal sealed class NugetPackageLocal : NugetPackageV2Base
     {
         [SerializeField]
+        [NotNull]
         private NugetPackageSourceLocal packageSource;
 
         [SerializeField]
+        [NotNull]
         private List<NugetPackageVersion> versions = new List<NugetPackageVersion>();
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageLocal" /> class.
         /// </summary>
         /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        public NugetPackageLocal(NugetPackageSourceLocal packageSource)
+        public NugetPackageLocal([NotNull] NugetPackageSourceLocal packageSource)
         {
             this.packageSource = packageSource;
         }
 
         /// <inheritdoc />
+        [NotNull]
         public override List<NugetPackageVersion> Versions => versions;
 
         /// <inheritdoc />

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace NugetForUnity.Helper
@@ -33,7 +34,8 @@ namespace NugetForUnity.Helper
         /// <param name="relativeTo">The source path the output should be relative to. This path is always considered to be a directory.</param>
         /// <param name="path">The destination path.</param>
         /// <returns>The relative path or <paramref name="path" /> if the paths don't share the same root.</returns>
-        internal static string GetRelativePath(string relativeTo, string path)
+        [NotNull]
+        internal static string GetRelativePath([NotNull] string relativeTo, [NotNull] string path)
         {
             if (string.IsNullOrEmpty(relativeTo))
             {
@@ -138,7 +140,7 @@ namespace NugetForUnity.Helper
         /// <summary>
         ///     Get the common path length from the start of the string.
         /// </summary>
-        private static int GetCommonPathLength(string first, string second, bool ignoreCase)
+        private static int GetCommonPathLength([NotNull] string first, [NotNull] string second, bool ignoreCase)
         {
             var commonChars = EqualStartingCharacterCount(first, second, ignoreCase);
 
@@ -169,9 +171,9 @@ namespace NugetForUnity.Helper
         }
 
         /// <summary>
-        ///     Gets the count of common characters from the left optionally ignoring case
+        ///     Gets the count of common characters from the left optionally ignoring case.
         /// </summary>
-        private static int EqualStartingCharacterCount(string first, string second, bool ignoreCase)
+        private static int EqualStartingCharacterCount([CanBeNull] string first, [CanBeNull] string second, bool ignoreCase)
         {
             if (string.IsNullOrEmpty(first) || string.IsNullOrEmpty(second))
             {
@@ -196,7 +198,7 @@ namespace NugetForUnity.Helper
         /// <summary>
         ///     Returns true if the two paths have the same root.
         /// </summary>
-        private static bool AreRootsEqual(string first, string second)
+        private static bool AreRootsEqual([NotNull] string first, [NotNull] string second)
         {
             var firstRoot = Path.GetPathRoot(first);
             var secondRoot = Path.GetPathRoot(second);
@@ -218,7 +220,7 @@ namespace NugetForUnity.Helper
         /// <summary>
         ///     Returns true if the path ends in a directory separator.
         /// </summary>
-        private static bool EndsInDirectorySeparator(string path)
+        private static bool EndsInDirectorySeparator([CanBeNull] string path)
         {
             return !string.IsNullOrEmpty(path) && IsDirectorySeparator(path[path.Length - 1]);
         }

@@ -1,4 +1,4 @@
-﻿using NugetForUnity.Models;
+using NugetForUnity.Models;
 
 namespace NugetForUnity.Configuration
 {
