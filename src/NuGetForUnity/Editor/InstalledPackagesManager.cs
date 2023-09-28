@@ -171,8 +171,8 @@ namespace NugetForUnity
             var stopwatch = Stopwatch.StartNew();
             var manuallyInstalledPackagesNumber = 0;
 
-            // a package that was installed via NuGet will have the .nupkg it came from inside the folder
-            // NOTE : this is useful only for backwards compatibility
+            // a package that was installed via a old version of NuGetForUnity will have the .nupkg it came from inside the folder,
+            // as we updated the behavior to only keep the .nuspec. So we need to extract the .nuspec from the .nupkg
             var nupkgFiles = Directory.GetFiles(ConfigurationManager.NugetConfigFile.RepositoryPath, "*.nupkg", SearchOption.AllDirectories);
             foreach (var nupkgFile in nupkgFiles)
             {
@@ -246,7 +246,6 @@ namespace NugetForUnity
                     continue;
                 }
 
-                Directory.GetFiles(folder, "*.nuspec");
                 var nuspecPath = Directory.GetFiles(folder, "*.nuspec").FirstOrDefault();
                 if (!File.Exists(nuspecPath))
                 {
@@ -256,7 +255,7 @@ namespace NugetForUnity
 
                 var package = NugetPackageLocal.FromNuspecFile(
                     nuspecPath,
-                    new NugetPackageSourceLocal("Nupkg file already installed", Path.GetDirectoryName(nuspecPath)));
+                    new NugetPackageSourceLocal("Nuspec file already installed", Path.GetDirectoryName(nuspecPath)));
 
                 var installed = PackagesConfigFile.Packages.Any(packageId => packageId.Equals(package));
 

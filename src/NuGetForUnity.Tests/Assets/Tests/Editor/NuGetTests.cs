@@ -325,6 +325,7 @@ public class NuGetTests
 
             var nupkgFileName = $"{package.Id}.{package.Version}.nupkg";
             var nupkgFilePath = Path.Combine(PackageCacheManager.CacheOutputDirectory, nupkgFileName);
+            Assert.That(nupkgFilePath, Does.Exist.IgnoreDirectories);
 
             // Hierarchical folder structures are supported in NuGet 3.3+.
             // └─<packageID>
