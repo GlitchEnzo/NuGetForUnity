@@ -109,14 +109,8 @@ namespace NugetForUnity
         /// </param>
         /// <param name="packageId">The id of the package that is extracted.</param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
-        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, [NotNull] string packageId)
+        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
         {
-            // skip a remnant .meta file that may exist from packages created by Unity
-            if (path.EndsWith($"{packageId}.nuspec.meta", StringComparison.Ordinal))
-            {
-                return true;
-            }
-
             // skip directories & files that NuGet normally deletes
             if (path.StartsWith("_rels/", StringComparison.Ordinal) || path.Contains("/_rels/"))
             {
@@ -124,11 +118,6 @@ namespace NugetForUnity
             }
 
             if (path.StartsWith("package/", StringComparison.Ordinal) || path.Contains("/package/"))
-            {
-                return true;
-            }
-
-            if (path.EndsWith($"{packageId}.nuspec", StringComparison.Ordinal))
             {
                 return true;
             }

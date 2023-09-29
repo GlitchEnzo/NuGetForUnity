@@ -44,19 +44,5 @@ namespace NugetForUnity.Models
             FillFromNuspec(nuspec, package);
             return package;
         }
-
-        /// <summary>
-        ///     Loads a <see cref="NugetPackageV2" /> from the .nupkg file at the given file-path.
-        /// </summary>
-        /// <param name="nupkgFilePath">The file-path to the .nupkg file to load.</param>
-        /// <param name="packageSource">The source this package was downloaded with / provided by.</param>
-        /// <returns>The <see cref="NugetPackageV2" /> loaded from the .nupkg file.</returns>
-        [NotNull]
-        public static NugetPackageV2 FromNupkgFile([NotNull] string nupkgFilePath, [NotNull] NugetPackageSourceV2 packageSource)
-        {
-            var package = FromNuspec(NuspecFile.FromNupkgFile(nupkgFilePath), packageSource);
-            package.DownloadUrl = nupkgFilePath;
-            return package;
-        }
     }
 }

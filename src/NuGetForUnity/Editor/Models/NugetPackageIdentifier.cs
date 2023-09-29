@@ -75,7 +75,7 @@ namespace NugetForUnity.Models
         public string PackageFileName => $"{Id}.{Version}.nupkg";
 
         /// <inheritdoc />
-        public string SpecificationFileName => $"{Id}.{Version}.nuspec";
+        public string SpecificationFileName => $"{Id}.nuspec";
 
         /// <inheritdoc />
         public bool IsPrerelease => PackageVersion.IsPrerelease;
