@@ -7,7 +7,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -31,7 +30,7 @@ namespace NugetForUnity.Helper
     /// </summary>
     internal static class CredentialProviderHelper
     {
-        // TODO: Move to ScriptableObjet
+        // TODO: Move to settings
         private static readonly List<AuthenticatedFeed> KnownAuthenticatedFeeds = new List<AuthenticatedFeed>
         {
             new AuthenticatedFeed(
@@ -115,17 +114,9 @@ namespace NugetForUnity.Helper
 
             // Build the list of possible locations to find the credential provider. In order it should be local APP-Data, paths set on the
             // environment variable, and lastly look at the root of the packages save location.
-            var possibleCredentialProviderPaths = new List<string>
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget", "CredentialProviders"),
-            };
+            var possibleCredentialProviderPaths = new List<string> { GetDefaultCredentialProvidersPath() };
 
-            var environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
-            if (!string.IsNullOrEmpty(environmentCredentialProviderPaths))
-            {
-                possibleCredentialProviderPaths.AddRange(
-                    environmentCredentialProviderPaths.Split(new[] { Path.PathSeparator, ';' }, StringSplitOptions.RemoveEmptyEntries));
-            }
+            possibleCredentialProviderPaths.AddRange(GetEnvironmentCredentialProviderPaths());
 
             // Try to find any nuget.exe in the package tools installation location
             var toolsPackagesFolder = Path.Combine(UnityPathHelper.AbsoluteProjectPath, "Packages");
@@ -133,7 +124,7 @@ namespace NugetForUnity.Helper
 
             // Search through all possible paths to find the credential provider.
             var providerPaths = new List<string>();
-            foreach (var possiblePath in possibleCredentialProviderPaths)
+            foreach (var possiblePath in possibleCredentialProviderPaths.Distinct())
             {
                 if (Directory.Exists(possiblePath))
                 {
@@ -146,16 +137,11 @@ namespace NugetForUnity.Helper
                 // Launch the credential provider executable and get the JSON encoded response from the std output
                 using (var process = new Process())
                 {
+                    process.StartInfo = NugetCliHelper.CreateStartInfoForDotNetExecutable(providerPath, $"-uri \"{feedUri}\"");
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.FileName = providerPath;
-                    process.StartInfo.Arguments = $"-uri \"{feedUri}\"";
-
-                    // http://stackoverflow.com/questions/16803748/how-to-decode-cmd-output-correctly
-                    // Default = 65533, ASCII = ?, Unicode = nothing works at all, UTF-8 = 65533, UTF-7 = 242 = WORKS!, UTF-32 = nothing works at all
-                    process.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(850);
                     process.Start();
                     process.WaitForExit();
 
@@ -195,6 +181,22 @@ namespace NugetForUnity.Helper
             return null;
         }
 
+        private static IEnumerable<string> GetEnvironmentCredentialProviderPaths()
+        {
+            var environmentCredentialProviderPaths = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
+            if (!string.IsNullOrEmpty(environmentCredentialProviderPaths))
+            {
+                return environmentCredentialProviderPaths.Split(new[] { Path.PathSeparator, ';' }, StringSplitOptions.RemoveEmptyEntries);
+            }
+
+            return Array.Empty<string>();
+        }
+
+        private static string GetDefaultCredentialProvidersPath()
+        {
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget", "CredentialProviders");
+        }
+
         private static bool DownloadCredentialProviders([NotNull] Uri feedUri)
         {
             var anyDownloaded = false;
@@ -214,12 +216,12 @@ namespace NugetForUnity.Helper
 #pragma warning restore SYSLIB0014 // Type or member is obsolete
 #pragma warning restore IDE0079 // Remove unnecessary suppression
 
+                var tempFileName = Path.GetTempFileName();
                 try
                 {
                     var credentialProviderDownloadStream = credentialProviderRequest.GetResponse().GetResponseStream() ??
                                                            throw new InvalidOperationException("Response stream is null.");
 
-                    var tempFileName = Path.GetTempFileName();
                     NugetLogger.LogVerbose("Writing {0} to {1}", providerUrl, tempFileName);
 
                     using (var file = File.Create(tempFileName))
@@ -227,12 +229,10 @@ namespace NugetForUnity.Helper
                         credentialProviderDownloadStream.CopyTo(file);
                     }
 
-                    var providerDestination = Environment.GetEnvironmentVariable("NUGET_CREDENTIALPROVIDERS_PATH");
+                    var providerDestination = GetEnvironmentCredentialProviderPaths().FirstOrDefault();
                     if (string.IsNullOrEmpty(providerDestination))
                     {
-                        providerDestination = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                            "Nuget/CredentialProviders");
+                        providerDestination = GetDefaultCredentialProvidersPath();
                     }
 
                     // Normalizes the path.
@@ -249,6 +249,7 @@ namespace NugetForUnity.Helper
                     {
                         foreach (var entry in zip.Entries)
                         {
+                            // TODO: probably we should extract all files
                             if (!Regex.IsMatch(entry.FullName, @"^credentialprovider.+\.exe$", RegexOptions.IgnoreCase))
                             {
                                 continue;
@@ -270,13 +271,22 @@ namespace NugetForUnity.Helper
                             anyDownloaded = true;
                         }
                     }
-
-                    // Delete the bundle
-                    File.Delete(tempFileName);
                 }
                 catch (Exception e)
                 {
                     Debug.LogErrorFormat("Failed to download credential provider from {0}: {1}", credentialProviderRequest.Address, e.Message);
+                }
+                finally
+                {
+                    try
+                    {
+                        // Delete the bundle
+                        File.Delete(tempFileName);
+                    }
+                    catch
+                    {
+                        // ignore error while deleting temp file
+                    }
                 }
             }
 
