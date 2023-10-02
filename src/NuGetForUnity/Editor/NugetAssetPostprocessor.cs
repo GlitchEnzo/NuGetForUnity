@@ -85,7 +85,7 @@ namespace NugetForUnity
             }
 
             InstalledPackagesManager.ReloadPackagesConfig();
-            PackageRestorer.Restore();
+            PackageRestorer.Restore(ConfigurationManager.NugetConfigFile.SlimRestore);
         }
 
         [NotNull]

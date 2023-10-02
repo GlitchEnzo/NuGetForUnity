@@ -32,7 +32,7 @@ namespace NugetForUnity
             ConfigurationManager.LoadNugetConfigFile();
 
             // restore packages - this will be called EVERY time the project is loaded
-            PackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
+            PackageRestorer.Restore(ConfigurationManager.NugetConfigFile.SlimRestore);
         }
     }
 }

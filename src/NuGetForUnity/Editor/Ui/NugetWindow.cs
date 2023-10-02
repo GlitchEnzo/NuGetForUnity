@@ -229,7 +229,7 @@ namespace NugetForUnity.Ui
         [MenuItem("NuGet/Restore Packages", false, 1)]
         protected static void RestorePackages()
         {
-            PackageRestorer.Restore(!ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
+            PackageRestorer.Restore(false);
             foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
             {
                 nugetWindow.ClearViewCache();

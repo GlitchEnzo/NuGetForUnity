@@ -92,6 +92,17 @@ namespace NugetForUnity.Ui
                 ConfigurationManager.NugetConfigFile.Verbose = verbose;
             }
 
+            var slimRestore = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Slim Restore",
+                    "When slim restore is enabled, installing dependencies and checking against Unity pre-imported libs will be skipped on automatic restore. Manually restoring via menu option will ignore this setting."),
+                ConfigurationManager.NugetConfigFile.SlimRestore);
+            if (slimRestore != ConfigurationManager.NugetConfigFile.SlimRestore)
+            {
+                preferencesChangedThisFrame = true;
+                ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
+            }
+
             EditorGUILayout.BeginHorizontal();
             {
                 var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
@@ -131,17 +142,6 @@ namespace NugetForUnity.Ui
             {
                 preferencesChangedThisFrame = true;
                 ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds = requestTimeout;
-            }
-
-            var lockPackagesOnRestore = EditorGUILayout.Toggle(
-                new GUIContent(
-                    "Lock Packages on Restore",
-                    "When lock packages on restore is enabled only packages explicitly listed inside the 'packages.config' file will be installed. No dependencies are installed. This feature should only be used when having issues that unneeded or broken packages are installed."),
-                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
-            if (lockPackagesOnRestore != ConfigurationManager.NugetConfigFile.LockPackagesOnRestore)
-            {
-                preferencesChangedThisFrame = true;
-                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore = lockPackagesOnRestore;
             }
 
             EditorGUILayout.LabelField("Package Sources:");

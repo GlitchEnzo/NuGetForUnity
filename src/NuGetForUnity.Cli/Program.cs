@@ -61,7 +61,7 @@ namespace NuGetForUnity.Cli
             Application.SetUnityProjectPath(projectPath);
 
             // need to disable dependency installation as UnityPreImportedLibraryResolver.GetAlreadyImportedLibs is not working outside Unity.
-            PackageRestorer.Restore(false);
+            PackageRestorer.Restore(true);
             FixRoslynAnalyzerImportSettings();
             return Debug.HasError ? 1 : 0;
         }

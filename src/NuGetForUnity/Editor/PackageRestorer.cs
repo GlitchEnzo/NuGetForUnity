@@ -14,8 +14,8 @@ namespace NugetForUnity
         /// <summary>
         ///     Restores all packages defined in packages.config.
         /// </summary>
-        /// <param name="installDependencies">True to also install all dependencies of the packages listed in the <see cref="PackagesConfigFile" />.</param>
-        public static void Restore(bool installDependencies = true)
+        /// <param name="slimRestore">True if we want to skip installing dependencies and checking if the lib is imported in Unity</param>
+        public static void Restore(bool slimRestore)
         {
             InstalledPackagesManager.UpdateInstalledPackages();
 
@@ -41,7 +41,9 @@ namespace NugetForUnity
                                 $"Restoring {package.Id} {package.Version}",
                                 currentProgress);
                             NugetLogger.LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            NugetPackageInstaller.InstallIdentifier(package, installDependencies: installDependencies);
+                            NugetPackageInstaller.InstallIdentifier(
+                                package,
+                                isSlimRestoreInstall: slimRestore);
                             somethingChanged = true;
                         }
 
