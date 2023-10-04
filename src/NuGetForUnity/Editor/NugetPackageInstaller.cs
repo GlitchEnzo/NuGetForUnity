@@ -173,6 +173,8 @@ namespace NugetForUnity
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))
                     {
                         var libs = new Dictionary<string, List<ZipArchiveEntry>>();
+                        var csFiles = new Dictionary<string, List<ZipArchiveEntry>>();
+                        var anyFiles = new Dictionary<string, List<ZipArchiveEntry>>();
 
                         foreach (var entry in zip.Entries)
                         {
@@ -196,36 +198,125 @@ namespace NugetForUnity
                                 }
 
                                 var framework = entryFullName.Substring(libDirectoryName.Length, secondSlashIndex - frameworkStartIndex);
-                                if (!libs.TryGetValue(framework, out var entryList))
+                                SafeAddNupkgEntry(libs, framework, entry);
+
+                                continue;
+                            }
+
+                            // in case this is a source code package, we want to collect all its entries that have 'cs' or 'any' set as language
+                            // and their frameworks so we can get the best framework later
+                            const string contentFilesDirectoryName = "contentFiles/";
+                            if (entryFullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal))
+                            {
+                                // Folder structure for source code packages:
+                                // └─<packageID>.<packageVersion> (not counted here since entries start with next subfolder)
+                                //   └─<contentFiles>
+                                //     └─<any> (language)
+                                //       └─<any> (framework)
+                                //         └─<sources>
+                                // In order to create shorter paths, we aim to make a structure like this:
+                                // └─<packageID>.<packageVersion>
+                                //   └─Sources
+                                //      └─<sources>
+                                var directoriesSplit = entryFullName.Split('/');
+                                if (directoriesSplit.Length >= 4)
                                 {
-                                    entryList = new List<ZipArchiveEntry>();
-                                    libs.Add(framework, entryList);
+                                    var language = directoriesSplit[1];
+                                    var framework = directoriesSplit[2];
+
+                                    if (language == "cs")
+                                    {
+                                        SafeAddNupkgEntry(csFiles, framework, entry);
+                                    }
+                                    else if (language == "any")
+                                    {
+                                        SafeAddNupkgEntry(anyFiles, framework, entry);
+                                    }
                                 }
 
-                                entryList.Add(entry);
-
+                                // if the entry is in content files we want to skip unpacking it right now anyway
                                 continue;
                             }
 
                             PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                         }
 
+                        KeyValuePair<string, List<ZipArchiveEntry>> bestFrameworkMatch;
                         // go through all lib zip entries and find the best target framework, then unpack it
-                        var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
-                        if (bestFrameworkMatch.Value != null)
+                        if (libs.Count > 0)
                         {
-                            NugetLogger.LogVerbose(
-                                "Selecting target framework directory '{0}' as best match for the package {1}",
-                                bestFrameworkMatch.Key,
-                                package);
-                            foreach (var entry in bestFrameworkMatch.Value)
+                            bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
+                            if (bestFrameworkMatch.Value != null)
                             {
-                                PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+                                NugetLogger.LogVerbose(
+                                    "Selecting target framework directory '{0}' as best match for the package {1}",
+                                    bestFrameworkMatch.Key,
+                                    package);
+                                foreach (var entry in bestFrameworkMatch.Value)
+                                {
+                                    PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+                                }
+                            }
+                            else
+                            {
+                                Debug.LogWarningFormat(
+                                    "Couldn't find a library folder with a supported target-framework for the package {0}",
+                                    package);
                             }
                         }
-                        else
+                        // go through all content files' frameworks and figure the best target network, prioritizing 'cs' over 'any' language
+                        if (csFiles.Count > 0)
                         {
-                            Debug.LogWarningFormat("Couldn't find a library folder with a supported target-framework for the package {0}", package);
+                            bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(csFiles, framework => framework.Key);
+                            if (bestFrameworkMatch.Value != null)
+                            {
+                                NugetLogger.LogVerbose(
+                                    "Selecting target framework directory '{0}' and language 'cs' as best match for the package {1}",
+                                    bestFrameworkMatch.Key,
+                                    package);
+
+                                PackageContentManager.ExtractPackageSources(bestFrameworkMatch.Value, baseDirectory);
+                            }
+                            else if (csFiles.TryGetValue("any", out var anyFrameworks))
+                            {
+                                NugetLogger.LogVerbose(
+                                    "Selecting target framework directory 'any' and language 'any' as best match for the package {1}",
+                                    package);
+
+                                PackageContentManager.ExtractPackageSources(anyFrameworks, baseDirectory);
+                            }
+                            else
+                            {
+                                Debug.LogWarningFormat(
+                                    "Couldn't find a source code folder with a supported target-framework for the package {0}",
+                                    package);
+                            }
+                        }
+                        else if (anyFiles.Count > 0)
+                        {
+                            bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(anyFiles, framework => framework.Key);
+                            if (bestFrameworkMatch.Value != null)
+                            {
+                                NugetLogger.LogVerbose(
+                                    "Selecting target framework directory '{0}' and language 'any' as best match for the package {1}",
+                                    bestFrameworkMatch.Key,
+                                    package);
+
+                                PackageContentManager.ExtractPackageSources(bestFrameworkMatch.Value, baseDirectory);
+                            }
+                            else if (anyFiles.TryGetValue("any", out var anyFrameworks))
+                            {
+                                NugetLogger.LogVerbose(
+                                    "Selecting target framework directory 'any' and language 'any' as best match for the package {1}", package);
+
+                                PackageContentManager.ExtractPackageSources(anyFrameworks, baseDirectory);
+                            }
+                            else
+                            {
+                                Debug.LogWarningFormat(
+                                    "Couldn't find a source code folder with a supported target-framework for the package {0}",
+                                    package);
+                            }
                         }
                     }
                 }
@@ -260,6 +351,17 @@ namespace NugetForUnity
                     EditorUtility.ClearProgressBar();
                 }
             }
+        }
+
+        private static void SafeAddNupkgEntry(IDictionary<string, List<ZipArchiveEntry>> frameworkZipEntries, string framework, ZipArchiveEntry entry)
+        {
+            if (!frameworkZipEntries.TryGetValue(framework, out var entryList))
+            {
+                entryList = new List<ZipArchiveEntry>();
+                frameworkZipEntries.Add(framework, entryList);
+            }
+
+            entryList.Add(entry);
         }
     }
 }
