@@ -90,7 +90,7 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets a value indicating whether to skip installing dependencies and checking for pre-imported Unity libs
         ///     while auto-restoring.
         /// </summary>
-        public bool SlimRestore { get; set; }
+        public bool SlimRestore { get; set; } = true;
 
         /// <summary>
         ///     Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the
@@ -401,13 +401,10 @@ namespace NugetForUnity.Configuration
                 config.Add(addElement);
             }
 
-            if (SlimRestore)
-            {
-                addElement = new XElement("add");
-                addElement.Add(new XAttribute("key", "slimRestore"));
-                addElement.Add(new XAttribute("value", Verbose.ToString().ToLowerInvariant()));
-                config.Add(addElement);
-            }
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "slimRestore"));
+            addElement.Add(new XAttribute("value", SlimRestore.ToString().ToLowerInvariant()));
+            config.Add(addElement);
 
             if (!InstallFromCache)
             {

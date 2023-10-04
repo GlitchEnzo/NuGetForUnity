@@ -95,7 +95,11 @@ namespace NugetForUnity.Ui
             var slimRestore = EditorGUILayout.Toggle(
                 new GUIContent(
                     "Slim Restore",
-                    "When slim restore is enabled, installing dependencies and checking against Unity pre-imported libs will be skipped on automatic restore. Manually restoring via menu option will ignore this setting."),
+                    "Slim restore is a faster way of installing/restoring packages after opening the Unity project. " +
+                    "To achieve this, the package installation step skips installing dependencies not listed inside the package.config, " +
+                    "also it skips checking against Unity pre-imported libraries. If you have a complex project setup with multiple target " +
+                    "platforms that include different packages, you might need to disable this feature. " +
+                    "Manually restoring via menu option will ignore this setting."),
                 ConfigurationManager.NugetConfigFile.SlimRestore);
             if (slimRestore != ConfigurationManager.NugetConfigFile.SlimRestore)
             {
