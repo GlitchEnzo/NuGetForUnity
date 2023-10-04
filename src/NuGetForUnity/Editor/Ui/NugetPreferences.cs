@@ -92,6 +92,21 @@ namespace NugetForUnity.Ui
                 ConfigurationManager.NugetConfigFile.Verbose = verbose;
             }
 
+            var slimRestore = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Slim Restore",
+                    "Slim restore is a faster way of installing/restoring packages after opening the Unity project. " +
+                    "To achieve this, the package installation step skips installing dependencies not listed inside the package.config, " +
+                    "also it skips checking against Unity pre-imported libraries. If you have a complex project setup with multiple target " +
+                    "platforms that include different packages, you might need to disable this feature. " +
+                    "Manually restoring via menu option will ignore this setting."),
+                ConfigurationManager.NugetConfigFile.SlimRestore);
+            if (slimRestore != ConfigurationManager.NugetConfigFile.SlimRestore)
+            {
+                preferencesChangedThisFrame = true;
+                ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
+            }
+
             EditorGUILayout.BeginHorizontal();
             {
                 var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
@@ -131,17 +146,6 @@ namespace NugetForUnity.Ui
             {
                 preferencesChangedThisFrame = true;
                 ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds = requestTimeout;
-            }
-
-            var lockPackagesOnRestore = EditorGUILayout.Toggle(
-                new GUIContent(
-                    "Lock Packages on Restore",
-                    "When lock packages on restore is enabled only packages explicitly listed inside the 'packages.config' file will be installed. No dependencies are installed. This feature should only be used when having issues that unneeded or broken packages are installed."),
-                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore);
-            if (lockPackagesOnRestore != ConfigurationManager.NugetConfigFile.LockPackagesOnRestore)
-            {
-                preferencesChangedThisFrame = true;
-                ConfigurationManager.NugetConfigFile.LockPackagesOnRestore = lockPackagesOnRestore;
             }
 
             EditorGUILayout.LabelField("Package Sources:");

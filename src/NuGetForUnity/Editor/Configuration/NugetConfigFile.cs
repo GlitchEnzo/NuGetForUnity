@@ -44,8 +44,6 @@ namespace NugetForUnity.Configuration
 
         private const string RequestTimeoutSecondsConfigKey = "RequestTimeoutSeconds";
 
-        private const string LockPackagesOnRestoreConfigKey = "LockPackagesOnRestore";
-
         private const string PackagesConfigDirectoryPathConfigKey = "PackagesConfigDirectoryPath";
 
         /// <summary>
@@ -89,6 +87,12 @@ namespace NugetForUnity.Configuration
         public bool Verbose { get; set; }
 
         /// <summary>
+        ///     Gets or sets a value indicating whether to skip installing dependencies and checking for pre-imported Unity libs
+        ///     while auto-restoring.
+        /// </summary>
+        public bool SlimRestore { get; set; } = true;
+
+        /// <summary>
         ///     Gets or sets a value indicating whether a package is installed from the cache (if present), or if it always downloads the package from the
         ///     server.
         /// </summary>
@@ -125,12 +129,6 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets the timeout in seconds used for all web requests to NuGet sources.
         /// </summary>
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
-
-        /// <summary>
-        ///     Gets or sets a value indicating whether the installed packages should be fixed, so only the packages that are configure inside the
-        ///     'package.config' are installed without installing the dependencies of them.
-        /// </summary>
-        public bool LockPackagesOnRestore { get; set; }
 
         /// <summary>
         ///     Loads a NuGet.config file at the given file-path.
@@ -260,6 +258,10 @@ namespace NugetForUnity.Configuration
                 {
                     configFile.Verbose = bool.Parse(value);
                 }
+                else if (string.Equals(key, "slimRestore", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.SlimRestore = bool.Parse(value);
+                }
                 else if (string.Equals(key, "InstallFromCache", StringComparison.OrdinalIgnoreCase))
                 {
                     configFile.InstallFromCache = bool.Parse(value);
@@ -271,10 +273,6 @@ namespace NugetForUnity.Configuration
                 else if (string.Equals(key, RequestTimeoutSecondsConfigKey, StringComparison.OrdinalIgnoreCase))
                 {
                     configFile.RequestTimeoutSeconds = int.Parse(value, CultureInfo.InvariantCulture);
-                }
-                else if (string.Equals(key, LockPackagesOnRestoreConfigKey, StringComparison.OrdinalIgnoreCase))
-                {
-                    configFile.LockPackagesOnRestore = bool.Parse(value);
                 }
                 else if (string.Equals(key, PackagesConfigDirectoryPathConfigKey, StringComparison.OrdinalIgnoreCase))
                 {
@@ -306,6 +304,7 @@ namespace NugetForUnity.Configuration
   <config>
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
+    <add key=""slimRestore"" value=""true"" />
   </config>
 </configuration>";
 
@@ -402,6 +401,11 @@ namespace NugetForUnity.Configuration
                 config.Add(addElement);
             }
 
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "slimRestore"));
+            addElement.Add(new XAttribute("value", SlimRestore.ToString().ToLowerInvariant()));
+            config.Add(addElement);
+
             if (!InstallFromCache)
             {
                 addElement = new XElement("add");
@@ -423,14 +427,6 @@ namespace NugetForUnity.Configuration
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", RequestTimeoutSecondsConfigKey));
                 addElement.Add(new XAttribute("value", RequestTimeoutSeconds));
-                config.Add(addElement);
-            }
-
-            if (LockPackagesOnRestore)
-            {
-                addElement = new XElement("add");
-                addElement.Add(new XAttribute("key", LockPackagesOnRestoreConfigKey));
-                addElement.Add(new XAttribute("value", LockPackagesOnRestore.ToString().ToLowerInvariant()));
                 config.Add(addElement);
             }
 

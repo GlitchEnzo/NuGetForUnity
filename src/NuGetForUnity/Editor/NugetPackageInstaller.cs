@@ -22,11 +22,11 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
+        /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        public static bool InstallIdentifier([NotNull] INugetPackageIdentifier package, bool refreshAssets = true, bool installDependencies = true)
+        public static bool InstallIdentifier([NotNull] INugetPackageIdentifier package, bool refreshAssets = true, bool isSlimRestoreInstall = false)
         {
-            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -41,7 +41,7 @@ namespace NugetForUnity
             }
 
             foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
-            return Install(foundPackage, refreshAssets, installDependencies);
+            return Install(foundPackage, refreshAssets, isSlimRestoreInstall);
         }
 
         /// <summary>
@@ -49,11 +49,11 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
-        /// <param name="installDependencies">True to also install all dependencies of the <paramref name="package" />.</param>
+        /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        private static bool Install([NotNull] INugetPackage package, bool refreshAssets, bool installDependencies)
+        private static bool Install([NotNull] INugetPackage package, bool refreshAssets, bool isSlimRestoreInstall)
         {
-            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -110,7 +110,7 @@ namespace NugetForUnity
                     EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Installing Dependencies", 0.1f);
                 }
 
-                if (installDependencies)
+                if (!isSlimRestoreInstall)
                 {
                     var dependencies = package.Dependencies;
 

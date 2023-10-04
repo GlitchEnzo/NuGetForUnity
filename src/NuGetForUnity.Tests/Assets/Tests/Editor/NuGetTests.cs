@@ -45,7 +45,7 @@ public class NuGetTests
     [Order(1)]
     public void SimpleRestoreTest()
     {
-        PackageRestorer.Restore();
+        PackageRestorer.Restore(false);
     }
 
     [Test]
@@ -205,7 +205,7 @@ public class NuGetTests
     {
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
 
-        NugetPackageInstaller.InstallIdentifier(styleCopPlusId, installDependencies: false);
+        NugetPackageInstaller.InstallIdentifier(styleCopPlusId, isSlimRestoreInstall: true);
 
         // StyleCopPlus depends on StyleCop, so without 'installDependencies' they are both installed
         Assert.That(InstalledPackagesManager.InstalledPackages, Is.EquivalentTo(new[] { styleCopPlusId }));
@@ -750,6 +750,29 @@ public class NuGetTests
         expected = expected.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         var relativePath = PathHelper.GetRelativePath(UnityPathHelper.AbsoluteProjectPath, path);
         Assert.That(relativePath, Is.EqualTo(expected));
+    }
+
+    [Test]
+    [TestCase("Microsoft.Extensions.Logging", "7.0.0")]
+    public void TestSlimRestoreInstall(string packageId, string packageVersion)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+
+        Assume.That(InstalledPackagesManager.IsInstalled(package), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
+
+        var packagesConfigFile = new PackagesConfigFile();
+        packagesConfigFile.AddPackage(package);
+        packagesConfigFile.Save();
+
+        InstalledPackagesManager.ReloadPackagesConfig();
+        PackageRestorer.Restore(true);
+
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        Assert.IsTrue(
+            InstalledPackagesManager.InstalledPackages.Count() == 1,
+            "The dependencies WERE installed for package {0} {1}",
+            package.Id,
+            package.Version);
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)
