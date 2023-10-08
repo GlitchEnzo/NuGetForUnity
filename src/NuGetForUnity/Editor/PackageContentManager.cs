@@ -210,6 +210,11 @@ namespace NugetForUnity
         /// <param name="baseDir">The path of the directory under which the 'Sources' subdirectory should be placed.</param>
         internal static void ExtractPackageSources([NotNull] List<ZipArchiveEntry> entries, [NotNull] string baseDir)
         {
+            if (entries.Count == 0)
+            {
+                return;
+            }
+            
             var lastCommonDir = entries[0].FullName;
             lastCommonDir = lastCommonDir.Substring(0, lastCommonDir.LastIndexOf('/') + 1);
             for (var i = 1; i < entries.Count; ++i)
@@ -219,13 +224,13 @@ namespace NugetForUnity
                 {
                     if (entryFullName[j] != lastCommonDir[j])
                     {
-                        lastCommonDir = entryFullName.Substring(0, j);
+                        lastCommonDir = entryFullName.Substring(0, entryFullName.LastIndexOf('/', j) + 1);
                         break;
                     }
                 }
             }
 
-            var sourcesDirectory = Path.Combine(baseDir, "Sources").Replace('\\', '/');
+            var sourcesDirectory = Path.Combine(baseDir, "Sources");
             if (!Directory.Exists(sourcesDirectory))
             {
                 Directory.CreateDirectory(sourcesDirectory);

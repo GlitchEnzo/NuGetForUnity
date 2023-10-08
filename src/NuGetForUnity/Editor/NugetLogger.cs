@@ -19,7 +19,7 @@ namespace NugetForUnity
         /// <param name="args">The arguments for the formatted message string.</param>
         public static void LogVerbose([NotNull] string format, [CanBeNull] [ItemCanBeNull] params object[] args)
         {
-            if (ConfigurationManager.IsVerboseLoggingEnabled)
+            if (!ConfigurationManager.IsVerboseLoggingEnabled)
             {
                 return;
             }
