@@ -268,11 +268,11 @@ namespace NugetForUnity
                         // go through all content files' frameworks and figure the best target network, prioritizing 'cs' over 'any' language
                         if (csFiles.Count > 0)
                         {
-                            TryExtractBestFrameworkSources(csFiles, "any", package);
+                            TryExtractBestFrameworkSources(csFiles, baseDirectory, package);
                         }
                         else if (anyFiles.Count > 0)
                         {
-                            TryExtractBestFrameworkSources(anyFiles, "any", package);
+                            TryExtractBestFrameworkSources(anyFiles, baseDirectory, package);
                         }
                     }
                 }
