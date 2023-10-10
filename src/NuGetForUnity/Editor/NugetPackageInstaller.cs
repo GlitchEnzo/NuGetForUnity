@@ -242,11 +242,10 @@ namespace NugetForUnity
                             PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                         }
 
-                        KeyValuePair<string, List<ZipArchiveEntry>> bestFrameworkMatch;
                         // go through all lib zip entries and find the best target framework, then unpack it
                         if (libs.Count > 0)
                         {
-                            bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
+                            var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
                             if (bestFrameworkMatch.Value != null)
                             {
                                 NugetLogger.LogVerbose(
@@ -265,6 +264,7 @@ namespace NugetForUnity
                                     package);
                             }
                         }
+
                         // go through all content files' frameworks and figure the best target network, prioritizing 'cs' over 'any' language
                         if (csFiles.Count > 0)
                         {

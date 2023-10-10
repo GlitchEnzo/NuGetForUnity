@@ -214,7 +214,7 @@ namespace NugetForUnity
             {
                 return;
             }
-            
+
             var lastCommonDir = entries[0].FullName;
             lastCommonDir = lastCommonDir.Substring(0, lastCommonDir.LastIndexOf('/') + 1);
             for (var i = 1; i < entries.Count; ++i)
