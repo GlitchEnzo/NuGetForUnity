@@ -775,6 +775,37 @@ public class NuGetTests
             package.Version);
     }
 
+    [Test]
+    [TestCase("Microsoft.Azure.WebJobs.Sources", "3.0.37")]
+    [TestCase("NServiceBus.Testing.Fakes.Sources", "7.1.13")]
+    public void TestSourceCodePackageInstall(string packageId, string packageVersion)
+    {
+        var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
+        Assume.That(InstalledPackagesManager.IsInstalled(package), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
+
+        NugetPackageInstaller.InstallIdentifier(package);
+        Assert.IsTrue(
+            InstalledPackagesManager.IsInstalled(package),
+            "The package was NOT installed: {0} {1}",
+            package.Id,
+            package.Version);
+
+        var packageDirectory = Path.Combine(
+            ConfigurationManager.NugetConfigFile.RepositoryPath,
+            $"{package.Id}.{package.Version}");
+
+        Assert.That(Path.Combine(packageDirectory, "Sources"), Does.Exist);
+        Assert.That(Path.Combine(packageDirectory, "contentFiles"), Does.Not.Exist);
+
+        // cleanup and uninstall everything
+        NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+        Assert.IsFalse(
+            InstalledPackagesManager.IsInstalled(package),
+            "The package is STILL installed: {0} {1}",
+            package.Id,
+            package.Version);
+    }
+
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
         var nugetConfigFile = ConfigurationManager.NugetConfigFile;

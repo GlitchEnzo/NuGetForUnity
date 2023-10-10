@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using JetBrains.Annotations;
@@ -111,6 +112,14 @@ namespace NugetForUnity
         /// <returns>True if the file can be skipped, is not needed.</returns>
         internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
         {
+            if (path.EndsWith("/"))
+            {
+                // We do not want to extract empty directory entries. If there are empty directories within the .nupkg, we
+                // expect them to have a file named '_._' in them that indicates that it should be extracted, usually as a
+                // compatibility indicator (https://stackoverflow.com/questions/36338052/what-do-files-mean-in-nuget-packages)
+                return true;
+            }
+
             // skip directories & files that NuGet normally deletes
             if (path.StartsWith("_rels/", StringComparison.Ordinal) || path.Contains("/_rels/"))
             {
@@ -195,11 +204,51 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Extracts source files from a source code .nupkg <see cref="ZipArchive" /> into the <paramref name="baseDir" />/Sources.
+        /// </summary>
+        /// <param name="entries">The source file entries from the .nupkg zip file.</param>
+        /// <param name="baseDir">The path of the directory under which the 'Sources' subdirectory should be placed.</param>
+        internal static void ExtractPackageSources([NotNull] List<ZipArchiveEntry> entries, [NotNull] string baseDir)
+        {
+            if (entries.Count == 0)
+            {
+                return;
+            }
+
+            var lastCommonDir = entries[0].FullName;
+            lastCommonDir = lastCommonDir.Substring(0, lastCommonDir.LastIndexOf('/') + 1);
+            for (var i = 1; i < entries.Count; ++i)
+            {
+                var entryFullName = entries[i].FullName;
+                for (var j = 0; j < entryFullName.Length && j < lastCommonDir.Length; j++)
+                {
+                    if (entryFullName[j] != lastCommonDir[j])
+                    {
+                        lastCommonDir = entryFullName.Substring(0, entryFullName.LastIndexOf('/', j) + 1);
+                        break;
+                    }
+                }
+            }
+
+            var sourcesDirectory = Path.Combine(baseDir, "Sources");
+            if (!Directory.Exists(sourcesDirectory))
+            {
+                Directory.CreateDirectory(sourcesDirectory);
+            }
+
+            foreach (var entry in entries)
+            {
+                ExtractPackageEntry(entry, sourcesDirectory, lastCommonDir.Length);
+            }
+        }
+
+        /// <summary>
         ///     Extracts a file from a .nupkg <see cref="ZipArchive" /> into the <paramref name="baseDir" />.
         /// </summary>
         /// <param name="entry">The file entry from the .nupkg zip file.</param>
         /// <param name="baseDir">The path of the directory where the package output should be placed.</param>
-        internal static void ExtractPackageEntry([NotNull] ZipArchiveEntry entry, [NotNull] string baseDir)
+        /// <param name="skipEntryLength">Index to which we want to skip within path located in FullPath of 'entry' parameter.</param>
+        internal static void ExtractPackageEntry([NotNull] ZipArchiveEntry entry, [NotNull] string baseDir, int skipEntryLength = 0)
         {
             // Normalizes the path.
             baseDir = Path.GetFullPath(baseDir);
@@ -211,10 +260,16 @@ namespace NugetForUnity
             }
 
             // Gets the full path to ensure that relative segments are removed.
-            var filePath = Path.GetFullPath(Path.Combine(baseDir, entry.FullName));
+            var entryFullName = entry.FullName;
+            if (skipEntryLength > 0)
+            {
+                entryFullName = entryFullName.Substring(skipEntryLength);
+            }
+
+            var filePath = Path.GetFullPath(Path.Combine(baseDir, entryFullName));
             if (!filePath.StartsWith(baseDir, StringComparison.Ordinal))
             {
-                Debug.LogWarning($"Entry {entry.FullName} is trying to leave the output directory. We skip it.");
+                Debug.LogWarning($"Entry {entryFullName} is trying to leave the output directory. We skip it.");
                 return;
             }
 
