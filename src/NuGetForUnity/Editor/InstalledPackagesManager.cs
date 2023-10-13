@@ -207,10 +207,16 @@ namespace NugetForUnity
                 }
             }
 
-            // if the source code & assets for a package are pulled directly into the project (ex: via a symlink/junction) it should have a .nuspec defining the package
             var nuspecFiles = Directory.GetFiles(ConfigurationManager.NugetConfigFile.RepositoryPath, "*.nuspec", SearchOption.AllDirectories);
             foreach (var nuspecFile in nuspecFiles)
             {
+                var directoryName = Path.GetFileName(Path.GetDirectoryName(nuspecFile));
+                if (!string.IsNullOrEmpty(directoryName) && directoryName[0] == '.')
+                {
+                    // Skip nuspec files that are in directories starting with '.' since those are considered hidden and should be ignored.
+                    continue;
+                }
+
                 var package = NugetPackageLocal.FromNuspec(
                     NuspecFile.Load(nuspecFile),
                     new NugetPackageSourceLocal(
@@ -249,9 +255,9 @@ namespace NugetForUnity
             foreach (var folder in directories)
             {
                 var folderName = Path.GetFileName(folder);
-                if (folderName.Equals(".svn", StringComparison.OrdinalIgnoreCase))
+                if (folderName.StartsWith(".", StringComparison.Ordinal))
                 {
-                    // ignore folder required by SVN tool
+                    // ignore folders whose name starts with a dot because they are considered hidden
                     continue;
                 }
 
@@ -322,8 +328,8 @@ namespace NugetForUnity
             // remove a package as a root if another package is dependent on it
             foreach (var package in InstalledPackages)
             {
-                var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package);
-                foreach (var dependency in frameworkGroup.Dependencies)
+                var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                foreach (var dependency in frameworkDependencies)
                 {
                     roots.RemoveAll(p => p.Id == dependency.Id);
                 }

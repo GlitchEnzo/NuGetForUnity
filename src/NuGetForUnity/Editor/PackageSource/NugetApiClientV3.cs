@@ -288,7 +288,7 @@ namespace NugetForUnity.PackageSource
                     return new NugetFrameworkGroup
                     {
                         Dependencies = dependencyGroup.dependencies.ConvertAll(
-                            dependency => new NugetPackageIdentifier(
+                            dependency => (INugetPackageIdentifier)new NugetPackageIdentifier(
                                 dependency.id ??
                                 throw new InvalidOperationException(
                                     $"missing '{nameof(dependency.id)}' inside '{nameof(dependencyGroup.dependencies)}' for dependency group: '{dependencyGroup.targetFramework}'"),
@@ -321,7 +321,7 @@ namespace NugetForUnity.PackageSource
                 }
 
                 var versions = item.versions.ConvertAll(searchVersion => new NugetPackageVersion(searchVersion.version));
-                versions.Sort();
+                versions.Sort((v1, v2) => v2.CompareTo(v1));
                 packages.Add(
                     new NugetPackageV3(
                         item.id,

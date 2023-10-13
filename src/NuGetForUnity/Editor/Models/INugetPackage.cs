@@ -113,5 +113,11 @@ namespace NugetForUnity.Models
         /// </summary>
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         void DownloadNupkgToFile([NotNull] string outputFilePath);
+
+        /// <summary>
+        ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
+        /// </summary>
+        /// <returns>List of dependencies.</returns>
+        IReadOnlyList<INugetPackageIdentifier> GetFrameworkMatchingDependencies();
     }
 }

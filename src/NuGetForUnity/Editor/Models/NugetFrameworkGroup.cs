@@ -32,7 +32,7 @@ namespace NugetForUnity.Models
         public NugetFrameworkGroup()
         {
             TargetFramework = string.Empty;
-            Dependencies = new List<NugetPackageIdentifier>();
+            Dependencies = new List<INugetPackageIdentifier>();
         }
 
         /// <summary>
@@ -48,6 +48,6 @@ namespace NugetForUnity.Models
         [NotNull]
         [field: SerializeField]
         [SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Setter required for serialization.")]
-        public List<NugetPackageIdentifier> Dependencies { get; set; }
+        public List<INugetPackageIdentifier> Dependencies { get; set; }
     }
 }

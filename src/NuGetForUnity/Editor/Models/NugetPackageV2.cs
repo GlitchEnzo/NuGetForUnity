@@ -16,6 +16,10 @@ namespace NugetForUnity.Models
         [SerializeField]
         private NugetPackageSourceV2 packageSourceV2;
 
+        [CanBeNull]
+        [SerializeField]
+        private List<NugetPackageVersion> versions;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV2" /> class.
         /// </summary>
@@ -29,7 +33,18 @@ namespace NugetForUnity.Models
         public override INugetPackageSource PackageSource => packageSourceV2;
 
         /// <inheritdoc />
-        public override List<NugetPackageVersion> Versions => new List<NugetPackageVersion> { PackageVersion };
+        public override List<NugetPackageVersion> Versions
+        {
+            get
+            {
+                if (versions == null)
+                {
+                    versions = new List<NugetPackageVersion> { PackageVersion };
+                }
+
+                return versions;
+            }
+        }
 
         /// <summary>
         ///     Creates a new <see cref="NugetPackageLocal" /> from the given <see cref="NuspecFile" />.

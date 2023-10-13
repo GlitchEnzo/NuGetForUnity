@@ -217,17 +217,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Select the best target-framework group of a NuGet package.
-        /// </summary>
-        /// <param name="package">The package of witch the dependencies are selected.</param>
-        /// <returns>The selected target framework group or a empty group if non is matching.</returns>
-        [NotNull]
-        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings([NotNull] INugetPackage package)
-        {
-            return GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-        }
-
-        /// <summary>
         ///     Select the best target-framework name.
         /// </summary>
         /// <param name="targetFrameworks">The available frameworks.</param>

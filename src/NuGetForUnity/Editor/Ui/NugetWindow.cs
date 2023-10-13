@@ -15,6 +15,15 @@ using Debug = UnityEngine.Debug;
 
 namespace NugetForUnity.Ui
 {
+    public enum NugetWindowTab
+    {
+        OnlineTab = 0,
+
+        InstalledTab = 1,
+
+        UpdatesTab = 2,
+    }
+
     /// <summary>
     ///     Represents the NuGet Package Manager Window in the Unity Editor.
     /// </summary>
@@ -67,7 +76,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The currently selected tab in the window.
         /// </summary>
-        private int currentTab;
+        private NugetWindowTab currentTab;
 
         /// <summary>
         ///     The default icon to display for packages.
@@ -128,6 +137,11 @@ namespace NugetForUnity.Ui
         ///     True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
         private bool showPrereleaseUpdates;
+
+        /// <summary>
+        ///     True to show downgrades of package version instead of updates.
+        /// </summary>
+        private bool showDowngrades;
 
         /// <summary>
         ///     The list of package updates available, based on the already installed packages.
@@ -250,7 +264,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         protected void OnGUI()
         {
-            var selectedTab = GUILayout.Toolbar(currentTab, tabTitles);
+            var selectedTab = (NugetWindowTab)GUILayout.Toolbar((int)currentTab, tabTitles);
 
             if (selectedTab != currentTab)
             {
@@ -261,13 +275,13 @@ namespace NugetForUnity.Ui
 
             switch (currentTab)
             {
-                case 0:
+                case NugetWindowTab.OnlineTab:
                     DrawOnline();
                     break;
-                case 1:
+                case NugetWindowTab.InstalledTab:
                     DrawInstalled();
                     break;
-                case 2:
+                case NugetWindowTab.UpdatesTab:
                     DrawUpdates();
                     break;
             }
@@ -504,6 +518,7 @@ namespace NugetForUnity.Ui
         {
             // get any available updates for the installed packages
             updatePackages = ConfigurationManager.GetUpdates(InstalledPackagesManager.InstalledPackages, showPrereleaseUpdates);
+            versionDropdownDataPerPackage.Clear();
         }
 
         private void OnTabChanged()
@@ -643,9 +658,10 @@ namespace NugetForUnity.Ui
 
             foreach (var package in packages)
             {
-                EditorGUILayout.BeginVertical(backgroundStyle);
-                DrawPackage(package, backgroundStyle, contrastStyle, canBeSelected);
-                EditorGUILayout.EndVertical();
+                using (new EditorGUILayout.VerticalScope(backgroundStyle))
+                {
+                    DrawPackage(package, backgroundStyle, contrastStyle, canBeSelected);
+                }
 
                 // swap styles
                 (backgroundStyle, contrastStyle) = (contrastStyle, backgroundStyle);
@@ -778,9 +794,16 @@ namespace NugetForUnity.Ui
                         UpdateUpdatePackages();
                     }
 
+                    var showDowngradesTemp = EditorGUILayout.Toggle("Show Downgrades", showDowngrades);
+                    if (showDowngradesTemp != showDowngrades)
+                    {
+                        showDowngrades = showDowngradesTemp;
+                        UpdateUpdatePackages();
+                    }
+
                     if (updatePackages.Count > 0)
                     {
-                        if (GUILayout.Button("Update All", GUILayout.Width(100)))
+                        if (!showDowngrades && GUILayout.Button("Update All", GUILayout.Width(100)))
                         {
                             NugetPackageUpdater.UpdateAll(updatePackages, InstalledPackagesManager.InstalledPackages);
                             UpdateInstalledPackages();
@@ -789,7 +812,7 @@ namespace NugetForUnity.Ui
 
                         if (updatePackages.Any(selectedPackages.Contains))
                         {
-                            if (GUILayout.Button("Update Selected", GUILayout.Width(120)))
+                            if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", GUILayout.Width(120)))
                             {
                                 NugetPackageUpdater.UpdateAll(
                                     updatePackages.Where(selectedPackages.Contains),
@@ -849,14 +872,24 @@ namespace NugetForUnity.Ui
             var installedPackages = InstalledPackagesManager.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
 
-            EditorGUILayout.BeginHorizontal();
+            // if we are on the update tab, we do not want to show packages that have no updates if we're showing updates; similarly, we do not
+            // show packages that are on the lowest possible version if we're showing downgrades
+            if (currentTab == NugetWindowTab.UpdatesTab &&
+                installed != null &&
+                (showDowngrades && installed.PackageVersion <= package.Versions[package.Versions.Count - 1] ||
+                    !showDowngrades && installed.PackageVersion >= package.Versions[0]))
+            {
+                return;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
             {
                 // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
                 // Every time you use a Horizontal block, Unity appears to divide the space evenly.
                 // (i.e. 2 components have half of the window width, 3 components have a third of the window width, etc)
                 // GUILayoutUtility.GetRect is SUPPOSED to return a rect with the given height and width, but in the GUI layout.  It doesn't.
                 // We have to use GUILayoutUtility to get SOME rect properties, but then manually calculate others.
-                EditorGUILayout.BeginHorizontal();
+                using (new EditorGUILayout.HorizontalScope())
                 {
                     const int iconSize = 32;
                     var paddingX = Math.Max(EditorStyles.label.padding.horizontal, 3);
@@ -934,44 +967,71 @@ namespace NugetForUnity.Ui
                 }
 
                 GUILayout.FlexibleSpace();
-                if (installed != null && installed.PackageVersion != package.PackageVersion)
+
+                // Show the installed version of the package if it exists
+                if (installed != null)
                 {
-                    GUILayout.Label($"Current Version {installed.PackageVersion.FullVersion}");
+                    GUILayout.Label($"Installed Version: {installed.PackageVersion.FullVersion}");
                 }
 
-                if (package.Versions.Count <= 1)
+                // Show the version selection dropdown only on Updates tab OR on Online tab if the package is not installed and not already in Unity
+                if (currentTab == NugetWindowTab.UpdatesTab ||
+                    currentTab == NugetWindowTab.OnlineTab && installed == null && !UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(
+                        package,
+                        false))
                 {
-                    GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
-                }
-                else
-                {
-                    if (!versionDropdownDataPerPackage.TryGetValue(package.Id, out var versionDropdownData))
+                    if (package.Versions.Count <= 1)
                     {
-                        EditorStyles.popup.CalcMinMaxWidth(
-                            new GUIContent(
-                                package.Versions.Select(version => version.FullVersion).OrderByDescending(version => version.Length).First()),
-                            out _,
-                            out var maxWidth);
-                        versionDropdownData = new VersionDropdownData
-                        {
-                            SortedVersions = package.Versions.OrderByDescending(version => version).ToList(), CalculatedMaxWith = maxWidth + 5,
-                        };
-                        versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
-                        versionDropdownData.SelectedIndex = versionDropdownData.SortedVersions.IndexOf(package.PackageVersion);
-                        versionDropdownDataPerPackage.Add(package.Id, versionDropdownData);
+                        GUILayout.Label($"Version {package.PackageVersion.FullVersion}");
                     }
+                    else
+                    {
+                        if (!versionDropdownDataPerPackage.TryGetValue(package.Id, out var versionDropdownData))
+                        {
+                            EditorStyles.popup.CalcMinMaxWidth(
+                                new GUIContent(
+                                    package.Versions.Select(version => version.FullVersion).OrderByDescending(version => version.Length).First()),
+                                out _,
+                                out var maxWidth);
 
-                    GUILayout.Label("Version");
-                    versionDropdownData.SelectedIndex = EditorGUILayout.Popup(
-                        versionDropdownData.SelectedIndex,
-                        versionDropdownData.DropdownOptions,
-                        GUILayout.Width(versionDropdownData.CalculatedMaxWith));
-                    package.PackageVersion = versionDropdownData.SortedVersions[versionDropdownData.SelectedIndex];
+                            if (installed != null)
+                            {
+                                // we're showing only lower or only higher versions, depending on the 'Show Downgrades' checkbox.
+                                // This can only happen in Updates tab.
+                                if (showDowngrades)
+                                {
+                                    package.Versions.RemoveAll(version => version >= installed.PackageVersion);
+                                }
+                                else
+                                {
+                                    package.Versions.RemoveAll(version => version <= installed.PackageVersion);
+                                }
+                            }
+
+                            versionDropdownData = new VersionDropdownData { SortedVersions = package.Versions, CalculatedMaxWith = maxWidth + 5, };
+
+                            versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
+
+                            // Show the highest available update/downgrade first
+                            versionDropdownData.SelectedIndex = 0;
+                            versionDropdownDataPerPackage.Add(package.Id, versionDropdownData);
+                        }
+
+                        if (versionDropdownData.SortedVersions.Count > 0)
+                        {
+                            GUILayout.Label("Version");
+                            versionDropdownData.SelectedIndex = EditorGUILayout.Popup(
+                                versionDropdownData.SelectedIndex,
+                                versionDropdownData.DropdownOptions,
+                                GUILayout.Width(versionDropdownData.CalculatedMaxWith));
+                            package.PackageVersion = versionDropdownData.SortedVersions[versionDropdownData.SelectedIndex];
+                        }
+                    }
                 }
 
                 if (installed != null)
                 {
-                    if (!installed.IsManuallyInstalled)
+                    if (currentTab == NugetWindowTab.InstalledTab && !installed.IsManuallyInstalled)
                     {
                         if (GUILayout.Button("Add as explicit"))
                         {
@@ -980,29 +1040,32 @@ namespace NugetForUnity.Ui
                         }
                     }
 
-                    var versionComparison = installed.PackageVersion.CompareTo(package.PackageVersion);
-                    if (versionComparison < 0)
+                    if (currentTab == NugetWindowTab.UpdatesTab)
                     {
-                        // An older version is installed
-                        if (GUILayout.Button("Update"))
+                        var versionComparison = installed.PackageVersion.CompareTo(package.PackageVersion);
+                        if (versionComparison < 0)
                         {
-                            NugetPackageUpdater.Update(installed, package);
-                            UpdateInstalledPackages();
-                            UpdateUpdatePackages();
+                            // An older version is installed
+                            if (GUILayout.Button("Update"))
+                            {
+                                NugetPackageUpdater.Update(installed, package);
+                                UpdateInstalledPackages();
+                                UpdateUpdatePackages();
+                            }
                         }
-                    }
-                    else if (versionComparison > 0)
-                    {
-                        // A newer version is installed
-                        if (GUILayout.Button("Downgrade"))
+                        else if (versionComparison > 0)
                         {
-                            NugetPackageUpdater.Update(installed, package);
-                            UpdateInstalledPackages();
-                            UpdateUpdatePackages();
+                            // A newer version is installed
+                            if (GUILayout.Button("Downgrade"))
+                            {
+                                NugetPackageUpdater.Update(installed, package);
+                                UpdateInstalledPackages();
+                                UpdateUpdatePackages();
+                            }
                         }
                     }
 
-                    if (GUILayout.Button("Uninstall"))
+                    if (currentTab == NugetWindowTab.InstalledTab && GUILayout.Button("Uninstall"))
                     {
                         NugetPackageUninstaller.Uninstall(installed);
                         UpdateInstalledPackages();
@@ -1023,16 +1086,12 @@ namespace NugetForUnity.Ui
                         }
                     }
                 }
-
-                EditorGUILayout.EndHorizontal();
             }
 
-            EditorGUILayout.EndHorizontal();
-
             EditorGUILayout.Space();
-            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.BeginVertical();
+                using (new EditorGUILayout.VerticalScope())
                 {
                     // Show the package details
                     EditorStyles.label.wordWrap = true;
@@ -1091,14 +1150,14 @@ namespace NugetForUnity.Ui
                         // Show the dependencies
                         if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-                            if (frameworkGroup.Dependencies.Count > 0)
+                            var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                            if (frameworkDependencies.Count > 0)
                             {
                                 EditorStyles.label.wordWrap = true;
                                 EditorStyles.label.fontStyle = FontStyle.Italic;
                                 var builder = new StringBuilder();
 
-                                foreach (var dependency in frameworkGroup.Dependencies)
+                                foreach (var dependency in frameworkDependencies)
                                 {
                                     builder.Append($" {dependency.Id} {dependency.Version};");
                                 }
@@ -1127,13 +1186,13 @@ namespace NugetForUnity.Ui
                         var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle) { padding = new RectOffset(6, 6, 2, 6) };
 
                         // Show button bar
-                        EditorGUILayout.BeginHorizontal();
+                        using (new EditorGUILayout.HorizontalScope())
                         {
                             if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
                             {
                                 if (!string.IsNullOrEmpty(package.RepositoryUrl))
                                 {
-                                    EditorGUILayout.BeginHorizontal(cloneButtonBoxStyle);
+                                    using (new EditorGUILayout.HorizontalScope())
                                     {
                                         var cloneButtonStyle = new GUIStyle(GUI.skin.button);
                                         cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
@@ -1151,40 +1210,36 @@ namespace NugetForUnity.Ui
                                             openCloneWindows.Remove(package);
                                         }
                                     }
-
-                                    EditorGUILayout.EndHorizontal();
                                 }
                             }
 
                             if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
                             {
                                 // Create a box around the license button to keep it aligned with Clone button
-                                EditorGUILayout.BeginHorizontal(normalButtonBoxStyle);
-
-                                // Show the license button
-                                if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
+                                using (new EditorGUILayout.HorizontalScope(normalButtonBoxStyle))
                                 {
-                                    Application.OpenURL(package.LicenseUrl);
+                                    // Show the license button
+                                    if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
+                                    {
+                                        Application.OpenURL(package.LicenseUrl);
+                                    }
                                 }
-
-                                EditorGUILayout.EndHorizontal();
                             }
                         }
 
-                        EditorGUILayout.EndHorizontal();
-
                         if (showCloneWindow)
                         {
-                            EditorGUILayout.BeginVertical(cloneWindowStyle);
+                            using (new EditorGUILayout.VerticalScope(cloneWindowStyle))
                             {
                                 // Clone latest label
-                                EditorGUILayout.BeginHorizontal();
-                                GUILayout.Space(20f);
-                                EditorGUILayout.LabelField("clone latest");
-                                EditorGUILayout.EndHorizontal();
+                                using (new EditorGUILayout.HorizontalScope())
+                                {
+                                    GUILayout.Space(20f);
+                                    EditorGUILayout.LabelField("clone latest");
+                                }
 
                                 // Clone latest row
-                                EditorGUILayout.BeginHorizontal();
+                                using (new EditorGUILayout.HorizontalScope())
                                 {
                                     if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
                                     {
@@ -1196,17 +1251,16 @@ namespace NugetForUnity.Ui
                                     EditorGUILayout.TextField(package.RepositoryUrl);
                                 }
 
-                                EditorGUILayout.EndHorizontal();
-
                                 // Clone @ commit label
                                 GUILayout.Space(4f);
-                                EditorGUILayout.BeginHorizontal();
-                                GUILayout.Space(20f);
-                                EditorGUILayout.LabelField("clone @ commit");
-                                EditorGUILayout.EndHorizontal();
+                                using (new EditorGUILayout.HorizontalScope())
+                                {
+                                    GUILayout.Space(20f);
+                                    EditorGUILayout.LabelField("clone @ commit");
+                                }
 
                                 // Clone @ commit row
-                                EditorGUILayout.BeginHorizontal();
+                                using (new EditorGUILayout.HorizontalScope())
                                 {
                                     // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
                                     var commands = string.Format(
@@ -1225,16 +1279,13 @@ namespace NugetForUnity.Ui
                                         GUIUtility.systemCopyBuffer = commands + Environment.NewLine;
                                     }
 
-                                    EditorGUILayout.BeginVertical();
-                                    GUI.SetNextControlName(package.Id + package.Version + "commands");
-                                    EditorGUILayout.TextArea(commands);
-                                    EditorGUILayout.EndVertical();
+                                    using (new EditorGUILayout.VerticalScope())
+                                    {
+                                        GUI.SetNextControlName(package.Id + package.Version + "commands");
+                                        EditorGUILayout.TextArea(commands);
+                                    }
                                 }
-
-                                EditorGUILayout.EndHorizontal();
                             }
-
-                            EditorGUILayout.EndVertical();
                         }
 
                         EditorGUI.indentLevel--;
@@ -1243,11 +1294,7 @@ namespace NugetForUnity.Ui
                     EditorGUILayout.Separator();
                     EditorGUILayout.Separator();
                 }
-
-                EditorGUILayout.EndVertical();
             }
-
-            EditorGUILayout.EndHorizontal();
         }
 
         private sealed class VersionDropdownData

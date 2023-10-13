@@ -57,6 +57,11 @@ namespace NugetForUnity.Models
         [NotNull]
         private NugetPackageSourceV3 packageSource;
 
+        [ItemNotNull]
+        [CanBeNull]
+        [NonSerialized]
+        private IReadOnlyList<INugetPackageIdentifier> frameworkMatchingDependencies;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.
         /// </summary>
@@ -202,6 +207,16 @@ namespace NugetForUnity.Models
         public void DownloadNupkgToFile(string outputFilePath)
         {
             packageSource.DownloadNupkgToFile(this, outputFilePath, null);
+        }
+
+        public IReadOnlyList<INugetPackageIdentifier> GetFrameworkMatchingDependencies()
+        {
+            if (frameworkMatchingDependencies == null)
+            {
+                frameworkMatchingDependencies = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
+            }
+
+            return frameworkMatchingDependencies;
         }
 
         /// <inheritdoc />

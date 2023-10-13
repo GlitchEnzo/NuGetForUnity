@@ -91,8 +91,8 @@ namespace NugetForUnity.Ui
                         var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-                            foreach (var dependency in frameworkGroup.Dependencies)
+                            var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                            foreach (var dependency in frameworkDependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
                                 {
@@ -200,8 +200,8 @@ namespace NugetForUnity.Ui
                 {
                     EditorGUI.indentLevel++;
 
-                    var frameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-                    foreach (var dependency in frameworkGroup.Dependencies)
+                    var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                    foreach (var dependency in frameworkDependencies)
                     {
                         DrawDependency(dependency);
                     }
