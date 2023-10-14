@@ -193,7 +193,8 @@ namespace NugetForUnity
                                 var secondSlashIndex = entryFullName.IndexOf('/', frameworkStartIndex);
                                 if (secondSlashIndex == -1)
                                 {
-                                    // a file inside lib folder -> we skip it
+                                    // a file inside lib folder -> we keep it. This is to support packages that have no framework dependent sub directories.
+                                    PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                                     continue;
                                 }
 
@@ -333,7 +334,10 @@ namespace NugetForUnity
             }
         }
 
-        private static void FillFrameworkZipEntries(IDictionary<string, List<ZipArchiveEntry>> frameworkZipEntries, string framework, ZipArchiveEntry entry)
+        private static void FillFrameworkZipEntries(
+            IDictionary<string, List<ZipArchiveEntry>> frameworkZipEntries,
+            string framework,
+            ZipArchiveEntry entry)
         {
             if (!frameworkZipEntries.TryGetValue(framework, out var entryList))
             {

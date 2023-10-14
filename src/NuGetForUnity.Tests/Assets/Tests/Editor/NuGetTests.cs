@@ -383,6 +383,30 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallBouncyCastleTest([Values] InstallMode installMode)
+    {
+        ConfigureNugetConfig(installMode);
+
+        // BouncyCastle has no sup directory inside the lib folder. The .dll is stored at 'lib/BouncyCastle.Crypto.dll'.
+        var bouncyCastle = new NugetPackageIdentifier("BouncyCastle", "1.8.9") { IsManuallyInstalled = true };
+
+        // install the package
+        NugetPackageInstaller.InstallIdentifier(bouncyCastle);
+        Assert.IsTrue(
+            InstalledPackagesManager.IsInstalled(bouncyCastle),
+            "The package was NOT installed: {0} {1}",
+            bouncyCastle.Id,
+            bouncyCastle.Version);
+
+        var dllFilePath = Path.Combine(
+            ConfigurationManager.NugetConfigFile.RepositoryPath,
+            $"{bouncyCastle.Id}.{bouncyCastle.Version}",
+            "lib",
+            "BouncyCastle.Crypto.dll");
+        Assert.That(dllFilePath, Does.Exist.IgnoreDirectories);
+    }
+
+    [Test]
     [TestCase("1.0.0-rc1", "1.0.0")]
     [TestCase("1.0.0-rc1", "1.0.0-rc2")]
     [TestCase("1.2.3", "1.2.4")]
@@ -784,26 +808,16 @@ public class NuGetTests
         Assume.That(InstalledPackagesManager.IsInstalled(package), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
         NugetPackageInstaller.InstallIdentifier(package);
-        Assert.IsTrue(
-            InstalledPackagesManager.IsInstalled(package),
-            "The package was NOT installed: {0} {1}",
-            package.Id,
-            package.Version);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package), "The package was NOT installed: {0} {1}", package.Id, package.Version);
 
-        var packageDirectory = Path.Combine(
-            ConfigurationManager.NugetConfigFile.RepositoryPath,
-            $"{package.Id}.{package.Version}");
+        var packageDirectory = Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
 
         Assert.That(Path.Combine(packageDirectory, "Sources"), Does.Exist);
         Assert.That(Path.Combine(packageDirectory, "contentFiles"), Does.Not.Exist);
 
         // cleanup and uninstall everything
         NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
-        Assert.IsFalse(
-            InstalledPackagesManager.IsInstalled(package),
-            "The package is STILL installed: {0} {1}",
-            package.Id,
-            package.Version);
+        Assert.IsFalse(InstalledPackagesManager.IsInstalled(package), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)
