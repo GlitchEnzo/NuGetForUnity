@@ -328,7 +328,7 @@ namespace NugetForUnity
             // remove a package as a root if another package is dependent on it
             foreach (var package in InstalledPackages)
             {
-                var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                var frameworkDependencies = package.CurrentFrameworkMatchingDependencies;
                 foreach (var dependency in frameworkDependencies)
                 {
                     roots.RemoveAll(p => p.Id == dependency.Id);

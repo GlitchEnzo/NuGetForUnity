@@ -91,7 +91,7 @@ namespace NugetForUnity.Ui
                         var selectedPackage = installedPackages[selectedPackageIndex];
                         foreach (var package in installedPackages)
                         {
-                            var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                            var frameworkDependencies = package.CurrentFrameworkMatchingDependencies;
                             foreach (var dependency in frameworkDependencies)
                             {
                                 if (dependency.Id == selectedPackage.Id)
@@ -200,7 +200,7 @@ namespace NugetForUnity.Ui
                 {
                     EditorGUI.indentLevel++;
 
-                    var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                    var frameworkDependencies = package.CurrentFrameworkMatchingDependencies;
                     foreach (var dependency in frameworkDependencies)
                     {
                         DrawDependency(dependency);

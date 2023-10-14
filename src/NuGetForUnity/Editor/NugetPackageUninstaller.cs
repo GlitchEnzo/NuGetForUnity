@@ -39,7 +39,7 @@ namespace NugetForUnity
             PackageContentManager.DeletePackageContentPackage(foundPackage);
 
             // uninstall all non manually installed dependencies that are not a dependency of another installed package
-            var frameworkDependencies = foundPackage.GetFrameworkMatchingDependencies();
+            var frameworkDependencies = foundPackage.CurrentFrameworkMatchingDependencies;
             foreach (var dependency in frameworkDependencies)
             {
                 if (InstalledPackagesManager.GetManuallyInstalledFlagFromConfiguration(dependency.Id))
@@ -48,7 +48,7 @@ namespace NugetForUnity
                 }
 
                 var hasMoreParents = InstalledPackagesManager.InstalledPackages.SelectMany(
-                    installedPackage => installedPackage.GetFrameworkMatchingDependencies()).Any(dep => dep.Id == dependency.Id);
+                    installedPackage => installedPackage.CurrentFrameworkMatchingDependencies).Any(dep => dep.Id == dependency.Id);
 
                 if (!hasMoreParents)
                 {

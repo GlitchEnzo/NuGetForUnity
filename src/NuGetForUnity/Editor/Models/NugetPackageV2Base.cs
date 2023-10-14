@@ -140,6 +140,21 @@ namespace NugetForUnity.Models
         }
 
         /// <inheritdoc />
+        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies
+        {
+            get
+            {
+                if (frameworkMatchingDependencies == null)
+                {
+                    frameworkMatchingDependencies =
+                        TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
+                }
+
+                return frameworkMatchingDependencies;
+            }
+        }
+
+        /// <inheritdoc />
         public Task<List<NugetFrameworkGroup>> GetDependenciesAsync()
         {
             return Task.FromResult(Dependencies);
@@ -149,16 +164,6 @@ namespace NugetForUnity.Models
         public void DownloadNupkgToFile(string outputFilePath)
         {
             PackageSource.DownloadNupkgToFile(this, outputFilePath, DownloadUrl);
-        }
-
-        public IReadOnlyList<INugetPackageIdentifier> GetFrameworkMatchingDependencies()
-        {
-            if (frameworkMatchingDependencies == null)
-            {
-                frameworkMatchingDependencies = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
-            }
-
-            return frameworkMatchingDependencies;
         }
 
         /// <inheritdoc />

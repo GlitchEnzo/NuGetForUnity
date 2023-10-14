@@ -312,14 +312,13 @@ namespace NugetForUnity.PackageSource
             var sb = new StringBuilder();
             sb.Append(lastPackage.PackageVersion).Append(": ").Append(lastPackage.ReleaseNotes);
             var lastReleaseNotes = lastPackage.ReleaseNotes;
-            for (var i = 1; i < updates.Count; i++)
+            foreach (var nextPackage in updates.Skip(1))
             {
-                var nextPackage = updates[i];
                 if (string.Equals(lastPackage.Id, nextPackage.Id, StringComparison.Ordinal))
                 {
                     lastPackage.Versions.Add(nextPackage.PackageVersion);
-                    if (nextPackage.ReleaseNotes != null &&
-                        (lastReleaseNotes == null || !string.Equals(lastReleaseNotes, nextPackage.ReleaseNotes, StringComparison.Ordinal)))
+                    if (!string.IsNullOrEmpty(nextPackage.ReleaseNotes) &&
+                        !string.Equals(lastReleaseNotes, nextPackage.ReleaseNotes, StringComparison.Ordinal))
                     {
                         sb.Insert(0, "\n").Insert(0, nextPackage.ReleaseNotes).Insert(0, ": ").Insert(0, nextPackage.PackageVersion);
                     }

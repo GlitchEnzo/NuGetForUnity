@@ -518,7 +518,6 @@ namespace NugetForUnity.Ui
         {
             // get any available updates for the installed packages
             updatePackages = ConfigurationManager.GetUpdates(InstalledPackagesManager.InstalledPackages, showPrereleaseUpdates);
-            versionDropdownDataPerPackage.Clear();
         }
 
         private void OnTabChanged()
@@ -797,8 +796,8 @@ namespace NugetForUnity.Ui
                     var showDowngradesTemp = EditorGUILayout.Toggle("Show Downgrades", showDowngrades);
                     if (showDowngradesTemp != showDowngrades)
                     {
+                        versionDropdownDataPerPackage.Clear();
                         showDowngrades = showDowngradesTemp;
-                        UpdateUpdatePackages();
                     }
 
                     if (updatePackages.Count > 0)
@@ -876,6 +875,7 @@ namespace NugetForUnity.Ui
             // show packages that are on the lowest possible version if we're showing downgrades
             if (currentTab == NugetWindowTab.UpdatesTab &&
                 installed != null &&
+                package.Versions.Count >= 1 &&
                 (showDowngrades && installed.PackageVersion <= package.Versions[package.Versions.Count - 1] ||
                     !showDowngrades && installed.PackageVersion >= package.Versions[0]))
             {
@@ -994,23 +994,11 @@ namespace NugetForUnity.Ui
                                 out _,
                                 out var maxWidth);
 
-                            if (installed != null)
-                            {
-                                // we're showing only lower or only higher versions, depending on the 'Show Downgrades' checkbox.
-                                // This can only happen in Updates tab.
-                                if (showDowngrades)
-                                {
-                                    package.Versions.RemoveAll(version => version >= installed.PackageVersion);
-                                }
-                                else
-                                {
-                                    package.Versions.RemoveAll(version => version <= installed.PackageVersion);
-                                }
-                            }
-
                             versionDropdownData = new VersionDropdownData { SortedVersions = package.Versions, CalculatedMaxWith = maxWidth + 5, };
 
-                            versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
+                            versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions
+                                .FindAll(version => installed == null || (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion))
+                                .Select(version => version.FullVersion).ToArray();
 
                             // Show the highest available update/downgrade first
                             versionDropdownData.SelectedIndex = 0;
@@ -1150,7 +1138,7 @@ namespace NugetForUnity.Ui
                         // Show the dependencies
                         if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            var frameworkDependencies = package.GetFrameworkMatchingDependencies();
+                            var frameworkDependencies = package.CurrentFrameworkMatchingDependencies;
                             if (frameworkDependencies.Count > 0)
                             {
                                 EditorStyles.label.wordWrap = true;
