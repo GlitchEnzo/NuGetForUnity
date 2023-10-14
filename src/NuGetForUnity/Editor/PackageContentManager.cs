@@ -108,7 +108,6 @@ namespace NugetForUnity
         ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
         ///     platforms.
         /// </param>
-        /// <param name="packageId">The id of the package that is extracted.</param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
         internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
         {
@@ -207,7 +206,7 @@ namespace NugetForUnity
         ///     Extracts source files from a source code .nupkg <see cref="ZipArchive" /> into the <paramref name="baseDir" />/Sources.
         /// </summary>
         /// <param name="entries">The source file entries from the .nupkg zip file.</param>
-        /// <param name="baseDir">The path of the directory under which the 'Sources' subdirectory should be placed.</param>
+        /// <param name="baseDir">The path of the directory under which the 'Sources' sub-directory should be placed.</param>
         internal static void ExtractPackageSources([NotNull] List<ZipArchiveEntry> entries, [NotNull] string baseDir)
         {
             if (entries.Count == 0)
