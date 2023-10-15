@@ -184,7 +184,7 @@ namespace NugetForUnity.Ui
             {
                 DrawPackage(fullDependency);
             }
-            else if (!InstalledPackagesManager.IsInstalled(dependency))
+            else if (!InstalledPackagesManager.IsInstalled(dependency, true))
             {
                 Debug.LogErrorFormat("{0} {1} is not installed!", dependency.Id, dependency.Version);
             }
