@@ -558,7 +558,7 @@ namespace NugetForUnity.PackageSource
             }
         }
 
-        private class QueryBuilder
+        private sealed class QueryBuilder
         {
             private readonly StringBuilder builder = new StringBuilder();
 
@@ -591,7 +591,7 @@ namespace NugetForUnity.PackageSource
 #pragma warning disable SA1401 // Fields should be private
 
         [Serializable]
-        private class IndexResponse
+        private sealed class IndexResponse
         {
             [CanBeNull]
             public List<Resource> resources;
@@ -601,7 +601,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Resource
+        private sealed class Resource
         {
             [CanBeNull]
             public string atId;
@@ -617,7 +617,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationResponse
+        private sealed class RegistrationResponse
         {
             /// <summary>
             ///     The number of registration pages in the index.
@@ -632,7 +632,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationPageObject
+        private sealed class RegistrationPageObject
         {
             /// <summary>
             ///     The URL to the registration page.
@@ -667,7 +667,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationLeafObject
+        private sealed class RegistrationLeafObject
         {
             /// <summary>
             ///     The URL to the registration leaf.
@@ -692,7 +692,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class CatalogEntry
+        private sealed class CatalogEntry
         {
             /// <summary>
             ///     The URL to the document used to produce this object.
@@ -784,7 +784,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class DependencyGroup
+        private sealed class DependencyGroup
         {
             [CanBeNull]
             public List<Dependency> dependencies;
@@ -796,7 +796,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Dependency
+        private sealed class Dependency
         {
             /// <summary>
             ///     The ID of the package dependency.
@@ -818,7 +818,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Deprecation
+        private sealed class Deprecation
         {
             /// <summary>
             ///     The additional details about this deprecation.
@@ -834,7 +834,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Vulnerability
+        private sealed class Vulnerability
         {
             /// <summary>
             ///     Location of security advisory for the package.
@@ -850,7 +850,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResult
+        private sealed class SearchResult
         {
             /// <summary>
             ///     The search results matched by the request.
@@ -865,7 +865,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResultItem
+        private sealed class SearchResultItem
         {
             [CanBeNull]
             public List<string> authors;
@@ -930,7 +930,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResultVersion
+        private sealed class SearchResultVersion
         {
             /// <summary>
             ///     The number of downloads for this specific package version.

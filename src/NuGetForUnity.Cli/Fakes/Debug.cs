@@ -1,6 +1,8 @@
 ﻿#nullable enable
 
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace UnityEngine
 {
@@ -49,7 +51,8 @@ namespace UnityEngine
             Console.Error.WriteLine(e.ToString());
         }
 
-        internal static void Assert(bool condition, string message)
+        [Conditional("DEBUG")]
+        internal static void Assert([DoesNotReturnIf(false)] bool condition, string message)
         {
             System.Diagnostics.Debug.Assert(condition, message);
         }
