@@ -177,7 +177,7 @@ namespace NugetForUnity.Configuration
                         var updateSearchBatchSizeString = add.Attribute(UpdateSearchBatchSizeAttributeName)?.Value;
                         if (!string.IsNullOrEmpty(updateSearchBatchSizeString))
                         {
-                            sourceV3.UpdateSearchBatchSize = Math.Clamp(int.Parse(updateSearchBatchSizeString), 1, int.MaxValue);
+                            sourceV3.UpdateSearchBatchSize = Mathf.Clamp(int.Parse(updateSearchBatchSizeString), 1, int.MaxValue);
                         }
                     }
 
