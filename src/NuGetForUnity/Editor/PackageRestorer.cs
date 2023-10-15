@@ -13,7 +13,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Restores all packages defined in packages.config.
         /// </summary>
-        /// <param name="slimRestore">True if we want to skip installing dependencies and checking if the lib is imported in Unity</param>
+        /// <param name="slimRestore">True if we want to skip installing dependencies and checking if the lib is imported in Unity.</param>
         public static void Restore(bool slimRestore)
         {
             InstalledPackagesManager.UpdateInstalledPackages();

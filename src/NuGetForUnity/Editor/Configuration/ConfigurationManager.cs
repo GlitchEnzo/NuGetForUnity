@@ -124,7 +124,11 @@ namespace NugetForUnity.Configuration
                     }
                     else
                     {
-                        var source = NugetPackageSourceCreator.CreatePackageSource($"CMD_LINE_SRC_{packageSourcesFromCommandLine.Count}", arg, null);
+                        var source = NugetPackageSourceCreator.CreatePackageSource(
+                            $"CMD_LINE_SRC_{packageSourcesFromCommandLine.Count}",
+                            arg,
+                            null,
+                            null);
                         NugetLogger.LogVerbose("Adding command line package source {0} at {1}", source.Name, arg);
                         packageSourcesFromCommandLine.Add(source);
                     }

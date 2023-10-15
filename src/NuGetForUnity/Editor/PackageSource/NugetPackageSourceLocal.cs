@@ -38,6 +38,9 @@ namespace NugetForUnity.PackageSource
         public string SavedPath { get; set; }
 
         /// <inheritdoc />
+        public string SavedProtocolVersion => null;
+
+        /// <inheritdoc />
         [field: SerializeField]
         public bool IsEnabled { get; set; }
 
@@ -56,6 +59,17 @@ namespace NugetForUnity.PackageSource
         public string SavedPassword
         {
             get => null;
+
+            set
+            {
+                // local sources don't have credentials
+            }
+        }
+
+        /// <inheritdoc />
+        public bool SavedPasswordIsEncrypted
+        {
+            get => false;
 
             set
             {

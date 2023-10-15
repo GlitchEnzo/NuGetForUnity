@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using UnityEngine;
@@ -41,10 +42,12 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        public NugetPackageSourceV2([NotNull] string name, [NotNull] string url)
+        /// <param name="savedProtocolVersion">The explicitly defined protocol version stored inside the 'NuGet.config'.</param>
+        public NugetPackageSourceV2([NotNull] string name, [NotNull] string url, string savedProtocolVersion)
         {
             Name = name;
             SavedPath = url;
+            SavedProtocolVersion = savedProtocolVersion;
             IsEnabled = true;
         }
 
@@ -53,8 +56,15 @@ namespace NugetForUnity.PackageSource
         public string Name { get; set; }
 
         /// <inheritdoc />
+        public bool SavedPasswordIsEncrypted { get; set; }
+
+        /// <inheritdoc />
         [field: SerializeField]
         public string SavedPath { get; set; }
+
+        /// <inheritdoc />
+        [field: SerializeField]
+        public string SavedProtocolVersion { get; private set; }
 
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
@@ -81,7 +91,19 @@ namespace NugetForUnity.PackageSource
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>
         [CanBeNull]
-        public string ExpandedPassword => SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
+        public string ExpandedPassword
+        {
+            get
+            {
+                if (SavedPassword == null)
+                {
+                    return null;
+                }
+
+                var expandedPassword = Environment.ExpandEnvironmentVariables(SavedPassword);
+                return SavedPasswordIsEncrypted ? ConfigurationEncryptionHelper.DecryptString(expandedPassword) : expandedPassword;
+            }
+        }
 
         /// <inheritdoc />
         public bool HasPassword
