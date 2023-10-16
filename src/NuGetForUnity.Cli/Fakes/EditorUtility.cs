@@ -16,25 +16,8 @@ namespace UnityEditor
 
         internal static bool DisplayDialog(string title, string message, string ok, string cancel)
         {
-            var oldForegroundColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(title);
-            Console.ForegroundColor = oldForegroundColor;
-            Console.WriteLine(message);
-
-            ConsoleKey response;
-            do
-            {
-                Console.Write($"'{ok}' (y)? or '{cancel}' (n) [y/n] ");
-                response = Console.ReadKey(false).Key;
-                if (response != ConsoleKey.Enter)
-                {
-                    Console.WriteLine();
-                }
-            }
-            while (response is not ConsoleKey.Y and not ConsoleKey.N);
-
-            return response == ConsoleKey.Y;
+            throw new InvalidOperationException(
+                $"Trying to open a dialog with title: '{title}' and message '{message}' but we are inside a CLI. Dialogs are currently not supported by the CLI as it is intended to be used in non-interactive environments like CI/CD pipelines.");
         }
 
         [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Used by Unity.")]

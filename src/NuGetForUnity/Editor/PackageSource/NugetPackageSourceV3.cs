@@ -98,7 +98,8 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <summary>
-        ///     Gets or sets available updates are fetched using the <see cref="Search" />, to prevent the search query string to exceed the URI lenght limit we
+        ///     Gets or sets available updates are fetched using the <see cref="SearchAsync" />, to prevent the search query string to exceed the URI lenght
+        ///     limit we
         ///     fetch the updates in groups. Defaults to <c>20</c>.
         /// </summary>
         [field: SerializeField]
@@ -152,7 +153,7 @@ namespace NugetForUnity.PackageSource
             // so we need to fetch the latest version and filter them ourselves
             var searchQuery = $"packageid:{package.Id}";
 
-            var packages = Task.Run(() => ApiClient.SearchPackage(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
+            var packages = Task.Run(() => ApiClient.SearchPackageAsync(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
                 .GetAwaiter()
                 .GetResult();
 
@@ -218,7 +219,13 @@ namespace NugetForUnity.PackageSource
                             }
 
                             updates.AddRange(
-                                await ApiClient.SearchPackage(this, searchQueryBuilder.ToString(), 0, 0, includePrerelease, CancellationToken.None));
+                                await ApiClient.SearchPackageAsync(
+                                    this,
+                                    searchQueryBuilder.ToString(),
+                                    0,
+                                    0,
+                                    includePrerelease,
+                                    CancellationToken.None));
                         }
 
                         return updates;
@@ -231,20 +238,20 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public Task<List<INugetPackage>> Search(
+        public Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return ApiClient.SearchPackage(this, searchTerm, numberToSkip, numberToGet, includePrerelease, cancellationToken);
+            return ApiClient.SearchPackageAsync(this, searchTerm, numberToSkip, numberToGet, includePrerelease, cancellationToken);
         }
 
         /// <inheritdoc />
         public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            Task.Run(() => ApiClient.DownloadNupkgToFile(this, package, outputFilePath)).GetAwaiter().GetResult();
+            Task.Run(() => ApiClient.DownloadNupkgToFileAsync(this, package, outputFilePath)).GetAwaiter().GetResult();
         }
 
         /// <inheritdoc />
@@ -269,14 +276,14 @@ namespace NugetForUnity.PackageSource
             }
         }
 
-        /// <inheritdoc cref="NugetApiClientV3.GetPackageDetails" />
+        /// <inheritdoc cref="NugetApiClientV3.GetPackageDetailsAsync" />
         [NotNull]
         [ItemNotNull]
-        public Task<List<NugetFrameworkGroup>> GetPackageDetails(
+        public Task<List<NugetFrameworkGroup>> GetPackageDetailsAsync(
             [NotNull] INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
-            return ApiClient.GetPackageDetails(this, package, cancellationToken);
+            return ApiClient.GetPackageDetailsAsync(this, package, cancellationToken);
         }
 
         [NotNull]

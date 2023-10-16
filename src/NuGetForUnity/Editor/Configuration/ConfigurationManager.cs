@@ -169,14 +169,14 @@ namespace NugetForUnity.Configuration
         /// <returns>The list of available packages.</returns>
         [NotNull]
         [ItemNotNull]
-        public static Task<List<INugetPackage>> Search(
+        public static Task<List<INugetPackage>> SearchAsync(
             [NotNull] string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return ActivePackageSource.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+            return ActivePackageSource.SearchAsync(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
         }
 
         /// <summary>

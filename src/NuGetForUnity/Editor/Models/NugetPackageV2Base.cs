@@ -132,7 +132,7 @@ namespace NugetForUnity.Models
 
                 if (!string.IsNullOrEmpty(IconUrl))
                 {
-                    iconTask = NugetPackageTextureHelper.DownloadImage(IconUrl);
+                    iconTask = NugetPackageTextureHelper.DownloadImageAsync(IconUrl);
                 }
 
                 return iconTask;

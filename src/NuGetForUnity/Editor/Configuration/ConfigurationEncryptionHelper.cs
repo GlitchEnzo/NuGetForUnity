@@ -3,7 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
-#if !UNITY_EDITOR_WIN
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+using JetBrains.Annotations;
 using System.Reflection;
 #endif
 
@@ -15,6 +16,15 @@ namespace NugetForUnity.Configuration
     internal static class ConfigurationEncryptionHelper
     {
         private static readonly byte[] EntropyBytes = Encoding.UTF8.GetBytes("NuGet");
+
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+
+        // on .net framework the type lives in 'System.Security' on .net standard it in 'System.Security.Cryptography.ProtectedData'
+        [ItemCanBeNull]
+        private static readonly Lazy<Type> ProtectedDataTypeLazy = new Lazy<Type>(
+            () => Type.GetType("System.Security.Cryptography.ProtectedData, System.Security.Cryptography.ProtectedData") ??
+                  Type.GetType("System.Security.Cryptography.ProtectedData, System.Security"));
+#endif
 
         /// <summary>
         ///     Encrypts a string using the Windows only protected data library.
@@ -32,12 +42,17 @@ namespace NugetForUnity.Configuration
 
             var decryptedByteArray = Encoding.UTF8.GetBytes(value);
 
-#if UNITY_EDITOR_WIN
+#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
             var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #else
 
             // when not compiled inside a unity editor we need to use reflection to access Windows only API
             var encryptedByteArray = ProtectOrUnprotectUsingReflection("Protect", decryptedByteArray);
+
+            if (encryptedByteArray == null)
+            {
+                return value;
+            }
 #endif
 
             var encryptedString = Convert.ToBase64String(encryptedByteArray);
@@ -59,21 +74,33 @@ namespace NugetForUnity.Configuration
 
             var encryptedByteArray = Convert.FromBase64String(encryptedString);
 
-#if UNITY_EDITOR_WIN
+#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
             var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #else
 
             // when not compiled inside a unity editor we need to use reflection to access Windows only API
             var decryptedByteArray = ProtectOrUnprotectUsingReflection("Unprotect", encryptedByteArray);
+
+            if (decryptedByteArray == null)
+            {
+                return encryptedString;
+            }
 #endif
 
             return Encoding.UTF8.GetString(decryptedByteArray);
         }
 
-#if !UNITY_EDITOR_WIN
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+        [CanBeNull]
         private static byte[] ProtectOrUnprotectUsingReflection(string methodName, byte[] data)
         {
-            var protectedDataType = Type.GetType("System.Security.Cryptography.ProtectedData, System.Security", true);
+            var protectedDataType = ProtectedDataTypeLazy.Value;
+            if (protectedDataType == null)
+            {
+                Debug.LogError("Encrypted passwords are not supported by this Unity version. They are only known to work on Unity > 2023.1.");
+                return null;
+            }
+
             var method = protectedDataType.GetMethod(methodName) ??
                          throw new InvalidOperationException($"Can't find '{methodName}' type inside type: '{protectedDataType}'.");
             return (byte[])method.Invoke(null, new object[] { data, EntropyBytes, 0 });

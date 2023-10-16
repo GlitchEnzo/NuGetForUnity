@@ -110,7 +110,7 @@ namespace NugetForUnity.PackageSource
         /// <returns>The list of available packages.</returns>
         [NotNull]
         [ItemNotNull]
-        Task<List<INugetPackage>> Search(
+        Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,

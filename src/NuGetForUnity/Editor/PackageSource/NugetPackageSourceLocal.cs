@@ -145,7 +145,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public Task<List<INugetPackage>> Search(
+        public Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,

@@ -411,7 +411,7 @@ public class NuGetTests
                 package.Version);
 
             // search local package source
-            var localPackages = Task.Run(() => ConfigurationManager.Search()).GetAwaiter().GetResult();
+            var localPackages = Task.Run(() => ConfigurationManager.SearchAsync()).GetAwaiter().GetResult();
             Assert.That(localPackages, Is.EqualTo(new[] { package }));
 
             // install without a version number

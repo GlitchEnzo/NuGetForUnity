@@ -166,7 +166,7 @@ namespace NugetForUnity.Models
 
                 if (!string.IsNullOrEmpty(iconUrl))
                 {
-                    iconTask = NugetPackageTextureHelper.DownloadImage(iconUrl);
+                    iconTask = NugetPackageTextureHelper.DownloadImageAsync(iconUrl);
                 }
 
                 return iconTask;
@@ -247,7 +247,7 @@ namespace NugetForUnity.Models
         private async Task<List<NugetFrameworkGroup>> GetDependenciesCoreAsync()
         {
             NugetLogger.LogVerbose("Fetching dependencies for {0}", this);
-            dependencies = await packageSource.GetPackageDetails(this);
+            dependencies = await packageSource.GetPackageDetailsAsync(this);
             NugetLogger.LogVerbose("Fetched dependencies for {0}", this);
             dependenciesFetched = true;
             return dependencies;

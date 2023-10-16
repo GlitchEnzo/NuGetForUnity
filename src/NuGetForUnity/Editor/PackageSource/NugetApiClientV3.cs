@@ -87,7 +87,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <summary>
-        ///     Gets or sets a optional overwrite for the URL used to download '.nupkg' files (see: <see cref="DownloadNupkgToFile" />).
+        ///     Gets or sets a optional overwrite for the URL used to download '.nupkg' files (see: <see cref="DownloadNupkgToFileAsync" />).
         /// </summary>
         [CanBeNull]
         [field: SerializeField]
@@ -124,7 +124,7 @@ namespace NugetForUnity.PackageSource
         /// <returns>
         ///     A list of <see cref="INugetPackage" />s that match the search query.
         /// </returns>
-        public async Task<List<INugetPackage>> SearchPackage(
+        public async Task<List<INugetPackage>> SearchPackageAsync(
             NugetPackageSourceV3 packageSource,
             string searchQuery = "",
             int skip = -1,
@@ -132,7 +132,7 @@ namespace NugetForUnity.PackageSource
             bool includePreRelease = false,
             CancellationToken cancellationToken = default)
         {
-            var successfullyInitialized = await EnsureInitialized(packageSource);
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
             if (!successfullyInitialized || searchQueryServices == null)
             {
                 return new List<INugetPackage>();
@@ -181,9 +181,9 @@ namespace NugetForUnity.PackageSource
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         /// <returns>The async task.</returns>
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
-        public async Task DownloadNupkgToFile(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
+        public async Task DownloadNupkgToFileAsync(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
         {
-            var successfullyInitialized = await EnsureInitialized(packageSource);
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
             if (!successfullyInitialized)
             {
                 return;
@@ -202,7 +202,7 @@ namespace NugetForUnity.PackageSource
                 AddHeadersToRequest(request, packageSource, false);
                 using (var response = await httpClient.SendAsync(request).ConfigureAwait(false))
                 {
-                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
+                    await EnsureResponseIsSuccessAsync(response).ConfigureAwait(false);
                     using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     {
                         using (var fileStream = File.Create(outputFilePath))
@@ -228,12 +228,12 @@ namespace NugetForUnity.PackageSource
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "API uses lower case.")]
         [NotNull]
         [ItemNotNull]
-        public async Task<List<NugetFrameworkGroup>> GetPackageDetails(
+        public async Task<List<NugetFrameworkGroup>> GetPackageDetailsAsync(
             NugetPackageSourceV3 packageSource,
             INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
-            var successfullyInitialized = await EnsureInitialized(packageSource);
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
             if (!successfullyInitialized)
             {
                 return new List<NugetFrameworkGroup>();
@@ -358,7 +358,7 @@ namespace NugetForUnity.PackageSource
             return packages;
         }
 
-        private static async Task EnsureResponseIsSuccess(HttpResponseMessage response)
+        private static async Task EnsureResponseIsSuccessAsync(HttpResponseMessage response)
         {
             if (response.IsSuccessStatusCode)
             {
@@ -391,7 +391,7 @@ namespace NugetForUnity.PackageSource
             return $"{nameof(NugetApiClientV3)}:{apiIndexJsonUrl}";
         }
 
-        private async Task<bool> EnsureInitialized(NugetPackageSourceV3 packageSource)
+        private async Task<bool> EnsureInitializedAsync(NugetPackageSourceV3 packageSource)
         {
             if (searchQueryServices != null)
             {
@@ -400,7 +400,7 @@ namespace NugetForUnity.PackageSource
 
             try
             {
-                var successful = await AwaitableInitializeApiAddresses(packageSource);
+                var successful = await AwaitableInitializeApiAddressesAsync(packageSource);
                 return successful;
             }
             catch (Exception exception)
@@ -410,7 +410,7 @@ namespace NugetForUnity.PackageSource
             }
         }
 
-        private Task<bool> AwaitableInitializeApiAddresses(NugetPackageSourceV3 packageSource)
+        private Task<bool> AwaitableInitializeApiAddressesAsync(NugetPackageSourceV3 packageSource)
         {
             if (initializationTaskCompletionSource != null)
             {
@@ -418,12 +418,12 @@ namespace NugetForUnity.PackageSource
             }
 
             initializationTaskCompletionSource = new TaskCompletionSource<bool>();
-            _ = InitializeApiAddresses(packageSource);
+            _ = InitializeApiAddressesAsync(packageSource);
 
             return initializationTaskCompletionSource.Task;
         }
 
-        private async Task InitializeApiAddresses(NugetPackageSourceV3 packageSource)
+        private async Task InitializeApiAddressesAsync(NugetPackageSourceV3 packageSource)
         {
             Debug.Assert(initializationTaskCompletionSource != null, "initializationTaskCompletionSource != null");
             try
@@ -522,7 +522,7 @@ namespace NugetForUnity.PackageSource
 
                 using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
-                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
+                    await EnsureResponseIsSuccessAsync(response).ConfigureAwait(false);
                     var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false) ?? string.Empty;
                     return responseString;
                 }

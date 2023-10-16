@@ -184,7 +184,7 @@ namespace NugetForUnity.PackageSource
             var url = $"{ExpandedPath}Packages(Id='{package.Id}',Version='{package.Version}')";
             try
             {
-                return GetPackagesFromUrl(url).First();
+                return GetPackagesFromUrl(url).FirstOrDefault();
             }
             catch (Exception e)
             {
@@ -195,7 +195,7 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "API uses lower case.")]
-        public Task<List<INugetPackage>> Search(
+        public Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
@@ -311,11 +311,11 @@ namespace NugetForUnity.PackageSource
             }
 
 #if TEST_GET_UPDATES_FALLBACK
+
             // Enable this define in order to test that GetUpdatesFallback is working as intended. This tests that it returns the same set of packages
             // that are returned by the GetUpdates API. Since GetUpdates isn't available when using a Visual Studio Team Services feed, the intention
             // is that this test would be conducted by using nuget.org's feed where both paths can be compared.
-            List<NugetPackage> updatesReplacement =
- GetUpdatesFallback(installedPackages, includePrerelease, targetFrameworks, versionConstraints);
+            List<NugetPackage> updatesReplacement = GetUpdatesFallback(installedPackages, includePrerelease, targetFrameworks, versionConstraints);
             ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
 #endif
 
@@ -388,7 +388,8 @@ namespace NugetForUnity.PackageSource
         }
 
 #if TEST_GET_UPDATES_FALLBACK
-        private static void ComparePackageLists(List<NugetPackage> updates,
+        private static void ComparePackageLists(
+            List<NugetPackage> updates,
             List<NugetPackage> updatesReplacement,
             string errorMessageToDisplayIfListsDoNotMatch)
         {

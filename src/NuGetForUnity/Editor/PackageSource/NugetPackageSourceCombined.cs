@@ -197,7 +197,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public Task<List<INugetPackage>> Search(
+        public Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
@@ -214,10 +214,10 @@ namespace NugetForUnity.PackageSource
             if (activeSourcesCount == 1)
             {
                 return packageSources.First(source => source.IsEnabled)
-                    .Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+                    .SearchAsync(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
             }
 
-            return SearchMultiple(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
+            return SearchMultipleAsync(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -235,7 +235,7 @@ namespace NugetForUnity.PackageSource
 
         [NotNull]
         [ItemNotNull]
-        private async Task<List<INugetPackage>> SearchMultiple(
+        private async Task<List<INugetPackage>> SearchMultipleAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
@@ -244,7 +244,7 @@ namespace NugetForUnity.PackageSource
         {
             var results = await Task.WhenAll(
                 packageSources.Where(source => source.IsEnabled)
-                    .Select(source => source.Search(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken)));
+                    .Select(source => source.SearchAsync(searchTerm, includePrerelease, numberToGet, numberToSkip, cancellationToken)));
             return results.SelectMany(result => result).Distinct().ToList();
         }
     }
