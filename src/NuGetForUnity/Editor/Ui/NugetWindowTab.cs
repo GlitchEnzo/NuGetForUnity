@@ -1,22 +1,22 @@
 ﻿namespace NugetForUnity.Ui
 {
     /// <summary>
-    /// Describes a tab in NugetForUnity main window.
+    ///     Describes a tab in NugetForUnity main window.
     /// </summary>
     public enum NugetWindowTab
     {
         /// <summary>
-        /// NugetWindow Online tab.
+        ///     NugetWindow Online tab.
         /// </summary>
         OnlineTab = 0,
 
         /// <summary>
-        /// NugetWindow Installed tab.
+        ///     NugetWindow Installed tab.
         /// </summary>
         InstalledTab = 1,
 
         /// <summary>
-        /// NugetWindow Updates tab.
+        ///     NugetWindow Updates tab.
         /// </summary>
         UpdatesTab = 2,
     }

@@ -39,6 +39,11 @@ namespace NugetForUnity.Models
         [NonSerialized]
         private Task<List<NugetFrameworkGroup>> dependenciesTask;
 
+        [ItemNotNull]
+        [CanBeNull]
+        [NonSerialized]
+        private IReadOnlyList<INugetPackageIdentifier> frameworkMatchingDependencies;
+
         [CanBeNull]
         [SerializeField]
         [SuppressMessage("Usage", "CA2235:Mark all non-serializable fields", Justification = "It is a Unity object that can be serialized.")]
@@ -56,11 +61,6 @@ namespace NugetForUnity.Models
         [SerializeField]
         [NotNull]
         private NugetPackageSourceV3 packageSource;
-
-        [ItemNotNull]
-        [CanBeNull]
-        [NonSerialized]
-        private IReadOnlyList<INugetPackageIdentifier> frameworkMatchingDependencies;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.

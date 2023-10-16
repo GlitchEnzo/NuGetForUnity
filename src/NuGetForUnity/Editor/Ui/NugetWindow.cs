@@ -117,6 +117,11 @@ namespace NugetForUnity.Ui
         [SerializeField]
         private List<SerializableNugetPackage> serializableUpdatePackages;
 
+        /// <summary>
+        ///     True to show downgrades of package version instead of updates.
+        /// </summary>
+        private bool showDowngrades;
+
         private bool showImplicitlyInstalled;
 
         /// <summary>
@@ -128,11 +133,6 @@ namespace NugetForUnity.Ui
         ///     True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
         private bool showPrereleaseUpdates;
-
-        /// <summary>
-        ///     True to show downgrades of package version instead of updates.
-        /// </summary>
-        private bool showDowngrades;
 
         /// <summary>
         ///     The list of package updates available, based on the already installed packages.
@@ -872,8 +872,8 @@ namespace NugetForUnity.Ui
             if (currentTab == NugetWindowTab.UpdatesTab &&
                 installed != null &&
                 package.Versions.Count >= 1 &&
-                (showDowngrades && installed.PackageVersion <= package.Versions[package.Versions.Count - 1] ||
-                    !showDowngrades && installed.PackageVersion >= package.Versions[0]))
+                ((showDowngrades && installed.PackageVersion <= package.Versions[package.Versions.Count - 1]) ||
+                 (!showDowngrades && installed.PackageVersion >= package.Versions[0])))
             {
                 return;
             }
@@ -972,9 +972,9 @@ namespace NugetForUnity.Ui
 
                 // Show the version selection dropdown only on Updates tab OR on Online tab if the package is not installed and not already in Unity
                 if (currentTab == NugetWindowTab.UpdatesTab ||
-                    currentTab == NugetWindowTab.OnlineTab && installed == null && !UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(
-                        package,
-                        false))
+                    (currentTab == NugetWindowTab.OnlineTab &&
+                     installed == null &&
+                     !UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false)))
                 {
                     if (package.Versions.Count <= 1)
                     {
@@ -992,13 +992,13 @@ namespace NugetForUnity.Ui
 
                             versionDropdownData = new VersionDropdownData
                             {
-                                SortedVersions = package.Versions.FindAll(version =>
-                                    installed == null || (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion)),
+                                SortedVersions = package.Versions.FindAll(
+                                    version => installed == null ||
+                                               (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion)),
                                 CalculatedMaxWith = maxWidth + 5,
                             };
 
-                            versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions
-                                .Select(version => version.FullVersion).ToArray();
+                            versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
 
                             // Show the highest available update/downgrade first
                             versionDropdownData.SelectedIndex = 0;

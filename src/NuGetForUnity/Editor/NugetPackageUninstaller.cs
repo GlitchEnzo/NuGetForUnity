@@ -48,7 +48,8 @@ namespace NugetForUnity
                 }
 
                 var hasMoreParents = InstalledPackagesManager.InstalledPackages.SelectMany(
-                    installedPackage => installedPackage.CurrentFrameworkMatchingDependencies).Any(dep => dep.Id == dependency.Id);
+                        installedPackage => installedPackage.CurrentFrameworkMatchingDependencies)
+                    .Any(dep => dep.Id == dependency.Id);
 
                 if (!hasMoreParents)
                 {
