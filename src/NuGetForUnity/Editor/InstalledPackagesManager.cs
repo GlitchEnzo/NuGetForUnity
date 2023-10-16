@@ -290,10 +290,11 @@ namespace NugetForUnity
         ///     Checks if a given package is installed.
         /// </summary>
         /// <param name="package">The package to check if is installed.</param>
+        /// <param name="checkIsAlreadyImportedInEngine">Determine if it should check if the package is already imported by unity itself.</param>
         /// <returns>True if the given package is installed.  False if it is not.</returns>
-        internal static bool IsInstalled([NotNull] INugetPackageIdentifier package)
+        internal static bool IsInstalled([NotNull] INugetPackageIdentifier package, bool checkIsAlreadyImportedInEngine)
         {
-            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package))
+            if (checkIsAlreadyImportedInEngine && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package))
             {
                 return true;
             }
