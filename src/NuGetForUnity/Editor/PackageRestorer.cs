@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Diagnostics;
-using NugetForUnity.Configuration;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
 
@@ -24,7 +23,8 @@ namespace NugetForUnity
             try
             {
                 var packagesToInstall =
-                    InstalledPackagesManager.PackagesConfigFile.Packages.FindAll(package => !InstalledPackagesManager.IsInstalled(package));
+                    InstalledPackagesManager.PackagesConfigFile.Packages.FindAll(
+                        package => !InstalledPackagesManager.IsInstalled(package, !slimRestore));
                 if (packagesToInstall.Count > 0)
                 {
                     var progressStep = 1.0f / packagesToInstall.Count;
@@ -44,7 +44,6 @@ namespace NugetForUnity
                             false,
                             slimRestore);
                         somethingChanged = true;
-
                         currentProgress += progressStep;
                     }
                 }
