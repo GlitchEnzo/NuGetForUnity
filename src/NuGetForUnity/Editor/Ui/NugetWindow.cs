@@ -15,15 +15,6 @@ using Debug = UnityEngine.Debug;
 
 namespace NugetForUnity.Ui
 {
-    public enum NugetWindowTab
-    {
-        OnlineTab = 0,
-
-        InstalledTab = 1,
-
-        UpdatesTab = 2,
-    }
-
     /// <summary>
     ///     Represents the NuGet Package Manager Window in the Unity Editor.
     /// </summary>
@@ -786,19 +777,24 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal();
                 {
-                    var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
-                    if (showPrereleaseTemp != showPrereleaseUpdates)
+                    EditorGUILayout.BeginVertical();
                     {
-                        showPrereleaseUpdates = showPrereleaseTemp;
-                        UpdateUpdatePackages();
+                        var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
+                        if (showPrereleaseTemp != showPrereleaseUpdates)
+                        {
+                            showPrereleaseUpdates = showPrereleaseTemp;
+                            UpdateUpdatePackages();
+                        }
+
+                        var showDowngradesTemp = EditorGUILayout.Toggle("Show Downgrades", showDowngrades);
+                        if (showDowngradesTemp != showDowngrades)
+                        {
+                            versionDropdownDataPerPackage.Clear();
+                            showDowngrades = showDowngradesTemp;
+                        }
                     }
 
-                    var showDowngradesTemp = EditorGUILayout.Toggle("Show Downgrades", showDowngrades);
-                    if (showDowngradesTemp != showDowngrades)
-                    {
-                        versionDropdownDataPerPackage.Clear();
-                        showDowngrades = showDowngradesTemp;
-                    }
+                    EditorGUILayout.EndVertical();
 
                     if (updatePackages.Count > 0)
                     {
@@ -994,10 +990,14 @@ namespace NugetForUnity.Ui
                                 out _,
                                 out var maxWidth);
 
-                            versionDropdownData = new VersionDropdownData { SortedVersions = package.Versions, CalculatedMaxWith = maxWidth + 5, };
+                            versionDropdownData = new VersionDropdownData
+                            {
+                                SortedVersions = package.Versions.FindAll(version =>
+                                    installed == null || (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion)),
+                                CalculatedMaxWith = maxWidth + 5,
+                            };
 
                             versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions
-                                .FindAll(version => installed == null || (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion))
                                 .Select(version => version.FullVersion).ToArray();
 
                             // Show the highest available update/downgrade first
@@ -1030,21 +1030,20 @@ namespace NugetForUnity.Ui
 
                     if (currentTab == NugetWindowTab.UpdatesTab)
                     {
-                        var versionComparison = installed.PackageVersion.CompareTo(package.PackageVersion);
-                        if (versionComparison < 0)
+                        if (showDowngrades)
                         {
-                            // An older version is installed
-                            if (GUILayout.Button("Update"))
+                            // Showing only downgrades
+                            if (GUILayout.Button("Downgrade"))
                             {
                                 NugetPackageUpdater.Update(installed, package);
                                 UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
                         }
-                        else if (versionComparison > 0)
+                        else
                         {
-                            // A newer version is installed
-                            if (GUILayout.Button("Downgrade"))
+                            // Showing only updates
+                            if (GUILayout.Button("Update"))
                             {
                                 NugetPackageUpdater.Update(installed, package);
                                 UpdateInstalledPackages();

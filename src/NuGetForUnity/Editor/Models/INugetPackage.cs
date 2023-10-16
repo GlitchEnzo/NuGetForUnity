@@ -101,6 +101,12 @@ namespace NugetForUnity.Models
         Task<Texture2D> IconTask { get; }
 
         /// <summary>
+        ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
+        /// </summary>
+        /// <returns>List of dependencies.</returns>
+        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies { get; }
+
+        /// <summary>
         ///     Asynchronously gets the NuGet packages that this NuGet package depends on grouped by target framework.
         /// </summary>
         /// <returns>The task that fetches <see cref="Dependencies" />.</returns>
@@ -113,11 +119,5 @@ namespace NugetForUnity.Models
         /// </summary>
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         void DownloadNupkgToFile([NotNull] string outputFilePath);
-
-        /// <summary>
-        ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
-        /// </summary>
-        /// <returns>List of dependencies.</returns>
-        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies { get; }
     }
 }
