@@ -62,6 +62,7 @@ namespace NugetForUnity.Models
         [NotNull]
         private NugetPackageSourceV3 packageSource;
 
+        private IReadOnlyList<INugetPackageIdentifier> currentFrameworkDependencies;
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.
         /// </summary>
@@ -186,17 +187,17 @@ namespace NugetForUnity.Models
         public string RepositoryCommit => string.Empty;
 
         /// <inheritdoc />
-        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies
+        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies
         {
             get
             {
-                if (frameworkMatchingDependencies == null)
+                if (currentFrameworkDependencies == null)
                 {
-                    frameworkMatchingDependencies =
+                    currentFrameworkDependencies =
                         TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
                 }
 
-                return frameworkMatchingDependencies;
+                return currentFrameworkDependencies;
             }
         }
 

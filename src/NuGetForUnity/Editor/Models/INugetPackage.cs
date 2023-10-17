@@ -104,7 +104,7 @@ namespace NugetForUnity.Models
         ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
         /// </summary>
         /// <returns>List of dependencies.</returns>
-        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies { get; }
+        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies { get; }
 
         /// <summary>
         ///     Asynchronously gets the NuGet packages that this NuGet package depends on grouped by target framework.

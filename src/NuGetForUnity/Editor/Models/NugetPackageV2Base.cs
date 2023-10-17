@@ -45,6 +45,7 @@ namespace NugetForUnity.Models
         [NonSerialized]
         private Task<Texture2D> iconTask;
 
+        private List<INugetPackageIdentifier> currentFrameworkDependencies;
         /// <summary>
         ///     Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
         /// </summary>
@@ -140,17 +141,17 @@ namespace NugetForUnity.Models
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkMatchingDependencies
+        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies
         {
             get
             {
-                if (frameworkMatchingDependencies == null)
+                if (currentFrameworkDependencies == null)
                 {
-                    frameworkMatchingDependencies =
+                    currentFrameworkDependencies =
                         TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
                 }
 
-                return frameworkMatchingDependencies;
+                return currentFrameworkDependencies;
             }
         }
 

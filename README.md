@@ -82,7 +82,7 @@ The name of the package, publisher, number of downloads and description are disp
 Click the **View License** after expanding **Details** to open the license in a web browser.
 
 Click the **Install** to install the package version specified in the dropdown list next to the button.
-Note: If the package is already installed, the currently installed version will be displayed in the upper left corner instead.
+Note: If the package is already installed, the currently installed version will be displayed in the upper right corner instead.
 If the **Install** button is disabled, it means the package is already imported by Unity.
 
 The **Installed** tabs shows the packages already installed in the current Unity project.
@@ -110,7 +110,7 @@ Similarly, if **Show Downgrades** is checked, all packages that have available v
 
 <img alt="Updates Packages Tab Downgrades" src="docs/screenshots/updates_showdowngrades.png" height="500px" />
 
-By default, the selected version in the dropdown list is the **highest newer** or **highest lower** version, depending on the **Show Dependencies** checkbox.
+By default, the selected version in the dropdown list is the **highest newer** or **highest lower** version, depending on the **Show Downgrades** checkbox.
 
 Click the **Update** (or **Downgrade**) button to uninstall the current package and install the new package.
 

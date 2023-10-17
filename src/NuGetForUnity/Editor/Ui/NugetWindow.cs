@@ -45,9 +45,19 @@ namespace NugetForUnity.Ui
         private readonly HashSet<INugetPackage> openCloneWindows = new HashSet<INugetPackage>();
 
         /// <summary>
-        ///     Used to keep track of which packages are selected for uninstalling or updating.
+        ///     Used to keep track of which packages are selected for uninstalling.
         /// </summary>
-        private readonly HashSet<INugetPackage> selectedPackages = new HashSet<INugetPackage>();
+        private readonly HashSet<INugetPackage> selectedPackageUninstalls = new HashSet<INugetPackage>();
+
+        /// <summary>
+        ///     Used to keep track of which packages are selected for updating.
+        /// </summary>
+        private readonly Dictionary<string, INugetPackage> selectedPackageUpdates = new Dictionary<string, INugetPackage>();
+
+        /// <summary>
+        ///     Used to keep track of which packages are selected for downgrading.
+        /// </summary>
+        private readonly Dictionary<string, INugetPackage> selectedPackageDowngrades = new Dictionary<string, INugetPackage>();
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -457,6 +467,8 @@ namespace NugetForUnity.Ui
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
                     UpdateUpdatePackages();
 
+                    versionDropdownDataPerPackage.Clear();
+
                     // load the default icon from the Resources folder
                     defaultIcon = (Texture2D)Resources.Load("defaultIcon", typeof(Texture2D));
                 }
@@ -513,7 +525,6 @@ namespace NugetForUnity.Ui
 
         private void OnTabChanged()
         {
-            selectedPackages.Clear();
             openCloneWindows.Clear();
             foreach (var dropdownData in versionDropdownDataPerPackage.Values)
             {
@@ -735,12 +746,12 @@ namespace NugetForUnity.Ui
                         }
                     }
 
-                    if (InstalledPackagesManager.InstalledPackages.Any(selectedPackages.Contains))
+                    if (InstalledPackagesManager.InstalledPackages.Any(selectedPackageUninstalls.Contains))
                     {
                         if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
                         {
                             NugetPackageUninstaller.UninstallAll(
-                                InstalledPackagesManager.InstalledPackages.Where(selectedPackages.Contains).ToList());
+                                InstalledPackagesManager.InstalledPackages.Where(selectedPackageUninstalls.Contains).ToList());
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
@@ -805,12 +816,13 @@ namespace NugetForUnity.Ui
                             UpdateUpdatePackages();
                         }
 
-                        if (updatePackages.Any(selectedPackages.Contains))
+                        var workingSelections = showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                        if (workingSelections.Count > 0)
                         {
                             if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", GUILayout.Width(120)))
                             {
                                 NugetPackageUpdater.UpdateAll(
-                                    updatePackages.Where(selectedPackages.Contains),
+                                    workingSelections.Values,
                                     InstalledPackagesManager.InstalledPackages);
                                 UpdateInstalledPackages();
                                 UpdateUpdatePackages();
@@ -895,17 +907,18 @@ namespace NugetForUnity.Ui
                     {
                         const int toggleSize = 18;
                         rect.x += toggleSize;
-                        var isSelected = selectedPackages.Contains(package);
+                        var workingSelections = showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                        var isSelected = workingSelections.ContainsKey(package.Id);
                         var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
                         if (shouldBeSelected != isSelected)
                         {
                             if (shouldBeSelected)
                             {
-                                selectedPackages.Add(package);
+                                workingSelections.Add(package.Id, package);
                             }
                             else
                             {
-                                selectedPackages.Remove(package);
+                                workingSelections.Remove(package.Id);
                             }
                         }
                     }
@@ -990,11 +1003,17 @@ namespace NugetForUnity.Ui
                                 out _,
                                 out var maxWidth);
 
+                            var sortedVersions = package.Versions;
+                            if (installed != null)
+                            {
+                                sortedVersions = showDowngrades
+                                    ? package.Versions.FindAll(version => version < installed.PackageVersion)
+                                    : package.Versions.FindAll(version => version > installed.PackageVersion);
+                            }
+
                             versionDropdownData = new VersionDropdownData
                             {
-                                SortedVersions = package.Versions.FindAll(
-                                    version => installed == null ||
-                                               (showDowngrades ? version < installed.PackageVersion : version > installed.PackageVersion)),
+                                SortedVersions = sortedVersions,
                                 CalculatedMaxWith = maxWidth + 5,
                             };
 
@@ -1137,7 +1156,7 @@ namespace NugetForUnity.Ui
                         // Show the dependencies
                         if (package.GetDependenciesAsync().IsCompleted)
                         {
-                            var frameworkDependencies = package.CurrentFrameworkMatchingDependencies;
+                            var frameworkDependencies = package.CurrentFrameworkDependencies;
                             if (frameworkDependencies.Count > 0)
                             {
                                 EditorStyles.label.wordWrap = true;
