@@ -42,22 +42,22 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Used to keep track of which packages the user has opened the clone window on.
         /// </summary>
-        private readonly HashSet<INugetPackage> openCloneWindows = new HashSet<INugetPackage>();
-
-        /// <summary>
-        ///     Used to keep track of which packages are selected for uninstalling.
-        /// </summary>
-        private readonly HashSet<INugetPackage> selectedPackageUninstalls = new HashSet<INugetPackage>();
-
-        /// <summary>
-        ///     Used to keep track of which packages are selected for updating.
-        /// </summary>
-        private readonly Dictionary<string, INugetPackage> selectedPackageUpdates = new Dictionary<string, INugetPackage>();
+        private readonly HashSet<INugetPackage> openCloneWindows = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
 
         /// <summary>
         ///     Used to keep track of which packages are selected for downgrading.
         /// </summary>
-        private readonly Dictionary<string, INugetPackage> selectedPackageDowngrades = new Dictionary<string, INugetPackage>();
+        private readonly HashSet<INugetPackage> selectedPackageDowngrades = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
+
+        /// <summary>
+        ///     Used to keep track of which packages are selected for uninstalling.
+        /// </summary>
+        private readonly HashSet<INugetPackage> selectedPackageUninstalls = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
+
+        /// <summary>
+        ///     Used to keep track of which packages are selected for updating.
+        /// </summary>
+        private readonly HashSet<INugetPackage> selectedPackageUpdates = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -203,6 +203,19 @@ namespace NugetForUnity.Ui
                     });
 
                 return filteredInstalledPackages;
+            }
+        }
+
+        private HashSet<INugetPackage> SelectedPackages
+        {
+            get
+            {
+                if (currentTab == NugetWindowTab.UpdatesTab)
+                {
+                    return showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                }
+
+                return selectedPackageUninstalls;
             }
         }
 
@@ -815,14 +828,12 @@ namespace NugetForUnity.Ui
                             UpdateUpdatePackages();
                         }
 
-                        var workingSelections = showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                        var workingSelections = SelectedPackages;
                         if (workingSelections.Count > 0)
                         {
                             if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", GUILayout.Width(120)))
                             {
-                                NugetPackageUpdater.UpdateAll(
-                                    workingSelections.Values,
-                                    InstalledPackagesManager.InstalledPackages);
+                                NugetPackageUpdater.UpdateAll(workingSelections, InstalledPackagesManager.InstalledPackages);
                                 UpdateInstalledPackages();
                                 UpdateUpdatePackages();
                             }
@@ -906,18 +917,18 @@ namespace NugetForUnity.Ui
                     {
                         const int toggleSize = 18;
                         rect.x += toggleSize;
-                        var workingSelections = showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
-                        var isSelected = workingSelections.ContainsKey(package.Id);
+                        var workingSelections = SelectedPackages;
+                        var isSelected = workingSelections.Contains(package);
                         var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
                         if (shouldBeSelected != isSelected)
                         {
                             if (shouldBeSelected)
                             {
-                                workingSelections.Add(package.Id, package);
+                                workingSelections.Add(package);
                             }
                             else
                             {
-                                workingSelections.Remove(package.Id);
+                                workingSelections.Remove(package);
                             }
                         }
                     }
@@ -1005,16 +1016,12 @@ namespace NugetForUnity.Ui
                             var sortedVersions = package.Versions;
                             if (installed != null)
                             {
-                                sortedVersions = showDowngrades
-                                    ? package.Versions.FindAll(version => version < installed.PackageVersion)
-                                    : package.Versions.FindAll(version => version > installed.PackageVersion);
+                                sortedVersions = showDowngrades ?
+                                    package.Versions.FindAll(version => version < installed.PackageVersion) :
+                                    package.Versions.FindAll(version => version > installed.PackageVersion);
                             }
 
-                            versionDropdownData = new VersionDropdownData
-                            {
-                                SortedVersions = sortedVersions,
-                                CalculatedMaxWith = maxWidth + 5,
-                            };
+                            versionDropdownData = new VersionDropdownData { SortedVersions = sortedVersions, CalculatedMaxWith = maxWidth + 5 };
 
                             versionDropdownData.DropdownOptions = versionDropdownData.SortedVersions.Select(version => version.FullVersion).ToArray();
 

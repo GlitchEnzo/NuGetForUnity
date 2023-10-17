@@ -28,6 +28,11 @@ namespace NugetForUnity.Models
     [Serializable]
     internal sealed class NugetPackageV3 : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
+        [ItemNotNull]
+        [CanBeNull]
+        [NonSerialized]
+        private IReadOnlyList<INugetPackageIdentifier> currentFrameworkDependencies;
+
         [CanBeNull]
         [SerializeField]
         private List<NugetFrameworkGroup> dependencies;
@@ -56,11 +61,6 @@ namespace NugetForUnity.Models
         [SerializeField]
         [NotNull]
         private NugetPackageSourceV3 packageSource;
-
-        [ItemNotNull]
-        [CanBeNull]
-        [NonSerialized]
-        private IReadOnlyList<INugetPackageIdentifier> currentFrameworkDependencies;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.

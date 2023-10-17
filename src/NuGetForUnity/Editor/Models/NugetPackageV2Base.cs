@@ -30,6 +30,11 @@ namespace NugetForUnity.Models
     [Serializable]
     internal abstract class NugetPackageV2Base : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
+        [ItemNotNull]
+        [CanBeNull]
+        [NonSerialized]
+        private List<INugetPackageIdentifier> currentFrameworkDependencies;
+
         [CanBeNull]
         [SerializeField]
         [SuppressMessage("Usage", "CA2235:Mark all non-serializable fields", Justification = "It is a Unity object that can be serialized.")]
@@ -39,11 +44,6 @@ namespace NugetForUnity.Models
         [CanBeNull]
         [NonSerialized]
         private Task<Texture2D> iconTask;
-
-        [ItemNotNull]
-        [CanBeNull]
-        [NonSerialized]
-        private List<INugetPackageIdentifier> currentFrameworkDependencies;
 
         /// <summary>
         ///     Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
