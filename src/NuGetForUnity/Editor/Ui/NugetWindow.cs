@@ -746,12 +746,11 @@ namespace NugetForUnity.Ui
                         }
                     }
 
-                    if (InstalledPackagesManager.InstalledPackages.Any(selectedPackageUninstalls.Contains))
+                    if (selectedPackageUninstalls.Count > 0)
                     {
                         if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
                         {
-                            NugetPackageUninstaller.UninstallAll(
-                                InstalledPackagesManager.InstalledPackages.Where(selectedPackageUninstalls.Contains).ToList());
+                            NugetPackageUninstaller.UninstallAll(selectedPackageUninstalls.ToList());
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
