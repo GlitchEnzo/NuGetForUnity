@@ -34,17 +34,10 @@ namespace NugetForUnity
 
                     foreach (var package in packagesToInstall)
                     {
-                        if (package != null)
-                        {
-                            EditorUtility.DisplayProgressBar(
-                                "Restoring NuGet Packages",
-                                $"Restoring {package.Id} {package.Version}",
-                                currentProgress);
-                            NugetLogger.LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
-                            NugetPackageInstaller.InstallIdentifier(package, isSlimRestoreInstall: slimRestore);
-                            somethingChanged = true;
-                        }
-
+                        EditorUtility.DisplayProgressBar("Restoring NuGet Packages", $"Restoring {package.Id} {package.Version}", currentProgress);
+                        NugetLogger.LogVerbose("---Restoring {0} {1}", package.Id, package.Version);
+                        NugetPackageInstaller.InstallIdentifier(package, false, slimRestore);
+                        somethingChanged = true;
                         currentProgress += progressStep;
                     }
                 }

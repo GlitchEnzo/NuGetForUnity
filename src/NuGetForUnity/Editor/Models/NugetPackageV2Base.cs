@@ -30,6 +30,11 @@ namespace NugetForUnity.Models
     [Serializable]
     internal abstract class NugetPackageV2Base : NugetPackageIdentifier, INugetPackage, ISerializationCallbackReceiver
     {
+        [ItemNotNull]
+        [CanBeNull]
+        [NonSerialized]
+        private List<INugetPackageIdentifier> currentFrameworkDependencies;
+
         [CanBeNull]
         [SerializeField]
         [SuppressMessage("Usage", "CA2235:Mark all non-serializable fields", Justification = "It is a Unity object that can be serialized.")]
@@ -131,6 +136,21 @@ namespace NugetForUnity.Models
                 }
 
                 return iconTask;
+            }
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies
+        {
+            get
+            {
+                if (currentFrameworkDependencies == null)
+                {
+                    currentFrameworkDependencies =
+                        TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
+                }
+
+                return currentFrameworkDependencies;
             }
         }
 

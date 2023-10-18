@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -266,7 +267,7 @@ namespace NugetForUnity.PackageSource
                 }
 
                 var url =
-                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLowerInvariant()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'";
+                    $"{ExpandedPath}GetUpdates()?packageIds='{packageIds}'&versions='{versions}'&includePrerelease={includePrerelease.ToString().ToLowerInvariant()}&targetFrameworks='{targetFrameworks}'&versionConstraints='{versionConstraints}'&includeAllVersions=true";
 
                 try
                 {
@@ -287,9 +288,6 @@ namespace NugetForUnity.PackageSource
                 }
             }
 
-            // sort alphabetically, then by version descending
-            updates.Sort();
-
 #if TEST_GET_UPDATES_FALLBACK
             // Enable this define in order to test that GetUpdatesFallback is working as intended. This tests that it returns the same set of packages
             // that are returned by the GetUpdates API. Since GetUpdates isn't available when using a Visual Studio Team Services feed, the intention
@@ -299,7 +297,55 @@ namespace NugetForUnity.PackageSource
             ComparePackageLists(updates, updatesReplacement, "GetUpdatesFallback doesn't match GetUpdates API");
 #endif
 
-            return updates;
+            if (updates.Count <= 1)
+            {
+                return updates;
+            }
+
+            // sort alphabetically, then by version ascending
+            updates.Sort();
+
+            var resultUpdates = new List<INugetPackage>();
+            var lastPackage = (NugetPackageV2Base)updates[0];
+            resultUpdates.Add(lastPackage);
+
+            var sb = new StringBuilder();
+            sb.Append(lastPackage.PackageVersion).Append(": ").Append(lastPackage.ReleaseNotes);
+            var lastReleaseNotes = lastPackage.ReleaseNotes;
+            foreach (var nextPackage in updates.Skip(1))
+            {
+                if (string.Equals(lastPackage.Id, nextPackage.Id, StringComparison.Ordinal))
+                {
+                    lastPackage.Versions.Add(nextPackage.PackageVersion);
+                    if (!string.IsNullOrEmpty(nextPackage.ReleaseNotes) &&
+                        !string.Equals(lastReleaseNotes, nextPackage.ReleaseNotes, StringComparison.Ordinal))
+                    {
+                        sb.Insert(0, "\n").Insert(0, nextPackage.ReleaseNotes).Insert(0, ": ").Insert(0, nextPackage.PackageVersion);
+                    }
+
+                    lastReleaseNotes = nextPackage.ReleaseNotes;
+
+                    if (lastPackage.PackageVersion < nextPackage.PackageVersion)
+                    {
+                        lastPackage.PackageVersion = nextPackage.PackageVersion;
+                    }
+                }
+                else
+                {
+                    lastPackage.Versions.Reverse();
+                    lastPackage.ReleaseNotes = sb.ToString();
+                    lastPackage = (NugetPackageV2Base)nextPackage;
+                    resultUpdates.Add(lastPackage);
+                    sb.Clear();
+                    sb.Append(lastPackage.PackageVersion).Append(": ").Append(lastPackage.ReleaseNotes);
+                    lastReleaseNotes = lastPackage.ReleaseNotes;
+                }
+            }
+
+            lastPackage.Versions.Reverse();
+            lastPackage.ReleaseNotes = sb.ToString();
+
+            return resultUpdates;
         }
 
         /// <inheritdoc />

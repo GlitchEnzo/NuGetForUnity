@@ -12,7 +12,7 @@ namespace NugetForUnity.Models
     public interface INugetPackage : INugetPackageIdentifier
     {
         /// <summary>
-        ///     Gets a list of all available versions of the package.
+        ///     Gets a list of all available versions of the package in a descending order.
         /// </summary>
         [NotNull]
         List<NugetPackageVersion> Versions { get; }
@@ -99,6 +99,12 @@ namespace NugetForUnity.Models
         [ItemCanBeNull]
         [CanBeNull]
         Task<Texture2D> IconTask { get; }
+
+        /// <summary>
+        ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
+        /// </summary>
+        /// <returns>List of dependencies.</returns>
+        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies { get; }
 
         /// <summary>
         ///     Asynchronously gets the NuGet packages that this NuGet package depends on grouped by target framework.

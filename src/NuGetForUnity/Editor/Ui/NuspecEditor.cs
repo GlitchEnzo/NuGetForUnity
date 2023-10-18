@@ -192,9 +192,8 @@ namespace NugetForUnity.Ui
                             // remove a package as a root if another package is dependent on it
                             foreach (var package in installedPackages)
                             {
-                                var packageFrameworkGroup =
-                                    TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(package.Dependencies);
-                                foreach (var dependency in packageFrameworkGroup.Dependencies)
+                                var frameworkDependencies = package.CurrentFrameworkDependencies;
+                                foreach (var dependency in frameworkDependencies)
                                 {
                                     roots.RemoveAll(p => p.Id == dependency.Id);
                                 }
@@ -204,7 +203,7 @@ namespace NugetForUnity.Ui
                             nuspec.Dependencies.Clear();
 
                             nuspec.Dependencies.Add(new NugetFrameworkGroup());
-                            nuspec.Dependencies[0].Dependencies = roots.Cast<NugetPackageIdentifier>().ToList();
+                            nuspec.Dependencies[0].Dependencies = roots.ToList();
                         }
                     }
 
@@ -213,7 +212,7 @@ namespace NugetForUnity.Ui
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
                     var nuspecFrameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
-                    foreach (var dependency in nuspecFrameworkGroup.Dependencies)
+                    foreach (var dependency in nuspecFrameworkGroup.Dependencies.Cast<NugetPackageIdentifier>())
                     {
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space(75);

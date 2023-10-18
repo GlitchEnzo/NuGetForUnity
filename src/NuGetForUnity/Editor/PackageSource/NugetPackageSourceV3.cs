@@ -130,7 +130,7 @@ namespace NugetForUnity.PackageSource
                 return packages;
             }
 
-            var matchingVersion = fetchedPackage.Versions.Find(version => package.InRange(version));
+            var matchingVersion = fetchedPackage.Versions.FindLast(version => package.InRange(version));
             if (matchingVersion == null)
             {
                 // no matching version found
@@ -185,8 +185,6 @@ namespace NugetForUnity.PackageSource
                 .GetAwaiter()
                 .GetResult();
 
-            // remove already installed package versions
-            packagesFromServer.RemoveAll(packagesToFetch.Contains);
             packagesFromServer.Sort();
             return packagesFromServer;
         }

@@ -71,7 +71,7 @@ namespace NugetForUnity
                         installedPackage.Version,
                         package.Version,
                         package.Version);
-                    return NugetPackageUpdater.Update(installedPackage, package, false);
+                    return NugetPackageUpdater.Update(installedPackage, package, refreshAssets);
                 }
 
                 if (comparisonResult > 0)
@@ -84,7 +84,7 @@ namespace NugetForUnity
                             installedPackage.Id,
                             installedPackage.Version,
                             package.Version);
-                        return NugetPackageUpdater.Update(installedPackage, package, false);
+                        return NugetPackageUpdater.Update(installedPackage, package, refreshAssets);
                     }
 
                     NugetLogger.LogVerbose(
@@ -105,10 +105,7 @@ namespace NugetForUnity
             {
                 NugetLogger.LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
-                if (refreshAssets)
-                {
-                    EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Installing Dependencies", 0.1f);
-                }
+                EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Installing Dependencies", 0.1f);
 
                 if (!isSlimRestoreInstall)
                 {
@@ -131,7 +128,7 @@ namespace NugetForUnity
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
                             NugetLogger.LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                            var installed = InstallIdentifier(dependency, refreshAssets);
+                            var installed = InstallIdentifier(dependency, false);
                             if (!installed)
                             {
                                 throw new InvalidOperationException($"Failed to install dependency: {dependency.Id} {dependency.Version}.");
@@ -152,18 +149,12 @@ namespace NugetForUnity
                 {
                     NugetLogger.LogVerbose("Downloading package {0} {1}", package.Id, package.Version);
 
-                    if (refreshAssets)
-                    {
-                        EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Downloading Package", 0.3f);
-                    }
+                    EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Downloading Package", 0.3f);
 
                     package.DownloadNupkgToFile(cachedPackagePath);
                 }
 
-                if (refreshAssets)
-                {
-                    EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Extracting Package", 0.6f);
-                }
+                EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Extracting Package", 0.6f);
 
                 if (File.Exists(cachedPackagePath))
                 {
@@ -282,10 +273,7 @@ namespace NugetForUnity
                     Debug.LogErrorFormat("File not found: {0}", cachedPackagePath);
                 }
 
-                if (refreshAssets)
-                {
-                    EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Cleaning Package", 0.9f);
-                }
+                EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Cleaning Package", 0.9f);
 
                 // clean
                 PackageContentManager.CleanInstallationDirectory(package);
@@ -305,8 +293,9 @@ namespace NugetForUnity
                 {
                     EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Importing Package", 0.95f);
                     AssetDatabase.Refresh();
-                    EditorUtility.ClearProgressBar();
                 }
+
+                EditorUtility.ClearProgressBar();
             }
         }
 

@@ -77,12 +77,12 @@ Type a search term in the **Search** box to filter what is displayed.
 
 Press the **Refresh** button to refresh the window with the latest query settings. (Useful after pushing a new package to the server and wanting to see it without closing and reopening the window.)
 
-The name of the package, the version of the package (in square brackets), and a description are displayed.
+The name of the package, publisher, number of downloads and description are displayed.
 
-Click the **View License** to open the license in a web browser.
+Click the **View License** after expanding **Details** to open the license in a web browser.
 
-Click the **Install** to install the package.
-Note: If the package is already installed an **Uninstall** button will be displayed which lets you uninstall the package.
+Click the **Install** to install the package version specified in the dropdown list next to the button.
+Note: If the package is already installed, the currently installed version will be displayed in the upper right corner instead.
 If the **Install** button is disabled, it means the package is already imported by Unity.
 
 The **Installed** tabs shows the packages already installed in the current Unity project.
@@ -98,13 +98,21 @@ When uninstalling an **explicitly** installed package, all of its dependencies t
 
 If **Add as explicit** is clicked on an **implicitly** installed package, it will be moved to the first part of the list and will **not** be automatically uninstalled in a scenario described above.
 
-The **Updates** tab shows the packages currently installed that have updates available on the server.
+The **Updates** tab shows the packages currently installed, and offers options to update to available higher versions or downgrade to lower versions.
 
-<img alt="Updates Packages Tap" src="docs/screenshots/updates.png" height="500px" />
+If **Show Downgrades** is not checked, all packages that have available versions that are higher than the currently installed version will be shown, and there will be a dropdown list next to **Update** button with available versions for update.
 
-The version in brackets on the left is the new version number. The version in brackets in the **Update** button is the currently installed version.
+<img alt="Updates Packages Tab Update" src="docs/screenshots/updates.png" height="500px" />
 
-Click the **Update** button to uninstall the current package and install the new package.
+The **Update All** button is shown only if **Show Downgrades** is not checked, and it will update all packages with versions currently selected in their respective dropdown lists.
+
+Similarly, if **Show Downgrades** is checked, all packages that have available versions that are lower than the currently installed version will be shown, and there will be a dropdown list next to **Downgrade** button with available versions for downgrade.
+
+<img alt="Updates Packages Tab Downgrades" src="docs/screenshots/updates_showdowngrades.png" height="500px" />
+
+By default, the selected version in the dropdown list is the **highest newer** or **highest lower** version, depending on the **Show Downgrades** checkbox.
+
+Click the **Update** (or **Downgrade**) button to uninstall the current package and install the new package.
 
 # How does NuGetForUnity work?
 
