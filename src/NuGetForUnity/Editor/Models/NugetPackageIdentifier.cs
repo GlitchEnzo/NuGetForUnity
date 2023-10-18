@@ -1,7 +1,9 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 using System;
+using System.IO;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using UnityEngine;
 
 #region No ReShaper
@@ -179,6 +181,12 @@ namespace NugetForUnity.Models
         public static bool operator !=([CanBeNull] NugetPackageIdentifier first, [CanBeNull] NugetPackageIdentifier second)
         {
             return !(first == second);
+        }
+
+        /// <inheritdoc/>
+        public string GetPackageInstallPath(string prefix = "")
+        {
+            return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{prefix}{Id}.{Version}");
         }
 
         /// <inheritdoc />

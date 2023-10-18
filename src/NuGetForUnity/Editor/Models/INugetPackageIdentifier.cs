@@ -1,30 +1,18 @@
 ﻿using System;
 using JetBrains.Annotations;
+using INugetPackageIdentifierPluginAPI = NugetForUnity.PluginAPI.Models.INugetPackageIdentifier;
 
 namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Interface for a versioned NuGet package.
     /// </summary>
-    public interface INugetPackageIdentifier : IEquatable<INugetPackageIdentifier>, IComparable<INugetPackageIdentifier>
+    public interface INugetPackageIdentifier : INugetPackageIdentifierPluginAPI, IEquatable<INugetPackageIdentifier>, IComparable<INugetPackageIdentifier>
     {
         /// <summary>
         ///     Gets or sets a value indicating whether this package was installed manually or just as a dependency.
         /// </summary>
         bool IsManuallyInstalled { get; set; }
-
-        /// <summary>
-        ///     Gets the ID of the NuGet package.
-        /// </summary>
-        [NotNull]
-        string Id { get; }
-
-        /// <summary>
-        ///     Gets the normalized version number of the NuGet package.
-        ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
-        /// </summary>
-        [NotNull]
-        string Version { get; }
 
         /// <summary>
         ///     Gets a value indicating whether the version number specified is a range of values.

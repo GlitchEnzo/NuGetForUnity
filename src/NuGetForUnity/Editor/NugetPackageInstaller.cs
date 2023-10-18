@@ -6,6 +6,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
+using NugetForUnity.PluginSupport;
 using UnityEditor;
 using UnityEngine;
 
@@ -170,6 +171,12 @@ namespace NugetForUnity
                         foreach (var entry in zip.Entries)
                         {
                             var entryFullName = entry.FullName;
+
+                            if (PluginRegistry.Instance.HandleFileExtraction(package, entry, baseDirectory))
+                            {
+                                continue;
+                            }
+
                             if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName))
                             {
                                 continue;
@@ -234,7 +241,7 @@ namespace NugetForUnity
                             PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                         }
 
-                        // go through all lib zip entries and find the best target framework, then unpack it
+                            // go through all lib zip entries and find the best target framework, then unpack it
                         if (libs.Count > 0)
                         {
                             var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);

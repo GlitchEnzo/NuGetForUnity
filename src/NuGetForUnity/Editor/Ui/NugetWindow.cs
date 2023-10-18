@@ -9,6 +9,8 @@ using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
+using NugetForUnity.PluginAPI;
+using NugetForUnity.PluginSupport;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -168,7 +170,7 @@ namespace NugetForUnity.Ui
 
                 return updatePackages.Where(
                         package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-                                   package.Title?.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                   package.Title.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
                     .ToList();
             }
         }
@@ -191,7 +193,7 @@ namespace NugetForUnity.Ui
                 {
                     filteredInstalledPackages = InstalledPackagesManager.InstalledPackages.Where(
                             package => package.Id.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-                                       package.Title?.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                                       package.Title.IndexOf(installedSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
                         .ToList();
                 }
 
@@ -1042,6 +1044,10 @@ namespace NugetForUnity.Ui
                     }
                 }
 
+                var existsInUnity = installed == null && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false);
+
+                PluginRegistry.Instance.DrawButtons(package, installed, existsInUnity);
+
                 if (installed != null)
                 {
                     if (currentTab == NugetWindowTab.InstalledTab && !installed.IsManuallyInstalled)
@@ -1079,17 +1085,16 @@ namespace NugetForUnity.Ui
 
                     if (currentTab == NugetWindowTab.InstalledTab && GUILayout.Button("Uninstall"))
                     {
-                        NugetPackageUninstaller.Uninstall(installed);
+                        NugetPackageUninstaller.Uninstall(installed, PackageUninstallReason.IndividualUninstall);
                         UpdateInstalledPackages();
                         UpdateUpdatePackages();
                     }
                 }
                 else
                 {
-                    var alreadyInstalled = UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false);
-                    using (new EditorGUI.DisabledScope(alreadyInstalled))
+                    using (new EditorGUI.DisabledScope(existsInUnity))
                     {
-                        if (GUILayout.Button(new GUIContent("Install", null, alreadyInstalled ? "Already imported by Unity" : null)))
+                        if (GUILayout.Button(new GUIContent("Install", null, existsInUnity ? "Already imported by Unity" : null)))
                         {
                             package.IsManuallyInstalled = true;
                             NugetPackageInstaller.InstallIdentifier(package);

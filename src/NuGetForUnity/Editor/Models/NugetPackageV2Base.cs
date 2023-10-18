@@ -92,7 +92,7 @@ namespace NugetForUnity.Models
         /// <inheritdoc />
         public abstract INugetPackageSource PackageSource { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc cref="INugetPackage.ProjectUrl" />
         [field: SerializeField]
         public string ProjectUrl { get; set; }
 
@@ -138,6 +138,10 @@ namespace NugetForUnity.Models
                 return iconTask;
             }
         }
+
+        /// <inheritdoc/>
+        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
+            CurrentFrameworkDependencies;
 
         /// <inheritdoc />
         public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies

@@ -28,6 +28,7 @@
     <ItemGroup>
         <Compile Remove="..\NuGetForUnity\Editor\Ui\*.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NugetAssetPostprocessor.cs" />
+        <Compile Remove="..\NuGetForUnity\Editor\Helper\AssemblyLoader.cs"/>
         <Compile Remove="..\NuGetForUnity\Editor\Helper\NugetPackageTextureHelper.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
@@ -35,5 +36,10 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2023.2.0" />
         <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.1" />
+    </ItemGroup>
+    <ItemGroup>
+      <Reference Include="NugetForUnity.PluginAPI">
+        <HintPath>..\NuGetForUnity\Editor\NugetForUnity.PluginAPI.dll</HintPath>
+      </Reference>
     </ItemGroup>
 </Project>

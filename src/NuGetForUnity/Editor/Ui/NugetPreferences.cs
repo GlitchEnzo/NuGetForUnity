@@ -1,9 +1,14 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.PackageSource;
+using NugetForUnity.PluginSupport;
 using UnityEditor;
 using UnityEngine;
 
@@ -30,10 +35,23 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.0.1";
 
+        private readonly GUIContent upArrow = new GUIContent("\u25b2");
+        private readonly GUIContent downArrow = new GUIContent("\u25bc");
+        private readonly GUIContent deleteX = new GUIContent("\u2716");
+
+        private readonly List<NugetPlugin> plugins;
+
+        private GUIStyle redToggleStyle;
+
         /// <summary>
-        ///     The current position of the scroll bar in the GUI.
+        ///     The current position of the scroll bar in the GUI for the list of sources.
         /// </summary>
-        private Vector2 scrollPosition;
+        private Vector2 sourcesScrollPosition;
+
+        /// <summary>
+        ///     The current position of the scroll bar in the GUI for the list of plugins.
+        /// </summary>
+        private Vector2 pluginsScrollPosition;
 
         /// <summary>
         ///     Indicates if the warning for packages.config file path should be shown in case it is outside of Assets folder.
@@ -48,6 +66,15 @@ namespace NugetForUnity.Ui
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
             shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
+            plugins = assemblies
+                .Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(assembly => new NugetPlugin(assembly, enabledPlugins.Remove(new NugetForUnityPluginId(assembly))))
+                .ToList();
+
+            // If there are any enabled plugins that are not found in the project add them to the list as invalid plugins so user can disable them.
+            plugins.AddRange(enabledPlugins.Select(pluginId => new NugetPlugin(pluginId.Name, pluginId.Path)));
         }
 
         /// <summary>
@@ -67,6 +94,15 @@ namespace NugetForUnity.Ui
         /// <param name="searchContext">The search context for the preferences.</param>
         public override void OnGUI([CanBeNull] string searchContext)
         {
+            if (redToggleStyle == null)
+            {
+                redToggleStyle = new GUIStyle(GUI.skin.toggle)
+                {
+                    onNormal = { textColor = Color.red },
+                    onHover = { textColor = Color.red },
+                };
+            }
+
             var preferencesChangedThisFrame = false;
             var sourcePathChangedThisFrame = false;
 
@@ -108,7 +144,7 @@ namespace NugetForUnity.Ui
                 ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
             }
 
-            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUILayout.HorizontalScope())
             {
                 var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
                 EditorGUILayout.LabelField(
@@ -130,7 +166,6 @@ namespace NugetForUnity.Ui
                 }
             }
 
-            EditorGUILayout.EndHorizontal();
             if (shouldShowPackagesConfigPathWarning)
             {
                 EditorGUILayout.HelpBox(
@@ -151,155 +186,180 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.LabelField("Package Sources:");
 
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-
-            INugetPackageSource sourceToMoveUp = null;
-            INugetPackageSource sourceToMoveDown = null;
-            INugetPackageSource sourceToRemove = null;
-
-            foreach (var source in ConfigurationManager.NugetConfigFile.PackageSources)
+            using (var scrollView = new EditorGUILayout.ScrollViewScope(sourcesScrollPosition))
             {
-                EditorGUILayout.BeginVertical();
+                sourcesScrollPosition = scrollView.scrollPosition;
+
+                INugetPackageSource sourceToMoveUp = null;
+                INugetPackageSource sourceToMoveDown = null;
+                INugetPackageSource sourceToRemove = null;
+
+                foreach (var source in ConfigurationManager.NugetConfigFile.PackageSources)
                 {
-                    EditorGUILayout.BeginHorizontal();
+                    using (new EditorGUILayout.HorizontalScope())
                     {
-                        EditorGUILayout.BeginVertical(GUILayout.Width(20));
-                        {
-                            GUILayout.Space(10);
-                            var isEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
-                            if (isEnabled != source.IsEnabled)
-                            {
-                                preferencesChangedThisFrame = true;
-                                source.IsEnabled = isEnabled;
-                            }
-                        }
-
-                        EditorGUILayout.EndVertical();
-
-                        EditorGUILayout.BeginVertical();
-                        {
-                            var name = EditorGUILayout.TextField(source.Name);
-                            if (name != source.Name)
-                            {
-                                preferencesChangedThisFrame = true;
-                                source.Name = name;
-                            }
-
-                            var savedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
-                            if (savedPath != source.SavedPath)
-                            {
-                                preferencesChangedThisFrame = true;
-                                sourcePathChangedThisFrame = true;
-                                source.SavedPath = savedPath;
-                            }
-                        }
-
-                        EditorGUILayout.EndVertical();
-                    }
-
-                    EditorGUILayout.EndHorizontal();
-
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        GUILayout.Space(29);
-                        EditorGUIUtility.labelWidth = 75;
-                        EditorGUILayout.BeginVertical();
-
-                        var hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
-                        if (hasPassword != source.HasPassword)
+                        GUILayout.Space(10);
+                        var isEnabled = EditorGUILayout.Toggle(source.IsEnabled, GUILayout.Width(20));
+                        if (isEnabled != source.IsEnabled)
                         {
                             preferencesChangedThisFrame = true;
-                            source.HasPassword = hasPassword;
+                            source.IsEnabled = isEnabled;
                         }
 
-                        if (source.HasPassword)
+                        var name = EditorGUILayout.TextField(source.Name, GUILayout.Width(140));
+                        if (name != source.Name)
                         {
-                            var userName = EditorGUILayout.TextField("User Name", source.UserName);
-                            if (userName != source.UserName)
-                            {
-                                preferencesChangedThisFrame = true;
-                                source.UserName = userName;
-                            }
-
-                            var savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
-                            if (savedPassword != source.SavedPassword)
-                            {
-                                preferencesChangedThisFrame = true;
-                                source.SavedPassword = savedPassword;
-                            }
+                            preferencesChangedThisFrame = true;
+                            source.Name = name;
                         }
-                        else
+
+                        var savedPath = EditorGUILayout.TextField(source.SavedPath).Trim();
+                        if (savedPath != source.SavedPath)
                         {
-                            source.UserName = null;
+                            preferencesChangedThisFrame = true;
+                            sourcePathChangedThisFrame = true;
+                            source.SavedPath = savedPath;
                         }
 
-                        EditorGUIUtility.labelWidth = 0;
-                        EditorGUILayout.EndVertical();
-                    }
-
-                    EditorGUILayout.EndHorizontal();
-
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        if (GUILayout.Button("Move Up"))
+                        if (GUILayout.Button(upArrow, GUILayout.Width(24)))
                         {
                             sourceToMoveUp = source;
                         }
 
-                        if (GUILayout.Button("Move Down"))
+                        if (GUILayout.Button(downArrow, GUILayout.Width(24)))
                         {
                             sourceToMoveDown = source;
                         }
 
-                        if (GUILayout.Button("Remove"))
+                        if (GUILayout.Button(deleteX, GUILayout.Width(24)))
                         {
                             sourceToRemove = source;
                         }
                     }
 
-                    EditorGUILayout.EndHorizontal();
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        GUILayout.Space(29);
+                        EditorGUIUtility.labelWidth = 75;
+                        using (new EditorGUILayout.VerticalScope())
+                        {
+                            var hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
+                            if (hasPassword != source.HasPassword)
+                            {
+                                preferencesChangedThisFrame = true;
+                                source.HasPassword = hasPassword;
+                            }
+
+                            if (source.HasPassword)
+                            {
+                                var userName = EditorGUILayout.TextField("User Name", source.UserName);
+                                if (userName != source.UserName)
+                                {
+                                    preferencesChangedThisFrame = true;
+                                    source.UserName = userName;
+                                }
+
+                                var savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
+                                if (savedPassword != source.SavedPassword)
+                                {
+                                    preferencesChangedThisFrame = true;
+                                    source.SavedPassword = savedPassword;
+                                }
+                            }
+                            else
+                            {
+                                source.UserName = null;
+                            }
+
+                            EditorGUIUtility.labelWidth = 0;
+                        }
+                    }
                 }
 
-                EditorGUILayout.EndVertical();
-            }
-
-            if (sourceToMoveUp != null)
-            {
-                var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
-                if (index > 0)
+                if (sourceToMoveUp != null)
                 {
-                    ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index - 1];
-                    ConfigurationManager.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
+                    var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveUp);
+                    if (index > 0)
+                    {
+                        ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index - 1];
+                        ConfigurationManager.NugetConfigFile.PackageSources[index - 1] = sourceToMoveUp;
+                    }
+
+                    preferencesChangedThisFrame = true;
                 }
 
-                preferencesChangedThisFrame = true;
-            }
-
-            if (sourceToMoveDown != null)
-            {
-                var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
-                if (index < ConfigurationManager.NugetConfigFile.PackageSources.Count - 1)
+                if (sourceToMoveDown != null)
                 {
-                    ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index + 1];
-                    ConfigurationManager.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
+                    var index = ConfigurationManager.NugetConfigFile.PackageSources.IndexOf(sourceToMoveDown);
+                    if (index < ConfigurationManager.NugetConfigFile.PackageSources.Count - 1)
+                    {
+                        ConfigurationManager.NugetConfigFile.PackageSources[index] = ConfigurationManager.NugetConfigFile.PackageSources[index + 1];
+                        ConfigurationManager.NugetConfigFile.PackageSources[index + 1] = sourceToMoveDown;
+                    }
+
+                    preferencesChangedThisFrame = true;
                 }
 
-                preferencesChangedThisFrame = true;
+                if (sourceToRemove != null)
+                {
+                    ConfigurationManager.NugetConfigFile.PackageSources.Remove(sourceToRemove);
+                    preferencesChangedThisFrame = true;
+                }
+
+                if (GUILayout.Button("Add New Source"))
+                {
+                    ConfigurationManager.NugetConfigFile.PackageSources.Add(new NugetPackageSourceLocal("New Source", "source_path"));
+                    preferencesChangedThisFrame = true;
+                }
             }
 
-            if (sourceToRemove != null)
+            if (plugins.Count > 0)
             {
-                ConfigurationManager.NugetConfigFile.PackageSources.Remove(sourceToRemove);
-                preferencesChangedThisFrame = true;
+                EditorGUILayout.LabelField("Plugins:");
+
+                using (var scrollView = new EditorGUILayout.ScrollViewScope(pluginsScrollPosition))
+                {
+                    pluginsScrollPosition = scrollView.scrollPosition;
+                    NugetPlugin pluginToRemove = null;
+                    foreach (var plugin in plugins)
+                    {
+                        var valid = plugin.Assembly != null;
+                        var style = valid ? GUI.skin.toggle : redToggleStyle;
+                        var enabled = GUILayout.Toggle(plugin.Enabled, plugin.Name, style);
+                        if (enabled == plugin.Enabled)
+                        {
+                            continue;
+                        }
+
+                        plugin.Enabled = enabled;
+                        preferencesChangedThisFrame = true;
+                        if (enabled)
+                        {
+                            ConfigurationManager.NugetConfigFile.EnabledPlugins.Add(new NugetForUnityPluginId(plugin.Name, plugin.Path));
+                        }
+                        else
+                        {
+                            ConfigurationManager.NugetConfigFile.EnabledPlugins.Remove(new NugetForUnityPluginId(plugin.Name, plugin.Path));
+                            if (!valid)
+                            {
+                                pluginToRemove = plugin;
+                            }
+                        }
+
+                        if (valid)
+                        {
+                            PluginRegistry.Reinitialize();
+                        }
+                    }
+
+                    if (pluginToRemove != null)
+                    {
+                        plugins.Remove(pluginToRemove);
+                    }
+                }
             }
 
-            if (GUILayout.Button("Add New Source"))
-            {
-                ConfigurationManager.NugetConfigFile.PackageSources.Add(new NugetPackageSourceLocal("New Source", "source_path"));
-                preferencesChangedThisFrame = true;
-            }
-
-            EditorGUILayout.EndScrollView();
+            GUILayout.FlexibleSpace();
 
             if (GUILayout.Button("Reset To Default"))
             {
@@ -321,6 +381,34 @@ namespace NugetForUnity.Ui
                 // e.g. the 'url' can be changed to a V3 nuget API url so we need to create a V3 package source.
                 ConfigurationManager.LoadNugetConfigFile();
             }
+        }
+
+        private class NugetPlugin
+        {
+            public NugetPlugin([NotNull]Assembly assembly, bool enabled)
+            {
+                Assembly = assembly;
+                Enabled = enabled;
+                Name = Assembly.GetName().Name;
+                Path = Assembly.Location;
+            }
+
+            public NugetPlugin(string name, string path)
+            {
+                Assembly = null;
+                Enabled = true;
+                Name = name;
+                Path = path;
+            }
+
+            [CanBeNull]
+            public Assembly Assembly { get; }
+
+            public string Name { get; }
+
+            public string Path { get; }
+
+            public bool Enabled { get; set; }
         }
     }
 }

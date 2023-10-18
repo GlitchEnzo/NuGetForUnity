@@ -10,6 +10,7 @@ using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
+using NugetForUnity.PluginAPI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -183,7 +184,7 @@ public class NuGetTests
             jQuery311.Version);
 
         // reinstall bootstrap, which should use the currently installed jQuery 3.1.1
-        NugetPackageUninstaller.Uninstall(bootstrap337, false);
+        NugetPackageUninstaller.Uninstall(bootstrap337, PackageUninstallReason.IndividualUninstall, false);
         NugetPackageInstaller.InstallIdentifier(bootstrap337);
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(jQuery191, false), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);

@@ -33,9 +33,8 @@ namespace NugetForUnity.Models
         [NonSerialized]
         private IReadOnlyList<INugetPackageIdentifier> currentFrameworkDependencies;
 
-        [CanBeNull]
         [SerializeField]
-        private List<NugetFrameworkGroup> dependencies;
+        private List<NugetFrameworkGroup> dependencies = new List<NugetFrameworkGroup>();
 
         [SerializeField]
         private bool dependenciesFetched;
@@ -119,7 +118,6 @@ namespace NugetForUnity.Models
             {
                 if (dependenciesFetched)
                 {
-                    Debug.Assert(dependencies != null, nameof(dependencies) + " != null");
                     return dependencies;
                 }
 
@@ -184,6 +182,10 @@ namespace NugetForUnity.Models
 
         /// <inheritdoc />
         public string RepositoryCommit => string.Empty;
+
+        /// <inheritdoc/>
+        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
+            CurrentFrameworkDependencies;
 
         /// <inheritdoc />
         public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies

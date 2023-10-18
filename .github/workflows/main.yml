@@ -65,11 +65,14 @@ jobs:
         with:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
-      - name: Upload NuGetForUnity.dll
+      - name: Upload NuGetForUnity dlls
         uses: actions/upload-artifact@v3
         with:
           name: NuGetForUnity.dll
-          path: ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
+          path: |
+            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.PluginAPI.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.PluginAPI.xml
           if-no-files-found: error
 
   packageOnLinux:

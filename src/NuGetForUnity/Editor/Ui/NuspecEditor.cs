@@ -41,7 +41,7 @@ namespace NugetForUnity.Ui
         ///     Creates a new MyPackage.nuspec file.
         /// </summary>
         [MenuItem("Assets/NuGet/Create Nuspec File", false, 2000)]
-        protected static void CreateNuspecFile()
+        public static void CreateNuspecFile()
         {
             var filepath = Application.dataPath;
 
@@ -58,24 +58,12 @@ namespace NugetForUnity.Ui
             }
 
             Debug.Assert(filepath != null, "filepath != null");
-            filepath = Path.Combine(filepath, "MyPackage.nuspec");
+            var packageName = Path.GetFileName(filepath);
+            filepath = Path.Combine(filepath, packageName + ".nuspec");
 
             Debug.LogFormat("Creating: {0}", filepath);
 
-            var file = new NuspecFile
-            {
-                Id = "MyPackage",
-                Version = "0.0.1",
-                Authors = "Your Name",
-                Owners = "Your Name",
-                LicenseUrl = "http://your_license_url_here",
-                ProjectUrl = "http://your_project_url_here",
-                Description = "A description of what this package is and does.",
-                Summary = "A brief description of what this package is and does.",
-                ReleaseNotes = "Notes for this specific release",
-                Copyright = "Copyright 2017",
-                IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
-            };
+            var file = NuspecFile.CreateDefault(packageName);
             file.Save(filepath);
 
             AssetDatabase.Refresh();
@@ -144,7 +132,8 @@ namespace NugetForUnity.Ui
                 }
 
                 EditorGUIUtility.labelWidth = 100;
-                nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The name of the package."), nuspec.Id);
+                nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The id of the package."), nuspec.Id);
+                nuspec.Title = EditorGUILayout.TextField(new GUIContent("Title", "The name of the package."), nuspec.Title);
                 nuspec.Version = EditorGUILayout.TextField(new GUIContent("Version", "The semantic version of the package."), nuspec.Version);
                 nuspec.Authors = EditorGUILayout.TextField(new GUIContent("Authors", "The authors of the package."), nuspec.Authors);
                 nuspec.Owners = EditorGUILayout.TextField(new GUIContent("Owners", "The owners of the package."), nuspec.Owners);
@@ -203,7 +192,7 @@ namespace NugetForUnity.Ui
                             nuspec.Dependencies.Clear();
 
                             nuspec.Dependencies.Add(new NugetFrameworkGroup());
-                            nuspec.Dependencies[0].Dependencies = roots.ToList();
+                            nuspec.Dependencies[0].Dependencies = roots;
                         }
                     }
 
@@ -303,8 +292,9 @@ namespace NugetForUnity.Ui
             assetFilepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, assetFilepath);
 
             var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
+            var alreadyLoaded = nuspec != null && filepath == assetFilepath;
 
-            if (!isNuspec)
+            if (!isNuspec || alreadyLoaded)
             {
                 return;
             }

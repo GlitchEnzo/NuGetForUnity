@@ -44,6 +44,11 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Project can register its own method that sets default values for newly created nuspec file.
+        /// </summary>
+        public static event Action<NuspecFile> ProjectSpecificNuspecDefaults;
+
+        /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
         [CanBeNull]
@@ -163,6 +168,33 @@ namespace NugetForUnity
         /// </summary>
         [NotNull]
         public string Authors { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Creates a new nuspec file with default values for a new package.
+        /// </summary>
+        /// <param name="packageName">Optional name for the new package. Defaults to "MyPackage".</param>
+        /// <returns>Newly created nuspec file.</returns>
+        public static NuspecFile CreateDefault(string packageName = "MyPackage")
+        {
+            var result = new NuspecFile
+            {
+                Id = "CompanyName." + packageName,
+                Title = packageName,
+                Version = "0.0.1",
+                Authors = "Your Name",
+                Owners = "Your Name",
+                LicenseUrl = "http://your_license_url_here",
+                ProjectUrl = "http://your_project_url_here",
+                Description = "A description of what this package is and does.",
+                Summary = "A brief description of what this package is and does.",
+                ReleaseNotes = "Notes for this specific release",
+                Copyright = "Copyright 2017",
+                IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
+            };
+            ProjectSpecificNuspecDefaults?.Invoke(result);
+
+            return result;
+        }
 
         /// <summary>
         ///     Loads the .nuspec file inside the .nupkg file at the given file path.

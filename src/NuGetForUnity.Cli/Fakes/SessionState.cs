@@ -4,7 +4,7 @@
     {
         internal static string GetString(string key, string defaultValue)
         {
-            return null;
+            return key == "IsRunningInUnity" ? "false" : null;
         }
 
         internal static void SetString(string key, object value)
