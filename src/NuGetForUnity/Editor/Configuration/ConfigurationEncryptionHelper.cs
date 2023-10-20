@@ -1,13 +1,12 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using UnityEngine;
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+﻿#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
 using JetBrains.Annotations;
-
 #else
 using System.Security.Cryptography;
 #endif
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using UnityEngine;
 
 namespace NugetForUnity.Configuration
 {

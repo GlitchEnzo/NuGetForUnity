@@ -436,29 +436,64 @@ namespace NugetForUnity.PackageSource
                 var resources = resourceList.resources ??
                                 throw new InvalidOperationException(
                                     $"missing '{nameof(resourceList.resources)}' property inside index response:\n{responseString}");
+
+                // we only support v3 so if v4 is released we skip it.
+                var maxSupportedApiVersion = new NugetPackageVersion("4.0.0");
+                NugetPackageVersion highestPackageBaseAddressApiVersion = null;
+                NugetPackageVersion highestRegistrationsBaseUrlApiVersion = null;
+                NugetPackageVersion highestSearchQueryServiceApiVersion = null;
                 foreach (var resource in resources)
                 {
                     var resourceAtId = resource.atId ??
                                        throw new InvalidOperationException($"missing '@id' property inside resource of type '{resource.atType}'");
-                    switch (resource.atType)
+                    var resourceAtType = resource.atType ??
+                                         throw new InvalidOperationException($"missing '@type' property inside resource with id '{resource.atId}'");
+
+                    var resourceTypeParts = resourceAtType.Split('/');
+                    NugetPackageVersion resourceTypeVersion = null;
+
+                    // need to skip if version is no number like in: 'RegistrationsBaseUrl/Versioned'
+                    if (resourceTypeParts.Length > 1 && !string.IsNullOrEmpty(resourceTypeParts[1]) && char.IsDigit(resourceTypeParts[1][0]))
+                    {
+                        resourceTypeVersion = new NugetPackageVersion(resourceTypeParts[1]);
+                    }
+
+                    switch (resourceTypeParts[0])
                     {
                         case "SearchQueryService":
-                            var comment = resource.comment ?? string.Empty;
-                            if (comment.IndexOf("(primary)", StringComparison.OrdinalIgnoreCase) >= 0)
+                            if (highestSearchQueryServiceApiVersion == null ||
+                                (resourceTypeVersion > highestSearchQueryServiceApiVersion && resourceTypeVersion < maxSupportedApiVersion))
                             {
-                                foundSearchQueryServices.Insert(0, resourceAtId.Trim('/'));
-                            }
-                            else
-                            {
-                                foundSearchQueryServices.Add(resourceAtId.Trim('/'));
+                                highestSearchQueryServiceApiVersion = resourceTypeVersion;
+                                var comment = resource.comment ?? string.Empty;
+                                if (comment.IndexOf("(primary)", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    foundSearchQueryServices.Insert(0, resourceAtId.Trim('/'));
+                                }
+                                else
+                                {
+                                    foundSearchQueryServices.Add(resourceAtId.Trim('/'));
+                                }
                             }
 
                             break;
-                        case "PackageBaseAddress/3.0.0":
-                            packageBaseAddress = resourceAtId.Trim('/') + '/';
+                        case "PackageBaseAddress":
+                            if (highestPackageBaseAddressApiVersion == null ||
+                                (resourceTypeVersion > highestPackageBaseAddressApiVersion && resourceTypeVersion < maxSupportedApiVersion))
+                            {
+                                highestPackageBaseAddressApiVersion = resourceTypeVersion;
+                                packageBaseAddress = resourceAtId.Trim('/') + '/';
+                            }
+
                             break;
-                        case "RegistrationsBaseUrl/3.6.0":
-                            registrationsBaseUrl = resourceAtId.Trim('/') + '/';
+                        case "RegistrationsBaseUrl":
+                            if (highestRegistrationsBaseUrlApiVersion == null ||
+                                (resourceTypeVersion > highestRegistrationsBaseUrlApiVersion && resourceTypeVersion < maxSupportedApiVersion))
+                            {
+                                highestRegistrationsBaseUrlApiVersion = resourceTypeVersion;
+                                registrationsBaseUrl = resourceAtId.Trim('/') + '/';
+                            }
+
                             break;
                     }
                 }
