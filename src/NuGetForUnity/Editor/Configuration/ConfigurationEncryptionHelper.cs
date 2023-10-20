@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 #if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
 using JetBrains.Annotations;
-using System.Reflection;
+
+#else
+using System.Security.Cryptography;
 #endif
 
 namespace NugetForUnity.Configuration
@@ -40,23 +41,31 @@ namespace NugetForUnity.Configuration
                 return value;
             }
 
-            var decryptedByteArray = Encoding.UTF8.GetBytes(value);
+            try
+            {
+                var decryptedByteArray = Encoding.UTF8.GetBytes(value);
 
 #if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
-            var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
+                var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #else
 
-            // when not compiled inside a unity editor we need to use reflection to access Windows only API
-            var encryptedByteArray = ProtectOrUnprotectUsingReflection("Protect", decryptedByteArray);
+                // when not compiled inside a unity editor we need to use reflection to access Windows only API
+                var encryptedByteArray = ProtectOrUnprotectUsingReflection("Protect", decryptedByteArray);
 
-            if (encryptedByteArray == null)
-            {
-                return value;
-            }
+                if (encryptedByteArray == null)
+                {
+                    return value;
+                }
 #endif
 
-            var encryptedString = Convert.ToBase64String(encryptedByteArray);
-            return encryptedString;
+                var encryptedString = Convert.ToBase64String(encryptedByteArray);
+                return encryptedString;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to encrypt string, error: {e}");
+                return value;
+            }
         }
 
         /// <summary>
@@ -72,22 +81,30 @@ namespace NugetForUnity.Configuration
                 return encryptedString;
             }
 
-            var encryptedByteArray = Convert.FromBase64String(encryptedString);
+            try
+            {
+                var encryptedByteArray = Convert.FromBase64String(encryptedString);
 
 #if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
-            var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
+                var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #else
 
-            // when not compiled inside a unity editor we need to use reflection to access Windows only API
-            var decryptedByteArray = ProtectOrUnprotectUsingReflection("Unprotect", encryptedByteArray);
+                // when not compiled inside a unity editor we need to use reflection to access Windows only API
+                var decryptedByteArray = ProtectOrUnprotectUsingReflection("Unprotect", encryptedByteArray);
 
-            if (decryptedByteArray == null)
-            {
-                return encryptedString;
-            }
+                if (decryptedByteArray == null)
+                {
+                    return encryptedString;
+                }
 #endif
 
-            return Encoding.UTF8.GetString(decryptedByteArray);
+                return Encoding.UTF8.GetString(decryptedByteArray);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to decrypt string, error: {e}");
+                return encryptedString;
+            }
         }
 
 #if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
@@ -97,7 +114,7 @@ namespace NugetForUnity.Configuration
             var protectedDataType = ProtectedDataTypeLazy.Value;
             if (protectedDataType == null)
             {
-                Debug.LogError("Encrypted passwords are not supported by this Unity version. They are only known to work on Unity > 2023.1.");
+                Debug.LogError("Encrypted passwords are not supported: type 'System.Security.Cryptography.ProtectedData' was not found.");
                 return null;
             }
 
