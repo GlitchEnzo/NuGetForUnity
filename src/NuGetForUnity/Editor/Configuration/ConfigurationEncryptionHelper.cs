@@ -45,7 +45,9 @@ namespace NugetForUnity.Configuration
                 var decryptedByteArray = Encoding.UTF8.GetBytes(value);
 
 #if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
+#pragma warning disable CA1416 // Validate platform compatibility
                 var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
+#pragma warning restore CA1416 // Validate platform compatibility
 #else
 
                 // when not compiled inside a unity editor we need to use reflection to access Windows only API
@@ -85,7 +87,9 @@ namespace NugetForUnity.Configuration
                 var encryptedByteArray = Convert.FromBase64String(encryptedString);
 
 #if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
+#pragma warning disable CA1416 // Validate platform compatibility
                 var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
+#pragma warning restore CA1416 // Validate platform compatibility
 #else
 
                 // when not compiled inside a unity editor we need to use reflection to access Windows only API
