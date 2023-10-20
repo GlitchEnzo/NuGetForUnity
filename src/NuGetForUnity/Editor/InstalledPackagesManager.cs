@@ -6,7 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
-using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using Debug = UnityEngine.Debug;

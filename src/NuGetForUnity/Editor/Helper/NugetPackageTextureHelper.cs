@@ -6,9 +6,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
+#if UNITY_2022_1_OR_NEWER
+using UnityEditor;
+#endif
 
 #region No ReShaper
 
