@@ -279,8 +279,7 @@ namespace NugetForUnity
                     somethingDeleted = true;
                     NugetLogger.LogVerbose("---DELETE unnecessary package {0}", folder);
 
-                    FileSystemHelper.DeleteDirectory(folder, false);
-                    FileSystemHelper.DeleteFile($"{folder}.meta");
+                    PackageContentManager.DeletePackageContentPackage(package);
                 }
             }
 

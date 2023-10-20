@@ -47,7 +47,7 @@ namespace NugetForUnity.Ui
         private NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
-            shouldShowPackagesConfigPathWarning = UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
+            shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
         }
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace NugetForUnity.Ui
                     if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
                     {
                         // if the path root is different or it is not under Assets folder, we want to show a warning message
-                        shouldShowPackagesConfigPathWarning = UnityPathHelper.IsPathInAssets(newPath);
+                        shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(newPath);
 
                         PackagesConfigFile.Move(newPath);
                         preferencesChangedThisFrame = true;
