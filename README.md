@@ -1,6 +1,6 @@
 # What is NuGetForUnity?
 
-NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor. NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users. NuGet supports [sematic versioning](http://semver.org/) for packages as well as dependencies on other packages.
+NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor. NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users. NuGet supports [semantic versioning](http://semver.org/) for packages as well as dependencies on other packages.
 
 You can learn more about NuGet here: [nuget.org](https://www.nuget.org/)
 
@@ -158,7 +158,7 @@ The _.nupkg_ files downloaded from the NuGet server are cached locally in the cu
 
 ## Disable automatic referencing of assemblies
 
-To disable the automatic referencing of assemblies of a NuGet package you can sett the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
+To disable the automatic referencing of assemblies of a NuGet package you can set the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -189,7 +189,7 @@ Press the **Push** button to push your package up to the server. Be sure to set 
 
 You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://github.com/NuGet/NuGetGallery), [ProGet](http://inedo.com/proget), etc to create your own NuGet server.
 
-> **Note:** NuGetForUnity does't use the official NuGet Client implementation form Microsoft, so authenticating against a third-party NuGet server is currently not supported for every case. If you ran into authentication issues pleas create a issue so we can try to implement it.
+> **Note:** NuGetForUnity doesn't use the official NuGet Client implementation form Microsoft, so authenticating against a third-party NuGet server is currently not supported for every case. If you ran into authentication issues please create a issue so we can try to implement it.
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share. [Local NuGet feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds) can have two different structures:
 
@@ -209,7 +209,7 @@ For those with projects using automated build solutions like [continuous integra
 -   As a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
 -   If you don't have a tool manifest (local tool installation context) first create one with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`.
 
-For more information see [.Net Tool Documentaion](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
+For more information see [.Net Tool Documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
 ## Usage
 
@@ -238,7 +238,7 @@ As mentioned in the message this error can be suppressed by changing a setting. 
 
 ## Missing System libraries
 
-When targeting .Net Framework, the 'Api Compatibility Level' setting under _Edit_ -> _Project Settings_ -> _Player_ -> _Other Settings_ is set to .NET Framework, Unity doesn't include some System libraries by default. See also [Unity documentation about system libraries](https://docs.unity3d.com/Manual/dotnetProfileAssemblies.html) and [Unity documetnation about .Net Profiles](https://docs.unity3d.com/Manual/dotnetProfileSupport.html). Libraries that are not imported by default are e.g. `System.Drawing`, `System.IO.Compression`, `System.IO.Compression.FileSystem` and `System.Net.Http`. If you try to use one of this libraries you get a error like:
+When targeting .Net Framework, the 'Api Compatibility Level' setting under _Edit_ -> _Project Settings_ -> _Player_ -> _Other Settings_ is set to .NET Framework, Unity doesn't include some System libraries by default. See also [Unity documentation about system libraries](https://docs.unity3d.com/Manual/dotnetProfileAssemblies.html) and [Unity documentation about .Net Profiles](https://docs.unity3d.com/Manual/dotnetProfileSupport.html). Libraries that are not imported by default are e.g. `System.Drawing`, `System.IO.Compression`, `System.IO.Compression.FileSystem` and `System.Net.Http`. If you try to use one of this libraries you get a error like:
 
 ```
 The type `HttpClient` is defined in an assembly that is not referenced. You must add a reference to assembly 'System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.
