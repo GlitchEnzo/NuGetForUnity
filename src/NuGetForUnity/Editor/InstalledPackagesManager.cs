@@ -6,7 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
-using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using Debug = UnityEngine.Debug;
@@ -193,7 +192,10 @@ namespace NugetForUnity
                         if (entryFullName.EndsWith(".nuspec.meta", StringComparison.Ordinal) ||
                             entryFullName.EndsWith(".nuspec", StringComparison.Ordinal))
                         {
-                            PackageContentManager.ExtractPackageEntry(entry, Path.GetDirectoryName(nupkgFile));
+                            PackageContentManager.ExtractPackageEntry(
+                                entry,
+                                Path.GetDirectoryName(nupkgFile) ??
+                                throw new InvalidOperationException($"Failed to get directory from '{nupkgFile}'"));
                         }
                     }
                 }
@@ -270,9 +272,11 @@ namespace NugetForUnity
 
                 var package = NugetPackageLocal.FromNuspecFile(
                     nuspecPath,
-                    new NugetPackageSourceLocal("Nuspec file already installed", Path.GetDirectoryName(nuspecPath)));
+                    new NugetPackageSourceLocal(
+                        "Nuspec file already installed",
+                        Path.GetDirectoryName(nuspecPath) ?? throw new InvalidOperationException($"Failed to get directory from '{nuspecPath}'")));
 
-                var installed = PackagesConfigFile.Packages.Any(packageId => packageId.Equals(package));
+                var installed = PackagesConfigFile.Packages.Exists(packageId => packageId.Equals(package));
 
                 if (!installed)
                 {

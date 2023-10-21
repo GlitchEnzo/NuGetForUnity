@@ -30,10 +30,21 @@ namespace NugetForUnity.PackageSource
         string SavedPassword { get; set; }
 
         /// <summary>
+        ///     Gets or sets a value indicating whether <see cref="SavedPassword" /> is encrypted.
+        /// </summary>
+        bool SavedPasswordIsEncrypted { get; set; }
+
+        /// <summary>
         ///     Gets or sets the path of the package source.
         /// </summary>
         [NotNull]
         string SavedPath { get; set; }
+
+        /// <summary>
+        ///     Gets the explicitly defined protocol version stored inside the 'NuGet.config'.
+        /// </summary>
+        [CanBeNull]
+        string SavedProtocolVersion { get; }
 
         /// <summary>
         ///     Gets or sets the user-name used to access the feed. Null indicates that no authentication is used.
@@ -99,7 +110,7 @@ namespace NugetForUnity.PackageSource
         /// <returns>The list of available packages.</returns>
         [NotNull]
         [ItemNotNull]
-        Task<List<INugetPackage>> Search(
+        Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,

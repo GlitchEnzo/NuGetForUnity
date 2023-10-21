@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using UnityEngine;
 
@@ -16,6 +17,11 @@ namespace NugetForUnity.PackageSource
     [Serializable]
     internal sealed class NugetPackageSourceV3 : INugetPackageSource, ISerializationCallbackReceiver
     {
+        /// <summary>
+        ///     Default value for <see cref="UpdateSearchBatchSize" />.
+        /// </summary>
+        public const int DefaultUpdateSearchBatchSize = 20;
+
         [NotNull]
         private static readonly Dictionary<string, NugetApiClientV3> ApiClientCache = new Dictionary<string, NugetApiClientV3>();
 
@@ -28,7 +34,8 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="name">The name of the package source.</param>
         /// <param name="url">The path to the package source.</param>
-        public NugetPackageSourceV3([NotNull] string name, [NotNull] string url)
+        /// <param name="savedProtocolVersion">The explicitly defined protocol version stored inside the 'NuGet.config'.</param>
+        public NugetPackageSourceV3([NotNull] string name, [NotNull] string url, string savedProtocolVersion)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -42,6 +49,7 @@ namespace NugetForUnity.PackageSource
 
             Name = name;
             SavedPath = url;
+            SavedProtocolVersion = savedProtocolVersion;
             IsEnabled = true;
 
             InitializeApiClient();
@@ -51,7 +59,19 @@ namespace NugetForUnity.PackageSource
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>
         [CanBeNull]
-        public string ExpandedPassword => SavedPassword != null ? Environment.ExpandEnvironmentVariables(SavedPassword) : null;
+        public string ExpandedPassword
+        {
+            get
+            {
+                if (SavedPassword == null)
+                {
+                    return null;
+                }
+
+                var expandedPassword = Environment.ExpandEnvironmentVariables(SavedPassword);
+                return SavedPasswordIsEncrypted ? ConfigurationEncryptionHelper.DecryptString(expandedPassword) : expandedPassword;
+            }
+        }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -60,6 +80,30 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         [field: SerializeField]
         public string SavedPath { get; set; }
+
+        /// <inheritdoc />
+        [field: SerializeField]
+        public string SavedProtocolVersion { get; private set; }
+
+        /// <inheritdoc />
+        public bool SavedPasswordIsEncrypted { get; set; }
+
+        /// <inheritdoc cref="NugetApiClientV3.PackageDownloadUrlTemplateOverwrite" />
+        [CanBeNull]
+        public string PackageDownloadUrlTemplateOverwrite
+        {
+            get => ApiClient.PackageDownloadUrlTemplateOverwrite;
+
+            set => ApiClient.PackageDownloadUrlTemplateOverwrite = value;
+        }
+
+        /// <summary>
+        ///     Gets or sets available updates are fetched using the <see cref="SearchAsync" />, to prevent the search query string to exceed the URI lenght
+        ///     limit we
+        ///     fetch the updates in groups. Defaults to <c>20</c>.
+        /// </summary>
+        [field: SerializeField]
+        public int UpdateSearchBatchSize { get; set; } = DefaultUpdateSearchBatchSize;
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -109,7 +153,7 @@ namespace NugetForUnity.PackageSource
             // so we need to fetch the latest version and filter them ourselves
             var searchQuery = $"packageid:{package.Id}";
 
-            var packages = Task.Run(() => ApiClient.SearchPackage(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
+            var packages = Task.Run(() => ApiClient.SearchPackageAsync(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
                 .GetAwaiter()
                 .GetResult();
 
@@ -160,13 +204,11 @@ namespace NugetForUnity.PackageSource
             var packagesFromServer = Task.Run(
                     async () =>
                     {
-                        // fetch updates in groups of 20 to avoid query string length limit
-                        const int batchSize = 20;
                         var updates = new List<INugetPackage>();
                         for (var i = 0; i < packagesToFetch.Count;)
                         {
                             var searchQueryBuilder = new StringBuilder();
-                            for (var inner = 0; inner < batchSize && i < packagesToFetch.Count; inner++, i++)
+                            for (var inner = 0; inner < UpdateSearchBatchSize && i < packagesToFetch.Count; inner++, i++)
                             {
                                 if (i > 0)
                                 {
@@ -177,7 +219,13 @@ namespace NugetForUnity.PackageSource
                             }
 
                             updates.AddRange(
-                                await ApiClient.SearchPackage(this, searchQueryBuilder.ToString(), 0, 0, includePrerelease, CancellationToken.None));
+                                await ApiClient.SearchPackageAsync(
+                                    this,
+                                    searchQueryBuilder.ToString(),
+                                    0,
+                                    0,
+                                    includePrerelease,
+                                    CancellationToken.None));
                         }
 
                         return updates;
@@ -190,20 +238,20 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public Task<List<INugetPackage>> Search(
+        public Task<List<INugetPackage>> SearchAsync(
             string searchTerm = "",
             bool includePrerelease = false,
             int numberToGet = 15,
             int numberToSkip = 0,
             CancellationToken cancellationToken = default)
         {
-            return ApiClient.SearchPackage(this, searchTerm, numberToSkip, numberToGet, includePrerelease, cancellationToken);
+            return ApiClient.SearchPackageAsync(this, searchTerm, numberToSkip, numberToGet, includePrerelease, cancellationToken);
         }
 
         /// <inheritdoc />
         public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            Task.Run(() => ApiClient.DownloadNupkgToFile(this, package, outputFilePath)).GetAwaiter().GetResult();
+            Task.Run(() => ApiClient.DownloadNupkgToFileAsync(this, package, outputFilePath)).GetAwaiter().GetResult();
         }
 
         /// <inheritdoc />
@@ -228,14 +276,14 @@ namespace NugetForUnity.PackageSource
             }
         }
 
-        /// <inheritdoc cref="NugetApiClientV3.GetPackageDetails" />
+        /// <inheritdoc cref="NugetApiClientV3.GetPackageDetailsAsync" />
         [NotNull]
         [ItemNotNull]
-        public Task<List<NugetFrameworkGroup>> GetPackageDetails(
+        public Task<List<NugetFrameworkGroup>> GetPackageDetailsAsync(
             [NotNull] INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
-            return ApiClient.GetPackageDetails(this, package, cancellationToken);
+            return ApiClient.GetPackageDetailsAsync(this, package, cancellationToken);
         }
 
         [NotNull]
@@ -247,7 +295,7 @@ namespace NugetForUnity.PackageSource
                 return apiClient;
             }
 
-            apiClient = new NugetApiClientV3(SavedPath, this);
+            apiClient = new NugetApiClientV3(SavedPath);
             ApiClientCache.Add(SavedPath, apiClient);
             return apiClient;
         }

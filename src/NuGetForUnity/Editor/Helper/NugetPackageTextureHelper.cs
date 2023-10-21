@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Networking;
+#if UNITY_2022_1_OR_NEWER
+using UnityEditor;
+#endif
 
 #region No ReShaper
 
@@ -34,7 +37,7 @@ namespace NugetForUnity.Helper
         /// <param name="url">The URL of the image to download.</param>
         /// <returns>The image as a Unity Texture2D object.</returns>
         [ItemCanBeNull]
-        internal static Task<Texture2D> DownloadImage([NotNull] string url)
+        internal static Task<Texture2D> DownloadImageAsync([NotNull] string url)
         {
             try
             {
@@ -51,7 +54,8 @@ namespace NugetForUnity.Helper
                 }
 
 #if UNITY_2022_1_OR_NEWER
-                if (UnityEditor.PlayerSettings.insecureHttpOption == UnityEditor.InsecureHttpOption.NotAllowed && url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                if (PlayerSettings.insecureHttpOption == InsecureHttpOption.NotAllowed &&
+                    url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
                 {
                     // if insecure http url is not allowed try to use https.
                     url = url.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);

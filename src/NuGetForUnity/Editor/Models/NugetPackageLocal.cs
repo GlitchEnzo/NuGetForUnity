@@ -30,7 +30,6 @@ namespace NugetForUnity.Models
         }
 
         /// <inheritdoc />
-        [NotNull]
         public override List<NugetPackageVersion> Versions => versions;
 
         /// <inheritdoc />

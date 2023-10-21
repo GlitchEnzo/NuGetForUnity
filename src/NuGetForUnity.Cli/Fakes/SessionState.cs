@@ -1,6 +1,6 @@
 ﻿namespace UnityEditor
 {
-    internal class SessionState
+    internal static class SessionState
     {
         internal static string GetString(string key, string defaultValue)
         {

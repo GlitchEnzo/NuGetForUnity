@@ -24,15 +24,12 @@ namespace UnityEngine
         {
             get
             {
-                switch (Environment.OSVersion.Platform)
+                return Environment.OSVersion.Platform switch
                 {
-                    case PlatformID.MacOSX:
-                        return RuntimePlatform.OSXEditor;
-                    case PlatformID.Unix:
-                        return RuntimePlatform.LinuxEditor;
-                    default:
-                        return RuntimePlatform.WindowsEditor;
-                }
+                    PlatformID.MacOSX => RuntimePlatform.OSXEditor,
+                    PlatformID.Unix => RuntimePlatform.LinuxEditor,
+                    _ => RuntimePlatform.WindowsEditor,
+                };
             }
         }
 

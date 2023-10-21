@@ -148,7 +148,7 @@ public class NuGetTests
     }
 
     [Test]
-    public void InstallBootstrapCSSTest([Values] InstallMode installMode)
+    public void InstallBootstrapCssTest([Values] InstallMode installMode)
     {
         ConfigureNugetConfig(installMode);
 
@@ -411,7 +411,7 @@ public class NuGetTests
                 package.Version);
 
             // search local package source
-            var localPackages = Task.Run(() => ConfigurationManager.Search()).GetAwaiter().GetResult();
+            var localPackages = Task.Run(() => ConfigurationManager.SearchAsync()).GetAwaiter().GetResult();
             Assert.That(localPackages, Is.EqualTo(new[] { package }));
 
             // install without a version number
@@ -579,7 +579,7 @@ public class NuGetTests
 
         var file = NugetConfigFile.CreateDefaultFile(path);
 
-        var inputSource = new NugetPackageSourceV2(name, "http://localhost") { UserName = username, SavedPassword = password };
+        var inputSource = new NugetPackageSourceV2(name, "http://localhost", null) { UserName = username, SavedPassword = password };
 
         file.PackageSources.Add(inputSource);
         file.Save(path);

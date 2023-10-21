@@ -38,6 +38,12 @@ namespace NugetForUnity.Configuration
         public const string FileName = "NuGet.config";
 
         /// <summary>
+        ///     The name of the attribute that is used to configure <see cref="NugetPackageSourceV3.PackageDownloadUrlTemplateOverwrite" /> of
+        ///     <see cref="NugetPackageSourceV3" />.
+        /// </summary>
+        internal const string PackageDownloadUrlTemplateOverwriteAttributeName = "packageDownloadUrlTemplateOverwrite";
+
+        /// <summary>
         ///     Default timeout in seconds for all web requests.
         /// </summary>
         private const int DefaultRequestTimeout = 10;
@@ -45,6 +51,12 @@ namespace NugetForUnity.Configuration
         private const string RequestTimeoutSecondsConfigKey = "RequestTimeoutSeconds";
 
         private const string PackagesConfigDirectoryPathConfigKey = "PackagesConfigDirectoryPath";
+
+        private const string ProtocolVersionAttributeName = "protocolVersion";
+
+        private const string PasswordAttributeName = "password";
+
+        private const string UpdateSearchBatchSizeAttributeName = "updateSearchBatchSize";
 
         /// <summary>
         ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
@@ -152,13 +164,24 @@ namespace NugetForUnity.Configuration
                 var adds = packageSources.Elements("add");
                 foreach (var add in adds)
                 {
-                    configFile.PackageSources.Add(
-                        NugetPackageSourceCreator.CreatePackageSource(
-                            add.Attribute("key")?.Value ??
-                            throw new InvalidOperationException($"packageSources misses 'key' attribute. Element:\n{add}"),
-                            add.Attribute("value")?.Value ??
-                            throw new InvalidOperationException($"packageSources misses 'value' attribute. Element:\n{add}"),
-                            null));
+                    var name = add.Attribute("key")?.Value ??
+                               throw new InvalidOperationException($"packageSources misses 'key' attribute. Element:\n{add}");
+                    var path = add.Attribute("value")?.Value ??
+                               throw new InvalidOperationException($"packageSources misses 'value' attribute. Element:\n{add}");
+                    var protocolVersion = add.Attribute(ProtocolVersionAttributeName)?.Value;
+                    var newPackageSource = NugetPackageSourceCreator.CreatePackageSource(name, path, protocolVersion, null);
+                    if (newPackageSource is NugetPackageSourceV3 sourceV3)
+                    {
+                        sourceV3.PackageDownloadUrlTemplateOverwrite = add.Attribute(PackageDownloadUrlTemplateOverwriteAttributeName)?.Value;
+
+                        var updateSearchBatchSizeString = add.Attribute(UpdateSearchBatchSizeAttributeName)?.Value;
+                        if (!string.IsNullOrEmpty(updateSearchBatchSizeString))
+                        {
+                            sourceV3.UpdateSearchBatchSize = Mathf.Clamp(int.Parse(updateSearchBatchSizeString), 1, int.MaxValue);
+                        }
+                    }
+
+                    configFile.PackageSources.Add(newPackageSource);
                 }
             }
 
@@ -166,13 +189,13 @@ namespace NugetForUnity.Configuration
             var activePackageSource = file.Root?.Element("activePackageSource");
             if (activePackageSource != null)
             {
-                var add = activePackageSource.Element("add");
-                configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(
-                    add?.Attribute("key")?.Value ??
-                    throw new InvalidOperationException($"activePackageSource misses 'key' attribute. Element:\n{add}"),
-                    add.Attribute("value")?.Value ??
-                    throw new InvalidOperationException($"activePackageSource misses 'value' attribute. Element:\n{add}"),
-                    configFile.PackageSources);
+                var add = activePackageSource.Element("add") ??
+                          throw new InvalidOperationException($"activePackageSource misses 'add' element. Element:\n{activePackageSource}");
+                var name = add.Attribute("key")?.Value ??
+                           throw new InvalidOperationException($"activePackageSource misses 'key' attribute. Element:\n{add}");
+                var path = add.Attribute("value")?.Value ??
+                           throw new InvalidOperationException($"activePackageSource misses 'value' attribute. Element:\n{add}");
+                configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(name, path, null, configFile.PackageSources);
             }
 
             // disable all listed disabled package sources
@@ -203,22 +226,31 @@ namespace NugetForUnity.Configuration
                 {
                     var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
                     var source = configFile.PackageSources.Find(p => p.Name == name);
-                    if (source != null)
+                    if (source == null)
                     {
-                        var adds = sourceElement.Elements("add");
-                        foreach (var add in adds)
-                        {
-                            if (string.Equals(add.Attribute("key")?.Value, "userName", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var userName = add.Attribute("value")?.Value;
-                                source.UserName = userName;
-                            }
+                        continue;
+                    }
 
-                            if (string.Equals(add.Attribute("key")?.Value, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var password = add.Attribute("value")?.Value;
-                                source.SavedPassword = password;
-                            }
+                    var adds = sourceElement.Elements("add");
+                    foreach (var add in adds)
+                    {
+                        var keyName = add.Attribute("key")?.Value;
+                        if (string.Equals(keyName, "userName", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var userName = add.Attribute("value")?.Value;
+                            source.UserName = userName;
+                        }
+                        else if (string.Equals(keyName, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var password = add.Attribute("value")?.Value;
+                            source.SavedPassword = password;
+                            source.SavedPasswordIsEncrypted = false;
+                        }
+                        else if (string.Equals(keyName, PasswordAttributeName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var encryptedPassword = add.Attribute("value")?.Value;
+                            source.SavedPassword = encryptedPassword;
+                            source.SavedPasswordIsEncrypted = true;
                         }
                     }
                 }
@@ -334,6 +366,25 @@ namespace NugetForUnity.Configuration
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", source.Name));
                 addElement.Add(new XAttribute("value", source.SavedPath));
+                if (!string.IsNullOrEmpty(source.SavedProtocolVersion))
+                {
+                    addElement.Add(new XAttribute(ProtocolVersionAttributeName, source.SavedProtocolVersion));
+                }
+
+                if (source is NugetPackageSourceV3 sourceV3)
+                {
+                    if (!string.IsNullOrEmpty(sourceV3.PackageDownloadUrlTemplateOverwrite))
+                    {
+                        addElement.Add(
+                            new XAttribute(PackageDownloadUrlTemplateOverwriteAttributeName, sourceV3.PackageDownloadUrlTemplateOverwrite));
+                    }
+
+                    if (sourceV3.UpdateSearchBatchSize != NugetPackageSourceV3.DefaultUpdateSearchBatchSize)
+                    {
+                        addElement.Add(new XAttribute(UpdateSearchBatchSizeAttributeName, sourceV3.UpdateSearchBatchSize));
+                    }
+                }
+
                 packageSources.Add(addElement);
 
                 if (!source.IsEnabled)
@@ -355,7 +406,7 @@ namespace NugetForUnity.Configuration
                     sourceElement.Add(addElement);
 
                     addElement = new XElement("add");
-                    addElement.Add(new XAttribute("key", "clearTextPassword"));
+                    addElement.Add(new XAttribute("key", source.SavedPasswordIsEncrypted ? PasswordAttributeName : "clearTextPassword"));
                     addElement.Add(new XAttribute("value", source.SavedPassword ?? string.Empty));
                     sourceElement.Add(addElement);
                 }

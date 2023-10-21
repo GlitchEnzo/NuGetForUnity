@@ -511,7 +511,7 @@ namespace NugetForUnity.Ui
             var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
 
             // we just block the main thread
-            availablePackages = Task.Run(() => ConfigurationManager.Search(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
+            availablePackages = Task.Run(() => ConfigurationManager.SearchAsync(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
                 .GetAwaiter()
                 .GetResult();
             NugetLogger.LogVerbose(
@@ -650,7 +650,7 @@ namespace NugetForUnity.Ui
                 numberToSkip += numberToGet;
                 availablePackages.AddRange(
                     Task.Run(
-                            () => ConfigurationManager.Search(
+                            () => ConfigurationManager.SearchAsync(
                                 onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
                                 showOnlinePrerelease,
                                 numberToGet,

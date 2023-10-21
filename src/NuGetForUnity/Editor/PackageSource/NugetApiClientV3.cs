@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using UnityEditor;
@@ -47,12 +48,18 @@ namespace NugetForUnity.PackageSource
             new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate });
 
         [NonSerialized]
-        private bool initializationFailed;
+        [CanBeNull]
+        private TaskCompletionSource<bool> initializationTaskCompletionSource;
 
         // Example: https://api.nuget.org/v3-flatcontainer/
         [CanBeNull]
         [SerializeField]
         private string packageBaseAddress;
+
+        // Example: https://api.nuget.org/v3-flatcontainer/{0}/{1}/{0}.{1}.nupkg
+        [CanBeNull]
+        [SerializeField]
+        private string packageDownloadUrlTemplate;
 
         // Example: https://api.nuget.org/v3/registration5-gz-semver2/
         [CanBeNull]
@@ -67,26 +74,24 @@ namespace NugetForUnity.PackageSource
         ///     Initializes a new instance of the <see cref="NugetApiClientV3" /> class.
         /// </summary>
         /// <param name="url">The absolute 'index.json' URL of the API.</param>
-        /// <param name="packageSource">The package source that owns this client.</param>
-        public NugetApiClientV3([NotNull] string url, [NotNull] NugetPackageSourceV3 packageSource)
+        public NugetApiClientV3([NotNull] string url)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
                 throw new ArgumentException($"'{nameof(url)}' cannot be null or whitespace.", nameof(url));
             }
 
-            if (packageSource is null)
-            {
-                throw new ArgumentNullException(nameof(packageSource));
-            }
-
             apiIndexJsonUrl = new Uri(url);
 
-            if (!InitializeFromSessionState())
-            {
-                InitializeApiAddresses(packageSource);
-            }
+            InitializeFromSessionState();
         }
+
+        /// <summary>
+        ///     Gets or sets a optional overwrite for the URL used to download '.nupkg' files (see: <see cref="DownloadNupkgToFileAsync" />).
+        /// </summary>
+        [CanBeNull]
+        [field: SerializeField]
+        public string PackageDownloadUrlTemplateOverwrite { get; set; }
 
         /// <inheritdoc />
         public void Dispose()
@@ -119,7 +124,7 @@ namespace NugetForUnity.PackageSource
         /// <returns>
         ///     A list of <see cref="INugetPackage" />s that match the search query.
         /// </returns>
-        public async Task<List<INugetPackage>> SearchPackage(
+        public async Task<List<INugetPackage>> SearchPackageAsync(
             NugetPackageSourceV3 packageSource,
             string searchQuery = "",
             int skip = -1,
@@ -127,16 +132,16 @@ namespace NugetForUnity.PackageSource
             bool includePreRelease = false,
             CancellationToken cancellationToken = default)
         {
-            if (initializationFailed)
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
+            if (!successfullyInitialized || searchQueryServices == null)
             {
-                Debug.LogError($"Initialization of api client for '{apiIndexJsonUrl}' failed so we can't search in it (see other error).");
                 return new List<INugetPackage>();
             }
 
-            while (searchQueryServices == null)
+            if (searchQueryServices.Count == 0)
             {
-                // waiting for InitializeApiAddresses to complete
-                await Task.Yield();
+                Debug.LogError($"There are no {nameof(searchQueryServices)} specified in the API '{apiIndexJsonUrl}' so we can't search.");
+                return new List<INugetPackage>();
             }
 
             var queryBuilder = new QueryBuilder();
@@ -161,17 +166,11 @@ namespace NugetForUnity.PackageSource
             }
 
             var query = queryBuilder.ToString();
-            foreach (var queryService in searchQueryServices)
-            {
-                var responseString = await GetStringFromServerAsync(packageSource, queryService + query, cancellationToken).ConfigureAwait(false);
-                var searchResult = JsonUtility.FromJson<SearchResult>(responseString);
-                var reulsts = searchResult.data ??
-                              throw new InvalidOperationException($"missing 'data' property in search response:\n{responseString}");
-                return SearchResultToNugetPackages(reulsts, packageSource);
-            }
-
-            Debug.LogError($"There are no {nameof(searchQueryServices)} specified in the API '{apiIndexJsonUrl}' so we can't search.");
-            return new List<INugetPackage>();
+            var queryService = searchQueryServices[0];
+            var responseString = await GetStringFromServerAsync(packageSource, queryService + query, cancellationToken).ConfigureAwait(false);
+            var searchResult = JsonUtility.FromJson<SearchResult>(responseString);
+            var results = searchResult.data ?? throw new InvalidOperationException($"missing 'data' property in search response:\n{responseString}");
+            return SearchResultToNugetPackages(results, packageSource);
         }
 
         /// <summary>
@@ -182,16 +181,28 @@ namespace NugetForUnity.PackageSource
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
         /// <returns>The async task.</returns>
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
-        public async Task DownloadNupkgToFile(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
+        public async Task DownloadNupkgToFileAsync(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
         {
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
+            if (!successfullyInitialized)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(packageDownloadUrlTemplate))
+            {
+                Debug.LogError($"There are no {nameof(packageBaseAddress)} specified in the API '{apiIndexJsonUrl}' so we can't download packages.");
+                return;
+            }
+
             var version = package.Version.ToLowerInvariant();
             var id = package.Id.ToLowerInvariant();
-            using (var request = new HttpRequestMessage(HttpMethod.Get, $"{packageBaseAddress}{id}/{version}/{id}.{version}.nupkg"))
+            using (var request = new HttpRequestMessage(HttpMethod.Get, string.Format(packageDownloadUrlTemplate, id, version)))
             {
-                AddHeadersToRequest(request, packageSource);
+                AddHeadersToRequest(request, packageSource, false);
                 using (var response = await httpClient.SendAsync(request).ConfigureAwait(false))
                 {
-                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
+                    await EnsureResponseIsSuccessAsync(response).ConfigureAwait(false);
                     using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     {
                         using (var fileStream = File.Create(outputFilePath))
@@ -217,11 +228,17 @@ namespace NugetForUnity.PackageSource
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "API uses lower case.")]
         [NotNull]
         [ItemNotNull]
-        public async Task<List<NugetFrameworkGroup>> GetPackageDetails(
+        public async Task<List<NugetFrameworkGroup>> GetPackageDetailsAsync(
             NugetPackageSourceV3 packageSource,
             INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
+            if (!successfullyInitialized)
+            {
+                return new List<NugetFrameworkGroup>();
+            }
+
             if (string.IsNullOrEmpty(registrationsBaseUrl))
             {
                 Debug.LogError(
@@ -341,7 +358,7 @@ namespace NugetForUnity.PackageSource
             return packages;
         }
 
-        private static async Task EnsureResponseIsSuccess(HttpResponseMessage response)
+        private static async Task EnsureResponseIsSuccessAsync(HttpResponseMessage response)
         {
             if (response.IsSuccessStatusCode)
             {
@@ -353,16 +370,15 @@ namespace NugetForUnity.PackageSource
                 $"The request to '{response.RequestMessage.RequestUri}' failed with status code '{response.StatusCode}' and message: {responseString}");
         }
 
-        private bool InitializeFromSessionState()
+        private void InitializeFromSessionState()
         {
             var sessionState = SessionState.GetString(GetSessionStateKey(), string.Empty);
             if (string.IsNullOrEmpty(sessionState))
             {
-                return false;
+                return;
             }
 
             JsonUtility.FromJsonOverwrite(sessionState, this);
-            return searchQueryServices != null;
         }
 
         private void SaveToSessionState()
@@ -375,8 +391,41 @@ namespace NugetForUnity.PackageSource
             return $"{nameof(NugetApiClientV3)}:{apiIndexJsonUrl}";
         }
 
-        private async void InitializeApiAddresses(NugetPackageSourceV3 packageSource)
+        private async Task<bool> EnsureInitializedAsync(NugetPackageSourceV3 packageSource)
         {
+            if (searchQueryServices != null)
+            {
+                return true;
+            }
+
+            try
+            {
+                var successful = await AwaitableInitializeApiAddressesAsync(packageSource);
+                return successful;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"Initialization of api client for '{apiIndexJsonUrl}' failed so we can't use it. error (cached): {exception}.");
+                return false;
+            }
+        }
+
+        private Task<bool> AwaitableInitializeApiAddressesAsync(NugetPackageSourceV3 packageSource)
+        {
+            if (initializationTaskCompletionSource != null)
+            {
+                return initializationTaskCompletionSource.Task;
+            }
+
+            initializationTaskCompletionSource = new TaskCompletionSource<bool>();
+            _ = InitializeApiAddressesAsync(packageSource);
+
+            return initializationTaskCompletionSource.Task;
+        }
+
+        private async Task InitializeApiAddressesAsync(NugetPackageSourceV3 packageSource)
+        {
+            Debug.Assert(initializationTaskCompletionSource != null, "initializationTaskCompletionSource != null");
             try
             {
                 var responseString = await GetStringFromServerAsync(packageSource, apiIndexJsonUrl.AbsoluteUri, CancellationToken.None)
@@ -387,45 +436,117 @@ namespace NugetForUnity.PackageSource
                 var resources = resourceList.resources ??
                                 throw new InvalidOperationException(
                                     $"missing '{nameof(resourceList.resources)}' property inside index response:\n{responseString}");
+
+                // we only support v3 so if v4 is released we skip it.
+                var maxSupportedApiVersion = new NugetPackageVersion("4.0.0");
+                NugetPackageVersion highestPackageBaseAddressApiVersion = null;
+                NugetPackageVersion highestRegistrationsBaseUrlApiVersion = null;
+                NugetPackageVersion highestSearchQueryServiceApiVersion = null;
                 foreach (var resource in resources)
                 {
                     var resourceAtId = resource.atId ??
                                        throw new InvalidOperationException($"missing '@id' property inside resource of type '{resource.atType}'");
-                    switch (resource.atType)
+                    var resourceAtType = resource.atType ??
+                                         throw new InvalidOperationException($"missing '@type' property inside resource with id '{resource.atId}'");
+
+                    var resourceTypeParts = resourceAtType.Split('/');
+                    NugetPackageVersion resourceTypeVersion = null;
+
+                    // need to skip if version is no number like in: 'RegistrationsBaseUrl/Versioned'
+                    if (resourceTypeParts.Length > 1 && !string.IsNullOrEmpty(resourceTypeParts[1]) && char.IsDigit(resourceTypeParts[1][0]))
+                    {
+                        resourceTypeVersion = new NugetPackageVersion(resourceTypeParts[1]);
+                    }
+
+                    switch (resourceTypeParts[0])
                     {
                         case "SearchQueryService":
-                            var comment = resource.comment ?? string.Empty;
-                            if (comment.IndexOf("(primary)", StringComparison.OrdinalIgnoreCase) >= 0)
+                            if (highestSearchQueryServiceApiVersion == null ||
+                                (resourceTypeVersion > highestSearchQueryServiceApiVersion && resourceTypeVersion < maxSupportedApiVersion))
                             {
-                                foundSearchQueryServices.Insert(0, resourceAtId.Trim('/'));
-                            }
-                            else
-                            {
-                                foundSearchQueryServices.Add(resourceAtId.Trim('/'));
+                                highestSearchQueryServiceApiVersion = resourceTypeVersion;
+                                var comment = resource.comment ?? string.Empty;
+                                if (comment.IndexOf("(primary)", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    foundSearchQueryServices.Insert(0, resourceAtId.Trim('/'));
+                                }
+                                else
+                                {
+                                    foundSearchQueryServices.Add(resourceAtId.Trim('/'));
+                                }
                             }
 
                             break;
-                        case "PackageBaseAddress/3.0.0":
-                            packageBaseAddress = resourceAtId.Trim('/') + '/';
+                        case "PackageBaseAddress":
+                            if (highestPackageBaseAddressApiVersion == null ||
+                                (resourceTypeVersion > highestPackageBaseAddressApiVersion && resourceTypeVersion < maxSupportedApiVersion))
+                            {
+                                highestPackageBaseAddressApiVersion = resourceTypeVersion;
+                                packageBaseAddress = resourceAtId.Trim('/') + '/';
+                            }
+
                             break;
-                        case "RegistrationsBaseUrl/3.6.0":
-                            registrationsBaseUrl = resourceAtId.Trim('/') + '/';
+                        case "RegistrationsBaseUrl":
+                            if (highestRegistrationsBaseUrlApiVersion == null ||
+                                (resourceTypeVersion > highestRegistrationsBaseUrlApiVersion && resourceTypeVersion < maxSupportedApiVersion))
+                            {
+                                highestRegistrationsBaseUrlApiVersion = resourceTypeVersion;
+                                registrationsBaseUrl = resourceAtId.Trim('/') + '/';
+                            }
+
                             break;
                     }
                 }
 
-                if (string.IsNullOrEmpty(packageBaseAddress))
+                if (!string.IsNullOrEmpty(PackageDownloadUrlTemplateOverwrite))
                 {
-                    Debug.LogErrorFormat("The NuGet package source at '{0}' has no PackageBaseAddress resource defined.", apiIndexJsonUrl);
+                    packageDownloadUrlTemplate = PackageDownloadUrlTemplateOverwrite;
+                }
+                else if (string.IsNullOrEmpty(packageBaseAddress))
+                {
+                    UnityMainThreadDispatcher.Dispatch(
+                        () =>
+                        {
+                            var displayDialog = EditorUtility.DisplayDialog(
+                                "Missing 'PackageBaseAddress' endpoint",
+                                $"The used NuGet V3 API '{apiIndexJsonUrl}' doesn't support the 'PackageBaseAddress' endpoint. You need to provide the url manually by specifying '{NugetConfigFile.PackageDownloadUrlTemplateOverwriteAttributeName}' on the package source. If this is a NuGet source provided by Artifactory you can click on 'Configure for Artifactory' to configure it.",
+                                "Configure for Artifactory",
+                                "Cancel");
+                            if (displayDialog)
+                            {
+                                packageDownloadUrlTemplate = $"{registrationsBaseUrl}Download/{{0}}/{{1}}";
+                                PackageDownloadUrlTemplateOverwrite = packageDownloadUrlTemplate;
+
+                                // Artifactory somehow can't handle search queries containing multiple packageId's.
+                                packageSource.UpdateSearchBatchSize = 1;
+                                SaveToSessionState();
+                                ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
+                            }
+                            else
+                            {
+                                Debug.LogErrorFormat(
+                                    "The NuGet package source at '{0}' has no PackageBaseAddress resource defined, please specify it manually by adding the '{1}' attribute on the package-source configuration inside the '{2}' file.",
+                                    apiIndexJsonUrl,
+                                    NugetConfigFile.PackageDownloadUrlTemplateOverwriteAttributeName,
+                                    NugetConfigFile.FileName);
+                            }
+                        });
+                }
+                else
+                {
+                    packageDownloadUrlTemplate = $"{packageBaseAddress}{{0}}/{{1}}/{{0}}.{{1}}.nupkg";
+                    PackageDownloadUrlTemplateOverwrite = null;
                 }
 
                 searchQueryServices = foundSearchQueryServices;
                 SaveToSessionState();
+                var successful = searchQueryServices.Count > 0;
+                initializationTaskCompletionSource.SetResult(successful);
             }
             catch (Exception exception)
             {
                 Debug.LogErrorFormat("Failed to initialize the NuGet package source '{0}'. Error: {1}", apiIndexJsonUrl, exception);
-                initializationFailed = true;
+                initializationTaskCompletionSource.SetException(exception);
             }
         }
 
@@ -433,20 +554,24 @@ namespace NugetForUnity.PackageSource
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
-                AddHeadersToRequest(request, packageSource);
+                AddHeadersToRequest(request, packageSource, true);
 
                 using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
-                    await EnsureResponseIsSuccess(response).ConfigureAwait(false);
+                    await EnsureResponseIsSuccessAsync(response).ConfigureAwait(false);
                     var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false) ?? string.Empty;
                     return responseString;
                 }
             }
         }
 
-        private void AddHeadersToRequest(HttpRequestMessage request, NugetPackageSourceV3 packageSource)
+        private void AddHeadersToRequest(HttpRequestMessage request, NugetPackageSourceV3 packageSource, bool expectJsonResponse)
         {
-            request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
+            if (expectJsonResponse)
+            {
+                request.Headers.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
+            }
+
             request.Headers.Add("User-Agent", "NuGetForUnity");
             var password = packageSource.ExpandedPassword;
             var userName = packageSource.UserName;
@@ -469,7 +594,7 @@ namespace NugetForUnity.PackageSource
             }
         }
 
-        private class QueryBuilder
+        private sealed class QueryBuilder
         {
             private readonly StringBuilder builder = new StringBuilder();
 
@@ -502,7 +627,7 @@ namespace NugetForUnity.PackageSource
 #pragma warning disable SA1401 // Fields should be private
 
         [Serializable]
-        private class IndexResponse
+        private sealed class IndexResponse
         {
             [CanBeNull]
             public List<Resource> resources;
@@ -512,7 +637,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Resource
+        private sealed class Resource
         {
             [CanBeNull]
             public string atId;
@@ -528,7 +653,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationResponse
+        private sealed class RegistrationResponse
         {
             /// <summary>
             ///     The number of registration pages in the index.
@@ -543,7 +668,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationPageObject
+        private sealed class RegistrationPageObject
         {
             /// <summary>
             ///     The URL to the registration page.
@@ -578,7 +703,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class RegistrationLeafObject
+        private sealed class RegistrationLeafObject
         {
             /// <summary>
             ///     The URL to the registration leaf.
@@ -603,7 +728,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class CatalogEntry
+        private sealed class CatalogEntry
         {
             /// <summary>
             ///     The URL to the document used to produce this object.
@@ -695,7 +820,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class DependencyGroup
+        private sealed class DependencyGroup
         {
             [CanBeNull]
             public List<Dependency> dependencies;
@@ -707,7 +832,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Dependency
+        private sealed class Dependency
         {
             /// <summary>
             ///     The ID of the package dependency.
@@ -729,7 +854,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Deprecation
+        private sealed class Deprecation
         {
             /// <summary>
             ///     The additional details about this deprecation.
@@ -745,7 +870,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class Vulnerability
+        private sealed class Vulnerability
         {
             /// <summary>
             ///     Location of security advisory for the package.
@@ -761,7 +886,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResult
+        private sealed class SearchResult
         {
             /// <summary>
             ///     The search results matched by the request.
@@ -776,7 +901,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResultItem
+        private sealed class SearchResultItem
         {
             [CanBeNull]
             public List<string> authors;
@@ -841,7 +966,7 @@ namespace NugetForUnity.PackageSource
         }
 
         [Serializable]
-        private class SearchResultVersion
+        private sealed class SearchResultVersion
         {
             /// <summary>
             ///     The number of downloads for this specific package version.

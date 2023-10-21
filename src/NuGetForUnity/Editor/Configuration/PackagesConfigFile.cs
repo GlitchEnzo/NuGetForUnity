@@ -129,7 +129,7 @@ namespace NugetForUnity.Configuration
             foreach (var package in Packages)
             {
                 var packageElement = new XElement("package");
-                packageElement.Add(new XAttribute("id", package.Id ?? throw new InvalidOperationException("Can't save a package without a Id.")));
+                packageElement.Add(new XAttribute("id", package.Id));
                 packageElement.Add(new XAttribute("version", package.Version));
 
                 if (package.IsManuallyInstalled)

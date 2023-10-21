@@ -9,9 +9,9 @@ namespace NugetForUnity.Helper
     internal static class NugetPackageTextureHelper
     {
         [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Conform with real implementation.")]
-        internal static Task<Texture2D>? DownloadImage(string url)
+        internal static Task<Texture2D?> DownloadImageAsync(string url)
         {
-            return null;
+            return Task.FromResult<Texture2D?>(null);
         }
     }
 }

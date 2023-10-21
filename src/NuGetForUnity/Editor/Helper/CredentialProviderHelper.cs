@@ -343,7 +343,7 @@ namespace NugetForUnity.Helper
         [SuppressMessage("ReSharper", "UnassignedField.Local", Justification = "Used by serializer.")]
         [SuppressMessage("ReSharper", "InconsistentNaming", Justification = "Need to match the serialized name.")]
         [SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "We use public so it can be serialized.")]
-        [SuppressMessage("ReSharper", "CS0649:Field is assigned on serialization", Justification = "We use public so it can be serialized.")]
+#pragma warning disable 0649 // CS0649: Field 'field' is never assigned to, and will always have its default value 'value'
         private struct CredentialProviderResponse
         {
             [CanBeNull]
@@ -353,5 +353,6 @@ namespace NugetForUnity.Helper
             [CanBeNull]
             public string Username;
         }
+#pragma warning restore 0649 // CS0649: Field 'field' is never assigned to, and will always have its default value 'value'
     }
 }

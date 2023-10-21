@@ -47,7 +47,7 @@ try:
         clenupStartTime = time.time()
         print(f"Building solution '{relativeSolutionFile}' took: {time.strftime('%H:%M:%S', time.gmtime(clenupStartTime - buildStartTime))}")
         extentionsArg = "--eXtensions=JetBrains.Unity"
-        profileArg = ""
+        profileArg = "--profile=Custom: Full Cleanup"
         subprocess.run(["dotnet", "jb", "cleanupcode", "--no-build", extentionsArg, profileArg, cleanupArg, solutionFile], cwd = toolsRoot, check = True)
         print(f"Cleanup of solution '{relativeSolutionFile}' took: {time.strftime('%H:%M:%S', time.gmtime(time.time() - clenupStartTime))}")
 

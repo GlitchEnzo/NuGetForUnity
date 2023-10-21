@@ -68,6 +68,7 @@ namespace NugetForUnity.Ui
         public override void OnGUI([CanBeNull] string searchContext)
         {
             var preferencesChangedThisFrame = false;
+            var sourcePathChangedThisFrame = false;
 
             EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
 
@@ -188,6 +189,7 @@ namespace NugetForUnity.Ui
                             if (savedPath != source.SavedPath)
                             {
                                 preferencesChangedThisFrame = true;
+                                sourcePathChangedThisFrame = true;
                                 source.SavedPath = savedPath;
                             }
                         }
@@ -293,7 +295,7 @@ namespace NugetForUnity.Ui
 
             if (GUILayout.Button("Add New Source"))
             {
-                ConfigurationManager.NugetConfigFile.PackageSources.Add(new NugetPackageSourceV2("New Source", "source_path"));
+                ConfigurationManager.NugetConfigFile.PackageSources.Add(new NugetPackageSourceLocal("New Source", "source_path"));
                 preferencesChangedThisFrame = true;
             }
 
@@ -306,9 +308,18 @@ namespace NugetForUnity.Ui
                 preferencesChangedThisFrame = true;
             }
 
-            if (preferencesChangedThisFrame)
+            if (!preferencesChangedThisFrame)
             {
-                ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
+                return;
+            }
+
+            ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
+
+            if (sourcePathChangedThisFrame)
+            {
+                // we need to force reload as the changed 'url' can lead to a package source type change.
+                // e.g. the 'url' can be changed to a V3 nuget API url so we need to create a V3 package source.
+                ConfigurationManager.LoadNugetConfigFile();
             }
         }
     }
