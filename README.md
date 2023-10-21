@@ -11,7 +11,17 @@ NuGetForUnity provides a visual editor window to see available packages on the s
 # How do I install NuGetForUnity?
 
 <details>
-<summary>Install via Package Manager</summary>
+<summary>Install via OpenUPM</summary>
+The package is available on the <a href="https://openupm.com/packages/com.github-glitchenzo.nugetforunity/">openupm</a> registry. So you can install it via openupm-cli or manually using a scoped registry see documentation at <a href="https://openupm.com/packages/com.github-glitchenzo.nugetforunity/">openupm</a>.
+
+```
+openupm add com.github-glitchenzo.nugetforunity
+```
+
+</details>
+
+<details>
+<summary>Install as GIT dependency via Package Manager</summary>
 
 #### Unity 2019.3 or newer
 
@@ -36,16 +46,6 @@ https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity
     ```
 
 1. Reopen Unity project in Unity Editor
-
-</details>
-
-<details>
-<summary>Install via OpenUPM</summary>
-The package is available on the <a href="https://openupm.com/packages/com.github-glitchenzo.nugetforunity/">openupm</a> registry. So you can install it via openupm-cli.
-
-```
-openupm add com.github-glitchenzo.nugetforunity
-```
 
 </details>
 
