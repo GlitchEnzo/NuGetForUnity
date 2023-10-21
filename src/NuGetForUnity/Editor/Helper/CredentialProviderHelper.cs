@@ -194,7 +194,14 @@ namespace NugetForUnity.Helper
 
         private static string GetDefaultCredentialProvidersPath()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Nuget", "CredentialProviders");
+            var baseDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(baseDirectory))
+            {
+                // we need a place to store the credential provider so we fallback to the temp location.
+                baseDirectory = Path.GetTempPath();
+            }
+
+            return Path.Combine(baseDirectory, "Nuget", "CredentialProviders");
         }
 
         private static bool DownloadCredentialProviders([NotNull] Uri feedUri)

@@ -1,9 +1,21 @@
-﻿using System;
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
+using System;
 using System.IO;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
 
 namespace NugetForUnity
 {
@@ -12,22 +24,35 @@ namespace NugetForUnity
     /// </summary>
     internal static class PackageCacheManager
     {
+        private const string CacheEnvironmentVariableName = "NuGetCachePath";
+
         /// <summary>
         ///     The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        internal static readonly string CacheOutputDirectory = Path.Combine(
-            Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-            "NuGet",
-            "Cache");
+        [SuppressMessage(
+            "StyleCop.CSharp.OrderingRules",
+            "SA1202:Elements should be ordered by access",
+            Justification = "Conflicts with other warnings.")]
+        internal static readonly string CacheOutputDirectory = DetermineCacheOutputDirectory();
 
         /// <summary>
         ///     Initializes static members of the <see cref="PackageCacheManager" /> class.
         ///     Static constructor called only once.
         /// </summary>
+        [SuppressMessage("SonarQube", "S3877:Exceptions should not be thrown from unexpected methods", Justification = "Need to fail here.")]
         static PackageCacheManager()
         {
-            // create the nupkgs directory, if it doesn't exist
-            Directory.CreateDirectory(CacheOutputDirectory);
+            try
+            {
+                // create the cache directory, if it doesn't exist
+                Directory.CreateDirectory(CacheOutputDirectory);
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to create the cache output directory '{CacheOutputDirectory}'. The cache directory can be changed by specifying the '{CacheEnvironmentVariableName}' environment variable.",
+                    exception);
+            }
         }
 
         /// <summary>
@@ -155,6 +180,24 @@ namespace NugetForUnity
                 packageId.Version,
                 installedPackage.Version);
             return installedPackage;
+        }
+
+        private static string DetermineCacheOutputDirectory()
+        {
+            var cacheFromEnvironment = Environment.GetEnvironmentVariable(CacheEnvironmentVariableName);
+            if (!string.IsNullOrEmpty(cacheFromEnvironment))
+            {
+                return Path.GetFullPath(cacheFromEnvironment);
+            }
+
+            var localApplicationDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(localApplicationDataFolder))
+            {
+                throw new InvalidOperationException(
+                    $"There is no system folder specified for '{Environment.SpecialFolder.LocalApplicationData}' you need to either configure it or set the NuGet cache directory by specifying the '{CacheEnvironmentVariableName}' environment variable.");
+            }
+
+            return Path.Combine(Path.GetFullPath(localApplicationDataFolder), "NuGet", "Cache");
         }
     }
 }
