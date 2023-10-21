@@ -15,10 +15,7 @@ namespace NugetForUnity
         /// <summary>
         ///     The path where to put created (packed) and downloaded (not installed yet) .nupkg files.
         /// </summary>
-        internal static readonly string CacheOutputDirectory = Path.Combine(
-            Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)),
-            "NuGet",
-            "Cache");
+        internal static readonly string CacheOutputDirectory = DetermineCacheOutputDirectory();
 
         /// <summary>
         ///     Initializes static members of the <see cref="PackageCacheManager" /> class.
@@ -26,7 +23,7 @@ namespace NugetForUnity
         /// </summary>
         static PackageCacheManager()
         {
-            // create the nupkgs directory, if it doesn't exist
+            // create the cache directory, if it doesn't exist
             Directory.CreateDirectory(CacheOutputDirectory);
         }
 
@@ -155,6 +152,25 @@ namespace NugetForUnity
                 packageId.Version,
                 installedPackage.Version);
             return installedPackage;
+        }
+
+        private static string DetermineCacheOutputDirectory()
+        {
+            const string cacheEnvironmentVariableName = "NuGetCachePath";
+            var cacheFromEnvironment = Environment.GetEnvironmentVariable(cacheEnvironmentVariableName);
+            if (!string.IsNullOrEmpty(cacheFromEnvironment))
+            {
+                return Path.GetFullPath(cacheFromEnvironment);
+            }
+
+            var localApplicationDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(localApplicationDataFolder))
+            {
+                throw new InvalidOperationException(
+                    $"There is no system folder specified for '{Environment.SpecialFolder.LocalApplicationData}' you need to either configure it or set the NuGet cache directory by specifying the '{cacheEnvironmentVariableName}' environment variable.");
+            }
+
+            return Path.Combine(Path.GetFullPath(localApplicationDataFolder), "NuGet", "Cache");
         }
     }
 }

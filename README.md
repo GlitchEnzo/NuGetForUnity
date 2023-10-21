@@ -152,7 +152,7 @@ Note: Depending on the size and number of packages you need to install, the `Res
 
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
 
-The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder. (`C:\Users\[username]\AppData\Local\NuGet\Cache`). Packages previously installed are installed via the cache folder instead of downloading it from the server again.
+The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (`C:\Users\[username]\AppData\Local\NuGet\Cache`). The cache location can be overwrtten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # Advanced settings
 
