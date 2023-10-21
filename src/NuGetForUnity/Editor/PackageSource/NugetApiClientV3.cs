@@ -516,15 +516,16 @@ namespace NugetForUnity.PackageSource
                             {
                                 packageDownloadUrlTemplate = $"{registrationsBaseUrl}Download/{{0}}/{{1}}";
                                 PackageDownloadUrlTemplateOverwrite = packageDownloadUrlTemplate;
-                                packageSource.UpdateSearchBatchSize =
-                                    1; // Artifactory somehow can't handle search queries containing multiple packageId's.
+
+                                // Artifactory somehow can't handle search queries containing multiple packageId's.
+                                packageSource.UpdateSearchBatchSize = 1;
                                 SaveToSessionState();
                                 ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
                             }
                             else
                             {
                                 Debug.LogErrorFormat(
-                                    "The NuGet package source at '{0}' has no PackageBaseAddress resource defined, please specify it manually pay adding the '{1}' attribute on the package configuration inside the '{2}' file.",
+                                    "The NuGet package source at '{0}' has no PackageBaseAddress resource defined, please specify it manually by adding the '{1}' attribute on the package-source configuration inside the '{2}' file.",
                                     apiIndexJsonUrl,
                                     NugetConfigFile.PackageDownloadUrlTemplateOverwriteAttributeName,
                                     NugetConfigFile.FileName);
