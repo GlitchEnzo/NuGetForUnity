@@ -1,23 +1,34 @@
-﻿#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
 using JetBrains.Annotations;
 #else
 using System.Security.Cryptography;
 #endif
+
+#region No ReShaper
+
+// ReSharper disable All
+// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
+using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+// ReSharper restore All
+
+#endregion
+
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using UnityEngine;
 
 namespace NugetForUnity.Configuration
 {
     /// <summary>
-    ///     Helper to encrypt sensitive data so they don't need to be stored in plaintext inside the configuration file.
+    ///     Helper to encrypt sensitive data so they don't need to be stored in plain-text inside the configuration file.
     /// </summary>
     internal static class ConfigurationEncryptionHelper
     {
         private static readonly byte[] EntropyBytes = Encoding.UTF8.GetBytes("NuGet");
 
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
 
         // on .net framework the type lives in 'System.Security' on .net standard it in 'System.Security.Cryptography.ProtectedData'
         [ItemCanBeNull]
@@ -44,7 +55,7 @@ namespace NugetForUnity.Configuration
             {
                 var decryptedByteArray = Encoding.UTF8.GetBytes(value);
 
-#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
+#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI
 #pragma warning disable CA1416 // Validate platform compatibility
                 var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416 // Validate platform compatibility
@@ -86,7 +97,7 @@ namespace NugetForUnity.Configuration
             {
                 var encryptedByteArray = Convert.FromBase64String(encryptedString);
 
-#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI
+#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI
 #pragma warning disable CA1416 // Validate platform compatibility
                 var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416 // Validate platform compatibility
@@ -110,7 +121,7 @@ namespace NugetForUnity.Configuration
             }
         }
 
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER) || NUGETFORUNITY_CLI)
+#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
         [CanBeNull]
         private static byte[] ProtectOrUnprotectUsingReflection(string methodName, byte[] data)
         {
