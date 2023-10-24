@@ -34,6 +34,6 @@ runs:
         github.event.pull_request.user.login != 'igor84'
       shell: bash
       run: |
-        echo "One or more files in the .github folder has changed."
+        echo "One or more files in the .github folder were changed by ${{ github.event.pull_request.user.login }}."
         echo "List all the files that have changed: ${{ steps.changedWorkflowFiles.outputs.all_changed_files }}"
         exit 1
