@@ -30,7 +30,8 @@ runs:
       if: |
         github.event_name == 'pull_request_target' &&
         steps.changedWorkflowFiles.outputs.any_changed == 'true' &&
-        github.event.pull_request.user.login != 'JoC0de'
+        github.event.pull_request.user.login != 'JoC0de' &&
+        github.event.pull_request.user.login != 'igor84' &&
       shell: bash
       run: |
         echo "One or more files in the .github folder has changed."
