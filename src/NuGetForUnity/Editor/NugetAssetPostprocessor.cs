@@ -347,6 +347,7 @@ namespace NugetForUnity
         ///         </item>
         ///     </list>
         /// </summary>
+        [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Called by Unity.")]
         private void OnPreprocessAsset()
         {

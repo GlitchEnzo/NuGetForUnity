@@ -9,6 +9,6 @@
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
       <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SolutionDir)..\NuGetForUnity\Editor\" />
-      <Copy SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(SolutionDir)..\NuGetForUnity\Editor\" />
+      <Copy Condition=" '$(Configuration)' == 'Release' " SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(SolutionDir)..\NuGetForUnity\Editor\" />
     </Target>
 </Project>

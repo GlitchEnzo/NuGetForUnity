@@ -9,6 +9,7 @@ using System.Xml;
 using System.Xml.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
+using NugetForUnity.PluginAPI.Models;
 using UnityEngine;
 
 #region No ReShaper
@@ -32,7 +33,7 @@ namespace NugetForUnity
     ///     At a minimum, Id, Version, Description, and Authors is required.  Everything else is optional.
     ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec.
     /// </remarks>
-    public class NuspecFile : NugetPackageIdentifier
+    public class NuspecFile : NugetPackageIdentifier, INuspecFile
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="NuspecFile" /> class.

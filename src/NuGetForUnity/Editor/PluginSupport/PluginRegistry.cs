@@ -40,6 +40,11 @@ namespace NugetForUnity.PluginSupport
         /// </summary>
         public static void Reinitialize()
         {
+            if (Instance?.PluginService is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
             Instance = null;
             InitPlugins();
         }

@@ -1,4 +1,6 @@
-﻿namespace NugetForUnity.PluginAPI.Models
+﻿using System;
+
+namespace NugetForUnity.PluginAPI.Models
 {
     /// <summary>
     /// Service methods that NugetForUnity provides to its plugins.
@@ -9,6 +11,18 @@
         /// Gets the absolute path to the projects Assets directory.
         /// </summary>
         string ProjectAssetsDir { get; }
+
+        /// <summary>
+        /// Allows plugin to register a function that will modify the contents of default new nuspec file.
+        /// </summary>
+        /// <param name="customizator">The function that will receive default nuspec file and modify it.</param>
+        void RegisterNuspecCustomizator(Action<INuspecFile> customizator);
+
+        /// <summary>
+        /// Allows plugin to create a new nuspec file on the given location.
+        /// </summary>
+        /// <param name="destinationDirectory">Either the absolute path within project to an existing directory or path relative to project's Asset folder.</param>
+        void CreateNuspecAndOpenEditor(string destinationDirectory);
 
         /// <summary>
         /// Logs the given error message.

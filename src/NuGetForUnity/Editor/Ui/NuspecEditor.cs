@@ -38,19 +38,11 @@ namespace NugetForUnity.Ui
         private NuspecFile nuspec;
 
         /// <summary>
-        ///     Creates a new MyPackage.nuspec file.
+        /// Creates a nuspec file at the given path and opens its editor.
         /// </summary>
-        [MenuItem("Assets/NuGet/Create Nuspec File", false, 2000)]
-        public static void CreateNuspecFile()
+        /// <param name="filepath">Absolute path to the folder within project where nuspec should be created.</param>
+        public static void CreateNuspecFile(string filepath)
         {
-            var filepath = Application.dataPath;
-
-            if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
-            {
-                var selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
-                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, selectedFile);
-            }
-
             if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
             {
                 // if it was a file that was selected, use containing directory
@@ -74,6 +66,23 @@ namespace NugetForUnity.Ui
 
             // automatically display the editor with the newly created .nuspec file
             DisplayNuspecEditor();
+        }
+
+        /// <summary>
+        ///     Creates a new MyPackage.nuspec file.
+        /// </summary>
+        [MenuItem("Assets/NuGet/Create Nuspec File", false, 2000)]
+        protected static void CreateNuspecFile()
+        {
+            var filepath = Application.dataPath;
+
+            if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
+            {
+                var selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
+                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, selectedFile);
+            }
+
+            CreateNuspecFile(filepath);
         }
 
         /// <summary>
