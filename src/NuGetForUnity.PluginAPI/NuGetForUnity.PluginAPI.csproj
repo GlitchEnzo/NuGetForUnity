@@ -8,7 +8,7 @@
       <DocumentationFile>bin\Release\NugetForUnity.PluginAPI.xml</DocumentationFile>
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-      <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SolutionDir)..\NuGetForUnity\Editor\" />
-      <Copy Condition=" '$(Configuration)' == 'Release' " SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(SolutionDir)..\NuGetForUnity\Editor\" />
+      <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />
+      <Copy Condition=" '$(Configuration)' == 'Release' " SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />
     </Target>
 </Project>
