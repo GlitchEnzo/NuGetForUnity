@@ -22,11 +22,9 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -55,11 +53,9 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -92,11 +88,9 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -140,11 +134,9 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -192,11 +184,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -225,11 +215,9 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: actions/checkout@v4
+        uses: Bhacaz/checkout-files@v2
         with:
-          sparse-checkout: |
-            .github/actions/checkout/action.yml
-          sparse-checkout-cone-mode: false
+          files: .github/actions/checkout/action.yml
 
       - name: Checkout
         uses: ./.github/actions/checkout
