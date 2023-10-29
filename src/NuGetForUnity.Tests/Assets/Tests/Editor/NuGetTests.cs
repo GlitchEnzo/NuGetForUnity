@@ -616,9 +616,11 @@ public class NuGetTests
         {
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
-            PlayerSettings.SetApiCompatibilityLevel(
-                EditorUserBuildSettings.selectedBuildTargetGroup,
-                useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6);
+            var expectedApiCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6;
+            PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, expectedApiCompatibilityLevel);
+            Assume.That(
+                PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup),
+                Is.EqualTo(expectedApiCompatibilityLevel));
 
             var allFrameworks = new List<string>
             {
