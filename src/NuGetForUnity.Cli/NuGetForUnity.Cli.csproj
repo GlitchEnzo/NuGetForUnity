@@ -39,7 +39,7 @@
     </ItemGroup>
     <ItemGroup>
         <Reference Include="NugetForUnity.PluginAPI">
-            <HintPath>..\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.dll</HintPath>
+            <HintPath>..\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.dll</HintPath>
         </Reference>
     </ItemGroup>
 </Project>
