@@ -22,9 +22,11 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -53,9 +55,11 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -82,15 +86,17 @@ jobs:
         run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.xml
 
   packageOnLinux:
-    name: Create .unitypackage on linux
+    name: Create .unitypackage on Linux
     runs-on: ubuntu-latest
     needs: [buildOnLinux, determineVersionNumber]
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -134,9 +140,11 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -180,13 +188,15 @@ jobs:
           if-no-files-found: error
 
   testUbuntu:
-    name: Test on linux
+    name: Test on Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -203,9 +213,9 @@ jobs:
           testMode: EditMode
 
   runTestProjectsOnLinux:
-    name: Run test projects on linux
+    name: Run test projects on Linux
     runs-on: ubuntu-latest
-    needs: [packageTool, determineVersionNumber]
+    needs: [packageNuGetPackages, determineVersionNumber]
     strategy:
       fail-fast: false
       matrix:
@@ -215,9 +225,11 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: |
+            .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
