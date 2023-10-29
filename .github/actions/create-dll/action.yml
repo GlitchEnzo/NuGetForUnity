@@ -15,4 +15,6 @@ runs:
       source ./dotnet-install.sh &&
       rm ./dotnet-install.sh &&
       dotnet build ./src/NuGetForUnity.CreateDll/NuGetForUnity.CreateDll.csproj --nologo -p:AppxBundle=Always -p:Platform='Any CPU' --configuration Release
-      -p:ReferencePath=$UNITY_PATH/Editor/Data/Managed -p:Version=${{ inputs.version }} -p:SolutionDir=./
+      -p:ReferencePath=$UNITY_PATH/Editor/Data/Managed -p:Version=${{ inputs.version }} -p:SolutionDir=./ &&
+      echo 'Rebuild 'NuGetForUnity.PluginAPI.dll' but without a Version, needed to compare it with the file stored in GIT' &&
+      dotnet build --configuration Release ./src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.csproj -p:DisableCopyJob=true --output ./src/NuGetForUnity/Editor/PluginAPI
