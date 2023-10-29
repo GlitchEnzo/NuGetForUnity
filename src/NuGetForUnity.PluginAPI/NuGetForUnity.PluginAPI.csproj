@@ -4,6 +4,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Platform>Any CPU</Platform>
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Release' ">
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />

@@ -1,0 +1,8 @@
+# as this is test we are not so strict -> disable most of the warnings
+[*.cs]
+dotnet_diagnostic.sa1600.severity=none
+dotnet_diagnostic.sa1602.severity=none
+dotnet_diagnostic.sa1201.severity=none
+dotnet_diagnostic.s3903.severity=none
+resharper_check_namespace_highlighting=none
+resharper_possible_null_reference_exception_highlighting=none

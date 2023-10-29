@@ -6,7 +6,7 @@ inputs:
     required: true
 runs:
   using: "docker"
-  image: "docker://unityci/editor:2018.4.30f1-windows-mono-1"
+  image: "docker://unityci/editor:2018.4.30f1-windows-mono-2"
   args:
     - bash
     - "-c"
