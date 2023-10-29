@@ -8,6 +8,7 @@
         <Deterministic>true</Deterministic>
         <DeterministicSourcePaths>true</DeterministicSourcePaths>
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
+        <RootNamespace>NugetForUnity.PluginAPI</RootNamespace>
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Release' AND '$(DisableCopyJob)' == '' ">
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />

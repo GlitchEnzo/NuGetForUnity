@@ -65,14 +65,6 @@ jobs:
         with:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
-      - name: Upload TODO-Remove
-        uses: actions/upload-artifact@v3
-        with:
-          name: TODO-Remove
-          path: |
-            ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
-          if-no-files-found: error
-
       - name: Upload NuGetForUnity dlls
         uses: actions/upload-artifact@v3
         with:
@@ -83,11 +75,32 @@ jobs:
             ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error
 
-      - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NuGetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
+      - name: Check if files in NuGetForUnity.PluginAPI changed
+        if: github.event_name == 'pull_request_target'
+        id: changedPluginApiCode
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            src/NuGetForUnity.PluginAPI/**.cs
 
-      - name: Ensure NuGetForUnity.PluginAPI.xml in GIT is up-to-date (if it fails pleas build the NuGetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.xml
+      - name: Check if NuGetForUnity.PluginAPI.dll is updated
+        if: github.event_name == 'pull_request_target'
+        id: changedPluginApiDll
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
+
+      - name: Fail if source code of NuGetForUnity.PluginAPI has changed but NuGetForUnity.PluginAPI.dll is not updated / changed
+        if: |
+          github.event_name == 'pull_request_target' &&
+          steps.changedPluginApiCode.outputs.any_changed == 'true' &&
+          steps.changedPluginApiDll.outputs.any_changed == 'false'
+        shell: bash
+        run: |
+          echo "One or more *.cs files in the src/NuGetForUnity.PluginAPI folder were changed"
+          echo "but 'src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll' was not updated"
+          exit 1
 
   packageOnLinux:
     name: Create .unitypackage on Linux
