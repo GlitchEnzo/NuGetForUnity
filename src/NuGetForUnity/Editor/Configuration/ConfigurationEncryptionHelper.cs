@@ -1,5 +1,5 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
+#if !NUGETFORUNITY_CLI
 using JetBrains.Annotations;
 #else
 using System.Security.Cryptography;
@@ -28,7 +28,7 @@ namespace NugetForUnity.Configuration
     {
         private static readonly byte[] EntropyBytes = Encoding.UTF8.GetBytes("NuGet");
 
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
+#if !NUGETFORUNITY_CLI
 
         // on .net framework the type lives in 'System.Security' on .net standard it in 'System.Security.Cryptography.ProtectedData'
         [ItemCanBeNull]
@@ -55,7 +55,7 @@ namespace NugetForUnity.Configuration
             {
                 var decryptedByteArray = Encoding.UTF8.GetBytes(value);
 
-#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI
+#if NUGETFORUNITY_CLI
 #pragma warning disable CA1416 // Validate platform compatibility
                 var encryptedByteArray = ProtectedData.Protect(decryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416 // Validate platform compatibility
@@ -97,7 +97,7 @@ namespace NugetForUnity.Configuration
             {
                 var encryptedByteArray = Convert.FromBase64String(encryptedString);
 
-#if (UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI
+#if NUGETFORUNITY_CLI
 #pragma warning disable CA1416 // Validate platform compatibility
                 var decryptedByteArray = ProtectedData.Unprotect(encryptedByteArray, EntropyBytes, DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416 // Validate platform compatibility
@@ -121,7 +121,7 @@ namespace NugetForUnity.Configuration
             }
         }
 
-#if !((UNITY_EDITOR_WIN && UNITY_2023_1_OR_NEWER && NET_STANDARD) || NUGETFORUNITY_CLI)
+#if !NUGETFORUNITY_CLI
         [CanBeNull]
         private static byte[] ProtectOrUnprotectUsingReflection(string methodName, byte[] data)
         {
