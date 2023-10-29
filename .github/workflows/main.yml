@@ -70,7 +70,7 @@ jobs:
         with:
           name: NuGetForUnity-dlls
           path: |
-            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
             ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.dll
             ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error

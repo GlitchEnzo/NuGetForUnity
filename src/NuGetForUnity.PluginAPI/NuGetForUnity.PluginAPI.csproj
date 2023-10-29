@@ -9,8 +9,13 @@
         <DeterministicSourcePaths>true</DeterministicSourcePaths>
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
         <RootNamespace>NugetForUnity.PluginAPI</RootNamespace>
+        <AssemblyName>NuGetForUnity.PluginAPI</AssemblyName>
+        <PackageId>NuGetForUnity.PluginAPI</PackageId>
+        <PackageTags>Unity</PackageTags>
+        <Title>NuGetForUnity PluginAPI</Title>
+        <Description>The API used to develop plug-ins for NuGetForUnity.</Description>
     </PropertyGroup>
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Release' AND '$(DisableCopyJob)' == '' ">
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Release' ">
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />
         <Copy SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />
     </Target>

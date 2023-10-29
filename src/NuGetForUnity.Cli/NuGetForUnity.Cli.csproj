@@ -11,10 +11,10 @@
         <PackageId>NuGetForUnity.Cli</PackageId>
         <Description>
             A .NET Core Global Tool (Command-Line-Tool) that allows restoring NuGet packages managed by NuGetForUnity
-            before starting Unity e.g. before building a Unity project on a build server.
-            The tool only restores the NuGet packages, they are managed by the NuGetForUnity Unity Editor plug-in,
-            so you still need to install the NuGetForUnity tool in Unity to install new packages and to ensure that
-            e.g. the import settings of the DLL's are changed to comply with Unity.
+before starting Unity e.g. before building a Unity project on a build server.
+The tool only restores the NuGet packages, they are managed by the NuGetForUnity Unity Editor plug-in,
+so you still need to install the NuGetForUnity tool in Unity to install new packages and to ensure that
+e.g. the import settings of the DLL's are changed to comply with Unity.
         </Description>
         <PackageTags>Unity;Package Manager;Tool</PackageTags>
         <LangVersion>latest</LangVersion>
@@ -38,7 +38,7 @@
         <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.1" />
     </ItemGroup>
     <ItemGroup>
-        <Reference Include="NugetForUnity.PluginAPI">
+        <Reference Include="NuGetForUnity.PluginAPI">
             <HintPath>..\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.dll</HintPath>
         </Reference>
     </ItemGroup>
