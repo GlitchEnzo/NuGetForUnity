@@ -35,28 +35,30 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.0.1";
 
-        private readonly GUIContent upArrow = new GUIContent("\u25b2");
-        private readonly GUIContent downArrow = new GUIContent("\u25bc");
         private readonly GUIContent deleteX = new GUIContent("\u2716");
+
+        private readonly GUIContent downArrow = new GUIContent("\u25bc");
 
         private readonly List<NugetPlugin> plugins;
 
-        private GUIStyle redToggleStyle;
-
-        /// <summary>
-        ///     The current position of the scroll bar in the GUI for the list of sources.
-        /// </summary>
-        private Vector2 sourcesScrollPosition;
+        private readonly GUIContent upArrow = new GUIContent("\u25b2");
 
         /// <summary>
         ///     The current position of the scroll bar in the GUI for the list of plugins.
         /// </summary>
         private Vector2 pluginsScrollPosition;
 
+        private GUIStyle redToggleStyle;
+
         /// <summary>
         ///     Indicates if the warning for packages.config file path should be shown in case it is outside of Assets folder.
         /// </summary>
         private bool shouldShowPackagesConfigPathWarning;
+
+        /// <summary>
+        ///     The current position of the scroll bar in the GUI for the list of sources.
+        /// </summary>
+        private Vector2 sourcesScrollPosition;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
@@ -68,8 +70,7 @@ namespace NugetForUnity.Ui
             shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
-            plugins = assemblies
-                .Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
+            plugins = assemblies.Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(assembly => new NugetPlugin(assembly, enabledPlugins.Remove(new NugetForUnityPluginId(assembly))))
                 .ToList();
 
@@ -96,11 +97,7 @@ namespace NugetForUnity.Ui
         {
             if (redToggleStyle == null)
             {
-                redToggleStyle = new GUIStyle(GUI.skin.toggle)
-                {
-                    onNormal = { textColor = Color.red },
-                    onHover = { textColor = Color.red },
-                };
+                redToggleStyle = new GUIStyle(GUI.skin.toggle) { onNormal = { textColor = Color.red }, onHover = { textColor = Color.red } };
             }
 
             var preferencesChangedThisFrame = false;
@@ -385,7 +382,7 @@ namespace NugetForUnity.Ui
 
         private class NugetPlugin
         {
-            public NugetPlugin([NotNull]Assembly assembly, bool enabled)
+            public NugetPlugin([NotNull] Assembly assembly, bool enabled)
             {
                 Assembly = assembly;
                 Enabled = enabled;

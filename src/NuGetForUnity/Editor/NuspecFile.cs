@@ -45,11 +45,6 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Project can register its own method that sets default values for newly created nuspec file.
-        /// </summary>
-        public static event Action<NuspecFile> ProjectSpecificNuspecDefaults;
-
-        /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
         [CanBeNull]
@@ -514,5 +509,10 @@ namespace NugetForUnity
 
             return this;
         }
+
+        /// <summary>
+        ///     Project can register its own method that sets default values for newly created nuspec file.
+        /// </summary>
+        public static event Action<NuspecFile> ProjectSpecificNuspecDefaults;
     }
 }

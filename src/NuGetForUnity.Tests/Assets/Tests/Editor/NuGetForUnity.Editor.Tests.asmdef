@@ -1,18 +1,25 @@
 {
     "name": "NuGetForUnity.Editor.Tests",
+    "rootNamespace": "NuGetForUnity.Tests",
     "references": [
-        "NuGetForUnity"
-    ],
-    "optionalUnityReferences": [
-        "TestAssemblies"
+        "NuGetForUnity",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [
         "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": []
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "NuGetForUnity.PluginAPI.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

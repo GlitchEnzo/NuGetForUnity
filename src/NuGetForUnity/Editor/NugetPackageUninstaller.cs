@@ -47,8 +47,8 @@ namespace NugetForUnity
             if (uninstallReason != PackageUninstallReason.UninstallAll)
             {
                 // uninstall all non manually installed dependencies that are not a dependency of another installed package
-            var frameworkDependencies = foundPackage.CurrentFrameworkDependencies;
-            foreach (var dependency in frameworkDependencies)
+                var frameworkDependencies = foundPackage.CurrentFrameworkDependencies;
+                foreach (var dependency in frameworkDependencies)
                 {
                     if (InstalledPackagesManager.GetManuallyInstalledFlagFromConfiguration(dependency.Id))
                     {

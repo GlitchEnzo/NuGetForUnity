@@ -183,10 +183,6 @@ namespace NugetForUnity.Models
         /// <inheritdoc />
         public string RepositoryCommit => string.Empty;
 
-        /// <inheritdoc/>
-        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
-            CurrentFrameworkDependencies;
-
         /// <inheritdoc />
         public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies
         {
@@ -201,6 +197,10 @@ namespace NugetForUnity.Models
                 return currentFrameworkDependencies;
             }
         }
+
+        /// <inheritdoc />
+        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
+            CurrentFrameworkDependencies;
 
         /// <inheritdoc />
         public Task<List<NugetFrameworkGroup>> GetDependenciesAsync()

@@ -28,7 +28,7 @@
     <ItemGroup>
         <Compile Remove="..\NuGetForUnity\Editor\Ui\*.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\NugetAssetPostprocessor.cs" />
-        <Compile Remove="..\NuGetForUnity\Editor\Helper\AssemblyLoader.cs"/>
+        <Compile Remove="..\NuGetForUnity\Editor\Helper\AssemblyLoader.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\Helper\NugetPackageTextureHelper.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\OnLoadNugetPackageRestorer.cs" />
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
@@ -38,8 +38,8 @@
         <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.1" />
     </ItemGroup>
     <ItemGroup>
-      <Reference Include="NugetForUnity.PluginAPI">
-        <HintPath>..\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.dll</HintPath>
-      </Reference>
+        <Reference Include="NugetForUnity.PluginAPI">
+            <HintPath>..\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.dll</HintPath>
+        </Reference>
     </ItemGroup>
 </Project>

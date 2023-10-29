@@ -4,12 +4,12 @@ using NugetForUnity.PluginAPI.Models;
 namespace NugetForUnity.PluginAPI.ExtensionPoints
 {
     /// <summary>
-    /// Implement this interface to add additional handling of files being extracted from nupkg during installation.
+    ///     Implement this interface to add additional handling of files being extracted from nupkg during installation.
     /// </summary>
     public interface IPackageInstallFileHandler
     {
         /// <summary>
-        /// This will be called for each entry that is about to be processed from nupkg that is being installed.
+        ///     This will be called for each entry that is about to be processed from nupkg that is being installed.
         /// </summary>
         /// <param name="package">Package that is being installed.</param>
         /// <param name="entry">Zip entry that is about to be processed.</param>

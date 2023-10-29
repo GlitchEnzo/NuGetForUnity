@@ -1,7 +1,7 @@
 {
     "name": "NuGetForUnity",
+    "rootNamespace": "NuGetForUnity",
     "references": [],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],
@@ -9,8 +9,10 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "NugetForUnity.PluginAPI.dll"
+        "NuGetForUnity.PluginAPI.dll"
     ],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

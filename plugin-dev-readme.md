@@ -14,10 +14,10 @@ In order to develop a NugetForUnity Plugin you need to start with these steps:
 
 Note that `INugetPluginRegistry` provides you a few things you can use in your plugin:
 
-- `IsRunningInUnity` property will be true if the plugin is being run from Unity and false if it is run from command line.
-- `PluginService` property that you can pass to your custom handlers if they need to use any of these:
-  - `ProjectAssetsDir` property that gives you the absolute path to the project's Assets directory.
-  - `LogError`, `LogErrorFormat` and `LogVerbose` methods that you can use for logging. You should not use `UnityEngine.Debug.Log` methods since they will not work if plugin is used from command line.
+-   `IsRunningInUnity` property will be true if the plugin is being run from Unity and false if it is run from command line.
+-   `PluginService` property that you can pass to your custom handlers if they need to use any of these:
+    -   `ProjectAssetsDir` property that gives you the absolute path to the project's Assets directory.
+    -   `LogError`, `LogErrorFormat` and `LogVerbose` methods that you can use for logging. You should not use `UnityEngine.Debug.Log` methods since they will not work if plugin is used from command line.
 
 ## Extension points
 
@@ -66,10 +66,10 @@ void HandleUninstalledAll();
 
 The first method is called for each package that is being uninstalled. The `uninstallReason` can be:
 
-- `IndividualUninstall` when individual package uninstallation has be requested by the user.
-- `UninstallAll` when user requested all packages from the project to be uninstalled.
-- `IndividualUpdate` when user requested a package to be updated so we are uninstalling the current version.
-- `UpdateAll` when user requested all packages to be updated so we are uninstalling old versions.
+-   `IndividualUninstall` when individual package uninstallation has be requested by the user.
+-   `UninstallAll` when user requested all packages from the project to be uninstalled.
+-   `IndividualUpdate` when user requested a package to be updated so we are uninstalling the current version.
+-   `UpdateAll` when user requested all packages to be updated so we are uninstalling old versions.
 
 The second method, `HandleUninstalledAll()` will only be called if user requested all packages to be unininstalled after all the default uninstall processing has been done. If you don't need to do anything special in this case you can leave this method empty.
 
@@ -87,8 +87,8 @@ PluginAPI project is setup so that it copies the built NugetForUnity.PluginAPI.d
 
 CreateDll project has two classes under PluginSupport folder:
 
-- `NugetPluginSupport` which implements the `INugetPluginService`
-- `PluginRegistry` that implements `INugetPluginRegistry` and also has `InitPlugins` method that is called after Nuget.config is loaded and a list of enabled plugins is read from it.
+-   `NugetPluginSupport` which implements the `INugetPluginService`
+-   `PluginRegistry` that implements `INugetPluginRegistry` and also has `InitPlugins` method that is called after Nuget.config is loaded and a list of enabled plugins is read from it.
 
 Note that `AssemblyLoader` class it uses to load the plugins has a different implementation in NugetForUnity.Cli project which is for running from command line. It also has a different implementation of `SessionStorage` class that will return "false" for `IsRunningInUnity` key.
 

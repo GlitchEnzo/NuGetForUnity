@@ -38,7 +38,7 @@ namespace NugetForUnity.Ui
         private NuspecFile nuspec;
 
         /// <summary>
-        /// Creates a nuspec file at the given path and opens its editor.
+        ///     Creates a nuspec file at the given path and opens its editor.
         /// </summary>
         /// <param name="filepath">Absolute path to the folder within project where nuspec should be created.</param>
         public static void CreateNuspecFile(string filepath)

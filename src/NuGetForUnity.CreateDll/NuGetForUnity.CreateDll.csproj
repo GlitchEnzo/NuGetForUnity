@@ -44,6 +44,6 @@
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\NugetForUnity.PluginAPI\NugetForUnity.PluginAPI.csproj" />
+        <ProjectReference Include="..\NugetForUnity.PluginAPI\NugetForUnity.PluginAPI.csproj" />
     </ItemGroup>
 </Project>

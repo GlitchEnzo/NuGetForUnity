@@ -7,7 +7,9 @@ namespace NugetForUnity.Models
     /// <summary>
     ///     Interface for a versioned NuGet package.
     /// </summary>
-    public interface INugetPackageIdentifier : INugetPackageIdentifierPluginAPI, IEquatable<INugetPackageIdentifier>, IComparable<INugetPackageIdentifier>
+    public interface INugetPackageIdentifier : INugetPackageIdentifierPluginAPI,
+        IEquatable<INugetPackageIdentifier>,
+        IComparable<INugetPackageIdentifier>
     {
         /// <summary>
         ///     Gets or sets a value indicating whether this package was installed manually or just as a dependency.

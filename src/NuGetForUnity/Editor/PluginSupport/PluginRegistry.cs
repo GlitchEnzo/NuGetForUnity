@@ -12,7 +12,7 @@ using UnityEngine;
 namespace NugetForUnity.PluginSupport
 {
     /// <summary>
-    /// Plugin Registry loads the plugins and provides methods for calling them.
+    ///     Plugin Registry loads the plugins and provides methods for calling them.
     /// </summary>
     internal class PluginRegistry : INugetPluginRegistry, IPackageButtonsHandler, IPackageInstallFileHandler, IPackageUninstallHandler
     {
@@ -23,12 +23,12 @@ namespace NugetForUnity.PluginSupport
         private readonly List<IPackageUninstallHandler> packageUninstallHandlers = new List<IPackageUninstallHandler>();
 
         /// <summary>
-        /// Gets the static instance of PluginRegistry.
+        ///     Gets the static instance of PluginRegistry.
         /// </summary>
         public static PluginRegistry Instance { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether we are running from Unity or from CLI version.
+        ///     Gets a value indicating whether we are running from Unity or from CLI version.
         /// </summary>
         public bool IsRunningInUnity { get; } = SessionState.GetString(nameof(IsRunningInUnity), "true") == "true";
 
@@ -36,7 +36,7 @@ namespace NugetForUnity.PluginSupport
         public INugetPluginService PluginService { get; } = new NugetPluginService();
 
         /// <summary>
-        /// Reloads appropriate plugins after some are enabled or disabled.
+        ///     Reloads appropriate plugins after some are enabled or disabled.
         /// </summary>
         public static void Reinitialize()
         {
@@ -50,7 +50,7 @@ namespace NugetForUnity.PluginSupport
         }
 
         /// <summary>
-        /// Loads the plugins that are enabled in preferences and initialized Instance.
+        ///     Loads the plugins that are enabled in preferences and initialized Instance.
         /// </summary>
         public static void InitPlugins()
         {
@@ -102,25 +102,25 @@ namespace NugetForUnity.PluginSupport
             }
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void RegisterPackageButtonDrawer(IPackageButtonsHandler packageButtonsHandler)
         {
             packageButtonsHandlers.Add(packageButtonsHandler);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void RegisterPackageInstallFileHandler(IPackageInstallFileHandler packageInstallFileHandler)
         {
             packageInstallFileHandlers.Add(packageInstallFileHandler);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void RegisterPackageUninstallHandler(IPackageUninstallHandler packageUninstallHandler)
         {
             packageUninstallHandlers.Add(packageUninstallHandler);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void DrawButtons(INugetPackage package, INugetPackage installedPackage, bool existsInUnity)
         {
             foreach (var packageButtonsHandler in packageButtonsHandlers)
@@ -136,7 +136,7 @@ namespace NugetForUnity.PluginSupport
             }
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public bool HandleFileExtraction(INugetPackage package, ZipArchiveEntry entry, string extractDirectory)
         {
             foreach (var packageInstallFileHandler in packageInstallFileHandlers)
@@ -157,7 +157,7 @@ namespace NugetForUnity.PluginSupport
             return false;
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void HandleUninstall(INugetPackage package, PackageUninstallReason uninstallReason)
         {
             foreach (var uninstallHandler in packageUninstallHandlers)
@@ -173,7 +173,7 @@ namespace NugetForUnity.PluginSupport
             }
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void HandleUninstalledAll()
         {
             foreach (var uninstallHandler in packageUninstallHandlers)

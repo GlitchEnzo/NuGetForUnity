@@ -183,7 +183,7 @@ namespace NugetForUnity.Models
             return !(first == second);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public string GetPackageInstallPath(string prefix = "")
         {
             return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{prefix}{Id}.{Version}");

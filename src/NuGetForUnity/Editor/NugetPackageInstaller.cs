@@ -241,7 +241,7 @@ namespace NugetForUnity
                             PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
                         }
 
-                            // go through all lib zip entries and find the best target framework, then unpack it
+                        // go through all lib zip entries and find the best target framework, then unpack it
                         if (libs.Count > 0)
                         {
                             var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);

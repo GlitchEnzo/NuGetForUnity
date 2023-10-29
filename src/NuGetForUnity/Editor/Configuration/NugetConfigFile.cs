@@ -143,9 +143,9 @@ namespace NugetForUnity.Configuration
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
 
         /// <summary>
-        /// Gets the list of enabled plugins.
+        ///     Gets the list of enabled plugins.
         /// </summary>
-        internal List<NugetForUnityPluginId> EnabledPlugins { get; private set; } = new List<NugetForUnityPluginId>();
+        internal List<NugetForUnityPluginId> EnabledPlugins { get; } = new List<NugetForUnityPluginId>();
 
         /// <summary>
         ///     Loads a NuGet.config file at the given file-path.

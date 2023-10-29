@@ -4,12 +4,12 @@ using System.Reflection;
 namespace NugetForUnity.Configuration
 {
     /// <summary>
-    /// Represents a plugin in the configuration.
+    ///     Represents a plugin in the configuration.
     /// </summary>
     internal sealed class NugetForUnityPluginId : IEquatable<NugetForUnityPluginId>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="NugetForUnityPluginId"/> class.
+        ///     Initializes a new instance of the <see cref="NugetForUnityPluginId" /> class.
         /// </summary>
         /// <param name="name">Name of plugin assembly.</param>
         /// <param name="path">Path to the plugin assembly.</param>
@@ -20,7 +20,7 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NugetForUnityPluginId"/> class.
+        ///     Initializes a new instance of the <see cref="NugetForUnityPluginId" /> class.
         /// </summary>
         /// <param name="assembly">Plugin assembly.</param>
         internal NugetForUnityPluginId(Assembly assembly)
@@ -29,20 +29,26 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        /// Gets the name of the Plugin assembly.
+        ///     Gets the name of the Plugin assembly.
         /// </summary>
         internal string Name { get; }
 
         /// <summary>
-        /// Gets the path to the plugin assembly.
+        ///     Gets the path to the plugin assembly.
         /// </summary>
         internal string Path { get; }
 
-        public static bool operator ==(NugetForUnityPluginId left, NugetForUnityPluginId right) => Equals(left, right);
+        public static bool operator ==(NugetForUnityPluginId left, NugetForUnityPluginId right)
+        {
+            return Equals(left, right);
+        }
 
-        public static bool operator !=(NugetForUnityPluginId left, NugetForUnityPluginId right) => !Equals(left, right);
+        public static bool operator !=(NugetForUnityPluginId left, NugetForUnityPluginId right)
+        {
+            return !Equals(left, right);
+        }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public bool Equals(NugetForUnityPluginId other)
         {
             if (ReferenceEquals(null, other))
@@ -55,11 +61,11 @@ namespace NugetForUnity.Configuration
                 return true;
             }
 
-            return string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
@@ -80,7 +86,7 @@ namespace NugetForUnity.Configuration
             return Equals((NugetForUnityPluginId)obj);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked

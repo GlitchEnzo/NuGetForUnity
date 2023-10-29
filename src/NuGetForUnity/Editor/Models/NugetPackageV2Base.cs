@@ -139,10 +139,6 @@ namespace NugetForUnity.Models
             }
         }
 
-        /// <inheritdoc/>
-        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
-            CurrentFrameworkDependencies;
-
         /// <inheritdoc />
         public IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies
         {
@@ -157,6 +153,10 @@ namespace NugetForUnity.Models
                 return currentFrameworkDependencies;
             }
         }
+
+        /// <inheritdoc />
+        IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
+            CurrentFrameworkDependencies;
 
         /// <inheritdoc />
         public Task<List<NugetFrameworkGroup>> GetDependenciesAsync()

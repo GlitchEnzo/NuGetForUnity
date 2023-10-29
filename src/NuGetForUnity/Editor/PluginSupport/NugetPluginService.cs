@@ -16,14 +16,14 @@ namespace NugetForUnity.PluginSupport
         /// <inheritdoc />
         public string ProjectAssetsDir => UnityPathHelper.AbsoluteAssetsPath;
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void RegisterNuspecCustomizator(Action<INuspecFile> customizator)
         {
             registeredNuspecCustomizators.Add(customizator);
             NuspecFile.ProjectSpecificNuspecDefaults += customizator;
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void CreateNuspecAndOpenEditor(string destinationDirectory)
         {
             if (Path.IsPathRooted(destinationDirectory))
@@ -66,7 +66,7 @@ namespace NugetForUnity.PluginSupport
             NugetLogger.LogVerbose(format, args);
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public void Dispose()
         {
             foreach (var registeredNuspecCustomizator in registeredNuspecCustomizators)
