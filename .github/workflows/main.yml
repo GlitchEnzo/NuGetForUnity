@@ -123,7 +123,7 @@ jobs:
           path: ./src/NuGetForUnity.Packager/Assets/NuGet/Editor
 
       - name: Unity - Packager (build .unitypackage)
-        uses: game-ci/unity-builder@v3.1.0
+        uses: game-ci/unity-builder@v2.1.2
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -213,7 +213,7 @@ jobs:
         uses: ./.github/actions/checkout
 
       - name: Unity - Run tests
-        uses: game-ci/unity-test-runner@v3.1.0
+        uses: game-ci/unity-test-runner@v2.1.1
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}

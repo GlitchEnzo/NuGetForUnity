@@ -33,7 +33,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "4.0.1";
+        public const string NuGetForUnityVersion = "4.0.2";
 
         private readonly GUIContent deleteX = new GUIContent("\u2716");
 
