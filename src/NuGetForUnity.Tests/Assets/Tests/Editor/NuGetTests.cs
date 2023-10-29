@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using NugetForUnity;
@@ -626,12 +627,11 @@ public class NuGetTests
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
             var expectedCompatibilityLevel = useNetStandard ? "NetStandard20Or21" : "NetFramework46Or48";
-            var expectedDotnetVersionCompatibilityLevel = Enum.Parse(
-                currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType.GenericTypeArguments[0],
-                expectedCompatibilityLevel);
-            var lazyInstance = Activator.CreateInstance(
-                currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType,
-                expectedDotnetVersionCompatibilityLevel);
+            var dotnetVersionCompatibilityLevelType = currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType.GenericTypeArguments[0];
+            var expectedDotnetVersionCompatibilityLevel = Enum.Parse(dotnetVersionCompatibilityLevelType, expectedCompatibilityLevel);
+            var dotnetVersionCompatibilityLevelValue = Expression.Constant(expectedDotnetVersionCompatibilityLevel);
+            var lambda = Expression.Lambda(dotnetVersionCompatibilityLevelValue).Compile();
+            var lazyInstance = Activator.CreateInstance(currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType, lambda);
             currentBuildTargetDotnetVersionCompatibilityLevelProperty.SetValue(null, lazyInstance);
 
             var allFrameworks = new List<string>

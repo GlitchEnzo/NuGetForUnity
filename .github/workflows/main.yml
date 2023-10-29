@@ -75,6 +75,9 @@ jobs:
             ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error
 
+      - name: Rebuild 'NuGetForUnity.PluginAPI.dll' but without a Version, needed to compare it whit the version stored in GIT
+        run: dotnet build --configuration Release ./src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.csproj -p:DisableCopyJob=true --output ./src/NuGetForUnity/Editor/PluginAPI
+
       - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
         run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
 
