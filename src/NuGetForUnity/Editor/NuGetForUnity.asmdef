@@ -1,6 +1,6 @@
 {
     "name": "NuGetForUnity",
-    "rootNamespace": "NuGetForUnity",
+    "rootNamespace": "NugetForUnity",
     "references": [],
     "includePlatforms": [
         "Editor"
