@@ -9,6 +9,9 @@ using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
+#if UNITY_2021_2_OR_NEWER
+using UnityEditor.Build;
+#endif
 
 #region No ReShaper
 
@@ -105,21 +108,27 @@ namespace NugetForUnity
             new TargetFrameworkSupport(string.Empty),
         };
 
-        private static DotnetVersionCompatibilityLevel CurrentBuildTargetDotnetVersionCompatibilityLevel
-        {
-            get
-            {
-                switch (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup))
+        [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
+        private static Lazy<DotnetVersionCompatibilityLevel> CurrentBuildTargetDotnetVersionCompatibilityLevel { get; set; } =
+            new Lazy<DotnetVersionCompatibilityLevel>(
+                () =>
                 {
-                    case ApiCompatibilityLevel.NET_4_6:
-                        return DotnetVersionCompatibilityLevel.NetFramework46Or48;
-                    case ApiCompatibilityLevel.NET_Standard_2_0:
-                        return DotnetVersionCompatibilityLevel.NetStandard20Or21;
-                    default:
-                        return DotnetVersionCompatibilityLevel.None;
-                }
-            }
-        }
+#if UNITY_2021_2_OR_NEWER
+                    var apiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(
+                        NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+#else
+                    var apiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+#endif
+                    switch (apiCompatibilityLevel)
+                    {
+                        case ApiCompatibilityLevel.NET_4_6:
+                            return DotnetVersionCompatibilityLevel.NetFramework46Or48;
+                        case ApiCompatibilityLevel.NET_Standard_2_0:
+                            return DotnetVersionCompatibilityLevel.NetStandard20Or21;
+                        default:
+                            return DotnetVersionCompatibilityLevel.None;
+                    }
+                });
 
         /// <summary>
         ///     Select the highest .NET library available that is supported by Unity.
@@ -146,7 +155,7 @@ namespace NugetForUnity
             [NotNull] [ItemNotNull] IReadOnlyCollection<T> availableTargetFrameworks,
             [NotNull] Func<T, string> getTargetFrameworkString)
         {
-            var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
+            var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel.Value;
             var currentUnityVersion = UnityVersion.Current;
             foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
             {

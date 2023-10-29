@@ -605,22 +605,34 @@ public class NuGetTests
     {
         var unityVersionType = typeof(TargetFrameworkResolver).GetNestedType("UnityVersion", BindingFlags.NonPublic);
         Assume.That(unityVersionType, Is.Not.Null);
+
         var currentUnityVersionProperty = unityVersionType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
         Assume.That(currentUnityVersionProperty, Is.Not.Null);
         Assume.That(currentUnityVersionProperty.CanRead, Is.True);
         Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
+
+        var currentBuildTargetDotnetVersionCompatibilityLevelProperty = typeof(TargetFrameworkResolver).GetProperty(
+            "CurrentBuildTargetDotnetVersionCompatibilityLevel",
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty, Is.Not.Null);
+        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty.CanRead, Is.True);
+        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty.CanWrite, Is.True);
+
         var oldValue = currentUnityVersionProperty.GetValue(null);
-        var oldApiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+        var oldApiCompatibilityLevel = currentBuildTargetDotnetVersionCompatibilityLevelProperty.GetValue(null);
 
         try
         {
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
-            var expectedApiCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6;
-            PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, expectedApiCompatibilityLevel);
-            Assume.That(
-                PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup),
-                Is.EqualTo(expectedApiCompatibilityLevel));
+            var expectedCompatibilityLevel = useNetStandard ? "NetStandard20Or21" : "NetFramework46Or48";
+            var expectedDotnetVersionCompatibilityLevel = Enum.Parse(
+                currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType.GenericTypeArguments[0],
+                expectedCompatibilityLevel);
+            var lazyInstance = Activator.CreateInstance(
+                currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType,
+                expectedDotnetVersionCompatibilityLevel);
+            currentBuildTargetDotnetVersionCompatibilityLevelProperty.SetValue(null, lazyInstance);
 
             var allFrameworks = new List<string>
             {
@@ -694,7 +706,7 @@ public class NuGetTests
         finally
         {
             currentUnityVersionProperty.SetValue(null, oldValue);
-            PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, oldApiCompatibilityLevel);
+            currentBuildTargetDotnetVersionCompatibilityLevelProperty.SetValue(null, oldApiCompatibilityLevel);
         }
     }
 
