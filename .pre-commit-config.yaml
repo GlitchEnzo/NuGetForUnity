@@ -14,6 +14,7 @@ repos:
           - --plugin=@prettier/plugin-xml
           - --plugin=prettier-plugin-ini
         files: Directory\.Build\.props$|(\.(json|xml|html|config|csproj|xlf|DotSettings|yaml|yml|js|md|xrml|xaml|css|editorconfig)$)
+        exclude: NuGetForUnity\.PluginAPI\.xml$
   - repo: local
     hooks:
       - id: resharper-cleanupcode-all

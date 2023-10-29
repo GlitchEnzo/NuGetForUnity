@@ -194,17 +194,6 @@
                 Represents a .nuspec file used to store metadata for a NuGet package.
             </summary>
         </member>
-        <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.Id">
-            <summary>
-                Gets or sets the Id of the package.
-            </summary>
-        </member>
-        <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.Version">
-            <summary>
-                Gets or sets the normalized version number of the NuGet package.
-                This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
-            </summary>
-        </member>
         <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.RepositoryBranch">
             <summary>
                 Gets or sets the source control branch the package is from.

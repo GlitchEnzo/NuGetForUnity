@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using NugetForUnity;
@@ -48,12 +47,14 @@ public class NuGetTests
     public void SimpleRestoreTest()
     {
         PackageRestorer.Restore(false);
+        Assert.Pass();
     }
 
     [Test]
     public void LoadConfigFileTest()
     {
         ConfigurationManager.LoadNugetConfigFile();
+        Assert.Pass();
     }
 
     [Test]
@@ -266,7 +267,7 @@ public class NuGetTests
             "net45");
 
         // SignalR 2.2.2 only contains .NET 4.0 and .NET 4.5 libraries, so it should install .NET 4.5 when using .NET 4.6 in Unity, and be empty in other cases
-        if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
+        if (TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
         {
             Assert.IsTrue(Directory.Exists(directory45), "The directory does NOT exist: {0}", directory45);
         }
@@ -612,27 +613,22 @@ public class NuGetTests
         Assume.That(currentUnityVersionProperty.CanRead, Is.True);
         Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
 
-        var currentBuildTargetDotnetVersionCompatibilityLevelProperty = typeof(TargetFrameworkResolver).GetProperty(
-            "CurrentBuildTargetDotnetVersionCompatibilityLevel",
+        var currentBuildTargetApiCompatibilityLevelProperty = typeof(TargetFrameworkResolver).GetProperty(
+            nameof(TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel),
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty, Is.Not.Null);
-        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty.CanRead, Is.True);
-        Assume.That(currentBuildTargetDotnetVersionCompatibilityLevelProperty.CanWrite, Is.True);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty, Is.Not.Null);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanRead, Is.True);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanWrite, Is.True);
 
         var oldValue = currentUnityVersionProperty.GetValue(null);
-        var oldApiCompatibilityLevel = currentBuildTargetDotnetVersionCompatibilityLevelProperty.GetValue(null);
+        var oldApiCompatibilityLevel = currentBuildTargetApiCompatibilityLevelProperty.GetValue(null);
 
         try
         {
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
-            var expectedCompatibilityLevel = useNetStandard ? "NetStandard20Or21" : "NetFramework46Or48";
-            var dotnetVersionCompatibilityLevelType = currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType.GenericTypeArguments[0];
-            var expectedDotnetVersionCompatibilityLevel = Enum.Parse(dotnetVersionCompatibilityLevelType, expectedCompatibilityLevel);
-            var dotnetVersionCompatibilityLevelValue = Expression.Constant(expectedDotnetVersionCompatibilityLevel);
-            var lambda = Expression.Lambda(dotnetVersionCompatibilityLevelValue).Compile();
-            var lazyInstance = Activator.CreateInstance(currentBuildTargetDotnetVersionCompatibilityLevelProperty.PropertyType, lambda);
-            currentBuildTargetDotnetVersionCompatibilityLevelProperty.SetValue(null, lazyInstance);
+            var expectedCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_Unity_4_8;
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, new Lazy<ApiCompatibilityLevel>(() => expectedCompatibilityLevel));
 
             var allFrameworks = new List<string>
             {
@@ -706,7 +702,7 @@ public class NuGetTests
         finally
         {
             currentUnityVersionProperty.SetValue(null, oldValue);
-            currentBuildTargetDotnetVersionCompatibilityLevelProperty.SetValue(null, oldApiCompatibilityLevel);
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, oldApiCompatibilityLevel);
         }
     }
 

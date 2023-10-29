@@ -108,27 +108,36 @@ namespace NugetForUnity
             new TargetFrameworkSupport(string.Empty),
         };
 
+        /// <summary>
+        ///     Gets the <see cref="ApiCompatibilityLevel" /> of the current selected build target.
+        /// </summary>
         [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
-        private static Lazy<DotnetVersionCompatibilityLevel> CurrentBuildTargetDotnetVersionCompatibilityLevel { get; set; } =
-            new Lazy<DotnetVersionCompatibilityLevel>(
-                () =>
-                {
+        internal static Lazy<ApiCompatibilityLevel> CurrentBuildTargetApiCompatibilityLevel { get; private set; } = new Lazy<ApiCompatibilityLevel>(
+            () =>
+            {
 #if UNITY_2021_2_OR_NEWER
-                    var apiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(
-                        NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+                return PlayerSettings.GetApiCompatibilityLevel(
+                    NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
 #else
-                    var apiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+                return PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #endif
-                    switch (apiCompatibilityLevel)
-                    {
-                        case ApiCompatibilityLevel.NET_4_6:
-                            return DotnetVersionCompatibilityLevel.NetFramework46Or48;
-                        case ApiCompatibilityLevel.NET_Standard_2_0:
-                            return DotnetVersionCompatibilityLevel.NetStandard20Or21;
-                        default:
-                            return DotnetVersionCompatibilityLevel.None;
-                    }
-                });
+            });
+
+        private static DotnetVersionCompatibilityLevel CurrentBuildTargetDotnetVersionCompatibilityLevel
+        {
+            get
+            {
+                switch (CurrentBuildTargetApiCompatibilityLevel.Value)
+                {
+                    case ApiCompatibilityLevel.NET_4_6:
+                        return DotnetVersionCompatibilityLevel.NetFramework46Or48;
+                    case ApiCompatibilityLevel.NET_Standard_2_0:
+                        return DotnetVersionCompatibilityLevel.NetStandard20Or21;
+                    default:
+                        return DotnetVersionCompatibilityLevel.None;
+                }
+            }
+        }
 
         /// <summary>
         ///     Select the highest .NET library available that is supported by Unity.
@@ -155,7 +164,7 @@ namespace NugetForUnity
             [NotNull] [ItemNotNull] IReadOnlyCollection<T> availableTargetFrameworks,
             [NotNull] Func<T, string> getTargetFrameworkString)
         {
-            var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel.Value;
+            var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
             foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
             {
