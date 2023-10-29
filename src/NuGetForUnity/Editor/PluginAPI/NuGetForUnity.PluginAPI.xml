@@ -157,11 +157,11 @@
                 Gets the absolute path to the projects Assets directory.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.RegisterNuspecCustomizator(System.Action{NugetForUnity.PluginAPI.Models.INuspecFile})">
+        <member name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.RegisterNuspecCustomizer(System.Action{NugetForUnity.PluginAPI.Models.INuspecFile})">
             <summary>
                 Allows plugin to register a function that will modify the contents of default new nuspec file.
             </summary>
-            <param name="customizator">The function that will receive default nuspec file and modify it.</param>
+            <param name="customizer">The function that will receive default nuspec file and modify it.</param>
         </member>
         <member name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.CreateNuspecAndOpenEditor(System.String)">
             <summary>

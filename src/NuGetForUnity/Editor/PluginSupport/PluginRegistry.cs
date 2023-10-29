@@ -50,7 +50,7 @@ namespace NugetForUnity.PluginSupport
         }
 
         /// <summary>
-        ///     Loads the plugins that are enabled in preferences and initialized Instance.
+        ///     Loads the plug-ins that are enabled in preferences and initialized Instance.
         /// </summary>
         public static void InitPlugins()
         {
@@ -93,12 +93,12 @@ namespace NugetForUnity.PluginSupport
 
             if (loadedPlugins.Count > 0)
             {
-                Debug.Log("Loaded plugins: " + string.Join(", ", loadedPlugins));
+                Debug.Log($"Loaded plugins: {string.Join(", ", loadedPlugins)}");
             }
 
             if (failedPlugins.Count > 0)
             {
-                Debug.LogError("Failed to load plugins: " + string.Join("\n", failedPlugins));
+                Debug.LogError($"Failed to load plugins: {string.Join("\n", failedPlugins)}");
             }
         }
 
@@ -131,7 +131,7 @@ namespace NugetForUnity.PluginSupport
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Exception while executing DrawButtons plugin handler " + e);
+                    Debug.LogError($"Exception while executing DrawButtons plugin handler {e}");
                 }
             }
         }
@@ -150,7 +150,7 @@ namespace NugetForUnity.PluginSupport
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Exception while executing file extraction plugin handler " + e);
+                    Debug.LogError($"Exception while executing file extraction plugin handler {e}");
                 }
             }
 
@@ -168,7 +168,7 @@ namespace NugetForUnity.PluginSupport
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Exception while executing Uninstall plugin handler " + e);
+                    Debug.LogError($"Exception while executing Uninstall plugin handler {e}");
                 }
             }
         }
@@ -184,7 +184,7 @@ namespace NugetForUnity.PluginSupport
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Exception while executing UninstallAll plugin handler " + e);
+                    Debug.LogError($"Exception while executing UninstallAll plugin handler {e}");
                 }
             }
         }

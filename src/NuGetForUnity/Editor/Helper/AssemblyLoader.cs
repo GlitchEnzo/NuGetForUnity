@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 
 namespace NugetForUnity.Helper
@@ -13,7 +14,8 @@ namespace NugetForUnity.Helper
         /// </summary>
         /// <param name="pluginId">Plugin Id to load.</param>
         /// <returns>Assembly of the loaded plugin.</returns>
-        internal static Assembly Load(NugetForUnityPluginId pluginId)
+        [NotNull]
+        internal static Assembly Load([NotNull] NugetForUnityPluginId pluginId)
         {
             return Assembly.Load(pluginId.Name);
         }

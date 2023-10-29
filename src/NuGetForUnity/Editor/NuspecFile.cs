@@ -45,6 +45,11 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Project can register its own method that sets default values for newly created nuspec file.
+        /// </summary>
+        public static event Action<NuspecFile> ProjectSpecificNuspecInitializer;
+
+        /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
         public string RepositoryBranch { get; set; }
@@ -171,7 +176,7 @@ namespace NugetForUnity
                 IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
             };
 
-            ProjectSpecificNuspecDefaults?.Invoke(result);
+            ProjectSpecificNuspecInitializer?.Invoke(result);
 
             return result;
         }
@@ -493,10 +498,5 @@ namespace NugetForUnity
 
             return this;
         }
-
-        /// <summary>
-        ///     Project can register its own method that sets default values for newly created nuspec file.
-        /// </summary>
-        public static event Action<NuspecFile> ProjectSpecificNuspecDefaults;
     }
 }

@@ -627,7 +627,7 @@ public class NuGetTests
         {
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
-            var expectedCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_Unity_4_8;
+            var expectedCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6;
             currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, new Lazy<ApiCompatibilityLevel>(() => expectedCompatibilityLevel));
 
             var allFrameworks = new List<string>

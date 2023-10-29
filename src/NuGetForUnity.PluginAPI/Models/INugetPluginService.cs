@@ -15,8 +15,8 @@ namespace NugetForUnity.PluginAPI.Models
         /// <summary>
         ///     Allows plugin to register a function that will modify the contents of default new nuspec file.
         /// </summary>
-        /// <param name="customizator">The function that will receive default nuspec file and modify it.</param>
-        void RegisterNuspecCustomizator(Action<INuspecFile> customizator);
+        /// <param name="customizer">The function that will receive default nuspec file and modify it.</param>
+        void RegisterNuspecCustomizer(Action<INuspecFile> customizer);
 
         /// <summary>
         ///     Allows plugin to create a new nuspec file on the given location.

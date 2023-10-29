@@ -380,7 +380,7 @@ namespace NugetForUnity.Ui
             }
         }
 
-        private class NugetPlugin
+        private sealed class NugetPlugin
         {
             public NugetPlugin([NotNull] Assembly assembly, bool enabled)
             {

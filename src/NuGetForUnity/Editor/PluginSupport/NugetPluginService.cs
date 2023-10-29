@@ -11,16 +11,16 @@ namespace NugetForUnity.PluginSupport
     /// <inheritdoc cref="NugetForUnity.PluginAPI.Models.INugetPluginService" />
     public sealed class NugetPluginService : INugetPluginService, IDisposable
     {
-        private readonly List<Action<INuspecFile>> registeredNuspecCustomizators = new List<Action<INuspecFile>>();
+        private readonly List<Action<INuspecFile>> registeredNuspecCustomizers = new List<Action<INuspecFile>>();
 
         /// <inheritdoc />
         public string ProjectAssetsDir => UnityPathHelper.AbsoluteAssetsPath;
 
         /// <inheritdoc />
-        public void RegisterNuspecCustomizator(Action<INuspecFile> customizator)
+        public void RegisterNuspecCustomizer(Action<INuspecFile> customizer)
         {
-            registeredNuspecCustomizators.Add(customizator);
-            NuspecFile.ProjectSpecificNuspecDefaults += customizator;
+            registeredNuspecCustomizers.Add(customizer);
+            NuspecFile.ProjectSpecificNuspecInitializer += customizer;
         }
 
         /// <inheritdoc />
@@ -69,12 +69,12 @@ namespace NugetForUnity.PluginSupport
         /// <inheritdoc />
         public void Dispose()
         {
-            foreach (var registeredNuspecCustomizator in registeredNuspecCustomizators)
+            foreach (var registeredNuspecCustomizer in registeredNuspecCustomizers)
             {
-                NuspecFile.ProjectSpecificNuspecDefaults -= registeredNuspecCustomizator;
+                NuspecFile.ProjectSpecificNuspecInitializer -= registeredNuspecCustomizer;
             }
 
-            registeredNuspecCustomizators.Clear();
+            registeredNuspecCustomizers.Clear();
         }
     }
 }

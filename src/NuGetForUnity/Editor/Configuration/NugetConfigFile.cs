@@ -377,7 +377,6 @@ namespace NugetForUnity.Configuration
             var packageSources = new XElement("packageSources");
             var disabledPackageSources = new XElement("disabledPackageSources");
             var packageSourceCredentials = new XElement("packageSourceCredentials");
-            XElement enabledPlugins = null;
 
             XElement addElement;
 
@@ -502,9 +501,15 @@ namespace NugetForUnity.Configuration
                 config.Add(addElement);
             }
 
+            var configuration = new XElement("configuration");
+            configuration.Add(packageSources);
+            configuration.Add(disabledPackageSources);
+            configuration.Add(packageSourceCredentials);
+            configuration.Add(activePackageSource);
+
             if (EnabledPlugins.Count > 0)
             {
-                enabledPlugins = new XElement("enabledPlugins");
+                var enabledPlugins = new XElement("enabledPlugins");
                 foreach (var plugin in EnabledPlugins)
                 {
                     addElement = new XElement("add");
@@ -512,15 +517,7 @@ namespace NugetForUnity.Configuration
                     addElement.Add(new XAttribute("path", plugin.Path));
                     enabledPlugins.Add(addElement);
                 }
-            }
 
-            var configuration = new XElement("configuration");
-            configuration.Add(packageSources);
-            configuration.Add(disabledPackageSources);
-            configuration.Add(packageSourceCredentials);
-            configuration.Add(activePackageSource);
-            if (enabledPlugins != null)
-            {
                 configuration.Add(enabledPlugins);
             }
 

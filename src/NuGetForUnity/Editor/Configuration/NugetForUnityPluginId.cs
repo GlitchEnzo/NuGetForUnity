@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using JetBrains.Annotations;
 
 namespace NugetForUnity.Configuration
 {
@@ -13,7 +14,7 @@ namespace NugetForUnity.Configuration
         /// </summary>
         /// <param name="name">Name of plugin assembly.</param>
         /// <param name="path">Path to the plugin assembly.</param>
-        internal NugetForUnityPluginId(string name, string path)
+        internal NugetForUnityPluginId([NotNull] string name, [NotNull] string path)
         {
             Name = name;
             Path = path;
@@ -23,7 +24,7 @@ namespace NugetForUnity.Configuration
         ///     Initializes a new instance of the <see cref="NugetForUnityPluginId" /> class.
         /// </summary>
         /// <param name="assembly">Plugin assembly.</param>
-        internal NugetForUnityPluginId(Assembly assembly)
+        internal NugetForUnityPluginId([NotNull] Assembly assembly)
             : this(assembly.GetName().Name, assembly.Location)
         {
         }
@@ -31,19 +32,35 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     Gets the name of the Plugin assembly.
         /// </summary>
+        [NotNull]
         internal string Name { get; }
 
         /// <summary>
         ///     Gets the path to the plugin assembly.
         /// </summary>
+        [NotNull]
         internal string Path { get; }
 
-        public static bool operator ==(NugetForUnityPluginId left, NugetForUnityPluginId right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="NugetForUnityPluginId" /> is equal to the right.
+        ///     They are equal if the Id and the Version match.
+        /// </summary>
+        /// <param name="left">The left to compare.</param>
+        /// <param name="right">The right to compare.</param>
+        /// <returns>True if the left is equal to the right.</returns>
+        public static bool operator ==([CanBeNull] NugetForUnityPluginId left, [CanBeNull] NugetForUnityPluginId right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(NugetForUnityPluginId left, NugetForUnityPluginId right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="NugetForUnityPluginId" /> is not equal to the right.
+        ///     They are equal if the Id and the Version match.
+        /// </summary>
+        /// <param name="left">The left to compare.</param>
+        /// <param name="right">The right to compare.</param>
+        /// <returns>True if the left is equal to the right.</returns>
+        public static bool operator !=([CanBeNull] NugetForUnityPluginId left, [CanBeNull] NugetForUnityPluginId right)
         {
             return !Equals(left, right);
         }
