@@ -65,6 +65,14 @@ jobs:
         with:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
+      - name: Upload TODO-Remove
+        uses: actions/upload-artifact@v3
+        with:
+          name: TODO-Remove
+          path: |
+            ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
+          if-no-files-found: error
+
       - name: Upload NuGetForUnity dlls
         uses: actions/upload-artifact@v3
         with:
@@ -75,10 +83,10 @@ jobs:
             ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error
 
-      - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
+      - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NuGetForUnity.PluginAPI.csproj and upload the changed files to git)
         run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
 
-      - name: Ensure NuGetForUnity.PluginAPI.xml in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
+      - name: Ensure NuGetForUnity.PluginAPI.xml in GIT is up-to-date (if it fails pleas build the NuGetForUnity.PluginAPI.csproj and upload the changed files to git)
         run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.xml
 
   packageOnLinux:
