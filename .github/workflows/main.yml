@@ -68,18 +68,18 @@ jobs:
       - name: Upload NuGetForUnity dlls
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetForUnity.dll
+          name: NuGetForUnity-dlls
           path: |
-            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
-            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.PluginAPI.dll
-            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.PluginAPI.xml
+            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error
 
       - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.dll
+        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.dll
 
       - name: Ensure NuGetForUnity.PluginAPI.xml in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NugetForUnity.PluginAPI.xml
+        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.xml
 
   packageOnLinux:
     name: Create .unitypackage on Linux
@@ -95,10 +95,10 @@ jobs:
       - name: Checkout
         uses: ./.github/actions/checkout
 
-      - name: Download NuGetForUnity.dll
+      - name: Download NuGetForUnity dlls
         uses: actions/download-artifact@v3
         with:
-          name: NuGetForUnity.dll
+          name: NuGetForUnity-dlls
           path: ./src/NuGetForUnity.Packager/Assets/NuGet/Editor
 
       - name: Unity - Packager (build .unitypackage)
@@ -173,7 +173,7 @@ jobs:
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetPackages
+          name: NuGetForUnity-NuGetPackages
           path: |
             ./NuGetForUnity.Cli.*.nupkg
             ./NuGetForUnity.PluginAPI.*.nupkg
@@ -225,7 +225,7 @@ jobs:
       - name: Download NuGetForUnity.Cli NuGet package
         uses: actions/download-artifact@v3
         with:
-          name: NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg
+          name: NuGetForUnity-NuGetPackages
           path: .
 
       - name: Install NuGetForUnity.Cli Tool
