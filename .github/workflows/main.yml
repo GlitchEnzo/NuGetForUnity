@@ -47,7 +47,7 @@ jobs:
           echo "version=$($version)" >> $Env:GITHUB_OUTPUT
 
   buildOnLinux:
-    name: Build on linux
+    name: Build on Linux
     runs-on: ubuntu-latest
     needs: [determineVersionNumber]
 

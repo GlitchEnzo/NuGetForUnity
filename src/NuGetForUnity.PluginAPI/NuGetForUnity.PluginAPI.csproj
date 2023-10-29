@@ -3,9 +3,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <DocumentationFile>bin\Release\NugetForUnity.PluginAPI.xml</DocumentationFile>
+        <DocumentationFile>$(TargetDir)$(TargetName).xml</DocumentationFile>
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Release' ">
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\NuGetForUnity\Editor\PluginAPI\" />
