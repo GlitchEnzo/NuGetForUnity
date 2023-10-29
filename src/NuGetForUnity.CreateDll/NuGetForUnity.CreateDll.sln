@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetForUnity.CreateDll", "NuGetForUnity.CreateDll.csproj", "{3FB0B522-A1E7-4FC6-8083-885621A5B4B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NugetForUnity.PluginAPI", "..\NugetForUnity.PluginAPI\NugetForUnity.PluginAPI.csproj", "{67591B40-D208-4BCF-9D82-7B6138F6355F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetForUnity.PluginAPI", "..\NuGetForUnity.PluginAPI\NuGetForUnity.PluginAPI.csproj", "{67591B40-D208-4BCF-9D82-7B6138F6355F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
