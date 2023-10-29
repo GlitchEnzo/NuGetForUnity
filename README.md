@@ -219,7 +219,7 @@ Restore nuget packages of a single Unity Project: `dotnet nugetforunity restore 
 
 NugetForUnity has plugin support. If you open the NugetForUnity section in Unity preferences it will list the plugins you have installed in your project and you can enable them from there.
 
-Plugins are any dlls which contain NugetForUnityPlugin in their name and have a class inside them that implements `INugetPlugin` interface. They can be placed anywhere inside the project and even installed as a nuget package.
+Plugins are any dlls which contain NugetForUnityPlugin in their name and have a class inside them that implements the `INugetPlugin` interface. They can be placed anywhere inside the project (inside the `Assets` directory) and can even be installed as a nuget package.
 
 If you are interested in implementing a plugin read the [plugin development documentation](plugin-dev-readme.md).
 
