@@ -76,10 +76,10 @@ jobs:
           if-no-files-found: error
 
       - name: Ensure NuGetForUnity.PluginAPI.dll in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.dll
+        run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
 
       - name: Ensure NuGetForUnity.PluginAPI.xml in GIT is up-to-date (if it fails pleas build the NugetForUnity.PluginAPI.csproj and upload the changed files to git)
-        run: git diff --exit-code .\src\NuGetForUnity\Editor\PluginAPI\NuGetForUnity.PluginAPI.xml
+        run: git diff --exit-code ./src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.xml
 
   packageOnLinux:
     name: Create .unitypackage on Linux
