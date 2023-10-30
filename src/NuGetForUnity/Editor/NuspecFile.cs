@@ -9,6 +9,7 @@ using System.Xml;
 using System.Xml.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
+using NugetForUnity.PluginAPI.Models;
 using UnityEngine;
 
 #region No ReShaper
@@ -32,7 +33,7 @@ namespace NugetForUnity
     ///     At a minimum, Id, Version, Description, and Authors is required.  Everything else is optional.
     ///     See more info here: https://docs.microsoft.com/en-us/nuget/schema/nuspec.
     /// </remarks>
-    public class NuspecFile : NugetPackageIdentifier
+    public class NuspecFile : NugetPackageIdentifier, INuspecFile
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="NuspecFile" /> class.
@@ -44,71 +45,65 @@ namespace NugetForUnity
         }
 
         /// <summary>
+        ///     Project can register its own method that sets default values for newly created nuspec file.
+        /// </summary>
+        public static event Action<NuspecFile> ProjectSpecificNuspecInitializer;
+
+        /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
-        [CanBeNull]
         public string RepositoryBranch { get; set; }
 
         /// <summary>
         ///     Gets or sets the source control commit the package is from.
         /// </summary>
-        [CanBeNull]
         public string RepositoryCommit { get; set; }
 
         /// <summary>
         ///     Gets or sets the type of source control software that the package's source code resides in.
         /// </summary>
-        [CanBeNull]
         public string RepositoryType { get; set; }
 
         /// <summary>
         ///     Gets or sets the url for the location of the package's source code.
         /// </summary>
-        [CanBeNull]
         public string RepositoryUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the title of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Title { get; set; }
 
         /// <summary>
         ///     Gets or sets the owners of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Owners { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the license of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string LicenseUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the project web-page of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string ProjectUrl { get; set; }
 
         /// <summary>
         ///     Gets or sets the URL for the location of the icon of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string IconUrl { get; set; }
 
         /// <summary>
         ///     Gets the path to a icon file. The path is relative to the root folder of the package. This is a alternative to using a URL <see cref="IconUrl" />
         ///     .
         /// </summary>
-        [CanBeNull]
         public string Icon { get; private set; }
 
         /// <summary>
         ///     Gets the full path to a icon file. This is only set if the .nuspec file contains a <see cref="Icon" />. This is a alternative to using a URL
         ///     <see cref="IconUrl" />.
         /// </summary>
-        [CanBeNull]
         public string IconFilePath { get; private set; }
 
         /// <summary>
@@ -125,19 +120,16 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the release notes of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string ReleaseNotes { get; set; }
 
         /// <summary>
         ///     Gets or sets the copyright of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Copyright { get; set; }
 
         /// <summary>
         ///     Gets or sets the tags of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Tags { get; set; }
 
         /// <summary>
@@ -149,20 +141,45 @@ namespace NugetForUnity
         /// <summary>
         ///     Gets or sets the description of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Description { get; set; }
 
         /// <summary>
         ///     Gets or sets the description of the NuGet package.
         /// </summary>
-        [CanBeNull]
         public string Summary { get; set; }
 
         /// <summary>
         ///     Gets or sets the authors of the NuGet package.
         /// </summary>
-        [NotNull]
         public string Authors { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Creates a new nuspec file with default values for a new package.
+        /// </summary>
+        /// <param name="packageName">Optional name for the new package. Defaults to "MyPackage".</param>
+        /// <returns>Newly created nuspec file.</returns>
+        public static NuspecFile CreateDefault(string packageName = "MyPackage")
+        {
+            var result = new NuspecFile
+            {
+                Id = "CompanyName." + packageName,
+                Title = packageName,
+                Version = "0.0.1",
+                Authors = "Your Name",
+                Owners = "Your Name",
+                LicenseUrl = "http://your_license_url_here",
+                ProjectUrl = "http://your_project_url_here",
+                Description = "A description of what this package is and does.",
+                Summary = "A brief description of what this package is and does.",
+                ReleaseNotes = "Notes for this specific release",
+                Copyright = "Copyright 2017",
+                IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
+            };
+
+            ProjectSpecificNuspecInitializer?.Invoke(result);
+
+            return result;
+        }
 
         /// <summary>
         ///     Loads the .nuspec file inside the .nupkg file at the given file path.

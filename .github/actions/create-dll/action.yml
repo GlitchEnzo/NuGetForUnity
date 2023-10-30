@@ -6,13 +6,13 @@ inputs:
     required: true
 runs:
   using: "docker"
-  image: "docker://unityci/editor:2018.4.30f1-windows-mono-1"
+  image: "docker://unityci/editor:2018.4.30f1-windows-mono-2"
   args:
     - bash
     - "-c"
     - >-
       wget --no-check-certificate -v --secure-protocol=TLSv1_2 https://dot.net/v1/dotnet-install.sh &&
-      source ./dotnet-install.sh &&
+      source ./dotnet-install.sh --channel STS &&
       rm ./dotnet-install.sh &&
       dotnet build ./src/NuGetForUnity.CreateDll/NuGetForUnity.CreateDll.csproj --nologo -p:AppxBundle=Always -p:Platform='Any CPU' --configuration Release
       -p:ReferencePath=$UNITY_PATH/Editor/Data/Managed -p:Version=${{ inputs.version }}

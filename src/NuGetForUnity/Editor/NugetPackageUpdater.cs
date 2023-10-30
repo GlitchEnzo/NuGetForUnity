@@ -2,6 +2,7 @@
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
+using NugetForUnity.PluginAPI;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,11 +19,16 @@ namespace NugetForUnity
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the assets inside Unity. False to ignore them (for now). Defaults to true.</param>
+        /// <param name="uninstallReason">The reason uninstall is being called.</param>
         /// <returns>True if the package was successfully updated. False otherwise.</returns>
-        public static bool Update([NotNull] INugetPackageIdentifier currentVersion, [NotNull] INugetPackage newVersion, bool refreshAssets = true)
+        public static bool Update(
+            [NotNull] INugetPackageIdentifier currentVersion,
+            [NotNull] INugetPackage newVersion,
+            bool refreshAssets = true,
+            PackageUninstallReason uninstallReason = PackageUninstallReason.IndividualUpdate)
         {
             NugetLogger.LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
-            NugetPackageUninstaller.Uninstall(currentVersion, false);
+            NugetPackageUninstaller.Uninstall(currentVersion, uninstallReason, false);
             newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
             return NugetPackageInstaller.InstallIdentifier(newVersion, refreshAssets);
         }
@@ -48,7 +54,7 @@ namespace NugetForUnity
                 var installedPackage = packagesToUpdateCollection.FirstOrDefault(p => p.Id == update.Id);
                 if (installedPackage != null)
                 {
-                    Update(installedPackage, update, false);
+                    Update(installedPackage, update, false, PackageUninstallReason.UpdateAll);
                 }
                 else
                 {

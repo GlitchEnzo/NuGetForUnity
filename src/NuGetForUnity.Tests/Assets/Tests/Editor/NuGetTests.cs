@@ -10,6 +10,7 @@ using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
+using NugetForUnity.PluginAPI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -46,12 +47,14 @@ public class NuGetTests
     public void SimpleRestoreTest()
     {
         PackageRestorer.Restore(false);
+        Assert.Pass();
     }
 
     [Test]
     public void LoadConfigFileTest()
     {
         ConfigurationManager.LoadNugetConfigFile();
+        Assert.Pass();
     }
 
     [Test]
@@ -183,7 +186,7 @@ public class NuGetTests
             jQuery311.Version);
 
         // reinstall bootstrap, which should use the currently installed jQuery 3.1.1
-        NugetPackageUninstaller.Uninstall(bootstrap337, false);
+        NugetPackageUninstaller.Uninstall(bootstrap337, PackageUninstallReason.IndividualUninstall, false);
         NugetPackageInstaller.InstallIdentifier(bootstrap337);
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(jQuery191, false), "The package IS installed: {0} {1}", jQuery191.Id, jQuery191.Version);
@@ -264,7 +267,7 @@ public class NuGetTests
             "net45");
 
         // SignalR 2.2.2 only contains .NET 4.0 and .NET 4.5 libraries, so it should install .NET 4.5 when using .NET 4.6 in Unity, and be empty in other cases
-        if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
+        if (TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_4_6) // 3 = NET_4_6
         {
             Assert.IsTrue(Directory.Exists(directory45), "The directory does NOT exist: {0}", directory45);
         }
@@ -604,20 +607,28 @@ public class NuGetTests
     {
         var unityVersionType = typeof(TargetFrameworkResolver).GetNestedType("UnityVersion", BindingFlags.NonPublic);
         Assume.That(unityVersionType, Is.Not.Null);
+
         var currentUnityVersionProperty = unityVersionType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
         Assume.That(currentUnityVersionProperty, Is.Not.Null);
         Assume.That(currentUnityVersionProperty.CanRead, Is.True);
         Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
+
+        var currentBuildTargetApiCompatibilityLevelProperty = typeof(TargetFrameworkResolver).GetProperty(
+            nameof(TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel),
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty, Is.Not.Null);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanRead, Is.True);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanWrite, Is.True);
+
         var oldValue = currentUnityVersionProperty.GetValue(null);
-        var oldApiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+        var oldApiCompatibilityLevel = currentBuildTargetApiCompatibilityLevelProperty.GetValue(null);
 
         try
         {
             currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
 
-            PlayerSettings.SetApiCompatibilityLevel(
-                EditorUserBuildSettings.selectedBuildTargetGroup,
-                useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6);
+            var expectedCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6;
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, new Lazy<ApiCompatibilityLevel>(() => expectedCompatibilityLevel));
 
             var allFrameworks = new List<string>
             {
@@ -691,7 +702,7 @@ public class NuGetTests
         finally
         {
             currentUnityVersionProperty.SetValue(null, oldValue);
-            PlayerSettings.SetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup, oldApiCompatibilityLevel);
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, oldApiCompatibilityLevel);
         }
     }
 

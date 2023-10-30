@@ -47,7 +47,7 @@ jobs:
           echo "version=$($version)" >> $Env:GITHUB_OUTPUT
 
   buildOnLinux:
-    name: Build on linux
+    name: Build on Linux
     runs-on: ubuntu-latest
     needs: [determineVersionNumber]
 
@@ -65,15 +65,45 @@ jobs:
         with:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
-      - name: Upload NuGetForUnity.dll
+      - name: Upload NuGetForUnity dlls
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetForUnity.dll
-          path: ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
+          name: NuGetForUnity-dlls
+          path: |
+            ./src/NuGetForUnity.CreateDll/bin/Release/NugetForUnity.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.dll
+            ./src/NuGetForUnity.CreateDll/bin/Release/NuGetForUnity.PluginAPI.xml
           if-no-files-found: error
 
+      - name: Check if files in NuGetForUnity.PluginAPI changed
+        if: github.event_name == 'pull_request_target'
+        id: changedPluginApiCode
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            src/NuGetForUnity.PluginAPI/**.cs
+
+      - name: Check if NuGetForUnity.PluginAPI.dll is updated
+        if: github.event_name == 'pull_request_target'
+        id: changedPluginApiDll
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
+
+      - name: Fail if source code of NuGetForUnity.PluginAPI has changed but NuGetForUnity.PluginAPI.dll is not updated / changed
+        if: |
+          github.event_name == 'pull_request_target' &&
+          steps.changedPluginApiCode.outputs.any_changed == 'true' &&
+          steps.changedPluginApiDll.outputs.any_changed == 'false'
+        shell: bash
+        run: |
+          echo "One or more *.cs files in the src/NuGetForUnity.PluginAPI folder were changed"
+          echo "but 'src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll' was not updated"
+          exit 1
+
   packageOnLinux:
-    name: Create .unitypackage on linux
+    name: Create .unitypackage on Linux
     runs-on: ubuntu-latest
     needs: [buildOnLinux, determineVersionNumber]
 
@@ -86,10 +116,10 @@ jobs:
       - name: Checkout
         uses: ./.github/actions/checkout
 
-      - name: Download NuGetForUnity.dll
+      - name: Download NuGetForUnity dlls
         uses: actions/download-artifact@v3
         with:
-          name: NuGetForUnity.dll
+          name: NuGetForUnity-dlls
           path: ./src/NuGetForUnity.Packager/Assets/NuGet/Editor
 
       - name: Unity - Packager (build .unitypackage)
@@ -118,8 +148,8 @@ jobs:
           path: ./src/NuGetForUnity.Packager/NugetForUnity.unitypackage
           if-no-files-found: error
 
-  packageTool:
-    name: Pack .NET Core Global Tool
+  packageNuGetPackages:
+    name: Pack .NET Core Global Tool (CLI) and PluginAPI
     runs-on: ubuntu-latest
     needs: [determineVersionNumber]
 
@@ -137,9 +167,15 @@ jobs:
         with:
           dotnet-version: "7.0.x"
 
-      - name: Build and pack
+      - name: Build and pack .NET Core Global Tool
         run: >-
           dotnet pack ./src/NuGetForUnity.Cli/NuGetForUnity.Cli.csproj --nologo -c Release -o .
+          -p:Version=${{ needs.determineVersionNumber.outputs.version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Build and pack NuGetForUnity.PluginAPI
+        run: >-
+          dotnet pack ./src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.csproj --nologo -c Release -o .
           -p:Version=${{ needs.determineVersionNumber.outputs.version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
           -p:ContinuousIntegrationBuild=true
 
@@ -149,15 +185,23 @@ jobs:
           dotnet nuget push ./NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
           --source https://api.nuget.org/v3/index.json
 
-      - name: Upload NuGetForUnity.Cli NuGet package
+      - name: publish the NuGetForUnity.PluginAPI NuGet package
+        if: github.ref_type == 'tag'
+        run: >-
+          dotnet nuget push ./NuGetForUnity.PluginAPI.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
+          --source https://api.nuget.org/v3/index.json
+
+      - name: Upload NuGet packages
         uses: actions/upload-artifact@v3
         with:
-          name: NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg
-          path: ./NuGetForUnity.Cli.*.nupkg
+          name: NuGetForUnity-NuGetPackages
+          path: |
+            ./NuGetForUnity.Cli.*.nupkg
+            ./NuGetForUnity.PluginAPI.*.nupkg
           if-no-files-found: error
 
   testUbuntu:
-    name: Test on linux
+    name: Test on Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout action file
@@ -180,9 +224,9 @@ jobs:
           testMode: EditMode
 
   runTestProjectsOnLinux:
-    name: Run test projects on linux
+    name: Run test projects on Linux
     runs-on: ubuntu-latest
-    needs: [packageTool, determineVersionNumber]
+    needs: [packageNuGetPackages, determineVersionNumber]
     strategy:
       fail-fast: false
       matrix:
@@ -202,7 +246,7 @@ jobs:
       - name: Download NuGetForUnity.Cli NuGet package
         uses: actions/download-artifact@v3
         with:
-          name: NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg
+          name: NuGetForUnity-NuGetPackages
           path: .
 
       - name: Install NuGetForUnity.Cli Tool
@@ -212,7 +256,7 @@ jobs:
         run: dotnet nugetforunity restore '${{ matrix.projectPath }}'
 
       - name: Unity - Build project ${{ matrix.projectPath }}
-        uses: game-ci/unity-builder@v2.1.2
+        uses: game-ci/unity-builder@v3.1.0
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}

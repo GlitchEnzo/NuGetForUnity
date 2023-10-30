@@ -92,7 +92,7 @@ namespace NugetForUnity
                 projectReferences.Select(Path.GetFileNameWithoutExtension)
                     .Where(assemblyName => !alreadyInstalledDllFileNames.Contains(assemblyName)));
 
-            if (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup) == ApiCompatibilityLevel.NET_Standard_2_0)
+            if (TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_Standard_2_0)
             {
                 // mark NuGet packages that contain the .net standard references as already imported
                 alreadyImportedLibs.Add("NETStandard.Library");

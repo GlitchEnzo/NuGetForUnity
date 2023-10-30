@@ -9,6 +9,9 @@ using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
+#if UNITY_2021_2_OR_NEWER
+using UnityEditor.Build;
+#endif
 
 #region No ReShaper
 
@@ -105,11 +108,26 @@ namespace NugetForUnity
             new TargetFrameworkSupport(string.Empty),
         };
 
+        /// <summary>
+        ///     Gets the <see cref="ApiCompatibilityLevel" /> of the current selected build target.
+        /// </summary>
+        [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
+        internal static Lazy<ApiCompatibilityLevel> CurrentBuildTargetApiCompatibilityLevel { get; private set; } = new Lazy<ApiCompatibilityLevel>(
+            () =>
+            {
+#if UNITY_2021_2_OR_NEWER
+                return PlayerSettings.GetApiCompatibilityLevel(
+                    NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+#else
+                return PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
+#endif
+            });
+
         private static DotnetVersionCompatibilityLevel CurrentBuildTargetDotnetVersionCompatibilityLevel
         {
             get
             {
-                switch (PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup))
+                switch (CurrentBuildTargetApiCompatibilityLevel.Value)
                 {
                     case ApiCompatibilityLevel.NET_4_6:
                         return DotnetVersionCompatibilityLevel.NetFramework46Or48;

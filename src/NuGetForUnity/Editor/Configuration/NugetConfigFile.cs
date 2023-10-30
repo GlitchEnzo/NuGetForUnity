@@ -143,6 +143,11 @@ namespace NugetForUnity.Configuration
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
 
         /// <summary>
+        ///     Gets the list of enabled plugins.
+        /// </summary>
+        internal List<NugetForUnityPluginId> EnabledPlugins { get; } = new List<NugetForUnityPluginId>();
+
+        /// <summary>
         ///     Loads a NuGet.config file at the given file-path.
         /// </summary>
         /// <param name="filePath">The full file-path to the NuGet.config file to load.</param>
@@ -214,6 +219,21 @@ namespace NugetForUnity.Configuration
                         {
                             source.IsEnabled = false;
                         }
+                    }
+                }
+            }
+
+            // read the list of enabled plugins
+            var enabledPlugins = file.Root?.Element("enabledPlugins");
+            if (enabledPlugins != null)
+            {
+                foreach (var add in enabledPlugins.Elements("add"))
+                {
+                    var name = add.Attribute("name")?.Value;
+                    var path = add.Attribute("path")?.Value;
+                    if (name != null && path != null)
+                    {
+                        configFile.EnabledPlugins.Add(new NugetForUnityPluginId(name, path));
                     }
                 }
             }
@@ -486,8 +506,22 @@ namespace NugetForUnity.Configuration
             configuration.Add(disabledPackageSources);
             configuration.Add(packageSourceCredentials);
             configuration.Add(activePackageSource);
-            configuration.Add(config);
 
+            if (EnabledPlugins.Count > 0)
+            {
+                var enabledPlugins = new XElement("enabledPlugins");
+                foreach (var plugin in EnabledPlugins)
+                {
+                    addElement = new XElement("add");
+                    addElement.Add(new XAttribute("name", plugin.Name));
+                    addElement.Add(new XAttribute("path", plugin.Path));
+                    enabledPlugins.Add(addElement);
+                }
+
+                configuration.Add(enabledPlugins);
+            }
+
+            configuration.Add(config);
             configFile.Add(configuration);
 
             var fileExists = File.Exists(filePath);

@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
+using NugetForUnity.PluginSupport;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
@@ -155,6 +156,8 @@ namespace NugetForUnity.Configuration
                 // if there are not command line overrides, use the NuGet.config package sources
                 activePackageSource = NugetConfigFile.ActivePackageSource;
             }
+
+            PluginRegistry.InitPlugins();
         }
 
         /// <summary>

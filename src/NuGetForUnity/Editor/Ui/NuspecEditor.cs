@@ -38,54 +38,51 @@ namespace NugetForUnity.Ui
         private NuspecFile nuspec;
 
         /// <summary>
+        ///     Creates a nuspec file at the given path and opens its editor.
+        /// </summary>
+        /// <param name="filePath">Absolute path to the folder within project where nuspec should be created.</param>
+        public static void CreateNuspecFile(string filePath)
+        {
+            if (!string.IsNullOrEmpty(Path.GetExtension(filePath)))
+            {
+                // if it was a file that was selected, use containing directory
+                filePath = Path.GetDirectoryName(filePath);
+            }
+
+            Debug.Assert(filePath != null, "filepath != null");
+            var packageName = Path.GetFileName(filePath);
+            filePath = Path.Combine(filePath, $"{packageName}.nuspec");
+
+            Debug.LogFormat("Creating: {0}", filePath);
+
+            var file = NuspecFile.CreateDefault(packageName);
+            file.Save(filePath);
+
+            AssetDatabase.Refresh();
+
+            // select the newly created .nuspec file
+            var relativeNuspecFilePath = filePath.Substring(UnityPathHelper.AbsoluteProjectPath.Length + 1);
+            Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(relativeNuspecFilePath);
+
+            // automatically display the editor with the newly created .nuspec file
+            DisplayNuspecEditor();
+        }
+
+        /// <summary>
         ///     Creates a new MyPackage.nuspec file.
         /// </summary>
         [MenuItem("Assets/NuGet/Create Nuspec File", false, 2000)]
         protected static void CreateNuspecFile()
         {
-            var filepath = Application.dataPath;
+            var filePath = Application.dataPath;
 
             if (Selection.activeObject != null && Selection.activeObject != Selection.activeGameObject)
             {
                 var selectedFile = AssetDatabase.GetAssetPath(Selection.activeObject);
-                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, selectedFile);
+                filePath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, selectedFile);
             }
 
-            if (!string.IsNullOrEmpty(Path.GetExtension(filepath)))
-            {
-                // if it was a file that was selected, use containing directory
-                filepath = Path.GetDirectoryName(filepath);
-            }
-
-            Debug.Assert(filepath != null, "filepath != null");
-            filepath = Path.Combine(filepath, "MyPackage.nuspec");
-
-            Debug.LogFormat("Creating: {0}", filepath);
-
-            var file = new NuspecFile
-            {
-                Id = "MyPackage",
-                Version = "0.0.1",
-                Authors = "Your Name",
-                Owners = "Your Name",
-                LicenseUrl = "http://your_license_url_here",
-                ProjectUrl = "http://your_project_url_here",
-                Description = "A description of what this package is and does.",
-                Summary = "A brief description of what this package is and does.",
-                ReleaseNotes = "Notes for this specific release",
-                Copyright = "Copyright 2017",
-                IconUrl = "https://www.nuget.org/Content/Images/packageDefaultIcon-50x50.png",
-            };
-            file.Save(filepath);
-
-            AssetDatabase.Refresh();
-
-            // select the newly created .nuspec file
-            var relativeNuspecFilePath = filepath.Substring(UnityPathHelper.AbsoluteProjectPath.Length + 1);
-            Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(relativeNuspecFilePath);
-
-            // automatically display the editor with the newly created .nuspec file
-            DisplayNuspecEditor();
+            CreateNuspecFile(filePath);
         }
 
         /// <summary>
@@ -110,10 +107,10 @@ namespace NugetForUnity.Ui
             var defaultAsset = Selection.activeObject as DefaultAsset;
             if (defaultAsset != null)
             {
-                var filepath = AssetDatabase.GetAssetPath(defaultAsset);
-                filepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, filepath);
+                var filePath = AssetDatabase.GetAssetPath(defaultAsset);
+                filePath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, filePath);
 
-                isNuspec = string.Equals(Path.GetExtension(filepath), ".nuspec", StringComparison.OrdinalIgnoreCase);
+                isNuspec = string.Equals(Path.GetExtension(filePath), ".nuspec", StringComparison.OrdinalIgnoreCase);
             }
 
             return isNuspec;
@@ -144,7 +141,8 @@ namespace NugetForUnity.Ui
                 }
 
                 EditorGUIUtility.labelWidth = 100;
-                nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The name of the package."), nuspec.Id);
+                nuspec.Id = EditorGUILayout.TextField(new GUIContent("ID", "The id of the package."), nuspec.Id);
+                nuspec.Title = EditorGUILayout.TextField(new GUIContent("Title", "The name of the package."), nuspec.Title);
                 nuspec.Version = EditorGUILayout.TextField(new GUIContent("Version", "The semantic version of the package."), nuspec.Version);
                 nuspec.Authors = EditorGUILayout.TextField(new GUIContent("Authors", "The authors of the package."), nuspec.Authors);
                 nuspec.Owners = EditorGUILayout.TextField(new GUIContent("Owners", "The owners of the package."), nuspec.Owners);
@@ -203,7 +201,7 @@ namespace NugetForUnity.Ui
                             nuspec.Dependencies.Clear();
 
                             nuspec.Dependencies.Add(new NugetFrameworkGroup());
-                            nuspec.Dependencies[0].Dependencies = roots.ToList();
+                            nuspec.Dependencies[0].Dependencies = roots;
                         }
                     }
 
@@ -303,8 +301,9 @@ namespace NugetForUnity.Ui
             assetFilepath = Path.Combine(UnityPathHelper.AbsoluteProjectPath, assetFilepath);
 
             var isNuspec = Path.GetExtension(assetFilepath) == ".nuspec";
+            var alreadyLoaded = nuspec != null && filepath == assetFilepath;
 
-            if (!isNuspec)
+            if (!isNuspec || alreadyLoaded)
             {
                 return;
             }

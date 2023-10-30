@@ -174,7 +174,7 @@ namespace NugetForUnity.PackageSource
                 return packages;
             }
 
-            var matchingVersion = fetchedPackage.Versions.FindLast(version => package.InRange(version));
+            var matchingVersion = fetchedPackage.Versions.FindLast(package.InRange);
             if (matchingVersion == null)
             {
                 // no matching version found

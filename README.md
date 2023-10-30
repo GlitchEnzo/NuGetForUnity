@@ -215,6 +215,14 @@ For more information see [.Net Tool Documentation](https://learn.microsoft.com/e
 
 Restore nuget packages of a single Unity Project: `dotnet nugetforunity restore <PROJECT_PATH>`. If installed as a global tool it can be called without the `dotnet` prefix: `nugetforunity restore <PROJECT_PATH>`.
 
+# Plugin support
+
+NugetForUnity has plugin support. If you open the NugetForUnity section in Unity preferences it will list the plugins you have installed in your project and you can enable them from there.
+
+Plugins are any dlls which contain NugetForUnityPlugin in their name and have a class inside them that implements the `INugetPlugin` interface. They can be placed anywhere inside the project (inside the `Assets` directory) and can even be installed as a nuget package.
+
+If you are interested in implementing a plugin read the [plugin development documentation](plugin-dev-readme.md).
+
 # Common issues when installing NuGet packages
 
 In the .Net ecosystem Unity is relatively special as it doesn't use the standard .Net runtime from Microsoft instead, it uses a fork of the [Mono](https://docs.unity3d.com/Manual/Mono.html) runtime. For some platforms Unity even uses [IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html) that compiles all C# code to C++ code. So Unity also uses a different build-system. This can lead to some issues with NuGet packages that heavily depend on the standard .Net build-system. NuGetForUnity tries to handle most of the changes needed to allow using NuGet packages inside Unity but it is not able to resolve all issues. This section contains some common issues and potential solutions.

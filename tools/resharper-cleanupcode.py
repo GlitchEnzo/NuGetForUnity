@@ -6,7 +6,7 @@ import time
 scriptLocation = os.path.dirname(os.path.realpath(sys.argv[0]))
 repositoryRoot = os.path.dirname(scriptLocation)
 
-solutionFiles = ["src/NuGetForUnity.Tests/NuGetForUnity.Tests.sln", "src/NuGetForUnity.Cli/NuGetForUnity.Cli.sln"]
+solutionFiles = ["src/NuGetForUnity.Tests/NuGetForUnity.Tests.sln", "src/NuGetForUnity.Cli/NuGetForUnity.Cli.sln", "src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.sln"]
 toolsRoot = repositoryRoot
 mainPackageFolder = os.path.realpath(os.path.join(repositoryRoot, "src/NuGetForUnity")) + os.sep
 

@@ -3,13 +3,14 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using NugetForUnity.PackageSource;
 using UnityEngine;
+using INugetPackagePluginAPI = NugetForUnity.PluginAPI.Models.INugetPackage;
 
 namespace NugetForUnity.Models
 {
     /// <summary>
     ///     Represents a NuGet package.
     /// </summary>
-    public interface INugetPackage : INugetPackageIdentifier
+    public interface INugetPackage : INugetPackageIdentifier, INugetPackagePluginAPI
     {
         /// <summary>
         ///     Gets a list of all available versions of the package in a descending order.
@@ -76,22 +77,10 @@ namespace NugetForUnity.Models
         INugetPackageSource PackageSource { get; }
 
         /// <summary>
-        ///     Gets the URL for the location of the package's source code.
-        /// </summary>
-        [CanBeNull]
-        string ProjectUrl { get; }
-
-        /// <summary>
         ///     Gets the summary of the NuGet package.
         /// </summary>
         [CanBeNull]
         string Summary { get; }
-
-        /// <summary>
-        ///     Gets the title (not ID) of the package. This is the "friendly" name that only appears in GUIs and on web-pages.
-        /// </summary>
-        [CanBeNull]
-        string Title { get; }
 
         /// <summary>
         ///     Gets the icon for the package as a task returning a <see cref="Texture2D" />.
@@ -104,7 +93,7 @@ namespace NugetForUnity.Models
         ///     Gets the list of dependencies for the framework that best matches what is available in Unity.
         /// </summary>
         /// <returns>List of dependencies.</returns>
-        IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies { get; }
+        new IReadOnlyList<INugetPackageIdentifier> CurrentFrameworkDependencies { get; }
 
         /// <summary>
         ///     Asynchronously gets the NuGet packages that this NuGet package depends on grouped by target framework.
