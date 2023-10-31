@@ -229,7 +229,7 @@ In the .Net ecosystem Unity is relatively special as it doesn't use the standard
 
 ## Version Conflicts
 
-If two NuGet packages depend on the same package but reference different versions of it, Unity shows a error like:
+If two NuGet packages depend on the same package but reference different versions of it, Unity shows an error like:
 
 ```
 Assembly 'Assets/Packages/System.Diagnostics.EventLog.4.7.0/lib/netstandard2.0/System.Diagnostics.EventLog.dll' will not be loaded due to errors:
@@ -246,7 +246,7 @@ As mentioned in the message this error can be suppressed by changing a setting. 
 
 ## Missing System libraries
 
-When targeting .Net Framework, the 'Api Compatibility Level' setting under _Edit_ -> _Project Settings_ -> _Player_ -> _Other Settings_ is set to .NET Framework, Unity doesn't include some System libraries by default. See also [Unity documentation about system libraries](https://docs.unity3d.com/Manual/dotnetProfileAssemblies.html) and [Unity documentation about .Net Profiles](https://docs.unity3d.com/Manual/dotnetProfileSupport.html). Libraries that are not imported by default are e.g. `System.Drawing`, `System.IO.Compression`, `System.IO.Compression.FileSystem` and `System.Net.Http`. If you try to use one of this libraries you get a error like:
+When targeting .Net Framework, the 'Api Compatibility Level' setting under _Edit_ -> _Project Settings_ -> _Player_ -> _Other Settings_ is set to .NET Framework, Unity doesn't include some System libraries by default. See also [Unity documentation about system libraries](https://docs.unity3d.com/Manual/dotnetProfileAssemblies.html) and [Unity documentation about .Net Profiles](https://docs.unity3d.com/Manual/dotnetProfileSupport.html). Libraries that are not imported by default are e.g. `System.Drawing`, `System.IO.Compression`, `System.IO.Compression.FileSystem` and `System.Net.Http`. If you try to use one of this libraries you get an error like:
 
 ```
 The type `HttpClient` is defined in an assembly that is not referenced. You must add a reference to assembly 'System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.
@@ -258,4 +258,4 @@ To import one of the System libraries and resolve the error you need to create a
 -r:System.Net.Http.dll
 ```
 
-and place it inside the containing project that requires the library e.g. the `Assets` folder. It can also be placed in a folder that contains a `.asmdef` to only add the reference to the sub-project. For example NuGetForUnity also uses a `csc.rsp` file see [csc.rsp](src/NuGetForUnity/Editor/csc.rsp).
+and place it inside the containing project that requires the library (e.g. the `Assets` folder). It can also be placed in a folder that contains a `.asmdef` to only add the reference to the sub-project. For example NuGetForUnity also uses a `csc.rsp` file see [csc.rsp](src/NuGetForUnity/Editor/csc.rsp).
