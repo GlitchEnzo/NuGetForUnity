@@ -58,6 +58,8 @@ namespace NugetForUnity.Configuration
 
         private const string UpdateSearchBatchSizeAttributeName = "updateSearchBatchSize";
 
+        private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
+
         /// <summary>
         ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
@@ -183,6 +185,12 @@ namespace NugetForUnity.Configuration
                         if (!string.IsNullOrEmpty(updateSearchBatchSizeString))
                         {
                             sourceV3.UpdateSearchBatchSize = Mathf.Clamp(int.Parse(updateSearchBatchSizeString), 1, int.MaxValue);
+                        }
+
+                        var supportsPackageIdSearchFilterString = add.Attribute(SupportsPackageIdSearchFilterAttributeName)?.Value;
+                        if (bool.TryParse(supportsPackageIdSearchFilterString, out var supportsPackageIdSearchFilter))
+                        {
+                            sourceV3.SupportsPackageIdSearchFilter = supportsPackageIdSearchFilter;
                         }
                     }
 
@@ -402,6 +410,11 @@ namespace NugetForUnity.Configuration
                     if (sourceV3.UpdateSearchBatchSize != NugetPackageSourceV3.DefaultUpdateSearchBatchSize)
                     {
                         addElement.Add(new XAttribute(UpdateSearchBatchSizeAttributeName, sourceV3.UpdateSearchBatchSize));
+                    }
+
+                    if (sourceV3.SupportsPackageIdSearchFilter != NugetPackageSourceV3.DefaultSupportsPackageIdSearchFilter)
+                    {
+                        addElement.Add(new XAttribute(SupportsPackageIdSearchFilterAttributeName, sourceV3.SupportsPackageIdSearchFilter));
                     }
                 }
 

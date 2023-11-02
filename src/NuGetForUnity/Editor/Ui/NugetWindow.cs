@@ -889,7 +889,7 @@ namespace NugetForUnity.Ui
         private void DrawPackage(INugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
         {
             var installedPackages = InstalledPackagesManager.InstalledPackages;
-            var installed = installedPackages.FirstOrDefault(p => p.Id == package.Id);
+            var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
 
             // if we are on the update tab, we do not want to show packages that have no updates if we're showing updates; similarly, we do not
             // show packages that are on the lowest possible version if we're showing downgrades

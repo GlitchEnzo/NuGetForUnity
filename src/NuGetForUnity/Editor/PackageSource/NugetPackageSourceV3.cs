@@ -22,6 +22,11 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         public const int DefaultUpdateSearchBatchSize = 20;
 
+        /// <summary>
+        ///     Default value for <see cref="SupportsPackageIdSearchFilter" />.
+        /// </summary>
+        public const bool DefaultSupportsPackageIdSearchFilter = true;
+
         [NotNull]
         private static readonly Dictionary<string, NugetApiClientV3> ApiClientCache = new Dictionary<string, NugetApiClientV3>();
 
@@ -98,12 +103,18 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <summary>
-        ///     Gets or sets available updates are fetched using the <see cref="SearchAsync" />, to prevent the search query string to exceed the URI lenght
-        ///     limit we
-        ///     fetch the updates in groups. Defaults to <c>20</c>.
+        ///     Gets or sets the size of each batch in witch available updates are fetched using the <see cref="SearchAsync" />,
+        ///     to prevent the search query string to exceed the URI length limit we fetch the updates in groups. Defaults to <c>20</c>.
         /// </summary>
         [field: SerializeField]
         public int UpdateSearchBatchSize { get; set; } = DefaultUpdateSearchBatchSize;
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether the package registry supports querying a package by its id
+        ///     using the syntax <c>'packageid:{packageId}'</c>. This syntax is used to easily search for package updates.
+        ///     If it is disabled package updates are searched by loading the information of all packages one by one.
+        /// </summary>
+        public bool SupportsPackageIdSearchFilter { get; set; } = DefaultSupportsPackageIdSearchFilter;
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -148,30 +159,17 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
-            // see https://github.com/NuGet/docs.microsoft.com-nuget/blob/live/docs/consume-packages/Finding-and-Choosing-Packages.md
-            // it supports searching for a version but only if the version is the latest version
-            // so we need to fetch the latest version and filter them ourselves
-            var searchQuery = $"packageid:{package.Id}";
+            var fetchedPackage = Task.Run(() => ApiClient.GetPackageWithDetailsAsync(this, package, CancellationToken.None)).GetAwaiter().GetResult();
 
-            var packages = Task.Run(() => ApiClient.SearchPackageAsync(this, searchQuery, 0, 0, package.IsPrerelease, CancellationToken.None))
-                .GetAwaiter()
-                .GetResult();
-
-            if (packages.Count == 0)
+            if (fetchedPackage is null)
             {
-                return packages;
+                return new List<INugetPackage>();
             }
 
-            if (packages.Count != 1)
-            {
-                Debug.LogWarning($"Found {packages.Count} packages with id {package.Id} in source {Name} but expected 1.");
-            }
-
-            var fetchedPackage = (NugetPackageV3)packages[0];
             if (!package.HasVersionRange && fetchedPackage.Equals(package))
             {
                 // exact match found
-                return packages;
+                return new List<INugetPackage> { fetchedPackage };
             }
 
             var matchingVersion = fetchedPackage.Versions.FindLast(package.InRange);
@@ -183,7 +181,7 @@ namespace NugetForUnity.PackageSource
 
             // overwrite the version so it is installed
             fetchedPackage.PackageVersion = matchingVersion;
-            return packages;
+            return new List<INugetPackage> { fetchedPackage };
         }
 
         /// <inheritdoc />
@@ -200,35 +198,51 @@ namespace NugetForUnity.PackageSource
             string versionConstraints = "")
         {
             var packagesToFetch = packages as IList<INugetPackage> ?? packages.ToList();
-
             var packagesFromServer = Task.Run(
                     async () =>
                     {
-                        var updates = new List<INugetPackage>();
-                        for (var i = 0; i < packagesToFetch.Count;)
+                        if (SupportsPackageIdSearchFilter)
                         {
-                            var searchQueryBuilder = new StringBuilder();
-                            for (var inner = 0; inner < UpdateSearchBatchSize && i < packagesToFetch.Count; inner++, i++)
+                            var updates = new List<INugetPackage>();
+                            for (var i = 0; i < packagesToFetch.Count;)
                             {
-                                if (i > 0)
+                                var searchQueryBuilder = new StringBuilder();
+                                for (var inner = 0; inner < UpdateSearchBatchSize && i < packagesToFetch.Count; inner++, i++)
                                 {
-                                    searchQueryBuilder.Append(' ');
+                                    if (i > 0)
+                                    {
+                                        searchQueryBuilder.Append(' ');
+                                    }
+
+                                    searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
                                 }
 
-                                searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
+                                updates.AddRange(
+                                    await ApiClient.SearchPackageAsync(
+                                            this,
+                                            searchQueryBuilder.ToString(),
+                                            0,
+                                            0,
+                                            includePrerelease,
+                                            CancellationToken.None)
+                                        .ConfigureAwait(false));
                             }
 
-                            updates.AddRange(
-                                await ApiClient.SearchPackageAsync(
-                                    this,
-                                    searchQueryBuilder.ToString(),
-                                    0,
-                                    0,
-                                    includePrerelease,
-                                    CancellationToken.None));
+                            if (updates.Count > packagesToFetch.Count)
+                            {
+                                Debug.LogWarningFormat(
+                                    "Fetching updates using a filter with the format 'packageid:{{packageId}}' resulted in more packages as requested. This probably means that the syntax is not supported by the package source {0}. So consider switching to a different 'update search mechanism' by disabling the '{1}' setting for this package source.",
+                                    SavedPath,
+                                    nameof(SupportsPackageIdSearchFilter));
+                            }
+
+                            return updates;
                         }
 
-                        return updates;
+                        var fetchedPackages = await Task.WhenAll(
+                                packagesToFetch.Select(package => ApiClient.GetPackageWithAllVersionsAsync(this, package, CancellationToken.None)))
+                            .ConfigureAwait(false);
+                        return fetchedPackages.ToList<INugetPackage>();
                     })
                 .GetAwaiter()
                 .GetResult();
@@ -251,7 +265,7 @@ namespace NugetForUnity.PackageSource
         /// <inheritdoc />
         public void DownloadNupkgToFile(INugetPackageIdentifier package, string outputFilePath, string downloadUrlHint)
         {
-            Task.Run(() => ApiClient.DownloadNupkgToFileAsync(this, package, outputFilePath)).GetAwaiter().GetResult();
+            Task.Run(() => ApiClient.DownloadNupkgToFileAsync(this, package, outputFilePath, downloadUrlHint)).GetAwaiter().GetResult();
         }
 
         /// <inheritdoc />
