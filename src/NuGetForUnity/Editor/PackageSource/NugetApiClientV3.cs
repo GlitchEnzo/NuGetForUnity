@@ -366,29 +366,34 @@ namespace NugetForUnity.PackageSource
 
         private static List<NugetFrameworkGroup> ConvertDependencyGroups(CatalogEntry entry)
         {
-            var dependencyGroups = entry.dependencyGroups ??
-                                   throw new InvalidOperationException(
-                                       $"missing '{nameof(CatalogEntry)}.{nameof(CatalogEntry.dependencyGroups)}' property for CatalogEntry: '{entry.atId}'");
-            return dependencyGroups.ConvertAll(
-                dependencyGroup =>
-                {
-                    if (dependencyGroup.dependencies is null)
+            if (entry.dependencyGroups != null)
+            {
+                return entry.dependencyGroups.ConvertAll(
+                    dependencyGroup =>
                     {
-                        throw new InvalidOperationException(
-                            $"missing '{nameof(dependencyGroup.dependencies)}' property for dependency group: '{dependencyGroup.targetFramework}'");
-                    }
+                        var dependencies = dependencyGroup.dependencies is null ?
+                            new List<INugetPackageIdentifier>() :
+                            dependencyGroup.dependencies.ConvertAll(
+                                dependency => (INugetPackageIdentifier)new NugetPackageIdentifier(
+                                    dependency.id ??
+                                    throw new InvalidOperationException(
+                                        $"missing '{nameof(dependency.id)}' inside '{nameof(dependencyGroup.dependencies)}' for dependency group: '{JsonUtility.ToJson(dependencyGroup)}'"),
+                                    dependency.range));
 
-                    return new NugetFrameworkGroup
-                    {
-                        Dependencies = dependencyGroup.dependencies.ConvertAll(
-                            dependency => (INugetPackageIdentifier)new NugetPackageIdentifier(
-                                dependency.id ??
-                                throw new InvalidOperationException(
-                                    $"missing '{nameof(dependency.id)}' inside '{nameof(dependencyGroup.dependencies)}' for dependency group: '{dependencyGroup.targetFramework}'"),
-                                dependency.range)),
-                        TargetFramework = dependencyGroup.targetFramework,
-                    };
-                });
+                        return new NugetFrameworkGroup { Dependencies = dependencies, TargetFramework = dependencyGroup.targetFramework };
+                    });
+            }
+
+            if (ConfigurationManager.IsVerboseLoggingEnabled)
+            {
+                NugetLogger.LogVerbose(
+                    "missing '{0}.{1}' property for CatalogEntry: '{2}'",
+                    nameof(CatalogEntry),
+                    nameof(CatalogEntry.dependencyGroups),
+                    JsonUtility.ToJson(entry));
+            }
+
+            return new List<NugetFrameworkGroup>();
         }
 
         private static List<INugetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NugetPackageSourceV3 packageSource)
@@ -459,29 +464,30 @@ namespace NugetForUnity.PackageSource
             }
 
             var getLatestVersion = string.IsNullOrEmpty(package.Version);
-            var item = getLatestVersion ?
+            var pageItem = getLatestVersion ?
                 registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
                 registrationItems.Find(
-                    registrationItem => package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.lower)) >= 0 &&
-                                        package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.upper)) <= 0);
-            if (item is null)
+                    registrationItem =>
+                        new NugetPackageVersion($"[{registrationItem.lower},{registrationItem.upper}]").InRange(package.PackageVersion));
+            if (pageItem is null)
             {
                 Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
                 return null;
             }
 
-            if (item.items is null || item.items.Count == 0)
+            if (pageItem.items is null || pageItem.items.Count == 0)
             {
-                item.items = await GetRegistrationPageLeafItems(packageSource, item, cancellationToken).ConfigureAwait(false);
+                pageItem.items = await GetRegistrationPageLeafItems(packageSource, pageItem, cancellationToken).ConfigureAwait(false);
             }
 
             var leafItem = getLatestVersion ?
-                item.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version)).FirstOrDefault() :
-                item.items.Find(leaf => new NugetPackageVersion(leaf.CatalogEntry.version) == package.PackageVersion);
+                pageItem.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version))
+                    .FirstOrDefault() :
+                pageItem.items.Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
             if (leafItem is null)
             {
                 Debug.LogError(
-                    $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {item.lower} to {item.upper} '{item.atId}'.");
+                    $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {pageItem.lower} to {pageItem.upper} '{pageItem.atId}'.");
                 return null;
             }
 
@@ -525,11 +531,21 @@ namespace NugetForUnity.PackageSource
                 return null;
             }
 
-            var responseString = await GetStringFromServerAsync(
-                    packageSource,
-                    $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
-                    cancellationToken)
-                .ConfigureAwait(false);
+            string responseString;
+            try
+            {
+                responseString = await GetStringFromServerAsync(
+                        packageSource,
+                        $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception)
+            {
+                Debug.LogWarning($"Failed to get '{package.Id}' from the package source '{apiIndexJsonUrl}'. Error: {exception}");
+                return null;
+            }
+
             var registrationResponse = JsonUtility.FromJson<RegistrationResponse>(responseString.Replace(@"""@id"":", @"""atId"":"));
 
             // without a version specified, the latest version is returned

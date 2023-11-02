@@ -244,9 +244,19 @@ namespace NugetForUnity.Models
 
             if (other.HasVersionRange)
             {
-                // either other or both have a version range specified. So it makes no sense to check if this is in the range of other.
-                // we can only check if the version ranges are equal.
-                return string.Equals(FullVersion, other.FullVersion, StringComparison.OrdinalIgnoreCase);
+                if (!HasVersionRange)
+                {
+                    // A 'single' version can't be in range of a version range.
+                    return false;
+                }
+
+                // We have two version ranges. We check if they intersect.
+                return (other.minimumSemVer2Version.HasValue &&
+                        CompareVersion(other.minimumSemVer2Version.Value) == 0 &&
+                        (other.IsMinInclusive || !other.minimumSemVer2Version.Equals(maximumSemVer2Version))) ||
+                       (other.maximumSemVer2Version.HasValue &&
+                        CompareVersion(other.maximumSemVer2Version.Value) == 0 &&
+                        (other.IsMaxInclusive || !other.maximumSemVer2Version.Equals(minimumSemVer2Version)));
             }
 
             if (!HasVersionRange)
