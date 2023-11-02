@@ -53,7 +53,15 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public string SavedProtocolVersion => null;
+        public string SavedProtocolVersion
+        {
+            get => null;
+
+            set
+            {
+                // multiple sources can't have protocol version
+            }
+        }
 
         /// <inheritdoc />
         public bool SavedPasswordIsEncrypted

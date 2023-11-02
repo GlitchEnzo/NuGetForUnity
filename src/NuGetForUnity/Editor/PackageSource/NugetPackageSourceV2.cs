@@ -64,7 +64,7 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
-        public string SavedProtocolVersion { get; private set; }
+        public string SavedProtocolVersion { get; set; }
 
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.

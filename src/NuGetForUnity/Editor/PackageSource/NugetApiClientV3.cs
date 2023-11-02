@@ -906,6 +906,7 @@ namespace NugetForUnity.PackageSource
                 catalogEntry ?? throw new InvalidOperationException($"missing '{nameof(catalogEntry)}' property in registration leaf '{atId}'.");
         }
 
+        // Removed property because it has a 'string or array of strings' representation and therefor causes parse errors when using the CLI: 'tags'
         [Serializable]
         private sealed class CatalogEntry
         {
@@ -978,9 +979,6 @@ namespace NugetForUnity.PackageSource
 
             [CanBeNull]
             public string summary;
-
-            [CanBeNull]
-            public string tags;
 
             [CanBeNull]
             public string title;

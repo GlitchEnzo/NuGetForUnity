@@ -88,7 +88,7 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
-        public string SavedProtocolVersion { get; private set; }
+        public string SavedProtocolVersion { get; set; }
 
         /// <inheritdoc />
         public bool SavedPasswordIsEncrypted { get; set; }
