@@ -35,7 +35,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.0.2";
 
-        private const float LablePading = 5;
+        private const float LabelPading = 5;
 
         private readonly GUIContent deleteX = new GUIContent("\u2716");
 
@@ -274,7 +274,7 @@ namespace NugetForUnity.Ui
                                                                                                        new GUIContent(
                                                                                                            "Package download URL template overwrite"))
                                                                                                    .x;
-                                        EditorGUIUtility.labelWidth = biggestAdvancedSettingsPackageSourceSectionLabelSize.Value + LablePading;
+                                        EditorGUIUtility.labelWidth = biggestAdvancedSettingsPackageSourceSectionLabelSize.Value + LabelPading;
 
                                         var supportsPackageIdSearchFilter = EditorGUILayout.Toggle(
                                             new GUIContent(
@@ -295,7 +295,7 @@ namespace NugetForUnity.Ui
                                             var updateSearchBatchSize = EditorGUILayout.IntField(
                                                 new GUIContent(
                                                     "Update search batch size",
-                                                    "The size of each batch in witch available updates are fetched. " +
+                                                    "The size of each batch in witch avaiLabel updates are fetched. " +
                                                     "To prevent the search query string to exceed the URI length limit we fetch the updates in groups. " +
                                                     "Currently we know that 'Artifactory' requires the setting to be set to 1. Defaults to 20."),
                                                 sourceV3.UpdateSearchBatchSize);
@@ -331,7 +331,7 @@ namespace NugetForUnity.Ui
 
                             biggestPackageSourceSectionLabelSize = biggestPackageSourceSectionLabelSize ??
                                                                    EditorStyles.label.CalcSize(new GUIContent("Force use API v3")).x;
-                            EditorGUIUtility.labelWidth = biggestPackageSourceSectionLabelSize.Value + LablePading;
+                            EditorGUIUtility.labelWidth = biggestPackageSourceSectionLabelSize.Value + LabelPading;
 
                             var currentForceUseApiV3 = source.SavedProtocolVersion?.Equals("3", StringComparison.Ordinal) == true;
                             if ((source is NugetPackageSourceV3 && currentForceUseApiV3) || source is NugetPackageSourceV2)
