@@ -1,3 +1,5 @@
+[![openupm](https://img.shields.io/npm/v/com.github-glitchenzo.nugetforunity?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.github-glitchenzo.nugetforunity/) ![main github action workflow](https://github.com/GlitchEnzo/NuGetForUnity/actions/workflows/main.yml/badge.svg) [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![GitHub Release](https://img.shields.io/github/v/release/GlitchEnzo/NuGetForUnity.svg)](https://github.com/GlitchEnzo/NuGetForUnity/releases/latest)
+
 # What is NuGetForUnity?
 
 NuGetForUnity is a NuGet client built from scratch to run inside the Unity Editor. NuGet is a package management system which makes it easy to create packages that are distributed on a server and consumed by users. NuGet supports [semantic versioning](http://semver.org/) for packages as well as dependencies on other packages.
