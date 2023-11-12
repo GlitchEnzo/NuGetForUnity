@@ -123,6 +123,12 @@ namespace NugetForUnity.Models
 
                 return Task.Run(GetDependenciesCoreAsync).GetAwaiter().GetResult();
             }
+
+            set
+            {
+                dependencies = value;
+                dependenciesFetched = true;
+            }
         }
 
         /// <inheritdoc />
@@ -198,6 +204,13 @@ namespace NugetForUnity.Models
             }
         }
 
+        /// <summary>
+        ///     Gets or sets the URL for the location of the actual (.nupkg) NuGet package.
+        /// </summary>
+        [CanBeNull]
+        [field: SerializeField]
+        public string DownloadUrl { get; set; }
+
         /// <inheritdoc />
         IReadOnlyList<PluginAPI.Models.INugetPackageIdentifier> PluginAPI.Models.INugetPackage.CurrentFrameworkDependencies =>
             CurrentFrameworkDependencies;
@@ -223,7 +236,7 @@ namespace NugetForUnity.Models
         /// <inheritdoc />
         public void DownloadNupkgToFile(string outputFilePath)
         {
-            packageSource.DownloadNupkgToFile(this, outputFilePath, null);
+            packageSource.DownloadNupkgToFile(this, outputFilePath, DownloadUrl);
         }
 
         /// <inheritdoc />

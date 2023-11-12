@@ -41,10 +41,11 @@ namespace NugetForUnity.PackageSource
         string SavedPath { get; set; }
 
         /// <summary>
-        ///     Gets the explicitly defined protocol version stored inside the 'NuGet.config'.
+        ///     Gets or sets the explicitly defined protocol version stored inside the 'NuGet.config'.
         /// </summary>
+        /// <remarks>Changing this value will only take effect after reloading as it potentially need to change the type of the class.</remarks>
         [CanBeNull]
-        string SavedProtocolVersion { get; }
+        string SavedProtocolVersion { get; set; }
 
         /// <summary>
         ///     Gets or sets the user-name used to access the feed. Null indicates that no authentication is used.

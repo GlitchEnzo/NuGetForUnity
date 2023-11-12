@@ -35,13 +35,21 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.0.2";
 
+        private const float LabelPading = 5;
+
         private readonly GUIContent deleteX = new GUIContent("\u2716");
 
         private readonly GUIContent downArrow = new GUIContent("\u25bc");
 
+        private readonly Dictionary<string, bool> packageSourceAdvancedSettingsExpanded = new Dictionary<string, bool>();
+
         private readonly List<NugetPlugin> plugins;
 
         private readonly GUIContent upArrow = new GUIContent("\u25b2");
+
+        private float? biggestAdvancedSettingsPackageSourceSectionLabelSize;
+
+        private float? biggestPackageSourceSectionLabelSize;
 
         /// <summary>
         ///     The current position of the scroll bar in the GUI for the list of plugins.
@@ -95,14 +103,14 @@ namespace NugetForUnity.Ui
         /// <param name="searchContext">The search context for the preferences.</param>
         public override void OnGUI([CanBeNull] string searchContext)
         {
-            if (redToggleStyle == null)
-            {
-                redToggleStyle = new GUIStyle(GUI.skin.toggle) { onNormal = { textColor = Color.red }, onHover = { textColor = Color.red } };
-            }
+            redToggleStyle = redToggleStyle ??
+                             new GUIStyle(GUI.skin.toggle) { onNormal = { textColor = Color.red }, onHover = { textColor = Color.red } };
 
             var preferencesChangedThisFrame = false;
             var sourcePathChangedThisFrame = false;
 
+            var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Request Timeout in seconds")).x;
+            EditorGUIUtility.labelWidth = biggestLabelSize;
             EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
 
             var installFromCache = EditorGUILayout.Toggle("Install From the Cache", ConfigurationManager.NugetConfigFile.InstallFromCache);
@@ -144,11 +152,13 @@ namespace NugetForUnity.Ui
             using (new EditorGUILayout.HorizontalScope())
             {
                 var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
-                EditorGUILayout.LabelField(
-                    new GUIContent(
-                        $"Packages Config path: {ConfigurationManager.NugetConfigFile.RelativePackagesConfigDirectoryPath}",
-                        $"Absolute path: {packagesConfigPath}"));
-                if (GUILayout.Button("Browse"))
+
+                GUILayout.Label(
+                    new GUIContent("Packages Config path:", $"Absolute path: {packagesConfigPath}"),
+                    GUILayout.Width(EditorGUIUtility.labelWidth));
+                GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativePackagesConfigDirectoryPath);
+
+                if (GUILayout.Button("Browse", GUILayout.Width(100)))
                 {
                     var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, string.Empty);
 
@@ -191,8 +201,15 @@ namespace NugetForUnity.Ui
                 INugetPackageSource sourceToMoveDown = null;
                 INugetPackageSource sourceToRemove = null;
 
+                var isFirstPackageSource = true;
                 foreach (var source in ConfigurationManager.NugetConfigFile.PackageSources)
                 {
+                    if (!isFirstPackageSource)
+                    {
+                        EditorGUILayout.Separator();
+                    }
+
+                    isFirstPackageSource = false;
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         GUILayout.Space(10);
@@ -237,9 +254,103 @@ namespace NugetForUnity.Ui
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         GUILayout.Space(29);
-                        EditorGUIUtility.labelWidth = 75;
                         using (new EditorGUILayout.VerticalScope())
                         {
+                            if (source is NugetPackageSourceV3 sourceV3)
+                            {
+                                packageSourceAdvancedSettingsExpanded.TryGetValue(sourceV3.SavedPath, out var advancedSettingsExpanded);
+                                advancedSettingsExpanded = EditorGUILayout.Foldout(
+                                    advancedSettingsExpanded,
+                                    "Advanced Settings (maybe needed if using a custom non 'nuget.org' package source)",
+                                    true,
+                                    new GUIStyle(EditorStyles.foldout) { fontStyle = FontStyle.Bold });
+                                packageSourceAdvancedSettingsExpanded[sourceV3.SavedPath] = advancedSettingsExpanded;
+                                if (advancedSettingsExpanded)
+                                {
+                                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                                    {
+                                        biggestAdvancedSettingsPackageSourceSectionLabelSize = biggestAdvancedSettingsPackageSourceSectionLabelSize ??
+                                                                                               EditorStyles.label.CalcSize(
+                                                                                                       new GUIContent(
+                                                                                                           "Package download URL template overwrite"))
+                                                                                                   .x;
+                                        EditorGUIUtility.labelWidth = biggestAdvancedSettingsPackageSourceSectionLabelSize.Value + LabelPading;
+
+                                        var supportsPackageIdSearchFilter = EditorGUILayout.Toggle(
+                                            new GUIContent(
+                                                "Supports 'packageId' query search filter",
+                                                "If the API supports querying a package by its id using the syntax 'packageid:{packageId}'. " +
+                                                "This syntax is used to easily search for package updates. " +
+                                                "If it is disabled package updates are searched by loading the information of all packages one by one. " +
+                                                "Currently we know that this setting need to be disabled when using a registry hosted by 'GitHub' or 'Azure Artifacts'."),
+                                            sourceV3.SupportsPackageIdSearchFilter);
+                                        if (supportsPackageIdSearchFilter != sourceV3.SupportsPackageIdSearchFilter)
+                                        {
+                                            preferencesChangedThisFrame = true;
+                                            sourceV3.SupportsPackageIdSearchFilter = supportsPackageIdSearchFilter;
+                                        }
+
+                                        if (sourceV3.SupportsPackageIdSearchFilter)
+                                        {
+                                            var updateSearchBatchSize = EditorGUILayout.IntField(
+                                                new GUIContent(
+                                                    "Update search batch size",
+                                                    "The size of each batch in witch avaiLabel updates are fetched. " +
+                                                    "To prevent the search query string to exceed the URI length limit we fetch the updates in groups. " +
+                                                    "Currently we know that 'Artifactory' requires the setting to be set to 1. Defaults to 20."),
+                                                sourceV3.UpdateSearchBatchSize);
+                                            if (updateSearchBatchSize != sourceV3.UpdateSearchBatchSize)
+                                            {
+                                                preferencesChangedThisFrame = true;
+                                                sourceV3.UpdateSearchBatchSize = updateSearchBatchSize;
+                                            }
+                                        }
+
+                                        var packageDownloadUrlTemplateOverwrite = EditorGUILayout.TextField(
+                                            new GUIContent(
+                                                "Package download URL template overwrite",
+                                                "Overwrite for the URL used to download packages '.nupkg' files. " +
+                                                "Normally this is not required. Currently we know that 'Artifactory' requires the setting. " +
+                                                "The template should contain the placeholder '{0}' for the package id and '{1}' for the package version. " +
+                                                "E.g. for nuget.org the template package download URL would be 'https://api.nuget.org/v3-flatcontainer/{0}/{1}/{0}.{1}.nupkg'"),
+                                            sourceV3.PackageDownloadUrlTemplateOverwrite);
+                                        packageDownloadUrlTemplateOverwrite = packageDownloadUrlTemplateOverwrite?.Trim();
+                                        if (string.IsNullOrEmpty(packageDownloadUrlTemplateOverwrite))
+                                        {
+                                            packageDownloadUrlTemplateOverwrite = null;
+                                        }
+
+                                        if (packageDownloadUrlTemplateOverwrite != sourceV3.PackageDownloadUrlTemplateOverwrite)
+                                        {
+                                            preferencesChangedThisFrame = true;
+                                            sourceV3.PackageDownloadUrlTemplateOverwrite = packageDownloadUrlTemplateOverwrite;
+                                        }
+                                    }
+                                }
+                            }
+
+                            biggestPackageSourceSectionLabelSize = biggestPackageSourceSectionLabelSize ??
+                                                                   EditorStyles.label.CalcSize(new GUIContent("Force use API v3")).x;
+                            EditorGUIUtility.labelWidth = biggestPackageSourceSectionLabelSize.Value + LabelPading;
+
+                            var currentForceUseApiV3 = source.SavedProtocolVersion?.Equals("3", StringComparison.Ordinal) == true;
+                            if ((source is NugetPackageSourceV3 && currentForceUseApiV3) || source is NugetPackageSourceV2)
+                            {
+                                var forceUseApiV3 = EditorGUILayout.Toggle(
+                                    new GUIContent(
+                                        "Force use API v3",
+                                        "Normally the API version is autodetect. " +
+                                        "It defaults to version \"2\" when not pointing to a package source URL ending in .json (e.g. https://api.nuget.org/v3/index.json). " +
+                                        "So if a package source uses API v3 but the URL doesn't end in .json you need to enable this setting (e.g. needed when using 'Aritfactory')."),
+                                    currentForceUseApiV3);
+                                if (forceUseApiV3 != currentForceUseApiV3)
+                                {
+                                    preferencesChangedThisFrame = true;
+                                    source.SavedProtocolVersion = forceUseApiV3 ? "3" : null;
+                                    sourcePathChangedThisFrame = true; // we need to fully reload to be able to switch from V2 to V3
+                                }
+                            }
+
                             var hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
                             if (hasPassword != source.HasPassword)
                             {

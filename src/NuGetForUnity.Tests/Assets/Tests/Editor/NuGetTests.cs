@@ -542,6 +542,11 @@ public class NuGetTests
     [TestCase("[1.0,2.0]", "1.0")]
     [TestCase("[1.0,2.0]", "2.0")]
     [TestCase("(1.0,2.0)", "1.5")]
+    [TestCase("(1.0,2.0)", "[1.5,]")]
+    [TestCase("(1.0,2.0)", "(1.5,)")]
+    [TestCase("[1.0,2.0]", "(1.5,)")]
+    [TestCase("(1.0,2.0]", "[2.0,]")]
+    [TestCase("[1.0,2.0]", "[0.1,1.0]")]
     public void VersionInRangeTest(string versionRange, string version)
     {
         var id = new NugetPackageIdentifier("TestPackage", versionRange);
@@ -560,6 +565,10 @@ public class NuGetTests
     [TestCase("[1.0,2.0]", "3.0")]
     [TestCase("(1.0,2.0)", "1.0")]
     [TestCase("(1.0,2.0)", "2.0")]
+    [TestCase("(1.0,2.0)", "[2.0,]")]
+    [TestCase("(1.0,2.0]", "(2.0,]")]
+    [TestCase("[1.0,2.0]", "[0.1,1.0)")]
+    [TestCase("(1.0,2.0]", "[0.1,1.0]")]
     public void VersionOutOfRangeTest(string versionRange, string version)
     {
         var id = new NugetPackageIdentifier("TestPackage", versionRange);

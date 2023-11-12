@@ -179,25 +179,41 @@ namespace NugetForUnity.PackageSource
         /// <param name="packageSource">The package source that owns this client.</param>
         /// <param name="package">The package to download its .nupkg from.</param>
         /// <param name="outputFilePath">Path where the downloaded file is placed.</param>
+        /// <param name="downloadUrlHint">Hint for the url used to download the .nupkg file from.</param>
         /// <returns>The async task.</returns>
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
-        public async Task DownloadNupkgToFileAsync(NugetPackageSourceV3 packageSource, INugetPackageIdentifier package, string outputFilePath)
+        public async Task DownloadNupkgToFileAsync(
+            NugetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            string outputFilePath,
+            string downloadUrlHint)
         {
-            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
-            if (!successfullyInitialized)
+            string downloadUrl;
+            if (!string.IsNullOrEmpty(downloadUrlHint))
             {
-                return;
+                downloadUrl = downloadUrlHint;
+            }
+            else
+            {
+                var successfullyInitialized = await EnsureInitializedAsync(packageSource);
+                if (!successfullyInitialized)
+                {
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(packageDownloadUrlTemplate))
+                {
+                    Debug.LogError(
+                        $"There are no {nameof(packageBaseAddress)} specified in the API '{apiIndexJsonUrl}' so we can't download packages.");
+                    return;
+                }
+
+                var version = package.Version.ToLowerInvariant();
+                var id = package.Id.ToLowerInvariant();
+                downloadUrl = string.Format(packageDownloadUrlTemplate, id, version);
             }
 
-            if (string.IsNullOrEmpty(packageDownloadUrlTemplate))
-            {
-                Debug.LogError($"There are no {nameof(packageBaseAddress)} specified in the API '{apiIndexJsonUrl}' so we can't download packages.");
-                return;
-            }
-
-            var version = package.Version.ToLowerInvariant();
-            var id = package.Id.ToLowerInvariant();
-            using (var request = new HttpRequestMessage(HttpMethod.Get, string.Format(packageDownloadUrlTemplate, id, version)))
+            using (var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl))
             {
                 AddHeadersToRequest(request, packageSource, false);
                 using (var response = await httpClient.SendAsync(request).ConfigureAwait(false))
@@ -212,6 +228,83 @@ namespace NugetForUnity.PackageSource
                     }
                 }
             }
+        }
+
+        /// <summary>
+        ///     Fetches a single NuGet package from the package registration. Other than <see cref="GetPackageWithDetailsAsync" /> this also fetches a list of
+        ///     all available versions.
+        /// </summary>
+        /// <param name="packageSource">The package source that owns this client.</param>
+        /// <param name="package">The package identifier to receive including the details.</param>
+        /// <param name="cancellationToken">Token to cancel the HTTP request.</param>
+        /// <returns>The package or null if we didn't find it.</returns>
+        public async Task<NugetPackageV3> GetPackageWithAllVersionsAsync(
+            NugetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            CancellationToken cancellationToken = default)
+        {
+            var registrationItems = await GetRegistrationPageItemsAsync(packageSource, package, cancellationToken);
+            if (registrationItems is null)
+            {
+                return null;
+            }
+
+            var versions = new List<NugetPackageVersion>();
+            RegistrationLeafObject latestVersionItem = null;
+            NugetPackageVersion latestVersion = null;
+            foreach (var item in registrationItems)
+            {
+                if (item.items is null || item.items.Count == 0)
+                {
+                    item.items = await GetRegistrationPageLeafItems(packageSource, item, cancellationToken).ConfigureAwait(false);
+                }
+
+                foreach (var leafObject in item.items)
+                {
+                    var catalogEntry = leafObject.CatalogEntry;
+
+                    if (catalogEntry.version is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"missing '{nameof(catalogEntry.version)}' property in catalog entry:\n{JsonUtility.ToJson(catalogEntry)}");
+                    }
+
+                    var version = new NugetPackageVersion(catalogEntry.version);
+                    versions.Add(version);
+                    if (latestVersion != null && version <= latestVersion)
+                    {
+                        continue;
+                    }
+
+                    latestVersion = version;
+                    latestVersionItem = leafObject;
+                }
+            }
+
+            versions.Sort((v1, v2) => v2.CompareTo(v1));
+            return CreatePackageFromRegistrationLeaf(packageSource, latestVersionItem, versions);
+        }
+
+        /// <summary>
+        ///     Gets a single NuGet package including the package details <see cref="GetPackageDetailsAsync" /> but not containing all available versions.
+        /// </summary>
+        /// <param name="packageSource">The package source that owns this client.</param>
+        /// <param name="package">The package identifier to receive including the details.</param>
+        /// <param name="cancellationToken">Token to cancel the HTTP request.</param>
+        /// <returns>The package or null if we didn't find it.</returns>
+        [ItemCanBeNull]
+        public async Task<NugetPackageV3> GetPackageWithDetailsAsync(
+            NugetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            CancellationToken cancellationToken = default)
+        {
+            var leafItem = await GetPackageRegistrationLeafAsync(packageSource, package, cancellationToken).ConfigureAwait(false);
+            if (leafItem is null)
+            {
+                return null;
+            }
+
+            return CreatePackageFromRegistrationLeaf(packageSource, leafItem);
         }
 
         /// <summary>
@@ -233,86 +326,74 @@ namespace NugetForUnity.PackageSource
             INugetPackageIdentifier package,
             CancellationToken cancellationToken = default)
         {
-            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
-            if (!successfullyInitialized)
+            var leafItem = await GetPackageRegistrationLeafAsync(packageSource, package, cancellationToken).ConfigureAwait(false);
+            return leafItem is null ? new List<NugetFrameworkGroup>() : ConvertDependencyGroups(leafItem.CatalogEntry);
+        }
+
+        private static NugetPackageV3 CreatePackageFromRegistrationLeaf(
+            NugetPackageSourceV3 packageSource,
+            RegistrationLeafObject leafItem,
+            List<NugetPackageVersion> allVersions = null)
+        {
+            var entry = leafItem.CatalogEntry;
+            if (entry.id is null)
             {
-                return new List<NugetFrameworkGroup>();
+                throw new InvalidOperationException($"missing '{nameof(entry.id)}' property in catalog entry:\n{JsonUtility.ToJson(entry)}");
             }
 
-            if (string.IsNullOrEmpty(registrationsBaseUrl))
+            if (entry.version is null)
             {
-                Debug.LogError(
-                    $"There are no {nameof(registrationsBaseUrl)} specified in the API '{apiIndexJsonUrl}' so we can't receive package details.");
-                return new List<NugetFrameworkGroup>();
+                throw new InvalidOperationException($"missing '{nameof(entry.version)}' property in catalog entry:\n{JsonUtility.ToJson(entry)}");
             }
 
-            var responseString = await GetStringFromServerAsync(
-                    packageSource,
-                    $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
-                    cancellationToken)
-                .ConfigureAwait(false);
-            var registrationResponse = JsonUtility.FromJson<RegistrationResponse>(responseString.Replace(@"""@id"":", @"""atId"":"));
+            return new NugetPackageV3(
+                entry.id,
+                entry.version,
+                new List<string> { entry.authors },
+                entry.description,
+                0,
+                entry.licenseUrl,
+                packageSource,
+                entry.projectUrl,
+                entry.summary,
+                entry.title,
+                entry.iconUrl,
+                allVersions ?? new List<NugetPackageVersion> { new NugetPackageVersion(entry.version) })
+            {
+                DownloadUrl = leafItem.packageContent, Dependencies = ConvertDependencyGroups(entry),
+            };
+        }
 
-            // without a version specified, the latest version is returned
-            var getLatestVersion = string.IsNullOrEmpty(package.Version);
-            var registrationItems = registrationResponse.items ??
+        private static List<NugetFrameworkGroup> ConvertDependencyGroups(CatalogEntry entry)
+        {
+            if (entry.dependencyGroups != null)
+            {
+                return entry.dependencyGroups.ConvertAll(
+                    dependencyGroup =>
+                    {
+                        var dependencies = dependencyGroup.dependencies is null ?
+                            new List<INugetPackageIdentifier>() :
+                            dependencyGroup.dependencies.ConvertAll(
+                                dependency => (INugetPackageIdentifier)new NugetPackageIdentifier(
+                                    dependency.id ??
                                     throw new InvalidOperationException(
-                                        $"missing 'items' property inside registration request for package: {package.Id}, response:\n{responseString}");
-            var item = getLatestVersion ?
-                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
-                registrationItems.Find(
-                    registrationItem => package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.lower)) >= 0 &&
-                                        package.PackageVersion.CompareTo(new NugetPackageVersion(registrationItem.upper)) <= 0);
-            if (item is null)
-            {
-                Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
-                return new List<NugetFrameworkGroup>();
+                                        $"missing '{nameof(dependency.id)}' inside '{nameof(dependencyGroup.dependencies)}' for dependency group: '{JsonUtility.ToJson(dependencyGroup)}'"),
+                                    dependency.range));
+
+                        return new NugetFrameworkGroup { Dependencies = dependencies, TargetFramework = dependencyGroup.targetFramework };
+                    });
             }
 
-            if (item.items is null || item.items.Count == 0)
+            if (ConfigurationManager.IsVerboseLoggingEnabled)
             {
-                // If the items property is not present in the registration page object, the URL specified in the @id must be used to fetch metadata about individual package versions. The items array is sometimes excluded from the page object as an optimization. If the number of versions of a single package ID is very large, then the registration index document will be massive and wasteful to process for a client that only cares about a specific version or small range of versions.
-                var itemAtId = item.atId ?? throw new InvalidOperationException($"missing '@id' for item inside response:\n{responseString}");
-                var registrationPageString = await GetStringFromServerAsync(packageSource, itemAtId, cancellationToken).ConfigureAwait(false);
-                var registrationPage = JsonUtility.FromJson<RegistrationPageObject>(registrationPageString);
-                item.items = registrationPage.items ??
-                             throw new InvalidOperationException(
-                                 $"missing 'items' property inside page request for URL: {itemAtId}, response:\n{registrationPageString}");
+                NugetLogger.LogVerbose(
+                    "missing '{0}.{1}' property for CatalogEntry: '{2}'",
+                    nameof(CatalogEntry),
+                    nameof(CatalogEntry.dependencyGroups),
+                    JsonUtility.ToJson(entry));
             }
 
-            var leafItem = getLatestVersion ?
-                item.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version)).FirstOrDefault() :
-                item.items.Find(leaf => new NugetPackageVersion(leaf.CatalogEntry.version) == package.PackageVersion);
-            if (leafItem is null)
-            {
-                Debug.LogError(
-                    $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {item.lower} to {item.upper} '{item.atId}'.");
-                return new List<NugetFrameworkGroup>();
-            }
-
-            var dependencyGroups = leafItem.CatalogEntry.dependencyGroups ??
-                                   throw new InvalidOperationException(
-                                       $"missing '{nameof(leafItem.catalogEntry)}.{nameof(CatalogEntry.dependencyGroups)}' property for item: '{item.atId}'");
-            return dependencyGroups.ConvertAll(
-                dependencyGroup =>
-                {
-                    if (dependencyGroup.dependencies is null)
-                    {
-                        throw new InvalidOperationException(
-                            $"missing '{nameof(dependencyGroup.dependencies)}' property for dependency group: '{dependencyGroup.targetFramework}'");
-                    }
-
-                    return new NugetFrameworkGroup
-                    {
-                        Dependencies = dependencyGroup.dependencies.ConvertAll(
-                            dependency => (INugetPackageIdentifier)new NugetPackageIdentifier(
-                                dependency.id ??
-                                throw new InvalidOperationException(
-                                    $"missing '{nameof(dependency.id)}' inside '{nameof(dependencyGroup.dependencies)}' for dependency group: '{dependencyGroup.targetFramework}'"),
-                                dependency.range)),
-                        TargetFramework = dependencyGroup.targetFramework,
-                    };
-                });
+            return new List<NugetFrameworkGroup>();
         }
 
         private static List<INugetPackage> SearchResultToNugetPackages(List<SearchResultItem> searchResults, NugetPackageSourceV3 packageSource)
@@ -370,6 +451,110 @@ namespace NugetForUnity.PackageSource
                 $"The request to '{response.RequestMessage.RequestUri}' failed with status code '{response.StatusCode}' and message: {responseString}");
         }
 
+        [ItemCanBeNull]
+        private async Task<RegistrationLeafObject> GetPackageRegistrationLeafAsync(
+            NugetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            CancellationToken cancellationToken = default)
+        {
+            var registrationItems = await GetRegistrationPageItemsAsync(packageSource, package, cancellationToken);
+            if (registrationItems is null)
+            {
+                return null;
+            }
+
+            var getLatestVersion = string.IsNullOrEmpty(package.Version);
+            var pageItem = getLatestVersion ?
+                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
+                registrationItems.Find(
+                    registrationItem =>
+                        new NugetPackageVersion($"[{registrationItem.lower},{registrationItem.upper}]").InRange(package.PackageVersion));
+            if (pageItem is null)
+            {
+                Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
+                return null;
+            }
+
+            if (pageItem.items is null || pageItem.items.Count == 0)
+            {
+                pageItem.items = await GetRegistrationPageLeafItems(packageSource, pageItem, cancellationToken).ConfigureAwait(false);
+            }
+
+            var leafItem = getLatestVersion ?
+                pageItem.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version))
+                    .FirstOrDefault() :
+                pageItem.items.Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
+            if (leafItem is null)
+            {
+                Debug.LogError(
+                    $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {pageItem.lower} to {pageItem.upper} '{pageItem.atId}'.");
+                return null;
+            }
+
+            return leafItem;
+        }
+
+        [ItemNotNull]
+        private async Task<List<RegistrationLeafObject>> GetRegistrationPageLeafItems(
+            NugetPackageSourceV3 packageSource,
+            RegistrationPageObject item,
+            CancellationToken cancellationToken)
+        {
+            // If the items property is not present in the registration page object,
+            // the URL specified in the @id must be used to fetch metadata about individual package versions.
+            // The items array is sometimes excluded from the page object as an optimization.
+            // If the number of versions of a single package ID is very large, then the registration index document will be massive and wasteful
+            // to process for a client that only cares about a specific version or small range of versions.
+            var itemAtId = item.atId ?? throw new InvalidOperationException($"missing '@id' for item inside item:\n{JsonUtility.ToJson(item)}");
+            var registrationPageString = await GetStringFromServerAsync(packageSource, itemAtId, cancellationToken).ConfigureAwait(false);
+            var registrationPage = JsonUtility.FromJson<RegistrationPageObject>(registrationPageString);
+            return registrationPage.items ??
+                   throw new InvalidOperationException(
+                       $"missing 'items' property inside page request for URL: {itemAtId}, response:\n{registrationPageString}");
+        }
+
+        private async Task<List<RegistrationPageObject>> GetRegistrationPageItemsAsync(
+            NugetPackageSourceV3 packageSource,
+            INugetPackageIdentifier package,
+            CancellationToken cancellationToken)
+        {
+            var successfullyInitialized = await EnsureInitializedAsync(packageSource);
+            if (!successfullyInitialized)
+            {
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(registrationsBaseUrl))
+            {
+                Debug.LogError(
+                    $"There are no {nameof(registrationsBaseUrl)} specified in the API '{apiIndexJsonUrl}' so we can't receive package details.");
+                return null;
+            }
+
+            string responseString;
+            try
+            {
+                responseString = await GetStringFromServerAsync(
+                        packageSource,
+                        $"{registrationsBaseUrl}{package.Id.ToLowerInvariant()}/index.json",
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception)
+            {
+                Debug.LogWarning($"Failed to get '{package.Id}' from the package source '{apiIndexJsonUrl}'. Error: {exception}");
+                return null;
+            }
+
+            var registrationResponse = JsonUtility.FromJson<RegistrationResponse>(responseString.Replace(@"""@id"":", @"""atId"":"));
+
+            // without a version specified, the latest version is returned
+            var registrationItems = registrationResponse.items ??
+                                    throw new InvalidOperationException(
+                                        $"missing 'items' property inside registration request for package: {package.Id}, response:\n{responseString}");
+            return registrationItems;
+        }
+
         private void InitializeFromSessionState()
         {
             var sessionState = SessionState.GetString(GetSessionStateKey(), string.Empty);
@@ -417,7 +602,16 @@ namespace NugetForUnity.PackageSource
                 return initializationTaskCompletionSource.Task;
             }
 
-            initializationTaskCompletionSource = new TaskCompletionSource<bool>();
+            lock (httpClient)
+            {
+                if (initializationTaskCompletionSource != null)
+                {
+                    return initializationTaskCompletionSource.Task;
+                }
+
+                initializationTaskCompletionSource = new TaskCompletionSource<bool>();
+            }
+
             _ = InitializeApiAddressesAsync(packageSource);
 
             return initializationTaskCompletionSource.Task;
@@ -625,6 +819,7 @@ namespace NugetForUnity.PackageSource
 #pragma warning disable CA1051 // Do not declare visible instance fields
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning disable SA1401 // Fields should be private
+#pragma warning disable S1144 // Unused private types or members should be removed
 
         [Serializable]
         private sealed class IndexResponse
@@ -727,6 +922,7 @@ namespace NugetForUnity.PackageSource
                 catalogEntry ?? throw new InvalidOperationException($"missing '{nameof(catalogEntry)}' property in registration leaf '{atId}'.");
         }
 
+        // Removed property because it has a 'string or array of strings' representation and therefor causes parse errors when using the CLI: 'tags'
         [Serializable]
         private sealed class CatalogEntry
         {
@@ -799,9 +995,6 @@ namespace NugetForUnity.PackageSource
 
             [CanBeNull]
             public string summary;
-
-            [CanBeNull]
-            public string tags;
 
             [CanBeNull]
             public string title;
@@ -988,5 +1181,6 @@ namespace NugetForUnity.PackageSource
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
 #pragma warning restore SA1401 // Fields should be private
+#pragma warning restore S1144 // Unused private types or members should be removed
     }
 }

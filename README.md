@@ -122,19 +122,19 @@ NuGetForUnity loads the _NuGet.config_ file in the Unity project (automatically 
 
 _The default NuGet.config file:_
 
-```
-<?xml version="1.0" encoding="utf-8"?>
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
 <configuration>
-  <packageSources>
-    <clear />
-    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-  </packageSources>
-  <activePackageSource>
-    <add key="All" value="(Aggregate source)" />
-  </activePackageSource>
-  <config>
-    <add key="repositoryPath" value="./Packages" />
-  </config>
+    <packageSources>
+        <clear />
+        <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    </packageSources>
+    <activePackageSource>
+        <add key="All" value="(Aggregate source)" />
+    </activePackageSource>
+    <config>
+        <add key="repositoryPath" value="./Packages" />
+    </config>
 </configuration>
 ```
 
@@ -154,9 +154,58 @@ Note: Depending on the size and number of packages you need to install, the `Res
 
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
 
-The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (`C:\Users\[username]\AppData\Local\NuGet\Cache`). The cache location can be overwrtten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.
+The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (`C:\Users\[username]\AppData\Local\NuGet\Cache`). The cache location can be overwritten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # Advanced settings
+
+## Use custom NuGet server
+
+The default configuration uses `nuget.org` but package sources hosted on other servers should also work. Some need some special settings. The setting can be either set using configuration UI **NuGet → Preferences** or in the `NuGet.config`. Some examples:
+
+### Azure Artifacts / GitHub Packages
+
+They require the `supportsPackageIdSearchFilter` set to `false` e.g.:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <packageSources>
+        <add key="github" value="https://nuget.pkg.github.com/NAMESPACE/index.json" supportsPackageIdSearchFilter="false" />
+    </packageSources>
+    <packageSourceCredentials>
+        <github>
+            <add key="userName" value="USERNAME" />
+            <add key="clearTextPassword" value="TOKEN" />
+        </github>
+    </packageSourceCredentials>
+    ...
+</configuration>
+```
+
+### JFrog Artifactory
+
+Requires `protocolVersion` set to `3` the other required settings like `packageDownloadUrlTemplateOverwrite` should be automatically detected / configured.
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <packageSources>
+        <add
+            key="Artifactory"
+            value="https://company.com/artifactory/api/nuget/v3/PROJECT"
+            protocolVersion="3"
+            packageDownloadUrlTemplateOverwrite="https://company.com/artifactory/api/nuget/v3/PROJECT/registration-semver2/Download/{0}/{1}"
+            updateSearchBatchSize="1"
+        />
+    </packageSources>
+    <packageSourceCredentials>
+        <Artifactory>
+            <add key="userName" value="USERNAME" />
+            <add key="clearTextPassword" value="Password" />
+        </Artifactory>
+    </packageSourceCredentials>
+</configuration>
+```
 
 ## Disable automatic referencing of assemblies
 
@@ -208,8 +257,8 @@ For those with projects using automated build solutions like [continuous integra
 
 ## Installation
 
--   As a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
--   If you don't have a tool manifest (local tool installation context) first create one with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`.
+-   System-wide as a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
+-   Project / folder wide as a local tool using: A tool manifest (local tool installation context) can be created with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`. Than add the tool manifest `.config/dotnet-tools.json` to your version control system.
 
 For more information see [.Net Tool Documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 

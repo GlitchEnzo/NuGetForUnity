@@ -38,7 +38,15 @@ namespace NugetForUnity.PackageSource
         public string SavedPath { get; set; }
 
         /// <inheritdoc />
-        public string SavedProtocolVersion => null;
+        public string SavedProtocolVersion
+        {
+            get => null;
+
+            set
+            {
+                // multiple sources can't have protocol version
+            }
+        }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -309,12 +317,10 @@ namespace NugetForUnity.PackageSource
                 var availablePackages = GetLocalPackages($"{installedPackage.Id}*", false, includePrerelease);
                 foreach (var availablePackage in availablePackages)
                 {
-                    if (installedPackage.Id == availablePackage.Id)
+                    if (installedPackage.Id.Equals(availablePackage.Id, StringComparison.OrdinalIgnoreCase) &&
+                        installedPackage.CompareTo(availablePackage) < 0)
                     {
-                        if (installedPackage.CompareTo(availablePackage) < 0)
-                        {
-                            updates.Add(availablePackage);
-                        }
+                        updates.Add(availablePackage);
                     }
                 }
             }
