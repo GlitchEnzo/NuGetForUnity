@@ -3,7 +3,7 @@ name: Build and Test
 on:
   push:
     branches: ["master", "feature/*"]
-    tags: ["v*"]
+    tags: ["v*", "plugin-api-v*"]
   pull_request_target:
     branches: ["master"]
 
@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.generateVersion.outputs.version }}
+      plugin-api-version: ${{ steps.generateVersion.outputs.plugin-api-version }}
 
     steps:
       - name: Checkout action file
@@ -33,18 +34,20 @@ jobs:
         id: generateVersion
         shell: pwsh
         run: |
-          $describe = git describe --long --tags --always
-          if ($describe -match '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<offset>\d+)-g(?<hash>[a-f0-9]+)$') {
-            if ([int]::Parse($Matches.offset) -eq 0) {
-              $version = "$($Matches.major).$($Matches.minor).$($Matches.patch)"
+          foreach ($tagPrefix in @("", "plugin-api-")) {
+            $describe = git describe --long --tags --always --match "$($tagPrefix)v*"
+            if ($describe -match "^$($tagPrefix)v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-(?<offset>\d+)-g(?<hash>[a-f0-9]+)`$") {
+              if ([int]::Parse($Matches.offset) -eq 0) {
+                $version = "$($Matches.major).$($Matches.minor).$($Matches.patch)"
+              } else {
+                $version = "$($Matches.major).$($Matches.minor).$([int]::Parse($Matches.patch) + 1)-dev.$($Matches.offset)+$($Matches.hash)"
+              }
             } else {
-              $version = "$($Matches.major).$($Matches.minor).$([int]::Parse($Matches.patch) + 1)-dev.$($Matches.offset)+$($Matches.hash)"
+              $version = "0.0.0-dev.$(git rev-list HEAD --count)+$describe"
             }
-          } else {
-            $version = "0.0.0-dev.$(git rev-list HEAD --count)+$describe"
+            Write-Host "Generated version number$(if ($tagPrefix -eq "") { "" } else { " $tagPrefix" } ): $version"
+            echo "$($tagPrefix)version=$($version)" >> $Env:GITHUB_OUTPUT
           }
-          Write-Host "Generated version number: $version"
-          echo "version=$($version)" >> $Env:GITHUB_OUTPUT
 
   buildOnLinux:
     name: Build on Linux
@@ -176,19 +179,19 @@ jobs:
       - name: Build and pack NuGetForUnity.PluginAPI
         run: >-
           dotnet pack ./src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.csproj --nologo -c Release -o .
-          -p:Version=${{ needs.determineVersionNumber.outputs.version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+          -p:Version=${{ needs.determineVersionNumber.outputs.plugin-api-version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
           -p:ContinuousIntegrationBuild=true
 
       - name: publish the NuGetForUnity.Cli NuGet package
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
         run: >-
-          dotnet nuget push ./NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
+          dotnet nuget push ./NuGetForUnity.Cli.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{ secrets.NUGET_API_TOKEN }}
           --source https://api.nuget.org/v3/index.json
 
       - name: publish the NuGetForUnity.PluginAPI NuGet package
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'plugin-api-v')
         run: >-
-          dotnet nuget push ./NuGetForUnity.PluginAPI.${{ needs.determineVersionNumber.outputs.version }}.nupkg --api-key ${{secrets.NUGET_API_TOKEN}}
+          dotnet nuget push ./NuGetForUnity.PluginAPI.${{ needs.determineVersionNumber.outputs.plugin-api-version }}.nupkg --api-key ${{ secrets.NUGET_API_TOKEN }}
           --source https://api.nuget.org/v3/index.json
 
       - name: Upload NuGet packages
