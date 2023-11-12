@@ -45,7 +45,7 @@ jobs:
             } else {
               $version = "0.0.0-dev.$(git rev-list HEAD --count)+$describe"
             }
-            Write-Host "Generated version number$(if ($tagPrefix -eq "") { "" } else { " $tagPrefix" } ): $version"
+            Write-Host "Generated version number$((if ($tagPrefix -eq "") { "" } else { " $tagPrefix" } )): $version"
             echo "$($tagPrefix)version=$($version)" >> $Env:GITHUB_OUTPUT
           }
 
