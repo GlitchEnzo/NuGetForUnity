@@ -8,7 +8,7 @@ In order to develop a NuGetForUnity Plugin you need to start with these steps:
 2. You plugin project name should be <PluginName>.NugetForUnityPlugin since the plugin loader will look for dlls which contain NugetForUnityPlugin in its name.
 3. If you are targeting Unity older than 2021.3 create a `.netstandard2.0` C# library project.
 4. If you are targeting Unity 2021.3 or newer create a `.netstandard2.1` C# library project.
-5. NuGetForUnity contains NuGetForUnity.PluginAPI.dll that you need to add as a reference in your project. You can install the `NuGetForUnity.PluginAPI` nuget package, copy it to your project or reference it using a relative path from some other place.
+5. Add a reference to [NuGetForUnity.PluginAPI](https://www.nuget.org/packages/NuGetForUnity.PluginAPI) nuget package in your project. This package contains the interfaces that you will need to implement.
 6. Depending on the needs of your plugin you might also need to add references to `UnityEngine.dll` and `UnityEditor.dll` from your Unity installation.
 7. Write a class that implements `INugetPlugin` interface. In the `Register` method you will get a `INugetPluginRegistry` that has methods you can use to register your classes that implement custom handling of certain functionalities like installing and uninstalling the packages.
 
