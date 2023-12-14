@@ -107,21 +107,21 @@ namespace NuGetForUnity.Cli
                     File.WriteAllText(
                         analyzerDllMetaPath,
                         $"""
-                        fileFormatVersion: 2
-                        guid: {Guid.NewGuid():N}
-                        labels:
-                        - RoslynAnalyzer
-                        PluginImporter:
-                          platformData:
-                          - first:
-                              : Any
-                            second:
-                              enabled: 0
-                          - first:
-                              Any:
-                            second:
-                              enabled: 0
-                        """,
+                         fileFormatVersion: 2
+                         guid: {Guid.NewGuid():N}
+                         labels:
+                         - RoslynAnalyzer
+                         PluginImporter:
+                           platformData:
+                           - first:
+                               : Any
+                             second:
+                               enabled: 0
+                           - first:
+                               Any:
+                             second:
+                               enabled: 0
+                         """,
                         utf8NoBom);
                 }
             }
@@ -142,18 +142,18 @@ namespace NuGetForUnity.Cli
                 description.Split(new[] { "\n", "\r\n" }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
             Console.WriteLine(
                 $"""
-                Description:
-                    {description}
+                 Description:
+                     {description}
 
-                Usage:
-                    nugetforunity restore <PROJECT_PATH> [options]
+                 Usage:
+                     nugetforunity restore <PROJECT_PATH> [options]
 
-                Arguments:
-                    <PROJECT_PATH>  The path to the Unity project, should be the root path where e.g. the 'ProjectSettings' folder is located. If not specified, the command will use the current directory. [default: {DefaultProjectPath}]
+                 Arguments:
+                     <PROJECT_PATH>  The path to the Unity project, should be the root path where e.g. the 'ProjectSettings' folder is located. If not specified, the command will use the current directory. [default: {DefaultProjectPath}]
 
-                Options:
-                    -?, -h, --help  Show command line help.
-                """);
+                 Options:
+                     -?, -h, --help  Show command line help.
+                 """);
             return 1;
         }
     }

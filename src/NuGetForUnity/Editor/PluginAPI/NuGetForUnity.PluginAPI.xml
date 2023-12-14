@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+
 <doc>
     <assembly>
         <name>NuGetForUnity.PluginAPI</name>
@@ -9,7 +10,8 @@
                 Implement this interface to add additional handling for each found installed package.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler.ProcessInstalledPackage(NugetForUnity.PluginAPI.Models.INugetPackage)">
+        <member
+            name="M:NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler.ProcessInstalledPackage(NugetForUnity.PluginAPI.Models.INugetPackage)">
             <summary>
                 This will be called for each found installed package in the project.
             </summary>
@@ -20,7 +22,8 @@
                 Implement this interface to add additional buttons for each package in NugetForUnity window.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageButtonsHandler.DrawButtons(NugetForUnity.PluginAPI.Models.INugetPackage,NugetForUnity.PluginAPI.Models.INugetPackage,System.Boolean)">
+        <member
+            name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageButtonsHandler.DrawButtons(NugetForUnity.PluginAPI.Models.INugetPackage,NugetForUnity.PluginAPI.Models.INugetPackage,System.Boolean)">
             <summary>
                 This method will be called for each package that is rendered in NugetForUnity window.
             </summary>
@@ -33,7 +36,8 @@
                 Implement this interface to add additional handling of files being extracted from nupkg during installation.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageInstallFileHandler.HandleFileExtraction(NugetForUnity.PluginAPI.Models.INugetPackage,System.IO.Compression.ZipArchiveEntry,System.String)">
+        <member
+            name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageInstallFileHandler.HandleFileExtraction(NugetForUnity.PluginAPI.Models.INugetPackage,System.IO.Compression.ZipArchiveEntry,System.String)">
             <summary>
                 This will be called for each entry that is about to be processed from nupkg that is being installed.
             </summary>
@@ -47,7 +51,8 @@
                 Implement this interface to add additional handling when nupkg is being uninstalled.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageUninstallHandler.HandleUninstall(NugetForUnity.PluginAPI.Models.INugetPackage,NugetForUnity.PluginAPI.PackageUninstallReason)">
+        <member
+            name="M:NugetForUnity.PluginAPI.ExtensionPoints.IPackageUninstallHandler.HandleUninstall(NugetForUnity.PluginAPI.Models.INugetPackage,NugetForUnity.PluginAPI.PackageUninstallReason)">
             <summary>
                 This method will be called for each package being uninstalled. Note that uninstall is also done for old version
                 when package is being updated.
@@ -90,25 +95,29 @@
                 Gets the methods that NugetForUnity provides to the plugin, like logging methods.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageButtonDrawer(NugetForUnity.PluginAPI.ExtensionPoints.IPackageButtonsHandler)">
+        <member
+            name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageButtonDrawer(NugetForUnity.PluginAPI.ExtensionPoints.IPackageButtonsHandler)">
             <summary>
                 Register a class that will be used to draw additional buttons for each package in NugetForUnity editor window.
             </summary>
             <param name="packageButtonsHandler">The package buttons handler to register.</param>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageInstallFileHandler(NugetForUnity.PluginAPI.ExtensionPoints.IPackageInstallFileHandler)">
+        <member
+            name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageInstallFileHandler(NugetForUnity.PluginAPI.ExtensionPoints.IPackageInstallFileHandler)">
             <summary>
                 Register a class that will be called for each file that is extracted from the nupkg that is being installed.
             </summary>
             <param name="packageInstallFileHandler">The file handler to register.</param>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageUninstallHandler(NugetForUnity.PluginAPI.ExtensionPoints.IPackageUninstallHandler)">
+        <member
+            name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterPackageUninstallHandler(NugetForUnity.PluginAPI.ExtensionPoints.IPackageUninstallHandler)">
             <summary>
                 Register a class that will be called when uninstalling some package.
             </summary>
             <param name="packageUninstallHandler">The package uninstall handler to register.</param>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterFoundInstalledPackageHandler(NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler)">
+        <member
+            name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterFoundInstalledPackageHandler(NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler)">
             <summary>
                 Register a class that will be called when installed package is found.
             </summary>
@@ -179,7 +188,8 @@
                 Gets the absolute path to the directory where packages are installed.
             </summary>
         </member>
-        <member name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.RegisterNuspecCustomizer(System.Action{NugetForUnity.PluginAPI.Models.INuspecFile})">
+        <member
+            name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.RegisterNuspecCustomizer(System.Action{NugetForUnity.PluginAPI.Models.INuspecFile})">
             <summary>
                 Allows plugin to register a function that will modify the contents of default new nuspec file.
             </summary>
@@ -268,13 +278,15 @@
         </member>
         <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.Icon">
             <summary>
-                Gets the path to a icon file. The path is relative to the root folder of the package. This is a alternative to using a URL <see cref="P:NugetForUnity.PluginAPI.Models.INuspecFile.IconUrl" />
+                Gets the path to a icon file. The path is relative to the root folder of the package. This is a alternative to using a URL
+                <see cref="P:NugetForUnity.PluginAPI.Models.INuspecFile.IconUrl" />
                 .
             </summary>
         </member>
         <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.IconFilePath">
             <summary>
-                Gets the full path to a icon file. This is only set if the .nuspec file contains a <see cref="P:NugetForUnity.PluginAPI.Models.INuspecFile.Icon" />. This is a alternative to using a URL
+                Gets the full path to a icon file. This is only set if the .nuspec file contains a
+                <see cref="P:NugetForUnity.PluginAPI.Models.INuspecFile.Icon" />. This is a alternative to using a URL
                 <see cref="P:NugetForUnity.PluginAPI.Models.INuspecFile.IconUrl" />.
             </summary>
         </member>

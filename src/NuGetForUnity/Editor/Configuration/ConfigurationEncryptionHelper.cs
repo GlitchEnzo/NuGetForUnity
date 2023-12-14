@@ -1,4 +1,5 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
+
 #if !NUGETFORUNITY_CLI
 using JetBrains.Annotations;
 #else

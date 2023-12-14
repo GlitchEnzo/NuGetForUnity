@@ -14,20 +14,19 @@ namespace NugetForUnity.PluginSupport
     /// <summary>
     ///     Plugin Registry loads the plugins and provides methods for calling them.
     /// </summary>
-    internal class PluginRegistry :
-        INugetPluginRegistry,
+    internal class PluginRegistry : INugetPluginRegistry,
         IPackageButtonsHandler,
         IPackageInstallFileHandler,
         IPackageUninstallHandler,
         IFoundInstalledPackageHandler
     {
+        private readonly List<IFoundInstalledPackageHandler> foundInstalledPackageHandlers = new List<IFoundInstalledPackageHandler>();
+
         private readonly List<IPackageButtonsHandler> packageButtonsHandlers = new List<IPackageButtonsHandler>();
 
         private readonly List<IPackageInstallFileHandler> packageInstallFileHandlers = new List<IPackageInstallFileHandler>();
 
         private readonly List<IPackageUninstallHandler> packageUninstallHandlers = new List<IPackageUninstallHandler>();
-
-        private readonly List<IFoundInstalledPackageHandler> foundInstalledPackageHandlers = new List<IFoundInstalledPackageHandler>();
 
         /// <summary>
         ///     Gets the static instance of PluginRegistry.

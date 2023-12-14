@@ -1,4 +1,5 @@
 # as this is test we are not so strict -> disable most of the warnings
+
 [*.cs]
 dotnet_diagnostic.sa1600.severity=none
 dotnet_diagnostic.sa1602.severity=none
