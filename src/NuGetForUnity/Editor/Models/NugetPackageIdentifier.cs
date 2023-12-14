@@ -269,7 +269,7 @@ namespace NugetForUnity.Models
             Justification = "We only edit the version / id before we use the hash (stroe it in a dictionary).")]
         public override int GetHashCode()
         {
-            return Id.GetHashCode() ^ PackageVersion.GetHashCode();
+            return GetHashCodeOfId() ^ PackageVersion.GetHashCode();
         }
 
         /// <summary>
@@ -279,6 +279,15 @@ namespace NugetForUnity.Models
         public override string ToString()
         {
             return $"{Id}.{Version}";
+        }
+
+        private int GetHashCodeOfId()
+        {
+#if UNITY_2021_2_OR_NEWER
+            return Id.GetHashCode(StringComparison.OrdinalIgnoreCase);
+#else
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(Id);
+#endif
         }
     }
 }

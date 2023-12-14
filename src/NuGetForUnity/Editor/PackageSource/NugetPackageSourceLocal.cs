@@ -302,24 +302,26 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <summary>
-        ///     Gets a list of available packages from a local source (not a web server) that are upgrades for the given list of installed packages.
+        ///     Gets a list of available packages from a local source (not a web server) that are versions / upgrade or downgrade of the given list of installed
+        ///     packages.
         /// </summary>
         /// <param name="packages">The list of packages to use to find updates.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
-        /// <returns>A list of all updates available.</returns>
+        /// <returns>A list of all updates / downgrades available.</returns>
         [NotNull]
         [ItemNotNull]
         private List<INugetPackage> GetLocalUpdates([NotNull] [ItemNotNull] IEnumerable<INugetPackage> packages, bool includePrerelease = false)
         {
             var updates = new List<INugetPackage>();
-            foreach (var installedPackage in packages)
+            foreach (var packageToSearch in packages)
             {
-                var availablePackages = GetLocalPackages($"{installedPackage.Id}*", false, includePrerelease);
+                var availablePackages = GetLocalPackages($"{packageToSearch.Id}*", false, includePrerelease);
                 foreach (var availablePackage in availablePackages)
                 {
-                    if (installedPackage.Id.Equals(availablePackage.Id, StringComparison.OrdinalIgnoreCase) &&
-                        installedPackage.CompareTo(availablePackage) < 0)
+                    if (packageToSearch.Id.Equals(availablePackage.Id, StringComparison.OrdinalIgnoreCase))
                     {
+                        // keep the manually installed state
+                        availablePackage.IsManuallyInstalled = packageToSearch.IsManuallyInstalled;
                         updates.Add(availablePackage);
                     }
                 }
