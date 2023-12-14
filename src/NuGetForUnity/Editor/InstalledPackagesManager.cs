@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
+using NugetForUnity.PluginSupport;
 using Debug = UnityEngine.Debug;
 
 namespace NugetForUnity
@@ -347,6 +348,7 @@ namespace NugetForUnity
             var packages = InstalledPackagesDictionary;
             if (!packages.ContainsKey(package.Id))
             {
+                PluginRegistry.Instance.ProcessInstalledPackage(package);
                 package.IsManuallyInstalled = GetPackageConfigurationById(package.Id)?.IsManuallyInstalled ?? false;
                 if (package.IsManuallyInstalled)
                 {

@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System.IO;
 using System.Reflection;
 using NuGetForUnity.Cli;
 using NugetForUnity.Configuration;
@@ -17,8 +18,9 @@ namespace NugetForUnity.Helper
         /// <returns>Assembly of the loaded plugin.</returns>
         internal static Assembly Load(NugetForUnityPluginId pluginId)
         {
-            var loadContext = new NugetAssemblyLoadContext(pluginId.Path);
-            var assembly = loadContext.LoadFromAssemblyPath(pluginId.Path);
+            var path = Path.GetFullPath(Path.Combine(UnityPathHelper.AbsoluteProjectPath, pluginId.Path));
+            var loadContext = new NugetAssemblyLoadContext(path);
+            var assembly = loadContext.LoadFromAssemblyPath(path);
             return assembly;
         }
     }

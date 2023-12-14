@@ -84,7 +84,7 @@ namespace NugetForUnity.Configuration
         public INugetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
-        ///     Gets the local path where packages are to be installed.  It can be a full path or a relative path.
+        ///     Gets the absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
         public string RepositoryPath { get; private set; } = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));

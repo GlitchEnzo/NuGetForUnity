@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using JetBrains.Annotations;
+using NugetForUnity.Helper;
 
 namespace NugetForUnity.Configuration
 {
@@ -17,7 +18,7 @@ namespace NugetForUnity.Configuration
         internal NugetForUnityPluginId([NotNull] string name, [NotNull] string path)
         {
             Name = name;
-            Path = path;
+            Path = System.IO.Path.IsPathRooted(path) ? PathHelper.GetRelativePath(UnityPathHelper.AbsoluteProjectPath, path) : path;
         }
 
         /// <summary>

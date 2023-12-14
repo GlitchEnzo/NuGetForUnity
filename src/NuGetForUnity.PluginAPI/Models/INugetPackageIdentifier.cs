@@ -11,10 +11,10 @@ namespace NugetForUnity.PluginAPI.Models
         string Id { get; }
 
         /// <summary>
-        ///     Gets the normalized version number of the NuGet package.
+        ///     Gets or sets the normalized version number of the NuGet package.
         ///     This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
         /// </summary>
-        string Version { get; }
+        string Version { get; set; }
 
         /// <summary>
         ///     Returns the folder path where this package is or will be installed.

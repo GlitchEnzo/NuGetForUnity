@@ -4,6 +4,17 @@
         <name>NuGetForUnity.PluginAPI</name>
     </assembly>
     <members>
+        <member name="T:NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler">
+            <summary>
+                Implement this interface to add additional handling for each found installed package.
+            </summary>
+        </member>
+        <member name="M:NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler.ProcessInstalledPackage(NugetForUnity.PluginAPI.Models.INugetPackage)">
+            <summary>
+                This will be called for each found installed package in the project.
+            </summary>
+            <param name="installedPackage">The installedPackage created from found nuspec file.</param>
+        </member>
         <member name="T:NugetForUnity.PluginAPI.ExtensionPoints.IPackageButtonsHandler">
             <summary>
                 Implement this interface to add additional buttons for each package in NugetForUnity window.
@@ -97,6 +108,12 @@
             </summary>
             <param name="packageUninstallHandler">The package uninstall handler to register.</param>
         </member>
+        <member name="M:NugetForUnity.PluginAPI.INugetPluginRegistry.RegisterFoundInstalledPackageHandler(NugetForUnity.PluginAPI.ExtensionPoints.IFoundInstalledPackageHandler)">
+            <summary>
+                Register a class that will be called when installed package is found.
+            </summary>
+            <param name="foundInstalledPackageHandler">The found installed package handler to register.</param>
+        </member>
         <member name="T:NugetForUnity.PluginAPI.Models.INugetPackage">
             <summary>
                 Represents a NuGet package.
@@ -130,7 +147,7 @@
         </member>
         <member name="P:NugetForUnity.PluginAPI.Models.INugetPackageIdentifier.Version">
             <summary>
-                Gets the normalized version number of the NuGet package.
+                Gets or sets the normalized version number of the NuGet package.
                 This is the normalized version number without build-metadata e.g. <b>1.0.0+b3a8</b> is normalized to <b>1.0.0</b>.
             </summary>
         </member>
@@ -155,6 +172,11 @@
         <member name="P:NugetForUnity.PluginAPI.Models.INugetPluginService.ProjectAssetsDir">
             <summary>
                 Gets the absolute path to the projects Assets directory.
+            </summary>
+        </member>
+        <member name="P:NugetForUnity.PluginAPI.Models.INugetPluginService.PackageInstallDir">
+            <summary>
+                Gets the absolute path to the directory where packages are installed.
             </summary>
         </member>
         <member name="M:NugetForUnity.PluginAPI.Models.INugetPluginService.RegisterNuspecCustomizer(System.Action{NugetForUnity.PluginAPI.Models.INuspecFile})">
@@ -192,6 +214,11 @@
         <member name="T:NugetForUnity.PluginAPI.Models.INuspecFile">
             <summary>
                 Represents a .nuspec file used to store metadata for a NuGet package.
+            </summary>
+        </member>
+        <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.Id">
+            <summary>
+                Gets or sets the Id of the package.
             </summary>
         </member>
         <member name="P:NugetForUnity.PluginAPI.Models.INuspecFile.RepositoryBranch">

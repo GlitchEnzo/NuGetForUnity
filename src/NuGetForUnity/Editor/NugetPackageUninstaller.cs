@@ -76,7 +76,7 @@ namespace NugetForUnity
         ///     Uninstalls all of the currently installed packages.
         /// </summary>
         /// <param name="packagesToUninstall">The list of packages to uninstall.</param>
-        internal static void UninstallAll([NotNull] [ItemNotNull] List<INugetPackage> packagesToUninstall)
+        public static void UninstallAll([NotNull] [ItemNotNull] List<INugetPackage> packagesToUninstall)
         {
             foreach (var package in packagesToUninstall)
             {

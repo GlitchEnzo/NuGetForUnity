@@ -6,6 +6,11 @@
     public interface INuspecFile : INugetPackageIdentifier
     {
         /// <summary>
+        ///     Gets or sets the Id of the package.
+        /// </summary>
+        new string Id { get; set; }
+
+        /// <summary>
         ///     Gets or sets the source control branch the package is from.
         /// </summary>
         string? RepositoryBranch { get; set; }
