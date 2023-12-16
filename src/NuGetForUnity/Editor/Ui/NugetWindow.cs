@@ -645,7 +645,7 @@ namespace NugetForUnity.Ui
             EditorGUI.LabelField(rectangle, " Installed packages", headerStyle);
             if (packages.Exists(package => package.IsManuallyInstalled))
             {
-                DrawPackages(packages.TakeWhile(package => package.IsManuallyInstalled), true);
+                DrawPackages(packages.Where(package => package.IsManuallyInstalled), true);
             }
             else
             {
@@ -658,7 +658,7 @@ namespace NugetForUnity.Ui
             showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
             if (showImplicitlyInstalled)
             {
-                DrawPackages(packages.SkipWhile(package => package.IsManuallyInstalled), true);
+                DrawPackages(packages.Where(package => !package.IsManuallyInstalled), true);
             }
         }
 
