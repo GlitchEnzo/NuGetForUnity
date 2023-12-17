@@ -10,7 +10,7 @@ namespace NugetForUnity.Helper
     internal static class AssemblyLoader
     {
         /// <summary>
-        ///     Loads the assembly for the given <paramref name="pluginId"/>.
+        ///     Loads the assembly for the given <paramref name="pluginId" />.
         /// </summary>
         /// <param name="pluginId">Plugin Id to load.</param>
         /// <returns>Assembly of the loaded plugin.</returns>

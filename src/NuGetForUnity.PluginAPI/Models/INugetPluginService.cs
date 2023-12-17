@@ -13,6 +13,11 @@ namespace NugetForUnity.PluginAPI.Models
         string ProjectAssetsDir { get; }
 
         /// <summary>
+        ///     Gets the absolute path to the directory where packages are installed.
+        /// </summary>
+        string PackageInstallDir { get; }
+
+        /// <summary>
         ///     Allows plugin to register a function that will modify the contents of default new nuspec file.
         /// </summary>
         /// <param name="customizer">The function that will receive default nuspec file and modify it.</param>

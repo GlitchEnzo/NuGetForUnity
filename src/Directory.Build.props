@@ -21,7 +21,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <SourceRoot Include="$(MSBuildThisFileDirectory)/../"/>
+        <SourceRoot Include="$(MSBuildThisFileDirectory)/../" />
     </ItemGroup>
 
     <ItemGroup>

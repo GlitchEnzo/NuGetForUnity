@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.PluginAPI.Models;
 using NugetForUnity.Ui;
@@ -15,6 +16,9 @@ namespace NugetForUnity.PluginSupport
 
         /// <inheritdoc />
         public string ProjectAssetsDir => UnityPathHelper.AbsoluteAssetsPath;
+
+        /// <inheritdoc />
+        public string PackageInstallDir => ConfigurationManager.NugetConfigFile.RepositoryPath;
 
         /// <inheritdoc />
         public void RegisterNuspecCustomizer(Action<INuspecFile> customizer)

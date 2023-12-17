@@ -14,8 +14,14 @@ namespace NugetForUnity.PluginSupport
     /// <summary>
     ///     Plugin Registry loads the plugins and provides methods for calling them.
     /// </summary>
-    internal class PluginRegistry : INugetPluginRegistry, IPackageButtonsHandler, IPackageInstallFileHandler, IPackageUninstallHandler
+    internal class PluginRegistry : INugetPluginRegistry,
+        IPackageButtonsHandler,
+        IPackageInstallFileHandler,
+        IPackageUninstallHandler,
+        IFoundInstalledPackageHandler
     {
+        private readonly List<IFoundInstalledPackageHandler> foundInstalledPackageHandlers = new List<IFoundInstalledPackageHandler>();
+
         private readonly List<IPackageButtonsHandler> packageButtonsHandlers = new List<IPackageButtonsHandler>();
 
         private readonly List<IPackageInstallFileHandler> packageInstallFileHandlers = new List<IPackageInstallFileHandler>();
@@ -121,6 +127,12 @@ namespace NugetForUnity.PluginSupport
         }
 
         /// <inheritdoc />
+        public void RegisterFoundInstalledPackageHandler(IFoundInstalledPackageHandler foundInstalledPackageHandler)
+        {
+            foundInstalledPackageHandlers.Add(foundInstalledPackageHandler);
+        }
+
+        /// <inheritdoc />
         public void DrawButtons(INugetPackage package, INugetPackage installedPackage, bool existsInUnity)
         {
             foreach (var packageButtonsHandler in packageButtonsHandlers)
@@ -185,6 +197,22 @@ namespace NugetForUnity.PluginSupport
                 catch (Exception e)
                 {
                     Debug.LogError($"Exception while executing UninstallAll plugin handler {e}");
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public void ProcessInstalledPackage(INugetPackage installedPackage)
+        {
+            foreach (var foundInstalledPackageHandler in foundInstalledPackageHandlers)
+            {
+                try
+                {
+                    foundInstalledPackageHandler.ProcessInstalledPackage(installedPackage);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Exception while executing ProcessInstalledPackage plugin handler {e}");
                 }
             }
         }

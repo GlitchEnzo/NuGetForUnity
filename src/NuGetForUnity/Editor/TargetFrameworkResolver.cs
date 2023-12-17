@@ -1,5 +1,9 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
 
+#if UNITY_2021_2_OR_NEWER
+using UnityEditor.Build;
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,9 +13,6 @@ using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
-#if UNITY_2021_2_OR_NEWER
-using UnityEditor.Build;
-#endif
 
 #region No ReShaper
 

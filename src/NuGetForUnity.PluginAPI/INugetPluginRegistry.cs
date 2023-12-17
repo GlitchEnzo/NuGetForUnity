@@ -36,5 +36,11 @@ namespace NugetForUnity.PluginAPI
         /// </summary>
         /// <param name="packageUninstallHandler">The package uninstall handler to register.</param>
         void RegisterPackageUninstallHandler(IPackageUninstallHandler packageUninstallHandler);
+
+        /// <summary>
+        ///     Register a class that will be called when installed package is found.
+        /// </summary>
+        /// <param name="foundInstalledPackageHandler">The found installed package handler to register.</param>
+        void RegisterFoundInstalledPackageHandler(IFoundInstalledPackageHandler foundInstalledPackageHandler);
     }
 }
