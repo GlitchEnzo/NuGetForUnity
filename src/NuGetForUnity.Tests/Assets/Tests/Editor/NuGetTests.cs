@@ -495,6 +495,7 @@ public class NuGetTests
     [TestCase("1.2.3-rc1+1234", "1.2.3-rc2")]
     [TestCase("1.2.3-rc1+1234", "1.2.3-rc2+1234")]
     [TestCase("1.0.0", "1.0.0.10")]
+    [TestCase("1.0.0-beta.9", "1.0.0-beta.10")]
     public void VersionComparison(string smallerVersion, string greaterVersion)
     {
         var localNugetPackageSource = new NugetPackageSourceLocal("test", "test");

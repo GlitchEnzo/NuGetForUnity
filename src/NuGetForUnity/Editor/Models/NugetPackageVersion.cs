@@ -450,6 +450,9 @@ namespace NugetForUnity.Models
 
             private readonly int patch;
 
+            [CanBeNull]
+            private readonly string[] preReleaseLabels;
+
             private readonly int revision;
 
             /// <summary>
@@ -465,6 +468,7 @@ namespace NugetForUnity.Models
                 minor = -1;
                 patch = -1;
                 revision = -1;
+                preReleaseLabels = null;
             }
 
             /// <summary>
@@ -486,10 +490,12 @@ namespace NugetForUnity.Models
                         }
 
                         PreRelease = null;
+                        preReleaseLabels = null;
                         var preReleaseStartIndex = version.IndexOf('-');
                         if (preReleaseStartIndex > 0)
                         {
                             PreRelease = version.Substring(preReleaseStartIndex + 1);
+                            preReleaseLabels = PreRelease.Split('.');
 
                             version = version.Substring(0, preReleaseStartIndex);
                         }
@@ -524,6 +530,7 @@ namespace NugetForUnity.Models
 
                 buildMetadata = null;
                 PreRelease = null;
+                preReleaseLabels = null;
                 major = -1;
                 minor = -1;
                 patch = -1;
@@ -566,9 +573,24 @@ namespace NugetForUnity.Models
                                 if (revisionComparison == 0)
                                 {
                                     // if the build versions are equal, just return the prerelease version comparison
-                                    var prerelease = PreRelease ?? "\uFFFF";
-                                    var otherPrerelease = other.PreRelease ?? "\uFFFF";
-                                    var prereleaseComparison = string.Compare(prerelease, otherPrerelease, StringComparison.OrdinalIgnoreCase);
+                                    if (preReleaseLabels == null && other.preReleaseLabels == null)
+                                    {
+                                        // no pre-release and the rest is equal
+                                        return 0;
+                                    }
+
+                                    if (preReleaseLabels != null && other.preReleaseLabels == null)
+                                    {
+                                        // pre-release versions are always after release versions
+                                        return -1;
+                                    }
+
+                                    if (preReleaseLabels == null && other.preReleaseLabels != null)
+                                    {
+                                        return 1;
+                                    }
+
+                                    var prereleaseComparison = ComparePreReleaseLabels(preReleaseLabels, other.preReleaseLabels);
                                     return prereleaseComparison;
                                 }
 
@@ -587,9 +609,9 @@ namespace NugetForUnity.Models
                     // the major versions are different, so use them
                     return majorComparison;
                 }
-                catch (Exception)
+                catch (Exception exception)
                 {
-                    Debug.LogErrorFormat("Compare Error: {0} {1}", this, other);
+                    Debug.LogErrorFormat("Error: {0} while comparing '{1}' with '{2}'.", exception, this, other);
                     return -1;
                 }
             }
@@ -636,6 +658,66 @@ namespace NugetForUnity.Models
                 }
 
                 return stringBuilder.ToString();
+            }
+
+            /// <summary>
+            ///     Compares sets of Pre-Release labels (<see cref="PreRelease" /> splitted by '.').
+            /// </summary>
+            private static int ComparePreReleaseLabels([NotNull] string[] releaseLabels1, [NotNull] string[] releaseLabels2)
+            {
+                var result = 0;
+
+                var count = Math.Max(releaseLabels1.Length, releaseLabels2.Length);
+
+                for (var i = 0; i < count; i++)
+                {
+                    var hasLabel1 = i < releaseLabels1.Length;
+                    var hasLabel2 = i < releaseLabels2.Length;
+
+                    if (!hasLabel1 && hasLabel2)
+                    {
+                        return -1;
+                    }
+
+                    if (hasLabel1 && !hasLabel2)
+                    {
+                        return 1;
+                    }
+
+                    // compare the labels
+                    result = ComparePreReleaseLabel(releaseLabels1[i], releaseLabels2[i]);
+
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+                }
+
+                return result;
+            }
+
+            /// <summary>
+            ///     Pre-Release labels are compared as numbers if they are numeric, otherwise they will be compared as strings (case insensitive).
+            /// </summary>
+            private static int ComparePreReleaseLabel(string releaseLabel1, string releaseLabel2)
+            {
+                var label1IsNumeric = int.TryParse(releaseLabel1, out var releaseLabel1Number);
+                var label2IsNumeric = int.TryParse(releaseLabel2, out var releaseLabel2Number);
+
+                if (label1IsNumeric && label2IsNumeric)
+                {
+                    // if both are numeric compare them as numbers
+                    return releaseLabel1Number.CompareTo(releaseLabel2Number);
+                }
+
+                if (label1IsNumeric || label2IsNumeric)
+                {
+                    // numeric labels come before alpha labels
+                    return label1IsNumeric ? -1 : 1;
+                }
+
+                // Everything will be compared case insensitively.
+                return string.Compare(releaseLabel1, releaseLabel2, StringComparison.OrdinalIgnoreCase);
             }
         }
     }

@@ -163,14 +163,37 @@ namespace NugetForUnity.Ui
         {
             get
             {
+                IEnumerable<INugetPackage> result;
                 if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
                 {
-                    return updatePackages;
+                    result = updatePackages;
+                }
+                else
+                {
+                    result = updatePackages.Where(
+                        package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
+                                   package.Title?.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0);
                 }
 
-                return updatePackages.Where(
-                        package => package.Id.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0 ||
-                                   package.Title?.IndexOf(updatesSearchTerm, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                var installedPackages = InstalledPackagesManager.InstalledPackages;
+
+                // filter not updatable / not downgradable packages
+                return result.Where(
+                        package =>
+                        {
+                            var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+
+                            if (installed == null || package.Versions.Count == 0)
+                            {
+                                // normally shouldn't happen but for now include it in the result
+                                return true;
+                            }
+
+                            // we do not want to show packages that have no updates if we're showing updates
+                            // similarly, we do not show packages that are on the lowest possible version if we're showing downgrades
+                            return (showDowngrades && installed.PackageVersion > package.Versions[package.Versions.Count - 1]) ||
+                                   (!showDowngrades && installed.PackageVersion < package.Versions[0]);
+                        })
                     .ToList();
             }
         }
@@ -429,6 +452,15 @@ namespace NugetForUnity.Ui
             return cachedFoldoutStyle;
         }
 
+        private static void DrawNoDataAvailableInfo(string message)
+        {
+            EditorStyles.label.fontStyle = FontStyle.Bold;
+            EditorStyles.label.fontSize = 14;
+            EditorGUILayout.LabelField(message, GUILayout.Height(20));
+            EditorStyles.label.fontSize = 10;
+            EditorStyles.label.fontStyle = FontStyle.Normal;
+        }
+
         /// <summary>
         ///     Called when enabling the window.
         /// </summary>
@@ -569,15 +601,11 @@ namespace NugetForUnity.Ui
             var filteredUpdatePackages = FilteredUpdatePackages;
             if (filteredUpdatePackages.Count > 0)
             {
-                DrawPackages(filteredUpdatePackages, true);
+                DrawPackagesSplittedByManuallyInstalled(filteredUpdatePackages);
             }
             else
             {
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField("There are no updates available!", GUILayout.Height(20));
-                EditorStyles.label.fontSize = 10;
-                EditorStyles.label.fontStyle = FontStyle.Normal;
+                DrawNoDataAvailableInfo("There are no updates available!");
             }
 
             EditorGUILayout.EndVertical();
@@ -598,36 +626,40 @@ namespace NugetForUnity.Ui
             var installedPackages = FilteredInstalledPackages;
             if (installedPackages.Count > 0)
             {
-                var headerStyle = GetHeaderStyle();
-
-                EditorGUILayout.LabelField("Installed packages", headerStyle, GUILayout.Height(20));
-                DrawPackages(installedPackages.TakeWhile(package => package.IsManuallyInstalled), true);
-
-                var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
-                EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
-
-                showImplicitlyInstalled = EditorGUI.Foldout(
-                    rectangle,
-                    showImplicitlyInstalled,
-                    "Implicitly installed packages",
-                    true,
-                    GetFoldoutStyle());
-                if (showImplicitlyInstalled)
-                {
-                    DrawPackages(installedPackages.SkipWhile(package => package.IsManuallyInstalled), true);
-                }
+                DrawPackagesSplittedByManuallyInstalled(installedPackages);
             }
             else
             {
-                EditorStyles.label.fontStyle = FontStyle.Bold;
-                EditorStyles.label.fontSize = 14;
-                EditorGUILayout.LabelField("There are no packages installed!", GUILayout.Height(20));
-                EditorStyles.label.fontSize = 10;
-                EditorStyles.label.fontStyle = FontStyle.Normal;
+                DrawNoDataAvailableInfo("There are no packages installed!");
             }
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawPackagesSplittedByManuallyInstalled(List<INugetPackage> packages)
+        {
+            var headerStyle = GetHeaderStyle();
+
+            var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
+            EditorGUI.LabelField(rectangle, " Installed packages", headerStyle);
+            if (packages.Exists(package => package.IsManuallyInstalled))
+            {
+                DrawPackages(packages.Where(package => package.IsManuallyInstalled), true);
+            }
+            else
+            {
+                DrawNoDataAvailableInfo("There are no explicitly installed packages.");
+            }
+
+            rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
+            EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
+
+            showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
+            if (showImplicitlyInstalled)
+            {
+                DrawPackages(packages.Where(package => !package.IsManuallyInstalled), true);
+            }
         }
 
         /// <summary>
@@ -890,17 +922,6 @@ namespace NugetForUnity.Ui
         {
             var installedPackages = InstalledPackagesManager.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
-
-            // if we are on the update tab, we do not want to show packages that have no updates if we're showing updates; similarly, we do not
-            // show packages that are on the lowest possible version if we're showing downgrades
-            if (currentTab == NugetWindowTab.UpdatesTab &&
-                installed != null &&
-                package.Versions.Count >= 1 &&
-                ((showDowngrades && installed.PackageVersion <= package.Versions[package.Versions.Count - 1]) ||
-                 (!showDowngrades && installed.PackageVersion >= package.Versions[0])))
-            {
-                return;
-            }
 
             using (new EditorGUILayout.HorizontalScope())
             {

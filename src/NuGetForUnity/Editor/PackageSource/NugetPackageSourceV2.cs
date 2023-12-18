@@ -294,6 +294,7 @@ namespace NugetForUnity.PackageSource
                 try
                 {
                     var newPackages = GetPackagesFromUrl(url);
+                    CopyIsManuallyInstalled(newPackages, packagesCollection);
                     updates.AddRange(newPackages);
                 }
                 catch (Exception e)
@@ -521,6 +522,17 @@ namespace NugetForUnity.PackageSource
 
             NugetLogger.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
             return updates;
+        }
+
+        private void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
+        {
+            foreach (var newPackage in newPackages)
+            {
+                newPackage.IsManuallyInstalled =
+                    packagesToUpdate.FirstOrDefault(packageToUpdate => packageToUpdate.Id.Equals(newPackage.Id, StringComparison.OrdinalIgnoreCase))
+                        ?.IsManuallyInstalled ??
+                    false;
+            }
         }
     }
 }
