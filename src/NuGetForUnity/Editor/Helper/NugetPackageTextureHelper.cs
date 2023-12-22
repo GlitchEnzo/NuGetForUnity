@@ -41,6 +41,15 @@ namespace NugetForUnity.Helper
         {
             try
             {
+#if UNITY_2022_1_OR_NEWER
+                if (PlayerSettings.insecureHttpOption == InsecureHttpOption.NotAllowed &&
+                    url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                {
+                    // if insecure http url is not allowed try to use https.
+                    url = url.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);
+                }
+#endif
+
                 var fromCache = false;
                 if (url.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
                 {
@@ -52,15 +61,6 @@ namespace NugetForUnity.Helper
                     url = "file:///" + GetFilePath(url);
                     fromCache = true;
                 }
-
-#if UNITY_2022_1_OR_NEWER
-                if (PlayerSettings.insecureHttpOption == InsecureHttpOption.NotAllowed &&
-                    url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-                {
-                    // if insecure http url is not allowed try to use https.
-                    url = url.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);
-                }
-#endif
 
                 var taskCompletionSource = new TaskCompletionSource<Texture2D>();
                 var request = UnityWebRequest.Get(url);
