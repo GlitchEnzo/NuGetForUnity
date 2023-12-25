@@ -73,7 +73,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Uninstalls all of the currently installed packages.
+        ///     Uninstalls all given installed packages.
         /// </summary>
         /// <param name="packagesToUninstall">The list of packages to uninstall.</param>
         public static void UninstallAll([NotNull] [ItemNotNull] List<INugetPackage> packagesToUninstall)
@@ -86,6 +86,14 @@ namespace NugetForUnity
             PluginRegistry.Instance.HandleUninstalledAll();
 
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        ///     Uninstalls all of the currently installed packages.
+        /// </summary>
+        public static void UninstallAll()
+        {
+            UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
         }
     }
 }

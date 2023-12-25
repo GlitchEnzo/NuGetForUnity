@@ -52,6 +52,11 @@ namespace NugetForUnity.Ui
         private readonly HashSet<INugetPackage> selectedPackageDowngrades = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
 
         /// <summary>
+        ///     Used to keep track of which packages are selected for installing.
+        /// </summary>
+        private readonly HashSet<INugetPackage> selectedPackageInstalls = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
+
+        /// <summary>
         ///     Used to keep track of which packages are selected for uninstalling.
         /// </summary>
         private readonly HashSet<INugetPackage> selectedPackageUninstalls = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
@@ -127,6 +132,10 @@ namespace NugetForUnity.Ui
 
         [CanBeNull]
         [SerializeField]
+        private List<SerializableNugetPackage> serializableToInstallPackages;
+
+        [CanBeNull]
+        [SerializeField]
         private List<SerializableNugetPackage> serializableUpdatePackages;
 
         /// <summary>
@@ -142,9 +151,19 @@ namespace NugetForUnity.Ui
         private bool showOnlinePrerelease;
 
         /// <summary>
+        ///     True if packages selected for install should be displayed on Online tab, false if availablePackages should be displayed.
+        /// </summary>
+        private bool showPackagesToInstall;
+
+        /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
         /// </summary>
         private bool showPrereleaseUpdates;
+
+        /// <summary>
+        ///     The current position of the scroll bar for packages selected for installation.
+        /// </summary>
+        private Vector2 toInstallScrollPosition;
 
         /// <summary>
         ///     The list of package updates available, based on the already installed packages.
@@ -235,12 +254,17 @@ namespace NugetForUnity.Ui
         {
             get
             {
-                if (currentTab == NugetWindowTab.UpdatesTab)
+                switch (currentTab)
                 {
-                    return showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                    case NugetWindowTab.UpdatesTab:
+                        return showDowngrades ? selectedPackageDowngrades : selectedPackageUpdates;
+                    case NugetWindowTab.InstalledTab:
+                        return selectedPackageUninstalls;
+                    case NugetWindowTab.OnlineTab:
+                        return selectedPackageInstalls;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
-
-                return selectedPackageUninstalls;
             }
         }
 
@@ -248,6 +272,7 @@ namespace NugetForUnity.Ui
         public void OnBeforeSerialize()
         {
             serializableAvailablePackages = availablePackages.ConvertAll(package => new SerializableNugetPackage(package));
+            serializableToInstallPackages = selectedPackageInstalls.Select(package => new SerializableNugetPackage(package)).ToList();
             serializableUpdatePackages = updatePackages.ConvertAll(package => new SerializableNugetPackage(package));
         }
 
@@ -258,6 +283,13 @@ namespace NugetForUnity.Ui
             {
                 availablePackages = serializableAvailablePackages.ConvertAll(package => package.Interfaced);
                 serializableAvailablePackages = null;
+            }
+
+            if (serializableToInstallPackages != null)
+            {
+                selectedPackageInstalls.Clear();
+                selectedPackageInstalls.UnionWith(serializableToInstallPackages.Select(package => package.Interfaced));
+                serializableToInstallPackages = null;
             }
 
             if (serializableUpdatePackages != null)
@@ -553,6 +585,12 @@ namespace NugetForUnity.Ui
                 searchTerm,
                 availablePackages.Count,
                 stopwatch.ElapsedMilliseconds);
+
+            // We need to make sure previously selected packages remain in the list
+            foreach (var selectedPackage in selectedPackageInstalls.Where(selectedPackage => !availablePackages.Contains(selectedPackage)))
+            {
+                availablePackages.Add(selectedPackage);
+            }
         }
 
         private void UpdateInstalledPackages()
@@ -668,18 +706,50 @@ namespace NugetForUnity.Ui
         private void DrawOnline()
         {
             DrawOnlineHeader();
+            var headerStyle = GetHeaderStyle();
+
+            if (selectedPackageInstalls.Count > 0)
+            {
+                DrawSelectedForInstallationHeader(headerStyle);
+            }
 
             // display all of the packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            DrawPackages(availablePackages);
+            IEnumerable<INugetPackage> packagesToShow;
+
+            if (selectedPackageInstalls.Count > 0 && showPackagesToInstall)
+            {
+                packagesToShow = availablePackages.Where(p => selectedPackageInstalls.Contains(p));
+            }
+            else
+            {
+                packagesToShow = availablePackages.Where(p => !selectedPackageInstalls.Contains(p));
+            }
+
+            DrawPackages(packagesToShow, true);
+
+            // If user deselected all the packages revert to showing available packages
+            if (selectedPackageInstalls.Count == 0)
+            {
+                showPackagesToInstall = false;
+            }
 
             var showMoreStyle = GetHeaderStyle();
             EditorGUILayout.BeginVertical(showMoreStyle);
 
+            if (showPackagesToInstall)
+            {
+                var arrow = !showPackagesToInstall ? "\u2227" : "\u2228";
+                if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
+                {
+                    showPackagesToInstall = !showPackagesToInstall;
+                }
+            }
+
             // allow the user to display more results
-            if (GUILayout.Button("Show More", GUILayout.Width(120)))
+            if (!showPackagesToInstall && GUILayout.Button("Show More", GUILayout.Width(120)))
             {
                 numberToSkip += numberToGet;
                 availablePackages.AddRange(
@@ -697,6 +767,48 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawSelectedForInstallationHeader(GUIStyle headerStyle)
+        {
+            var rectangle = GUILayoutUtility.GetRect(GUIContent.none, headerStyle, GUILayout.Height(25f));
+
+            EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
+
+            var arrow = showPackagesToInstall ? "\u2227" : "\u2228";
+            rectangle.width -= 150f;
+            if (GUI.Button(rectangle, $" {arrow} Selected for installation: {selectedPackageInstalls.Count}", headerStyle))
+            {
+                showPackagesToInstall = !showPackagesToInstall;
+            }
+
+            rectangle.x += rectangle.width;
+            rectangle.width = 148f;
+            rectangle.y += 2f;
+            rectangle.height -= 6f;
+            if (GUI.Button(rectangle, "Install All Selected"))
+            {
+                foreach (var package in selectedPackageInstalls)
+                {
+                    package.IsManuallyInstalled = true;
+                    NugetPackageInstaller.InstallIdentifier(package, false);
+                }
+
+                selectedPackageInstalls.Clear();
+
+                AssetDatabase.Refresh();
+                UpdateInstalledPackages();
+                UpdateUpdatePackages();
+            }
+
+            if (!showPackagesToInstall)
+            {
+                arrow = !showPackagesToInstall ? "\u2227" : "\u2228";
+                if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
+                {
+                    showPackagesToInstall = !showPackagesToInstall;
+                }
+            }
         }
 
         private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
@@ -787,7 +899,7 @@ namespace NugetForUnity.Ui
                     {
                         if (GUILayout.Button("Uninstall All", GUILayout.Width(100)))
                         {
-                            NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
+                            NugetPackageUninstaller.UninstallAll();
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
