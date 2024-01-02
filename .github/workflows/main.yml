@@ -81,7 +81,7 @@ jobs:
       - name: Check if files in NuGetForUnity.PluginAPI changed
         if: github.event_name == 'pull_request_target'
         id: changedPluginApiCode
-        uses: tj-actions/changed-files@v35
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             src/NuGetForUnity.PluginAPI/**.cs
@@ -89,7 +89,7 @@ jobs:
       - name: Check if NuGetForUnity.PluginAPI.dll is updated
         if: github.event_name == 'pull_request_target'
         id: changedPluginApiDll
-        uses: tj-actions/changed-files@v35
+        uses: tj-actions/changed-files@v41
         with:
           files: |
             src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
