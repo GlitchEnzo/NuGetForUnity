@@ -22,6 +22,10 @@ namespace NugetForUnity.Ui
     /// </summary>
     public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
+        private const string ArrowTipUp = "\u2227";
+
+        private const string ArrowTipDown = "\u2228";
+
         [CanBeNull]
         private static GUIStyle cachedHeaderStyle;
 
@@ -597,6 +601,7 @@ namespace NugetForUnity.Ui
         {
             InstalledPackagesManager.UpdateInstalledPackages();
             ClearViewCache();
+            selectedPackageInstalls.ExceptWith(InstalledPackagesManager.InstalledPackages);
         }
 
         /// <summary>
@@ -741,7 +746,7 @@ namespace NugetForUnity.Ui
 
             if (showPackagesToInstall)
             {
-                var arrow = !showPackagesToInstall ? "\u2227" : "\u2228";
+                var arrow = !showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
                 if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
                 {
                     showPackagesToInstall = !showPackagesToInstall;
@@ -775,7 +780,7 @@ namespace NugetForUnity.Ui
 
             EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
 
-            var arrow = showPackagesToInstall ? "\u2227" : "\u2228";
+            var arrow = showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
             rectangle.width -= 150f;
             if (GUI.Button(rectangle, $" {arrow} Selected for installation: {selectedPackageInstalls.Count}", headerStyle))
             {
@@ -786,6 +791,7 @@ namespace NugetForUnity.Ui
             rectangle.width = 148f;
             rectangle.y += 2f;
             rectangle.height -= 6f;
+
             if (GUI.Button(rectangle, "Install All Selected"))
             {
                 foreach (var package in selectedPackageInstalls)
@@ -803,7 +809,7 @@ namespace NugetForUnity.Ui
 
             if (!showPackagesToInstall)
             {
-                arrow = !showPackagesToInstall ? "\u2227" : "\u2228";
+                arrow = !showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
                 if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
                 {
                     showPackagesToInstall = !showPackagesToInstall;
@@ -846,6 +852,7 @@ namespace NugetForUnity.Ui
                         UpdateOnlinePackages();
                     }
 
+                    DrawSelectFromClipboardButton();
                     DrawMandatoryButtons();
                 }
 
@@ -880,6 +887,46 @@ namespace NugetForUnity.Ui
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawSelectFromClipboardButton()
+        {
+            if (GUILayout.Button("Select all from clipboard", GUILayout.Width(170f)))
+            {
+                var packageIds = GUIUtility.systemCopyBuffer.Split('\n', ',').Select(p => p.Trim()).ToList();
+                try
+                {
+                    for (var i = 0; i < packageIds.Count; i++)
+                    {
+                        var packageId = packageIds[i];
+                        if (InstalledPackagesManager.IsInstalled(packageId, true))
+                        {
+                            continue;
+                        }
+
+                        var alreadyAvailablePackage = availablePackages.Find(package => package.Id == packageId);
+                        if (alreadyAvailablePackage != null)
+                        {
+                            selectedPackageInstalls.Add(alreadyAvailablePackage);
+                            continue;
+                        }
+
+                        EditorUtility.DisplayProgressBar("Searching", "Searching for packages", (float)i / packageIds.Count);
+                        var packages = Task.Run(() => ConfigurationManager.SearchAsync(packageId, showOnlinePrerelease, numberToGet, numberToSkip))
+                            .GetAwaiter()
+                            .GetResult();
+                        if (packages.Count > 0)
+                        {
+                            selectedPackageInstalls.Add(packages[0]);
+                            availablePackages.Add(packages[0]);
+                        }
+                    }
+                }
+                finally
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+            }
         }
 
         /// <summary>
@@ -1034,6 +1081,7 @@ namespace NugetForUnity.Ui
         {
             var installedPackages = InstalledPackagesManager.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+            var isAlreadyImportedInEngine = UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -1054,16 +1102,20 @@ namespace NugetForUnity.Ui
                         rect.x += toggleSize;
                         var workingSelections = SelectedPackages;
                         var isSelected = workingSelections.Contains(package);
-                        var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
-                        if (shouldBeSelected != isSelected)
+                        var alreadyInstalled = installed != null || isAlreadyImportedInEngine;
+                        using (new EditorGUI.DisabledScope(currentTab == NugetWindowTab.OnlineTab && alreadyInstalled))
                         {
-                            if (shouldBeSelected)
+                            var shouldBeSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Height(iconSize));
+                            if (shouldBeSelected != isSelected)
                             {
-                                workingSelections.Add(package);
-                            }
-                            else
-                            {
-                                workingSelections.Remove(package);
+                                if (shouldBeSelected)
+                                {
+                                    workingSelections.Add(package);
+                                }
+                                else
+                                {
+                                    workingSelections.Remove(package);
+                                }
                             }
                         }
                     }
@@ -1132,7 +1184,7 @@ namespace NugetForUnity.Ui
                 if (currentTab == NugetWindowTab.UpdatesTab ||
                     (currentTab == NugetWindowTab.OnlineTab &&
                      installed == null &&
-                     !UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false)))
+                     !isAlreadyImportedInEngine))
                 {
                     if (package.Versions.Count <= 1)
                     {
@@ -1177,7 +1229,7 @@ namespace NugetForUnity.Ui
                     }
                 }
 
-                var existsInUnity = installed == null && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false);
+                var existsInUnity = installed == null && isAlreadyImportedInEngine;
 
                 PluginRegistry.Instance.DrawButtons(package, installed, existsInUnity);
 

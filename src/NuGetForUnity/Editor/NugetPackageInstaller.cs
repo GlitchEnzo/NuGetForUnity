@@ -27,7 +27,7 @@ namespace NugetForUnity
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
         public static bool InstallIdentifier([NotNull] INugetPackageIdentifier package, bool refreshAssets = true, bool isSlimRestoreInstall = false)
         {
-            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;
@@ -54,7 +54,7 @@ namespace NugetForUnity
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
         private static bool Install([NotNull] INugetPackage package, bool refreshAssets, bool isSlimRestoreInstall)
         {
-            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
                 return true;

@@ -304,7 +304,7 @@ namespace NugetForUnity
         /// <returns>True if the given package is installed.  False if it is not.</returns>
         internal static bool IsInstalled([NotNull] INugetPackageIdentifier package, bool checkIsAlreadyImportedInEngine)
         {
-            if (checkIsAlreadyImportedInEngine && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package))
+            if (checkIsAlreadyImportedInEngine && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id))
             {
                 return true;
             }
@@ -316,6 +316,22 @@ namespace NugetForUnity
             }
 
             return isInstalled;
+        }
+
+        /// <summary>
+        ///     Checks if any version of the given package Id is installed.
+        /// </summary>
+        /// <param name="packageId">The package to check if is installed.</param>
+        /// <param name="checkIsAlreadyImportedInEngine">Determine if it should check if the package is already imported by unity itself.</param>
+        /// <returns>True if the given package is installed.  False if it is not.</returns>
+        internal static bool IsInstalled([NotNull] string packageId, bool checkIsAlreadyImportedInEngine)
+        {
+            if (checkIsAlreadyImportedInEngine && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(packageId))
+            {
+                return true;
+            }
+
+            return InstalledPackagesDictionary.ContainsKey(packageId);
         }
 
         /// <summary>

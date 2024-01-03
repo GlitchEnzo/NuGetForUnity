@@ -24,7 +24,7 @@ namespace NugetForUnity
         {
             // Checking for pre-imported packages also ensures that the pre-imported package list is up-to-date before we uninstall packages.
             // Without this the pre-imported package list can contain the package as we delete the .dll before we call 'AssetDatabase.Refresh()'.
-            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 Debug.LogWarning($"Uninstalling {package} makes no sense because it is a package that is 'pre-imported' by Unity.");
             }

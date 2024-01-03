@@ -87,6 +87,11 @@ Click the **Install** to install the package version specified in the dropdown l
 Note: If the package is already installed, the currently installed version will be displayed in the upper right corner instead.
 If the **Install** button is disabled, it means the package is already imported by Unity.
 
+You can also select multiple packages for installation and install them all at once.
+
+In addition to manual selection you can also copy a list of packageIds that you need to install, separated by new line or comma, and simply click the "Select all from clipboard" button at the top right to add them all to the selection.
+Note that if the package is already installed or available in Unity it will not show up in the selected list.
+
 The **Installed** tabs shows the packages already installed in the current Unity project.
 
 <img alt="Installed Packages Tap" src="docs/screenshots/installed.png" height="500px" />
