@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
-using NugetForUnity.Models;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
@@ -43,13 +42,13 @@ namespace NugetForUnity
         /// <param name="package">The package of witch the identifier is checked.</param>
         /// <param name="log">Whether to log a message with the result of the check.</param>
         /// <returns>If it is included in Unity.</returns>
-        internal static bool IsAlreadyImportedInEngine([NotNull] INugetPackageIdentifier package, bool log = true)
+        internal static bool IsAlreadyImportedInEngine([NotNull] string packageId, bool log = true)
         {
             var alreadyImported = GetAlreadyImportedLibs();
-            var isAlreadyImported = alreadyImported.Contains(package.Id);
+            var isAlreadyImported = alreadyImported.Contains(packageId);
             if (log)
             {
-                NugetLogger.LogVerbose("Is package '{0}' already imported? {1}", package.Id, isAlreadyImported);
+                NugetLogger.LogVerbose("Is package '{0}' already imported? {1}", packageId, isAlreadyImported);
             }
 
             return isAlreadyImported;

@@ -24,7 +24,7 @@ namespace NugetForUnity
         {
             // Checking for pre-imported packages also ensures that the pre-imported package list is up-to-date before we uninstall packages.
             // Without this the pre-imported package list can contain the package as we delete the .dll before we call 'AssetDatabase.Refresh()'.
-            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package, false))
+            if (UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 Debug.LogWarning($"Uninstalling {package} makes no sense because it is a package that is 'pre-imported' by Unity.");
             }
@@ -73,7 +73,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Uninstalls all of the currently installed packages.
+        ///     Uninstalls all given installed packages.
         /// </summary>
         /// <param name="packagesToUninstall">The list of packages to uninstall.</param>
         public static void UninstallAll([NotNull] [ItemNotNull] List<INugetPackage> packagesToUninstall)
@@ -86,6 +86,14 @@ namespace NugetForUnity
             PluginRegistry.Instance.HandleUninstalledAll();
 
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        ///     Uninstalls all of the currently installed packages.
+        /// </summary>
+        public static void UninstallAll()
+        {
+            UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
         }
     }
 }
