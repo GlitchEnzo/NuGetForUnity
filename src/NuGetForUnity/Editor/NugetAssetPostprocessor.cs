@@ -36,6 +36,9 @@ namespace NugetForUnity
         /// </summary>
         private const string AnalyzersFolderName = "analyzers";
 
+        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Join("analyzers", "dotnet");
+        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Join("analyzers", "dotnet", "roslyn");
+
         /// <summary>
         ///     Used to mark an asset as already processed by this class.
         /// </summary>
@@ -142,7 +145,7 @@ namespace NugetForUnity
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
-                ModifyImportSettingsOfRoslynAnalyzer(plugin, reimport);
+                ModifyImportSettingsOfRoslynAnalyzer(plugin, assetPathComponents, reimport);
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
 
                 yield break;
@@ -180,7 +183,21 @@ namespace NugetForUnity
             return ConfigurationManager.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 
-        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, bool reimport)
+        [CanBeNull]
+        private static string GetRoslynVersionNumberFromAnalyzerPath(string analyzerAssetPath)
+        {
+            var versionPrefixIndex = analyzerAssetPath.IndexOf(AnalyzersRoslynVersionSubFolderPrefix, StringComparison.Ordinal);
+            if (versionPrefixIndex < 0)
+            {
+                return null;
+            }
+
+            return analyzerAssetPath.Substring(versionPrefixIndex + AnalyzersRoslynVersionSubFolderPrefix.Length)
+                .Split(Path.DirectorySeparatorChar)
+                .First();
+        }
+
+        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, string[] relativeRepositoryPathComponents, bool reimport)
         {
             plugin.SetCompatibleWithAnyPlatform(false);
             plugin.SetCompatibleWithEditor(false);
@@ -190,6 +207,39 @@ namespace NugetForUnity
             }
 
             AssetDatabase.SetLabels(plugin, new[] { RoslynAnalyzerLabel, ProcessedLabel });
+
+            // The nuget package can contain analyzers for multiple Roslyn versions.
+            // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
+            var assetRoslynVersion = GetRoslynVersionNumberFromAnalyzerPath(plugin.assetPath);
+            if (assetRoslynVersion != null)
+            {
+                var versionPrefixIndex = plugin.assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
+                var analyzersVersionsRoot = Path.Join(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                var analyzersFolders = AssetDatabase.GetSubFolders(analyzersVersionsRoot);
+
+                var enabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
+                    .Where(ver =>
+                    {
+#if UNITY_2022_3_OR_NEWER // Up to Roslyn 4.3.0
+                            return string.CompareOrdinal(ver, "4.3.0") <= 0;
+#elif UNITY_2022_2_OR_NEWER // Up to Roslyn 4.1.0
+                            return string.CompareOrdinal(ver, "4.1.0") <= 0;
+#elif UNITY_2021_2_OR_NEWER // Up to Roslyn 4.1.0
+                            return string.CompareOrdinal(ver, "3.8.0") <= 0;
+#else
+                            return false;
+#endif
+                        })
+                    .ToArray();
+
+                // If most recent valid analyzers exist elsewhere, remove label `RoslynAnalyzer`
+                if (!enabledRoslynVersions.Contains(assetRoslynVersion) ||
+                    string.CompareOrdinal(assetRoslynVersion, enabledRoslynVersions.Max()) < 0)
+                {
+                    AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
+                }
+            }
+
 
             if (reimport)
             {
