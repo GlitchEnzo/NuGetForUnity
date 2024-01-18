@@ -39,12 +39,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Folder of root before the version of analyzers was split.
         /// </summary>
-        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Join(AnalyzersFolderName, "dotnet");
+        private static readonly string AnalyzersRoslynVersionsFolderName = JoinPathComponents(AnalyzersFolderName, "dotnet");
 
         /// <summary>
         ///     Prefix for roslyn versioning of dll asset path.
         /// </summary>
-        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Join(AnalyzersRoslynVersionsFolderName, "roslyn");
+        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = JoinPathComponents(AnalyzersRoslynVersionsFolderName, "roslyn");
 
         /// <summary>
         ///     Used to mark an asset as already processed by this class.
@@ -173,6 +173,12 @@ namespace NugetForUnity
             return path.Split(Path.DirectorySeparatorChar);
         }
 
+        [NotNull]
+        private static string JoinPathComponents([NotNull] params string[] pathComponents)
+        {
+            return string.Join(Path.DirectorySeparatorChar.ToString(), pathComponents);
+        }
+
         private static bool AssetIsDllInsideNuGetRepository([NotNull] string absoluteAssetPath, [NotNull] string absoluteRepositoryPath)
         {
             return absoluteAssetPath.StartsWith(absoluteRepositoryPath, PathHelper.PathComparisonType) &&
@@ -221,7 +227,7 @@ namespace NugetForUnity
             if (assetRoslynVersion != null)
             {
                 var versionPrefixIndex = plugin.assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                var analyzersVersionsRoot = Path.Join(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                var analyzersVersionsRoot = JoinPathComponents(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
                 var analyzersFolders = AssetDatabase.GetSubFolders(analyzersVersionsRoot);
 
                 var enabledRoslynVersions = analyzersFolders
