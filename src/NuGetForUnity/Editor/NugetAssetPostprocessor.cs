@@ -234,16 +234,20 @@ namespace NugetForUnity
                     .Select(GetRoslynVersionNumberFromAnalyzerPath)
                     .Where(ver =>
                     {
-#if UNITY_2022_3_OR_NEWER && !UNITY_2022_3_1 && !UNITY_2022_3_2 && !UNITY_2022_3_3 && !UNITY_2022_3_3 && !UNITY_2022_3_4 && !UNITY_2022_3_5 && !UNITY_2022_3_6 && !UNITY_2022_3_7 && !UNITY_2022_3_8 && !UNITY_2022_3_9 && !UNITY_2022_3_10 && !UNITY_2022_3_11
-                            return string.CompareOrdinal(ver, "4.3.0") <= 0;
-#elif UNITY_2022_2_OR_NEWER
-                            return string.CompareOrdinal(ver, "4.1.0") <= 0;
-#elif UNITY_2021_2_OR_NEWER
-                            return string.CompareOrdinal(ver, "3.8.0") <= 0;
-#else
+                        if (ver == null)
+                        {
                             return false;
+                        }
+#if UNITY_2022_3_OR_NEWER && !UNITY_2022_3_1 && !UNITY_2022_3_2 && !UNITY_2022_3_3 && !UNITY_2022_3_3 && !UNITY_2022_3_4 && !UNITY_2022_3_5 && !UNITY_2022_3_6 && !UNITY_2022_3_7 && !UNITY_2022_3_8 && !UNITY_2022_3_9 && !UNITY_2022_3_10 && !UNITY_2022_3_11
+                        return string.CompareOrdinal(ver, "4.3.0") <= 0;
+#elif UNITY_2022_2_OR_NEWER
+                        return string.CompareOrdinal(ver, "4.1.0") <= 0;
+#elif UNITY_2021_2_OR_NEWER
+                        return string.CompareOrdinal(ver, "3.8.0") <= 0;
+#else
+                        return false;
 #endif
-                        })
+                    })
                     .ToArray();
 
                 // If most recent valid analyzers exist elsewhere, remove label `RoslynAnalyzer`
