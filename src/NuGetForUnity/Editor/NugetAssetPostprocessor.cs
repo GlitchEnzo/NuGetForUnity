@@ -36,8 +36,15 @@ namespace NugetForUnity
         /// </summary>
         private const string AnalyzersFolderName = "analyzers";
 
-        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Join("analyzers", "dotnet");
-        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Join("analyzers", "dotnet", "roslyn");
+        /// <summary>
+        ///     Folder of root before the version of analyzers was split.
+        /// </summary>
+        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Join(AnalyzersFolderName, "dotnet");
+
+        /// <summary>
+        ///     Prefix for roslyn versioning of dll asset path.
+        /// </summary>
+        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Join(AnalyzersRoslynVersionsFolderName, "roslyn");
 
         /// <summary>
         ///     Used to mark an asset as already processed by this class.
