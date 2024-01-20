@@ -30,6 +30,9 @@ namespace NugetForUnity.Ui
         private static readonly GUIContent ShowDowngradesContent = new GUIContent("Show Downgrades");
 
         [CanBeNull]
+        private static GUIStyle cachedSearchFieldStyle;
+
+        [CanBeNull]
         private static GUIStyle cachedHeaderStyle;
 
         [CanBeNull]
@@ -495,6 +498,22 @@ namespace NugetForUnity.Ui
             return cachedFoldoutStyle;
         }
 
+        private static GUIStyle GetSearchFieldStyle()
+        {
+            if (cachedSearchFieldStyle != null)
+            {
+                return cachedSearchFieldStyle;
+            }
+
+            cachedSearchFieldStyle = new GUIStyle(EditorStyles.toolbarSearchField)
+            {
+                fontSize = 12,
+                fixedHeight = 20f,
+            };
+
+            return cachedSearchFieldStyle;
+        }
+
         private static void DrawNoDataAvailableInfo(string message)
         {
             var labelStyle = new GUIStyle(EditorStyles.label)
@@ -867,9 +886,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawOnlineHeader()
         {
-            var headerStyle = GetHeaderStyle();
-
-            EditorGUILayout.BeginVertical(headerStyle);
+            EditorGUILayout.BeginVertical(GetBackgroundStyle());
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
@@ -881,32 +898,35 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
-
-                EditorGUILayout.BeginHorizontal();
+                var style = new GUIStyle(EditorStyles.toolbar)
                 {
-                    var oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, GUILayout.Height(30));
+                    fixedHeight = 25f,
+                };
+                EditorGUILayout.BeginHorizontal(style);
+                {
+                    var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
-                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(28)))
+                    // draw search field
+                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
+
+                    if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(20)))
                     {
                         // the search button emulates the Enter key
                         enterPressed = true;
                     }
 
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    // search only if the enter key is pressed
+                    if (enterPressed)
+                    {
+                        GUI.FocusControl(string.Empty);
+
+                        // reset the number to skip
+                        numberToSkip = 0;
+                        UpdateOnlinePackages();
+                    }
                 }
 
                 EditorGUILayout.EndHorizontal();
-
-                // search only if the enter key is pressed
-                if (enterPressed)
-                {
-                    // reset the number to skip
-                    numberToSkip = 0;
-                    UpdateOnlinePackages();
-                }
             }
 
             EditorGUILayout.EndVertical();
@@ -990,13 +1010,13 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                EditorGUILayout.BeginHorizontal();
+                var style = new GUIStyle(EditorStyles.toolbar)
                 {
-                    var oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GUILayout.Height(30));
-
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    fixedHeight = 25f,
+                };
+                EditorGUILayout.BeginHorizontal(style);
+                {
+                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
                 }
 
                 EditorGUILayout.EndHorizontal();
@@ -1047,13 +1067,13 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                EditorGUILayout.BeginHorizontal();
+                var style = new GUIStyle(EditorStyles.toolbar)
                 {
-                    var oldFontSize = GUI.skin.textField.fontSize;
-                    GUI.skin.textField.fontSize = 25;
-                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GUILayout.Height(30));
-
-                    GUI.skin.textField.fontSize = oldFontSize;
+                    fixedHeight = 25f,
+                };
+                EditorGUILayout.BeginHorizontal(style);
+                {
+                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
                 }
 
                 EditorGUILayout.EndHorizontal();
