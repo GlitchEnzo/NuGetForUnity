@@ -490,11 +490,12 @@ namespace NugetForUnity.Ui
 
         private static void DrawNoDataAvailableInfo(string message)
         {
-            EditorStyles.label.fontStyle = FontStyle.Bold;
-            EditorStyles.label.fontSize = 14;
-            EditorGUILayout.LabelField(message, GUILayout.Height(20));
-            EditorStyles.label.fontSize = 10;
-            EditorStyles.label.fontStyle = FontStyle.Normal;
+            var labelStyle = new GUIStyle(EditorStyles.label)
+            {
+                fontStyle = FontStyle.Bold,
+                fontSize = 14,
+            };
+            EditorGUILayout.LabelField(message, labelStyle, GUILayout.Height(20));
         }
 
         /// <summary>
@@ -1146,29 +1147,32 @@ namespace NugetForUnity.Ui
                     // text is allowed to get the half of the available space rest is for buttons and version label
                     rect.width = (position.width - rect.x) / 2;
 
-                    EditorStyles.label.fontStyle = FontStyle.Bold;
-                    EditorStyles.label.fontSize = 16;
+                    var labelStyle = new GUIStyle(EditorStyles.label)
+                    {
+                        fontStyle = FontStyle.Bold,
+                        fontSize = 16,
+                    };
 
-                    var idSize = EditorStyles.label.CalcSize(new GUIContent(package.Id));
-                    GUI.Label(rect, package.Id, EditorStyles.label);
+                    var idSize = labelStyle.CalcSize(new GUIContent(package.Id));
+                    GUI.Label(rect, package.Id, labelStyle);
                     rect.x += Mathf.Min(idSize.x, rect.width) + paddingX;
 
-                    EditorStyles.label.fontSize = 10;
-                    EditorStyles.label.fontStyle = FontStyle.Normal;
-                    rect.y += EditorStyles.label.fontSize / 2f;
+                    labelStyle.fontSize = 10;
+                    labelStyle.fontStyle = FontStyle.Normal;
+                    rect.y += labelStyle.fontSize / 2f;
 
                     if (package.Authors.Count > 0)
                     {
                         var authorLabel = $"by {string.Join(", ", package.Authors)}";
-                        var size = EditorStyles.label.CalcSize(new GUIContent(authorLabel));
-                        GUI.Label(rect, authorLabel, EditorStyles.label);
+                        var size = labelStyle.CalcSize(new GUIContent(authorLabel));
+                        GUI.Label(rect, authorLabel, labelStyle);
                         rect.x += size.x + paddingX;
                     }
 
                     if (package.TotalDownloads > 0)
                     {
                         var downloadLabel = $"{package.TotalDownloads:#,#} downloads";
-                        GUI.Label(rect, downloadLabel, EditorStyles.label);
+                        GUI.Label(rect, downloadLabel, labelStyle);
                     }
                 }
 
