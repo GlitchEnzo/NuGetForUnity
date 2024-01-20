@@ -76,7 +76,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The titles of the tabs in the window.
         /// </summary>
-        private readonly string[] tabTitles = { "Online", "Installed", "Updates" };
+        private readonly GUIContent[] tabTitles = { new GUIContent("Online"), new GUIContent("Installed"), new GUIContent("Updates") };
 
         /// <summary>
         ///     For each package this contains the currently selected version / the state of the version drop-down.
@@ -342,7 +342,11 @@ namespace NugetForUnity.Ui
         /// </summary>
         protected void OnGUI()
         {
-            var selectedTab = (NugetWindowTab)GUILayout.Toolbar((int)currentTab, tabTitles);
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            var selectedTab = (NugetWindowTab)GUILayout.Toolbar((int)currentTab, tabTitles, null, GUI.ToolbarButtonSize.FitToContents, GUILayout.Height(25f));
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
 
             if (selectedTab != currentTab)
             {
