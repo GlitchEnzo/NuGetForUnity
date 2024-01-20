@@ -26,6 +26,9 @@ namespace NugetForUnity.Ui
 
         private const string ArrowTipDown = "\u2228";
 
+        private static readonly GUIContent ShowPrereleaseContent = new GUIContent("Show Prerelease");
+        private static readonly GUIContent ShowDowngradesContent = new GUIContent("Show Downgrades");
+
         [CanBeNull]
         private static GUIStyle cachedHeaderStyle;
 
@@ -835,6 +838,26 @@ namespace NugetForUnity.Ui
             }
         }
 
+        private void DrawShowPrereleaseButton()
+        {
+            var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+            if (showPrereleaseTemp != showOnlinePrerelease)
+            {
+                showOnlinePrerelease = showPrereleaseTemp;
+                UpdateOnlinePackages();
+            }
+        }
+
+        private void DrawShowDowngradesButton()
+        {
+            var showDowngradesTemp = GUILayout.Toggle(showOnlinePrerelease, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+            if (showDowngradesTemp != showDowngrades)
+            {
+                versionDropdownDataPerPackage.Clear();
+                showDowngrades = showDowngradesTemp;
+            }
+        }
+
         /// <summary>
         ///     Draws the header which allows filtering the online list of packages.
         /// </summary>
@@ -844,15 +867,10 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showOnlinePrerelease);
-                    if (showPrereleaseTemp != showOnlinePrerelease)
-                    {
-                        showOnlinePrerelease = showPrereleaseTemp;
-                        UpdateOnlinePackages();
-                    }
-
+                    DrawShowPrereleaseButton();
+                    GUILayout.FlexibleSpace();
                     DrawSelectFromClipboardButton();
                     DrawMandatoryButtons();
                 }
@@ -892,7 +910,7 @@ namespace NugetForUnity.Ui
 
         private void DrawSelectFromClipboardButton()
         {
-            if (GUILayout.Button("Select all from clipboard", GUILayout.Width(170f)))
+            if (GUILayout.Button("Select all from clipboard", EditorStyles.toolbarButton, GUILayout.Width(170f)))
             {
                 var packageIds = GUIUtility.systemCopyBuffer.Split('\n', ',').Select(p => p.Trim()).ToList();
                 try
@@ -939,13 +957,13 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
                     GUILayout.FlexibleSpace();
 
                     if (InstalledPackagesManager.InstalledPackages.Any())
                     {
-                        if (GUILayout.Button("Uninstall All", GUILayout.Width(100)))
+                        if (GUILayout.Button("Uninstall All", EditorStyles.toolbarButton, GUILayout.Width(100)))
                         {
                             NugetPackageUninstaller.UninstallAll();
                             UpdateInstalledPackages();
@@ -955,7 +973,7 @@ namespace NugetForUnity.Ui
 
                     if (selectedPackageUninstalls.Count > 0)
                     {
-                        if (GUILayout.Button("Uninstall Selected", GUILayout.Width(120)))
+                        if (GUILayout.Button("Uninstall Selected", EditorStyles.toolbarButton, GUILayout.Width(120)))
                         {
                             NugetPackageUninstaller.UninstallAll(selectedPackageUninstalls.ToList());
                             UpdateInstalledPackages();
@@ -992,30 +1010,16 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
-                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    EditorGUILayout.BeginVertical();
-                    {
-                        var showPrereleaseTemp = EditorGUILayout.Toggle("Show Prerelease", showPrereleaseUpdates);
-                        if (showPrereleaseTemp != showPrereleaseUpdates)
-                        {
-                            showPrereleaseUpdates = showPrereleaseTemp;
-                            UpdateUpdatePackages();
-                        }
+                    DrawShowPrereleaseButton();
+                    DrawShowDowngradesButton();
 
-                        var showDowngradesTemp = EditorGUILayout.Toggle("Show Downgrades", showDowngrades);
-                        if (showDowngradesTemp != showDowngrades)
-                        {
-                            versionDropdownDataPerPackage.Clear();
-                            showDowngrades = showDowngradesTemp;
-                        }
-                    }
-
-                    EditorGUILayout.EndVertical();
+                    GUILayout.FlexibleSpace();
 
                     if (updatePackages.Count > 0)
                     {
-                        if (!showDowngrades && GUILayout.Button("Update All", GUILayout.Width(100)))
+                        if (!showDowngrades && GUILayout.Button("Update All", EditorStyles.toolbarButton, GUILayout.Width(100)))
                         {
                             NugetPackageUpdater.UpdateAll(updatePackages, InstalledPackagesManager.InstalledPackages);
                             UpdateInstalledPackages();
@@ -1059,12 +1063,12 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawMandatoryButtons()
         {
-            if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+            if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60)))
             {
                 Refresh(true);
             }
 
-            if (GUILayout.Button("Preferences", GUILayout.Width(80)))
+            if (GUILayout.Button("Preferences", EditorStyles.toolbarButton, GUILayout.Width(80)))
             {
                 SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
                 GetWindow<NugetWindow>().Close();
