@@ -100,7 +100,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The search term to search the installed packages for.
         /// </summary>
-        private string installedSearchTerm = "Search";
+        private string installedSearchTerm;
 
         [CanBeNull]
         private string lastInstalledSearchTerm;
@@ -114,7 +114,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The search term to search the online packages for.
         /// </summary>
-        private string onlineSearchTerm = "Search";
+        private string onlineSearchTerm;
 
         /// <summary>
         ///     The current position of the scroll bar in the GUI.
@@ -172,7 +172,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The search term to search the update packages for.
         /// </summary>
-        private string updatesSearchTerm = "Search";
+        private string updatesSearchTerm;
 
         /// <summary>
         ///     Gets the filtered list of package updates available.
@@ -182,7 +182,7 @@ namespace NugetForUnity.Ui
             get
             {
                 IEnumerable<INugetPackage> result;
-                if (string.IsNullOrWhiteSpace(updatesSearchTerm) || updatesSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(updatesSearchTerm))
                 {
                     result = updatePackages;
                 }
@@ -226,7 +226,7 @@ namespace NugetForUnity.Ui
                 }
 
                 lastInstalledSearchTerm = installedSearchTerm;
-                if (string.IsNullOrWhiteSpace(installedSearchTerm) || installedSearchTerm == "Search")
+                if (string.IsNullOrWhiteSpace(installedSearchTerm))
                 {
                     filteredInstalledPackages = InstalledPackagesManager.InstalledPackages.ToList();
                 }
@@ -464,15 +464,14 @@ namespace NugetForUnity.Ui
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            var searchTerm = onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty;
 
             // we just block the main thread
-            availablePackages = Task.Run(() => ConfigurationManager.SearchAsync(searchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
+            availablePackages = Task.Run(() => ConfigurationManager.SearchAsync(onlineSearchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
                 .GetAwaiter()
                 .GetResult();
             NugetLogger.LogVerbose(
                 "Searching '{0}' in all active package sources returned: {1} packages after {2} ms",
-                searchTerm,
+                onlineSearchTerm,
                 availablePackages.Count,
                 stopwatch.ElapsedMilliseconds);
 
@@ -650,7 +649,7 @@ namespace NugetForUnity.Ui
                     availablePackages.AddRange(
                         Task.Run(
                                 () => ConfigurationManager.SearchAsync(
-                                    onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
+                                    onlineSearchTerm,
                                     showOnlinePrerelease,
                                     numberToGet,
                                     numberToSkip))
