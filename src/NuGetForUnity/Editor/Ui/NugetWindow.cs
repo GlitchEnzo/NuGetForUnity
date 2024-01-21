@@ -22,8 +22,8 @@ namespace NugetForUnity.Ui
     /// </summary>
     public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
-        private static readonly GUIContent ShowPrereleaseContent = new GUIContent("Show Prerelease");
-        private static readonly GUIContent ShowDowngradesContent = new GUIContent("Show Downgrades");
+        private readonly GUIContent showPrereleaseContent = new GUIContent("Show Prerelease");
+        private readonly GUIContent showDowngradesContent = new GUIContent("Show Downgrades");
 
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
@@ -717,7 +717,7 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, showPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
                     if (showPrereleaseTemp != showOnlinePrerelease)
                     {
                         showOnlinePrerelease = showPrereleaseTemp;
@@ -869,14 +869,14 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    var showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    var showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, showPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
                     if (showPrereleaseTemp != showPrereleaseUpdates)
                     {
                         showPrereleaseUpdates = showPrereleaseTemp;
                         UpdateUpdatePackages();
                     }
 
-                    var showDowngradesTemp = GUILayout.Toggle(showDowngrades, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    var showDowngradesTemp = GUILayout.Toggle(showDowngrades, showDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
                     if (showDowngradesTemp != showDowngrades)
                     {
                         versionDropdownDataPerPackage.Clear();
