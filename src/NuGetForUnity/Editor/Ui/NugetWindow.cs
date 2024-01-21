@@ -847,17 +847,13 @@ namespace NugetForUnity.Ui
         private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
         {
             var backgroundStyle = GetBackgroundStyle();
-            var contrastStyle = GetContrastStyle();
 
             foreach (var package in packages)
             {
                 using (new EditorGUILayout.VerticalScope(backgroundStyle))
                 {
-                    DrawPackage(package, backgroundStyle, contrastStyle, canBeSelected);
+                    DrawPackage(package, backgroundStyle, canBeSelected);
                 }
-
-                // swap styles
-                (backgroundStyle, contrastStyle) = (contrastStyle, backgroundStyle);
             }
         }
 
@@ -1103,17 +1099,20 @@ namespace NugetForUnity.Ui
         ///     Draws the given <see cref="INugetPackage" />.
         /// </summary>
         /// <param name="package">The <see cref="INugetPackage" /> to draw.</param>
-        /// <param name="packageStyle">The normal style of the package section.</param>
-        /// <param name="contrastStyle">The contrast style of the package section.</param>
+        /// <param name="backgroundStyle">The normal style of the package section.</param>
         /// <param name="canBeSelected">If a check-box should be shown.</param>
-        private void DrawPackage(INugetPackage package, GUIStyle packageStyle, GUIStyle contrastStyle, bool canBeSelected = false)
+        private void DrawPackage(INugetPackage package, GUIStyle backgroundStyle, bool canBeSelected = false)
         {
             var installedPackages = InstalledPackagesManager.InstalledPackages;
             var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
             var isAlreadyImportedInEngine = UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false);
 
+            EditorGUILayout.Space(7f);
+
             using (new EditorGUILayout.HorizontalScope())
             {
+                EditorGUILayout.Space(7f);
+
                 // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
                 // Every time you use a Horizontal block, Unity appears to divide the space evenly.
                 // (i.e. 2 components have half of the window width, 3 components have a third of the window width, etc)
@@ -1322,7 +1321,8 @@ namespace NugetForUnity.Ui
                 }
             }
 
-            EditorGUILayout.Space();
+            EditorGUILayout.Space(7f);
+
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUILayout.VerticalScope())
@@ -1411,10 +1411,10 @@ namespace NugetForUnity.Ui
                         var cloneButtonBoxStyle =
                             new GUIStyle("box") { stretchWidth = false, margin = { top = 0, bottom = 0 }, padding = { bottom = 4 } };
 
-                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle) { normal = { background = packageStyle.normal.background } };
+                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle) { normal = { background = backgroundStyle.normal.background } };
 
                         var showCloneWindow = openCloneWindows.Contains(package);
-                        cloneButtonBoxStyle.normal.background = showCloneWindow ? contrastStyle.normal.background : packageStyle.normal.background;
+                        cloneButtonBoxStyle.normal.background = backgroundStyle.normal.background;
 
                         // Create a similar style for the 'Clone' window
                         var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle) { padding = new RectOffset(6, 6, 2, 6) };
@@ -1525,10 +1525,11 @@ namespace NugetForUnity.Ui
                         EditorGUI.indentLevel--;
                     }
 
-                    EditorGUILayout.Separator();
-                    EditorGUILayout.Separator();
+                    EditorGUILayout.Space();
                 }
             }
+
+            EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1f), Styles.LineColor);
         }
 
         private sealed class VersionDropdownData
