@@ -150,7 +150,9 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     True if packages selected for install should be displayed on Online tab, false if availablePackages should be displayed.
         /// </summary>
-        private bool showPackagesToInstall;
+        private bool showPackagesToInstall = true;
+
+        private bool showOnlinePackages = true;
 
         /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
@@ -594,46 +596,38 @@ namespace NugetForUnity.Ui
         private void DrawOnline()
         {
             DrawOnlineHeader();
-            var headerStyle = Styles.HeaderStyle;
-
-            if (selectedPackageInstalls.Count > 0)
-            {
-                DrawSelectedForInstallationHeader(headerStyle);
-            }
 
             // display all of the packages
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical();
 
-            IEnumerable<INugetPackage> packagesToShow;
-
-            if (selectedPackageInstalls.Count > 0 && showPackagesToInstall)
+            if (selectedPackageInstalls.Count > 0)
             {
-                packagesToShow = availablePackages.Where(p => selectedPackageInstalls.Contains(p));
+                DrawSelectedForInstallationHeader();
+                if (showPackagesToInstall)
+                {
+                    DrawPackages(selectedPackageInstalls, true);
+                }
             }
-            else
-            {
-                packagesToShow = availablePackages.Where(p => !selectedPackageInstalls.Contains(p));
-            }
-
-            DrawPackages(packagesToShow, true);
 
             // If user deselected all the packages revert to showing available packages
             if (selectedPackageInstalls.Count == 0)
             {
-                showPackagesToInstall = false;
+                showOnlinePackages = true;
             }
 
-            EditorGUILayout.BeginVertical(Styles.BackgroundStyle);
-
-            if (showPackagesToInstall)
+            if (selectedPackageInstalls.Count > 0)
             {
-                var arrow = !showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
-                if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
-                {
-                    showPackagesToInstall = !showPackagesToInstall;
-                }
+                var rect = EditorGUILayout.GetControlRect(false, 25f);
+                showOnlinePackages = EditorGUI.Foldout(rect, showOnlinePackages, "Online packages", true);
             }
+
+            if (showOnlinePackages)
+            {
+                DrawPackages(availablePackages.Where(p => !selectedPackageInstalls.Contains(p)), true);
+            }
+
+            EditorGUILayout.BeginVertical();
 
             EditorGUILayout.Space(3f);
 
@@ -641,7 +635,7 @@ namespace NugetForUnity.Ui
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.FlexibleSpace();
-                if (!showPackagesToInstall && GUILayout.Button("Show More", GUILayout.Width(120)))
+                if (showOnlinePackages && GUILayout.Button("Show More", GUILayout.Width(120)))
                 {
                     numberToSkip += numberToGet;
                     availablePackages.AddRange(
@@ -666,25 +660,19 @@ namespace NugetForUnity.Ui
             EditorGUILayout.EndScrollView();
         }
 
-        private void DrawSelectedForInstallationHeader(GUIStyle headerStyle)
+        private void DrawSelectedForInstallationHeader()
         {
-            var rectangle = GUILayoutUtility.GetRect(GUIContent.none, headerStyle, GUILayout.Height(25f));
+            var foldoutRect = EditorGUILayout.GetControlRect(false, 25f);
 
-            EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
+            foldoutRect.width -= 150f;
+            showPackagesToInstall = EditorGUI.Foldout(foldoutRect, showPackagesToInstall, $"Selected for installation: {selectedPackageInstalls.Count}", true);
 
-            var arrow = showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
-            rectangle.width -= 150f;
-            if (GUI.Button(rectangle, $" {arrow} Selected for installation: {selectedPackageInstalls.Count}", headerStyle))
-            {
-                showPackagesToInstall = !showPackagesToInstall;
-            }
+            foldoutRect.x += foldoutRect.width;
+            foldoutRect.width = 148f;
+            foldoutRect.y += 2f;
+            foldoutRect.height -= 6f;
 
-            rectangle.x += rectangle.width;
-            rectangle.width = 148f;
-            rectangle.y += 2f;
-            rectangle.height -= 6f;
-
-            if (GUI.Button(rectangle, "Install All Selected"))
+            if (GUI.Button(foldoutRect, "Install All Selected"))
             {
                 foreach (var package in selectedPackageInstalls)
                 {
@@ -697,15 +685,6 @@ namespace NugetForUnity.Ui
                 AssetDatabase.Refresh();
                 UpdateInstalledPackages();
                 UpdateUpdatePackages();
-            }
-
-            if (!showPackagesToInstall)
-            {
-                arrow = !showPackagesToInstall ? ArrowTipUp : ArrowTipDown;
-                if (GUILayout.Button($" {arrow} Online packages", headerStyle, GUILayout.Height(25f)))
-                {
-                    showPackagesToInstall = !showPackagesToInstall;
-                }
             }
         }
 
