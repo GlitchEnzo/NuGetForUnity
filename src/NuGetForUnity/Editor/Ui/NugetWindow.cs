@@ -913,7 +913,7 @@ namespace NugetForUnity.Ui
                         var workingSelections = SelectedPackages;
                         if (workingSelections.Count > 0)
                         {
-                            if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", GUILayout.Width(120)))
+                            if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", EditorStyles.toolbarButton, GUILayout.Width(120)))
                             {
                                 NugetPackageUpdater.UpdateAll(workingSelections, InstalledPackagesManager.InstalledPackages);
                                 UpdateInstalledPackages();
