@@ -1219,7 +1219,7 @@ namespace NugetForUnity.Ui
                         foldouts[detailsFoldoutId] = detailsFoldout;
                     }
 
-                    detailsFoldout = EditorGUILayout.Foldout(detailsFoldout, "Details");
+                    detailsFoldout = EditorGUILayout.Foldout(detailsFoldout, "Details", true);
                     foldouts[detailsFoldoutId] = detailsFoldout;
 
                     if (detailsFoldout)
