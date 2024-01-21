@@ -568,7 +568,10 @@ namespace NugetForUnity.Ui
 
         private void DrawPackagesSplittedByManuallyInstalled(List<INugetPackage> packages)
         {
-            var foldoutRect = EditorGUILayout.GetControlRect(true, 20f);
+            var foldoutRect = EditorGUILayout.GetControlRect(true, 20f).AddY(-1f);
+            EditorGUI.DrawRect(foldoutRect.Expand(2f), Styles.FoldoutHeaderColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(-2f).SetHeight(1f), Styles.LineColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(foldoutRect.height + 1f).SetHeight(1f), Styles.LineColor);
             showInstalled = EditorGUI.Foldout(foldoutRect, showInstalled, "Installed packages", true);
             if (showInstalled)
             {
@@ -583,6 +586,9 @@ namespace NugetForUnity.Ui
             }
 
             foldoutRect = EditorGUILayout.GetControlRect(true, 20f);
+            EditorGUI.DrawRect(foldoutRect.Expand(2f), Styles.FoldoutHeaderColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(-2f).SetHeight(1f), Styles.LineColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(foldoutRect.height + 1f).SetHeight(1f), Styles.LineColor);
             showImplicitlyInstalled = EditorGUI.Foldout(foldoutRect, showImplicitlyInstalled, "Implicitly installed packages", true);
             if (showImplicitlyInstalled)
             {
@@ -618,8 +624,11 @@ namespace NugetForUnity.Ui
 
             if (selectedPackageInstalls.Count > 0)
             {
-                var rect = EditorGUILayout.GetControlRect(false, 25f);
-                showOnlinePackages = EditorGUI.Foldout(rect, showOnlinePackages, "Online packages", true);
+                var foldoutRect = EditorGUILayout.GetControlRect(false, 22f);
+                EditorGUI.DrawRect(foldoutRect.Expand(2f), Styles.FoldoutHeaderColor);
+                EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(-2f).SetHeight(1f), Styles.LineColor);
+                EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(foldoutRect.height + 1f).SetHeight(1f), Styles.LineColor);
+                showOnlinePackages = EditorGUI.Foldout(foldoutRect, showOnlinePackages, "Online packages", true);
             }
 
             if (showOnlinePackages)
@@ -662,15 +671,18 @@ namespace NugetForUnity.Ui
 
         private void DrawSelectedForInstallationHeader()
         {
-            var foldoutRect = EditorGUILayout.GetControlRect(false, 25f);
+            var foldoutRect = EditorGUILayout.GetControlRect(false, 22f).AddY(-1f);
 
+            EditorGUI.DrawRect(foldoutRect.Expand(2f), Styles.FoldoutHeaderColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(-2f).SetHeight(1f), Styles.LineColor);
+            EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(foldoutRect.height + 1f).SetHeight(1f), Styles.LineColor);
             foldoutRect.width -= 150f;
             showPackagesToInstall = EditorGUI.Foldout(foldoutRect, showPackagesToInstall, $"Selected for installation: {selectedPackageInstalls.Count}", true);
 
             foldoutRect.x += foldoutRect.width;
             foldoutRect.width = 148f;
             foldoutRect.y += 2f;
-            foldoutRect.height -= 6f;
+            foldoutRect.height -= 4f;
 
             if (GUI.Button(foldoutRect, "Install All Selected"))
             {

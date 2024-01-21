@@ -30,6 +30,21 @@ namespace NugetForUnity.Ui
             }
         }
 
+        public static Color FoldoutHeaderColor
+        {
+            get
+            {
+                if (EditorGUIUtility.isProSkin)
+                {
+                    return new Color(0.2f, 0.2f, 0.2f);
+                }
+                else
+                {
+                    return new Color(0.85f, 0.85f, 0.85f);
+                }
+            }
+        }
+
         /// <summary>
         ///     Gets a GUI style with a contrasting background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
         /// </summary>
