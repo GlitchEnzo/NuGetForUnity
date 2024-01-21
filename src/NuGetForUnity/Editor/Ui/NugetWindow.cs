@@ -612,7 +612,7 @@ namespace NugetForUnity.Ui
                 DrawSelectedForInstallationHeader();
                 if (showPackagesToInstall)
                 {
-                    DrawPackages(selectedPackageInstalls, true);
+                    DrawPackages(availablePackages.Where(p => selectedPackageInstalls.Contains(p)), true);
                 }
             }
 
