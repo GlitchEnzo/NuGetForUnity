@@ -733,7 +733,7 @@ namespace NugetForUnity.Ui
 
         private void DrawShowDowngradesButton()
         {
-            var showDowngradesTemp = GUILayout.Toggle(showOnlinePrerelease, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+            var showDowngradesTemp = GUILayout.Toggle(showDowngrades, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
             if (showDowngradesTemp != showDowngrades)
             {
                 versionDropdownDataPerPackage.Clear();
