@@ -359,33 +359,13 @@ namespace NugetForUnity.Ui
 
         private static void GUILayoutLink(string url)
         {
-            var hyperLinkStyle = new GUIStyle(GUI.skin.label) { stretchWidth = false, richText = true };
-            var colorFormatString = "<color=#add8e6ff>{0}</color>";
+            var rect = EditorGUILayout.GetControlRect();
+            rect.yMin -= 2f;
+            rect.xMin += 15f;
 
-            var underline = new string('_', url.Length);
-
-            var formattedUrl = string.Format(CultureInfo.InvariantCulture, colorFormatString, url);
-            var formattedUnderline = string.Format(CultureInfo.InvariantCulture, colorFormatString, underline);
-            var urlRect = GUILayoutUtility.GetRect(new GUIContent(url), hyperLinkStyle);
-
-            // Update rect for indentation
+            if (GUI.Button(rect, url, EditorStyles.linkLabel))
             {
-                var indentedUrlRect = EditorGUI.IndentedRect(urlRect);
-                var delta = indentedUrlRect.x - urlRect.x;
-                indentedUrlRect.width += delta;
-                urlRect = indentedUrlRect;
-            }
-
-            GUI.Label(urlRect, formattedUrl, hyperLinkStyle);
-            GUI.Label(urlRect, formattedUnderline, hyperLinkStyle);
-
-            EditorGUIUtility.AddCursorRect(urlRect, MouseCursor.Link);
-            if (urlRect.Contains(Event.current.mousePosition))
-            {
-                if (Event.current.type == EventType.MouseUp)
-                {
-                    Application.OpenURL(url);
-                }
+                Application.OpenURL(url);
             }
         }
 
@@ -673,6 +653,7 @@ namespace NugetForUnity.Ui
                             .GetAwaiter()
                             .GetResult());
                 }
+
                 GUILayout.FlexibleSpace();
             }
 
@@ -1259,7 +1240,7 @@ namespace NugetForUnity.Ui
                         // Show project URL link
                         if (!string.IsNullOrEmpty(package.ProjectUrl))
                         {
-                            EditorGUILayout.LabelField("Project Url", EditorStyles.boldLabel);
+                            EditorGUILayout.LabelField("Project URL", EditorStyles.boldLabel);
                             GUILayoutLink(package.ProjectUrl);
                             GUILayout.Space(4f);
                         }
