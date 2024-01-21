@@ -1287,107 +1287,104 @@ namespace NugetForUnity.Ui
                         // Create a similar style for the 'Clone' window
                         var cloneWindowStyle = new GUIStyle(cloneButtonBoxStyle) { padding = new RectOffset(6, 6, 2, 6) };
 
-                        // Show button bar
-                        using (new EditorGUILayout.HorizontalScope())
+                        if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
                         {
-                            if (package.RepositoryType == RepositoryType.Git || package.RepositoryType == RepositoryType.TfsGit)
-                            {
-                                if (!string.IsNullOrEmpty(package.RepositoryUrl))
-                                {
-                                    using (new EditorGUILayout.HorizontalScope())
-                                    {
-                                        var cloneButtonStyle = new GUIStyle(GUI.skin.button);
-                                        cloneButtonStyle.normal = showCloneWindow ? cloneButtonStyle.active : cloneButtonStyle.normal;
-                                        if (GUILayout.Button("Clone", cloneButtonStyle, GUILayout.ExpandWidth(false)))
-                                        {
-                                            showCloneWindow = !showCloneWindow;
-                                        }
-
-                                        if (showCloneWindow)
-                                        {
-                                            openCloneWindows.Add(package);
-                                        }
-                                        else
-                                        {
-                                            openCloneWindows.Remove(package);
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                            if (!string.IsNullOrEmpty(package.RepositoryUrl))
                             {
                                 var buttonRect = EditorGUILayout.GetControlRect();
                                 buttonRect.width = 116f;
                                 buttonRect.xMin += 31f;
 
-                                // Show the license button
-                                if (GUI.Button(buttonRect, "View License"))
+                                // Show the clone button
+                                if (GUI.Button(buttonRect, "Clone"))
                                 {
-                                    Application.OpenURL(package.LicenseUrl);
+                                    showCloneWindow = !showCloneWindow;
                                 }
+
+                                if (showCloneWindow)
+                                {
+                                    openCloneWindows.Add(package);
+                                }
+                                else
+                                {
+                                    openCloneWindows.Remove(package);
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
+                        {
+                            var buttonRect = EditorGUILayout.GetControlRect();
+                            buttonRect.width = 116f;
+                            buttonRect.xMin += 31f;
+
+                            // Show the license button
+                            if (GUI.Button(buttonRect, "View License"))
+                            {
+                                Application.OpenURL(package.LicenseUrl);
                             }
                         }
 
                         if (showCloneWindow)
                         {
-                            using (new EditorGUILayout.VerticalScope(cloneWindowStyle))
+                            var oldIndent = EditorGUI.indentLevel;
+                            EditorGUI.indentLevel = 0;
+
+                            using (new EditorGUILayout.HorizontalScope())
                             {
-                                // Clone latest label
-                                using (new EditorGUILayout.HorizontalScope())
+                                EditorGUILayout.Space(23f);
+                                using (new EditorGUILayout.VerticalScope(cloneWindowStyle))
                                 {
-                                    GUILayout.Space(20f);
+                                    // Clone latest label
                                     EditorGUILayout.LabelField("clone latest");
-                                }
 
-                                // Clone latest row
-                                using (new EditorGUILayout.HorizontalScope())
-                                {
-                                    if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                    // Clone latest row
+                                    using (new EditorGUILayout.HorizontalScope())
                                     {
-                                        GUI.FocusControl(package.Id + package.Version + "repoUrl");
-                                        GUIUtility.systemCopyBuffer = package.RepositoryUrl;
+                                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                        {
+                                            GUI.FocusControl(package.Id + package.Version + "repoUrl");
+                                            GUIUtility.systemCopyBuffer = package.RepositoryUrl;
+                                        }
+
+                                        GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
+                                        EditorGUILayout.TextField(package.RepositoryUrl);
                                     }
 
-                                    GUI.SetNextControlName(package.Id + package.Version + "repoUrl");
-                                    EditorGUILayout.TextField(package.RepositoryUrl);
-                                }
-
-                                // Clone @ commit label
-                                GUILayout.Space(4f);
-                                using (new EditorGUILayout.HorizontalScope())
-                                {
-                                    GUILayout.Space(20f);
+                                    // Clone @ commit label
+                                    GUILayout.Space(4f);
                                     EditorGUILayout.LabelField("clone @ commit");
-                                }
 
-                                // Clone @ commit row
-                                using (new EditorGUILayout.HorizontalScope())
-                                {
-                                    // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
-                                    var commands = string.Format(
-                                        CultureInfo.InvariantCulture,
-                                        "git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",
-                                        package.RepositoryUrl,
-                                        package.Id,
-                                        Environment.NewLine,
-                                        package.RepositoryCommit);
-
-                                    if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                    // Clone @ commit row
+                                    using (new EditorGUILayout.HorizontalScope())
                                     {
-                                        GUI.FocusControl(package.Id + package.Version + "commands");
+                                        // Create the three commands a user will need to run to get the repo @ the commit. Intentionally leave off the last newline for better UI appearance
+                                        var commands = string.Format(
+                                            CultureInfo.InvariantCulture,
+                                            "git clone {0} {1} --no-checkout{2}cd {1}{2}git checkout {3}",
+                                            package.RepositoryUrl,
+                                            package.Id,
+                                            Environment.NewLine,
+                                            package.RepositoryCommit);
 
-                                        // Add a newline so the last command will execute when pasted to the CL
-                                        GUIUtility.systemCopyBuffer = commands + Environment.NewLine;
-                                    }
+                                        if (GUILayout.Button("Copy", GUILayout.ExpandWidth(false)))
+                                        {
+                                            GUI.FocusControl(package.Id + package.Version + "commands");
 
-                                    using (new EditorGUILayout.VerticalScope())
-                                    {
-                                        GUI.SetNextControlName(package.Id + package.Version + "commands");
-                                        EditorGUILayout.TextArea(commands);
+                                            // Add a newline so the last command will execute when pasted to the CL
+                                            GUIUtility.systemCopyBuffer = commands + Environment.NewLine;
+                                        }
+
+                                        using (new EditorGUILayout.VerticalScope())
+                                        {
+                                            GUI.SetNextControlName(package.Id + package.Version + "commands");
+                                            EditorGUILayout.TextArea(commands);
+                                        }
                                     }
                                 }
                             }
+
+                            EditorGUI.indentLevel = oldIndent;
                         }
 
                         EditorGUI.indentLevel -= 2;
