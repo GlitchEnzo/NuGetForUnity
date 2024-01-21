@@ -708,26 +708,6 @@ namespace NugetForUnity.Ui
             }
         }
 
-        private void DrawShowPrereleaseButton()
-        {
-            var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
-            if (showPrereleaseTemp != showOnlinePrerelease)
-            {
-                showOnlinePrerelease = showPrereleaseTemp;
-                UpdateOnlinePackages();
-            }
-        }
-
-        private void DrawShowDowngradesButton()
-        {
-            var showDowngradesTemp = GUILayout.Toggle(showDowngrades, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
-            if (showDowngradesTemp != showDowngrades)
-            {
-                versionDropdownDataPerPackage.Clear();
-                showDowngrades = showDowngradesTemp;
-            }
-        }
-
         /// <summary>
         ///     Draws the header which allows filtering the online list of packages.
         /// </summary>
@@ -737,7 +717,13 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    DrawShowPrereleaseButton();
+                    var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    if (showPrereleaseTemp != showOnlinePrerelease)
+                    {
+                        showOnlinePrerelease = showPrereleaseTemp;
+                        UpdateOnlinePackages();
+                    }
+
                     GUILayout.FlexibleSpace();
                     DrawSelectFromClipboardButton();
                     DrawMandatoryButtons();
@@ -883,8 +869,19 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    DrawShowPrereleaseButton();
-                    DrawShowDowngradesButton();
+                    var showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, ShowPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    if (showPrereleaseTemp != showPrereleaseUpdates)
+                    {
+                        showPrereleaseUpdates = showPrereleaseTemp;
+                        UpdateUpdatePackages();
+                    }
+
+                    var showDowngradesTemp = GUILayout.Toggle(showDowngrades, ShowDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(130f));
+                    if (showDowngradesTemp != showDowngrades)
+                    {
+                        versionDropdownDataPerPackage.Clear();
+                        showDowngrades = showDowngradesTemp;
+                    }
 
                     GUILayout.FlexibleSpace();
 
