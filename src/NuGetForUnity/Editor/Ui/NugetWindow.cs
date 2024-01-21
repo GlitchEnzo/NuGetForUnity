@@ -374,7 +374,7 @@ namespace NugetForUnity.Ui
             var labelStyle = new GUIStyle(EditorStyles.label)
             {
                 fontStyle = FontStyle.Bold,
-                fontSize = 14,
+                fontSize = 12,
             };
             EditorGUILayout.LabelField(message, labelStyle, GUILayout.Height(20));
         }
@@ -985,7 +985,7 @@ namespace NugetForUnity.Ui
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     const int iconSize = 32;
-                    var paddingX = Math.Max(EditorStyles.label.padding.horizontal, 3);
+                    var paddingX = 5f;
                     var rect = GUILayoutUtility.GetRect(0, iconSize);
                     rect.y += Math.Max(EditorStyles.label.padding.vertical, 3);
                     if (canBeSelected)
@@ -1041,7 +1041,7 @@ namespace NugetForUnity.Ui
                     var labelStyle = new GUIStyle(EditorStyles.label)
                     {
                         fontStyle = FontStyle.Bold,
-                        fontSize = 16,
+                        fontSize = 15,
                     };
 
                     var idSize = labelStyle.CalcSize(new GUIContent(package.Id));
@@ -1192,8 +1192,11 @@ namespace NugetForUnity.Ui
                 using (new EditorGUILayout.VerticalScope())
                 {
                     // Show the package details
-                    EditorStyles.label.wordWrap = true;
-                    EditorStyles.label.fontStyle = FontStyle.Normal;
+                    var labelStyle = new GUIStyle(EditorStyles.label)
+                    {
+                        wordWrap = true,
+                        fontStyle = FontStyle.Normal,
+                    };
 
                     var summary = package.Summary;
                     if (string.IsNullOrEmpty(summary))
@@ -1211,7 +1214,7 @@ namespace NugetForUnity.Ui
                         summary = $"{summary.Substring(0, 237)}...";
                     }
 
-                    EditorGUILayout.LabelField(summary);
+                    EditorGUILayout.LabelField(summary, labelStyle);
 
                     var detailsFoldoutId = $"{package.Id}.Details";
                     if (!foldouts.TryGetValue(detailsFoldoutId, out var detailsFoldout))
@@ -1251,8 +1254,7 @@ namespace NugetForUnity.Ui
                             var frameworkDependencies = package.CurrentFrameworkDependencies;
                             if (frameworkDependencies.Count > 0)
                             {
-                                EditorStyles.label.wordWrap = true;
-                                EditorStyles.label.fontStyle = FontStyle.Italic;
+                                labelStyle.fontStyle = FontStyle.Italic;
                                 var builder = new StringBuilder();
 
                                 foreach (var dependency in frameworkDependencies)
@@ -1261,8 +1263,7 @@ namespace NugetForUnity.Ui
                                 }
 
                                 EditorGUILayout.Space();
-                                EditorGUILayout.LabelField($"Depends on:{builder}");
-                                EditorStyles.label.fontStyle = FontStyle.Normal;
+                                EditorGUILayout.LabelField($"Depends on:{builder}", labelStyle);
                             }
                         }
                         else
