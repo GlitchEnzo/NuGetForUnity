@@ -13,7 +13,6 @@ namespace NugetForUnity.Ui
         private static GUIStyle cachedSearchFieldStyle;
         private static GUIStyle cachedHeaderStyle;
         private static GUIStyle cachedBackgroundStyle;
-        private static GUIStyle cachedContrastStyle;
 
         public static Color LineColor
         {
@@ -57,26 +56,6 @@ namespace NugetForUnity.Ui
                 {
                     return new Color(0.85f, 0.85f, 0.85f);
                 }
-            }
-        }
-
-        /// <summary>
-        ///     Gets a GUI style with a contrasting background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
-        /// </summary>
-        public static GUIStyle ContrastStyle
-        {
-            get
-            {
-                if (cachedContrastStyle != null)
-                {
-                    return cachedContrastStyle;
-                }
-
-                cachedContrastStyle = new GUIStyle();
-                var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
-                cachedContrastStyle.normal.background = CreateSingleColorTexture(backgroundColor);
-
-                return cachedContrastStyle;
             }
         }
 

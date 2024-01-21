@@ -22,10 +22,6 @@ namespace NugetForUnity.Ui
     /// </summary>
     public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
-        private const string ArrowTipUp = "\u2227";
-
-        private const string ArrowTipDown = "\u2228";
-
         private static readonly GUIContent ShowPrereleaseContent = new GUIContent("Show Prerelease");
         private static readonly GUIContent ShowDowngradesContent = new GUIContent("Show Downgrades");
 
