@@ -365,7 +365,7 @@ namespace NugetForUnity.Ui
         {
             var rect = EditorGUILayout.GetControlRect();
             rect.yMin -= 2f;
-            rect.xMin += 15f;
+            rect.xMin += 30f;
 
             if (GUI.Button(rect, url, EditorStyles.linkLabel))
             {
@@ -1039,24 +1039,6 @@ namespace NugetForUnity.Ui
                     var idSize = labelStyle.CalcSize(new GUIContent(package.Id));
                     GUI.Label(rect, package.Id, labelStyle);
                     rect.x += Mathf.Min(idSize.x, rect.width) + paddingX;
-
-                    labelStyle.fontSize = 10;
-                    labelStyle.fontStyle = FontStyle.Normal;
-                    rect.y += labelStyle.fontSize / 2f;
-
-                    if (package.Authors.Count > 0)
-                    {
-                        var authorLabel = $"by {string.Join(", ", package.Authors)}";
-                        var size = labelStyle.CalcSize(new GUIContent(authorLabel));
-                        GUI.Label(rect, authorLabel, labelStyle);
-                        rect.x += size.x + paddingX;
-                    }
-
-                    if (package.TotalDownloads > 0)
-                    {
-                        var downloadLabel = $"{package.TotalDownloads:#,#} downloads";
-                        GUI.Label(rect, downloadLabel, labelStyle);
-                    }
                 }
 
                 GUILayout.FlexibleSpace();
@@ -1177,6 +1159,35 @@ namespace NugetForUnity.Ui
                 }
             }
 
+            // authors
+            {
+                var rect = EditorGUILayout.GetControlRect().AddX(10f);
+                var labelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = 10,
+                    fontStyle = FontStyle.Normal,
+                };
+                labelStyle.normal.textColor = Styles.AuthorsTextColor;
+                labelStyle.focused.textColor = Styles.AuthorsTextColor;
+                labelStyle.hover.textColor = Styles.AuthorsTextColor;
+
+                rect.y += labelStyle.fontSize / 2f;
+
+                if (package.Authors.Count > 0)
+                {
+                    var authorLabel = $"by {string.Join(", ", package.Authors)}";
+                    var size = labelStyle.CalcSize(new GUIContent(authorLabel));
+                    GUI.Label(rect, authorLabel, labelStyle);
+                    rect.x += size.x;
+                }
+
+                if (package.TotalDownloads > 0)
+                {
+                    var downloadLabel = $"{package.TotalDownloads:#,#} downloads";
+                    GUI.Label(rect, downloadLabel, labelStyle);
+                }
+            }
+
             EditorGUILayout.Space(7f);
 
             using (new EditorGUILayout.HorizontalScope())
@@ -1206,7 +1217,8 @@ namespace NugetForUnity.Ui
                         summary = $"{summary.Substring(0, 237)}...";
                     }
 
-                    EditorGUILayout.LabelField(summary, labelStyle);
+                    var summaryRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth)).AddX(10f);
+                    EditorGUI.LabelField(summaryRect, summary, labelStyle);
 
                     var detailsFoldoutId = $"{package.Id}.Details";
                     if (!foldouts.TryGetValue(detailsFoldoutId, out var detailsFoldout))
@@ -1214,12 +1226,15 @@ namespace NugetForUnity.Ui
                         foldouts[detailsFoldoutId] = detailsFoldout;
                     }
 
-                    detailsFoldout = EditorGUILayout.Foldout(detailsFoldout, "Details", true);
+                    EditorGUILayout.Space(2f);
+
+                    var detailsFoldoutRect = EditorGUILayout.GetControlRect().AddX(10f);
+                    detailsFoldout = EditorGUI.Foldout(detailsFoldoutRect, detailsFoldout, "Details", true);
                     foldouts[detailsFoldoutId] = detailsFoldout;
 
                     if (detailsFoldout)
                     {
-                        EditorGUI.indentLevel++;
+                        EditorGUI.indentLevel += 2;
                         if (!string.IsNullOrEmpty(package.Description))
                         {
                             EditorGUILayout.LabelField("Description", EditorStyles.boldLabel);
@@ -1308,7 +1323,7 @@ namespace NugetForUnity.Ui
                             {
                                 var buttonRect = EditorGUILayout.GetControlRect();
                                 buttonRect.width = 116f;
-                                buttonRect.xMin += 16f;
+                                buttonRect.xMin += 31f;
 
                                 // Show the license button
                                 if (GUI.Button(buttonRect, "View License"))
@@ -1379,7 +1394,7 @@ namespace NugetForUnity.Ui
                             }
                         }
 
-                        EditorGUI.indentLevel--;
+                        EditorGUI.indentLevel -= 2;
                     }
 
                     EditorGUILayout.Space();

@@ -30,6 +30,21 @@ namespace NugetForUnity.Ui
             }
         }
 
+        public static Color AuthorsTextColor
+        {
+            get
+            {
+                if (EditorGUIUtility.isProSkin)
+                {
+                    return new Color(0.25f, 0.25f, 0.25f);
+                }
+                else
+                {
+                    return new Color(0.45f, 0.45f, 0.45f);
+                }
+            }
+        }
+
         public static Color FoldoutHeaderColor
         {
             get
