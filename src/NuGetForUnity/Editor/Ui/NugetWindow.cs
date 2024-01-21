@@ -1234,12 +1234,14 @@ namespace NugetForUnity.Ui
                         {
                             EditorGUILayout.LabelField("Description", EditorStyles.boldLabel);
                             EditorGUILayout.LabelField(package.Description);
+                            GUILayout.Space(4f);
                         }
 
                         if (!string.IsNullOrEmpty(package.ReleaseNotes))
                         {
                             EditorGUILayout.LabelField("Release Notes", EditorStyles.boldLabel);
                             EditorGUILayout.LabelField(package.ReleaseNotes);
+                            GUILayout.Space(4f);
                         }
 
                         // Show project URL link
@@ -1256,21 +1258,20 @@ namespace NugetForUnity.Ui
                             var frameworkDependencies = package.CurrentFrameworkDependencies;
                             if (frameworkDependencies.Count > 0)
                             {
+                                EditorGUILayout.LabelField("Dependencies", EditorStyles.boldLabel);
                                 labelStyle.fontStyle = FontStyle.Italic;
                                 var builder = new StringBuilder();
 
                                 foreach (var dependency in frameworkDependencies)
                                 {
-                                    builder.Append($" {dependency.Id} {dependency.Version};");
+                                    builder.AppendLine($"{dependency.Id} {dependency.Version};");
                                 }
 
-                                EditorGUILayout.Space();
-                                EditorGUILayout.LabelField($"Depends on:{builder}", labelStyle);
+                                EditorGUILayout.LabelField(builder.ToString(), labelStyle);
                             }
                         }
                         else
                         {
-                            EditorGUILayout.Space();
                             EditorGUILayout.LabelField("Loading dependencies...");
                         }
 
