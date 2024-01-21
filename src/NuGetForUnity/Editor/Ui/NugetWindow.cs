@@ -643,8 +643,7 @@ namespace NugetForUnity.Ui
                 showPackagesToInstall = false;
             }
 
-            var showMoreStyle = Styles.HeaderStyle;
-            EditorGUILayout.BeginVertical(showMoreStyle);
+            EditorGUILayout.BeginVertical(Styles.BackgroundStyle);
 
             if (showPackagesToInstall)
             {
@@ -655,20 +654,29 @@ namespace NugetForUnity.Ui
                 }
             }
 
+            EditorGUILayout.Space(3f);
+
             // allow the user to display more results
-            if (!showPackagesToInstall && GUILayout.Button("Show More", GUILayout.Width(120)))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                numberToSkip += numberToGet;
-                availablePackages.AddRange(
-                    Task.Run(
-                            () => ConfigurationManager.SearchAsync(
-                                onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
-                                showOnlinePrerelease,
-                                numberToGet,
-                                numberToSkip))
-                        .GetAwaiter()
-                        .GetResult());
+                GUILayout.FlexibleSpace();
+                if (!showPackagesToInstall && GUILayout.Button("Show More", GUILayout.Width(120)))
+                {
+                    numberToSkip += numberToGet;
+                    availablePackages.AddRange(
+                        Task.Run(
+                                () => ConfigurationManager.SearchAsync(
+                                    onlineSearchTerm != "Search" ? onlineSearchTerm : string.Empty,
+                                    showOnlinePrerelease,
+                                    numberToGet,
+                                    numberToSkip))
+                            .GetAwaiter()
+                            .GetResult());
+                }
+                GUILayout.FlexibleSpace();
             }
+
+            EditorGUILayout.Space(4f);
 
             EditorGUILayout.EndVertical();
 
