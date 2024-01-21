@@ -633,7 +633,7 @@ namespace NugetForUnity.Ui
 
             EditorGUILayout.BeginVertical();
 
-            EditorGUILayout.Space(3f);
+            GUILayout.Space(3f);
 
             // allow the user to display more results
             using (new EditorGUILayout.HorizontalScope())
@@ -656,7 +656,7 @@ namespace NugetForUnity.Ui
                 GUILayout.FlexibleSpace();
             }
 
-            EditorGUILayout.Space(4f);
+            GUILayout.Space(4f);
 
             EditorGUILayout.EndVertical();
 
@@ -955,11 +955,11 @@ namespace NugetForUnity.Ui
             var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
             var isAlreadyImportedInEngine = UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false);
 
-            EditorGUILayout.Space(7f);
+            GUILayout.Space(7f);
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.Space(7f);
+                GUILayout.Space(7f);
 
                 // The Unity GUI system (in the Editor) is terrible.  This probably requires some explanation.
                 // Every time you use a Horizontal block, Unity appears to divide the space evenly.
@@ -1180,7 +1180,7 @@ namespace NugetForUnity.Ui
                 }
             }
 
-            EditorGUILayout.Space(7f);
+            GUILayout.Space(7f);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -1218,7 +1218,7 @@ namespace NugetForUnity.Ui
                         foldouts[detailsFoldoutId] = detailsFoldout;
                     }
 
-                    EditorGUILayout.Space(2f);
+                    GUILayout.Space(2f);
 
                     var detailsFoldoutRect = EditorGUILayout.GetControlRect().AddX(10f);
                     detailsFoldout = EditorGUI.Foldout(detailsFoldoutRect, detailsFoldout, "Details", true);
@@ -1329,7 +1329,7 @@ namespace NugetForUnity.Ui
 
                             using (new EditorGUILayout.HorizontalScope())
                             {
-                                EditorGUILayout.Space(23f);
+                                GUILayout.Space(23f);
                                 using (new EditorGUILayout.VerticalScope(cloneWindowStyle))
                                 {
                                     // Clone latest label
