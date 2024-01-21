@@ -157,11 +157,6 @@ namespace NugetForUnity.Ui
         private bool showPrereleaseUpdates;
 
         /// <summary>
-        ///     The current position of the scroll bar for packages selected for installation.
-        /// </summary>
-        private Vector2 toInstallScrollPosition;
-
-        /// <summary>
         ///     The list of package updates available, based on the already installed packages.
         /// </summary>
         private List<INugetPackage> updatePackages = new List<INugetPackage>();

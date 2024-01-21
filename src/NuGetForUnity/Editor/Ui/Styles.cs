@@ -1,6 +1,4 @@
-#pragma warning disable SA1600
-
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 namespace NugetForUnity.Ui
@@ -18,6 +16,9 @@ namespace NugetForUnity.Ui
 
         private static GUIStyle cachedLinkLabelStyle;
 
+        /// <summary>
+        ///     Gets the color used for lines used as seperators.
+        /// </summary>
         public static Color LineColor
         {
             get
@@ -31,6 +32,9 @@ namespace NugetForUnity.Ui
             }
         }
 
+        /// <summary>
+        ///     Gets the color used for package authors.
+        /// </summary>
         public static Color AuthorsTextColor
         {
             get
@@ -44,6 +48,9 @@ namespace NugetForUnity.Ui
             }
         }
 
+        /// <summary>
+        ///     Gets the color used for the foldout header.
+        /// </summary>
         public static Color FoldoutHeaderColor
         {
             get
@@ -77,6 +84,9 @@ namespace NugetForUnity.Ui
             }
         }
 
+        /// <summary>
+        ///     Gets the GUI style used for the header of the NuGet window.
+        /// </summary>
         public static GUIStyle HeaderStyle
         {
             get
@@ -96,6 +106,9 @@ namespace NugetForUnity.Ui
             }
         }
 
+        /// <summary>
+        ///     Gets the GUI style used for the package seach field.
+        /// </summary>
         public static GUIStyle SearchFieldStyle
         {
             get
@@ -112,6 +125,9 @@ namespace NugetForUnity.Ui
             }
         }
 
+        /// <summary>
+        ///     Gets the GUI style used for labels representing a URL / clickable LINK.
+        /// </summary>
         public static GUIStyle LinkLabelStyle
         {
             get
@@ -168,5 +184,3 @@ namespace NugetForUnity.Ui
         }
     }
 }
-
-#pragma warning restore SA1600
