@@ -1332,14 +1332,14 @@ namespace NugetForUnity.Ui
 
                             if (!string.IsNullOrEmpty(package.LicenseUrl) && package.LicenseUrl != "http://your_license_url_here")
                             {
-                                // Create a box around the license button to keep it aligned with Clone button
-                                using (new EditorGUILayout.HorizontalScope(normalButtonBoxStyle))
+                                var buttonRect = EditorGUILayout.GetControlRect();
+                                buttonRect.width = 116f;
+                                buttonRect.xMin += 16f;
+
+                                // Show the license button
+                                if (GUI.Button(buttonRect, "View License"))
                                 {
-                                    // Show the license button
-                                    if (GUILayout.Button("View License", GUILayout.ExpandWidth(false)))
-                                    {
-                                        Application.OpenURL(package.LicenseUrl);
-                                    }
+                                    Application.OpenURL(package.LicenseUrl);
                                 }
                             }
                         }
