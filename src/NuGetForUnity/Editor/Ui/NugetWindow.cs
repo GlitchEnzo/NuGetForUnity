@@ -138,6 +138,8 @@ namespace NugetForUnity.Ui
         /// </summary>
         private bool showDowngrades;
 
+        private bool showInstalled = true;
+
         private bool showImplicitlyInstalled;
 
         /// <summary>
@@ -564,23 +566,22 @@ namespace NugetForUnity.Ui
 
         private void DrawPackagesSplittedByManuallyInstalled(List<INugetPackage> packages)
         {
-            var headerStyle = Styles.HeaderStyle;
-
-            var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
-            EditorGUI.LabelField(rectangle, " Installed packages", headerStyle);
-            if (packages.Exists(package => package.IsManuallyInstalled))
+            var foldoutRect = EditorGUILayout.GetControlRect(true, 20f);
+            showInstalled = EditorGUI.Foldout(foldoutRect, showInstalled, "Installed packages", true);
+            if (showInstalled)
             {
-                DrawPackages(packages.Where(package => package.IsManuallyInstalled), true);
-            }
-            else
-            {
-                DrawNoDataAvailableInfo("There are no explicitly installed packages.");
+                if (packages.Exists(package => package.IsManuallyInstalled))
+                {
+                    DrawPackages(packages.Where(package => package.IsManuallyInstalled), true);
+                }
+                else
+                {
+                    DrawNoDataAvailableInfo("There are no explicitly installed packages.");
+                }
             }
 
-            rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
-            EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
-
-            showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, Styles.FoldoutStyle);
+            foldoutRect = EditorGUILayout.GetControlRect(true, 20f);
+            showImplicitlyInstalled = EditorGUI.Foldout(foldoutRect, showImplicitlyInstalled, "Implicitly installed packages", true);
             if (showImplicitlyInstalled)
             {
                 DrawPackages(packages.Where(package => !package.IsManuallyInstalled), true);

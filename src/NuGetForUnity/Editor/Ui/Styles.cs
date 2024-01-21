@@ -13,7 +13,6 @@ namespace NugetForUnity.Ui
         private static GUIStyle cachedSearchFieldStyle;
         private static GUIStyle cachedHeaderStyle;
         private static GUIStyle cachedBackgroundStyle;
-        private static GUIStyle cachedFoldoutStyle;
         private static GUIStyle cachedContrastStyle;
 
         public static Color LineColor
@@ -87,28 +86,6 @@ namespace NugetForUnity.Ui
                 cachedHeaderStyle.normal.textColor = Color.white;
 
                 return cachedHeaderStyle;
-            }
-        }
-
-        public static GUIStyle FoldoutStyle
-        {
-            get
-            {
-                if (cachedFoldoutStyle != null)
-                {
-                    return cachedFoldoutStyle;
-                }
-
-                cachedFoldoutStyle = new GUIStyle(EditorStyles.foldout)
-                {
-                    focused = { textColor = Color.white },
-                    onFocused = { textColor = Color.white },
-                    active = { textColor = Color.white },
-                    onActive = { textColor = Color.white },
-                    alignment = TextAnchor.MiddleLeft,
-                };
-
-                return cachedFoldoutStyle;
             }
         }
 
