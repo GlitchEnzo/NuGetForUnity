@@ -6,13 +6,16 @@ using UnityEngine;
 namespace NugetForUnity.Ui
 {
     /// <summary>
-    /// Collection of GUIStyle.
+    ///     Collection of GUIStyle.
     /// </summary>
     internal static class Styles
     {
         private static GUIStyle cachedSearchFieldStyle;
+
         private static GUIStyle cachedHeaderStyle;
+
         private static GUIStyle cachedBackgroundStyle;
+
         private static GUIStyle cachedLinkLabelStyle;
 
         public static Color LineColor
@@ -23,10 +26,8 @@ namespace NugetForUnity.Ui
                 {
                     return new Color(0.05f, 0.05f, 0.05f);
                 }
-                else
-                {
-                    return new Color(0.6f, 0.6f, 0.6f);
-                }
+
+                return new Color(0.6f, 0.6f, 0.6f);
             }
         }
 
@@ -38,10 +39,8 @@ namespace NugetForUnity.Ui
                 {
                     return new Color(0.55f, 0.55f, 0.55f);
                 }
-                else
-                {
-                    return new Color(0.45f, 0.45f, 0.45f);
-                }
+
+                return new Color(0.45f, 0.45f, 0.45f);
             }
         }
 
@@ -53,10 +52,8 @@ namespace NugetForUnity.Ui
                 {
                     return new Color(0.2f, 0.2f, 0.2f);
                 }
-                else
-                {
-                    return new Color(0.85f, 0.85f, 0.85f);
-                }
+
+                return new Color(0.85f, 0.85f, 0.85f);
             }
         }
 
@@ -109,11 +106,7 @@ namespace NugetForUnity.Ui
                 }
 
                 var original = GetStyle("ToolbarSearchTextField");
-                cachedSearchFieldStyle = new GUIStyle(original)
-                {
-                    fontSize = 12,
-                    fixedHeight = 20f,
-                };
+                cachedSearchFieldStyle = new GUIStyle(original) { fontSize = 12, fixedHeight = 20f };
 
                 return cachedSearchFieldStyle;
             }
@@ -158,7 +151,7 @@ namespace NugetForUnity.Ui
 
         private static GUIStyle GetStyle(string styleName)
         {
-            GUIStyle style = GUI.skin.FindStyle(styleName);
+            var style = GUI.skin.FindStyle(styleName);
 
             if (style == null)
             {

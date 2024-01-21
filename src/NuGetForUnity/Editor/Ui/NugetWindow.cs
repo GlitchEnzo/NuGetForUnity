@@ -22,9 +22,6 @@ namespace NugetForUnity.Ui
     /// </summary>
     public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
-        private readonly GUIContent showPrereleaseContent = new GUIContent("Show Prerelease");
-        private readonly GUIContent showDowngradesContent = new GUIContent("Show Downgrades");
-
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>
@@ -56,6 +53,10 @@ namespace NugetForUnity.Ui
         ///     Used to keep track of which packages are selected for updating.
         /// </summary>
         private readonly HashSet<INugetPackage> selectedPackageUpdates = new HashSet<INugetPackage>(new NugetPackageIdEqualityComparer());
+
+        private readonly GUIContent showDowngradesContent = new GUIContent("Show Downgrades");
+
+        private readonly GUIContent showPrereleaseContent = new GUIContent("Show Prerelease");
 
         /// <summary>
         ///     The titles of the tabs in the window.
@@ -134,9 +135,11 @@ namespace NugetForUnity.Ui
         /// </summary>
         private bool showDowngrades;
 
+        private bool showImplicitlyInstalled;
+
         private bool showInstalled = true;
 
-        private bool showImplicitlyInstalled;
+        private bool showOnlinePackages = true;
 
         /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
@@ -147,8 +150,6 @@ namespace NugetForUnity.Ui
         ///     True if packages selected for install should be displayed on Online tab, false if availablePackages should be displayed.
         /// </summary>
         private bool showPackagesToInstall = true;
-
-        private bool showOnlinePackages = true;
 
         /// <summary>
         ///     True to show beta and alpha package versions.  False to only show stable versions.
@@ -332,7 +333,12 @@ namespace NugetForUnity.Ui
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            var selectedTab = (NugetWindowTab)GUILayout.Toolbar((int)currentTab, tabTitles, null, GUI.ToolbarButtonSize.FitToContents, GUILayout.Height(25f));
+            var selectedTab = (NugetWindowTab)GUILayout.Toolbar(
+                (int)currentTab,
+                tabTitles,
+                null,
+                GUI.ToolbarButtonSize.FitToContents,
+                GUILayout.Height(25f));
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
@@ -371,11 +377,7 @@ namespace NugetForUnity.Ui
 
         private static void DrawNoDataAvailableInfo(string message)
         {
-            var labelStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontStyle = FontStyle.Bold,
-                fontSize = 12,
-            };
+            var labelStyle = new GUIStyle(EditorStyles.label) { fontStyle = FontStyle.Bold, fontSize = 12 };
             EditorGUILayout.LabelField(message, labelStyle, GUILayout.Height(20));
         }
 
@@ -643,12 +645,7 @@ namespace NugetForUnity.Ui
                 {
                     numberToSkip += numberToGet;
                     availablePackages.AddRange(
-                        Task.Run(
-                                () => ConfigurationManager.SearchAsync(
-                                    onlineSearchTerm,
-                                    showOnlinePrerelease,
-                                    numberToGet,
-                                    numberToSkip))
+                        Task.Run(() => ConfigurationManager.SearchAsync(onlineSearchTerm, showOnlinePrerelease, numberToGet, numberToSkip))
                             .GetAwaiter()
                             .GetResult());
                 }
@@ -672,7 +669,11 @@ namespace NugetForUnity.Ui
             EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(-2f).SetHeight(1f), Styles.LineColor);
             EditorGUI.DrawRect(foldoutRect.ExpandX(2f).AddY(foldoutRect.height + 1f).SetHeight(1f), Styles.LineColor);
             foldoutRect.width -= 150f;
-            showPackagesToInstall = EditorGUI.Foldout(foldoutRect, showPackagesToInstall, $"Selected for installation: {selectedPackageInstalls.Count}", true);
+            showPackagesToInstall = EditorGUI.Foldout(
+                foldoutRect,
+                showPackagesToInstall,
+                $"Selected for installation: {selectedPackageInstalls.Count}",
+                true);
 
             foldoutRect.x += foldoutRect.width;
             foldoutRect.width = 148f;
@@ -717,7 +718,11 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    var showPrereleaseTemp = GUILayout.Toggle(showOnlinePrerelease, showPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
+                    var showPrereleaseTemp = GUILayout.Toggle(
+                        showOnlinePrerelease,
+                        showPrereleaseContent,
+                        EditorStyles.toolbarButton,
+                        GUILayout.Width(120f));
                     if (showPrereleaseTemp != showOnlinePrerelease)
                     {
                         showOnlinePrerelease = showPrereleaseTemp;
@@ -731,10 +736,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar)
-                {
-                    fixedHeight = 25f,
-                };
+                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
                 EditorGUILayout.BeginHorizontal(style);
                 {
                     var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
@@ -843,10 +845,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar)
-                {
-                    fixedHeight = 25f,
-                };
+                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
                 EditorGUILayout.BeginHorizontal(style);
                 {
                     installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
@@ -869,14 +868,22 @@ namespace NugetForUnity.Ui
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
-                    var showPrereleaseTemp = GUILayout.Toggle(showPrereleaseUpdates, showPrereleaseContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
+                    var showPrereleaseTemp = GUILayout.Toggle(
+                        showPrereleaseUpdates,
+                        showPrereleaseContent,
+                        EditorStyles.toolbarButton,
+                        GUILayout.Width(120f));
                     if (showPrereleaseTemp != showPrereleaseUpdates)
                     {
                         showPrereleaseUpdates = showPrereleaseTemp;
                         UpdateUpdatePackages();
                     }
 
-                    var showDowngradesTemp = GUILayout.Toggle(showDowngrades, showDowngradesContent, EditorStyles.toolbarButton, GUILayout.Width(120f));
+                    var showDowngradesTemp = GUILayout.Toggle(
+                        showDowngrades,
+                        showDowngradesContent,
+                        EditorStyles.toolbarButton,
+                        GUILayout.Width(120f));
                     if (showDowngradesTemp != showDowngrades)
                     {
                         versionDropdownDataPerPackage.Clear();
@@ -897,7 +904,10 @@ namespace NugetForUnity.Ui
                         var workingSelections = SelectedPackages;
                         if (workingSelections.Count > 0)
                         {
-                            if (GUILayout.Button(showDowngrades ? "Downgrade Selected" : "Update Selected", EditorStyles.toolbarButton, GUILayout.Width(120)))
+                            if (GUILayout.Button(
+                                    showDowngrades ? "Downgrade Selected" : "Update Selected",
+                                    EditorStyles.toolbarButton,
+                                    GUILayout.Width(120)))
                             {
                                 NugetPackageUpdater.UpdateAll(workingSelections, InstalledPackagesManager.InstalledPackages);
                                 UpdateInstalledPackages();
@@ -911,10 +921,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar)
-                {
-                    fixedHeight = 25f,
-                };
+                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
                 EditorGUILayout.BeginHorizontal(style);
                 {
                     updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
@@ -1022,11 +1029,7 @@ namespace NugetForUnity.Ui
                     // text is allowed to get the half of the available space rest is for buttons and version label
                     rect.width = (position.width - rect.x) / 2;
 
-                    var labelStyle = new GUIStyle(EditorStyles.label)
-                    {
-                        fontStyle = FontStyle.Bold,
-                        fontSize = 15,
-                    };
+                    var labelStyle = new GUIStyle(EditorStyles.label) { fontStyle = FontStyle.Bold, fontSize = 15 };
 
                     var idSize = labelStyle.CalcSize(new GUIContent(package.Id));
                     GUI.Label(rect, package.Id, labelStyle);
@@ -1043,9 +1046,7 @@ namespace NugetForUnity.Ui
 
                 // Show the version selection dropdown only on Updates tab OR on Online tab if the package is not installed and not already in Unity
                 if (currentTab == NugetWindowTab.UpdatesTab ||
-                    (currentTab == NugetWindowTab.OnlineTab &&
-                     installed == null &&
-                     !isAlreadyImportedInEngine))
+                    (currentTab == NugetWindowTab.OnlineTab && installed == null && !isAlreadyImportedInEngine))
                 {
                     if (package.Versions.Count <= 1)
                     {
@@ -1154,11 +1155,7 @@ namespace NugetForUnity.Ui
             // authors
             {
                 var rect = EditorGUILayout.GetControlRect().AddX(10f);
-                var labelStyle = new GUIStyle(EditorStyles.label)
-                {
-                    fontSize = 10,
-                    fontStyle = FontStyle.Normal,
-                };
+                var labelStyle = new GUIStyle(EditorStyles.label) { fontSize = 10, fontStyle = FontStyle.Normal };
                 labelStyle.normal.textColor = Styles.AuthorsTextColor;
                 labelStyle.focused.textColor = Styles.AuthorsTextColor;
                 labelStyle.hover.textColor = Styles.AuthorsTextColor;
@@ -1189,9 +1186,7 @@ namespace NugetForUnity.Ui
                     // Show the package details
                     var labelStyle = new GUIStyle(EditorStyles.label)
                     {
-                        wordWrap = true,
-                        fontStyle = FontStyle.Normal,
-                        alignment = TextAnchor.UpperLeft,
+                        wordWrap = true, fontStyle = FontStyle.Normal, alignment = TextAnchor.UpperLeft,
                     };
 
                     var summary = package.Summary;
@@ -1210,7 +1205,10 @@ namespace NugetForUnity.Ui
                         summary = $"{summary.Substring(0, 237)}...";
                     }
 
-                    var summaryRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth - 10f) + 5f).AddX(10f);
+                    var summaryRect = EditorGUILayout.GetControlRect(
+                            true,
+                            labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth - 10f) + 5f)
+                        .AddX(10f);
                     EditorGUI.LabelField(summaryRect, summary, labelStyle);
 
                     var detailsFoldoutId = $"{package.Id}.Details";
@@ -1232,7 +1230,9 @@ namespace NugetForUnity.Ui
                         {
                             EditorGUILayout.LabelField("Description", EditorStyles.boldLabel);
                             var descriptionContent = new GUIContent(package.Description);
-                            var descriptionRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(descriptionContent, EditorGUIUtility.currentViewWidth - 10f) + 12f);
+                            var descriptionRect = EditorGUILayout.GetControlRect(
+                                true,
+                                labelStyle.CalcHeight(descriptionContent, EditorGUIUtility.currentViewWidth - 10f) + 12f);
                             EditorGUI.LabelField(descriptionRect, descriptionContent, labelStyle);
                             GUILayout.Space(4f);
                         }
