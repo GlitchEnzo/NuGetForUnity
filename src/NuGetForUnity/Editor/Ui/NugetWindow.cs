@@ -1209,7 +1209,7 @@ namespace NugetForUnity.Ui
                         summary = $"{summary.Substring(0, 237)}...";
                     }
 
-                    var summaryRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth)).AddX(10f);
+                    var summaryRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth - 10f) + EditorGUIUtility.singleLineHeight).AddX(10f);
                     EditorGUI.LabelField(summaryRect, summary, labelStyle);
 
                     var detailsFoldoutId = $"{package.Id}.Details";
@@ -1230,7 +1230,9 @@ namespace NugetForUnity.Ui
                         if (!string.IsNullOrEmpty(package.Description))
                         {
                             EditorGUILayout.LabelField("Description", EditorStyles.boldLabel);
-                            EditorGUILayout.LabelField(package.Description);
+                            var descriptionContent = new GUIContent(package.Description);
+                            var descriptionRect = EditorGUILayout.GetControlRect(true, labelStyle.CalcHeight(descriptionContent, EditorGUIUtility.currentViewWidth - 10f) + EditorGUIUtility.singleLineHeight);
+                            EditorGUI.LabelField(descriptionRect, descriptionContent, labelStyle);
                             GUILayout.Space(4f);
                         }
 
