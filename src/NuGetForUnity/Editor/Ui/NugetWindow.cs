@@ -363,7 +363,7 @@ namespace NugetForUnity.Ui
             rect.yMin -= 2f;
             rect.xMin += 30f;
 
-            if (GUI.Button(rect, url, EditorStyles.linkLabel))
+            if (GUI.Button(rect, url, Styles.LinkLabelStyle))
             {
                 Application.OpenURL(url);
             }

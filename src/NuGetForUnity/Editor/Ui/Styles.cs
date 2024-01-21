@@ -13,6 +13,7 @@ namespace NugetForUnity.Ui
         private static GUIStyle cachedSearchFieldStyle;
         private static GUIStyle cachedHeaderStyle;
         private static GUIStyle cachedBackgroundStyle;
+        private static GUIStyle cachedLinkLabelStyle;
 
         public static Color LineColor
         {
@@ -107,13 +108,28 @@ namespace NugetForUnity.Ui
                     return cachedSearchFieldStyle;
                 }
 
-                cachedSearchFieldStyle = new GUIStyle(EditorStyles.toolbarSearchField)
+                var original = GetStyle("ToolbarSearchTextField");
+                cachedSearchFieldStyle = new GUIStyle(original)
                 {
                     fontSize = 12,
                     fixedHeight = 20f,
                 };
 
                 return cachedSearchFieldStyle;
+            }
+        }
+
+        public static GUIStyle LinkLabelStyle
+        {
+            get
+            {
+                if (cachedLinkLabelStyle != null)
+                {
+                    return cachedLinkLabelStyle;
+                }
+
+                cachedLinkLabelStyle = GetStyle("LinkLabel");
+                return cachedLinkLabelStyle;
             }
         }
 
@@ -138,6 +154,24 @@ namespace NugetForUnity.Ui
             result.Apply();
 
             return result;
+        }
+
+        private static GUIStyle GetStyle(string styleName)
+        {
+            GUIStyle style = GUI.skin.FindStyle(styleName);
+
+            if (style == null)
+            {
+                style = EditorGUIUtility.GetBuiltinSkin(EditorSkin.Inspector).FindStyle(styleName);
+            }
+
+            if (style == null)
+            {
+                Debug.LogError("Missing built-in guistyle " + styleName);
+                style = new GUIStyle();
+            }
+
+            return style;
         }
     }
 }
