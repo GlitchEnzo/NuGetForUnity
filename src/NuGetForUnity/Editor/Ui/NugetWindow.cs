@@ -29,21 +29,6 @@ namespace NugetForUnity.Ui
         private static readonly GUIContent ShowPrereleaseContent = new GUIContent("Show Prerelease");
         private static readonly GUIContent ShowDowngradesContent = new GUIContent("Show Downgrades");
 
-        [CanBeNull]
-        private static GUIStyle cachedSearchFieldStyle;
-
-        [CanBeNull]
-        private static GUIStyle cachedHeaderStyle;
-
-        [CanBeNull]
-        private static GUIStyle cachedBackgroundStyle;
-
-        [CanBeNull]
-        private static GUIStyle cachedFoldoutStyle;
-
-        [CanBeNull]
-        private static GUIStyle cachedContrastStyle;
-
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>
@@ -404,116 +389,6 @@ namespace NugetForUnity.Ui
             }
         }
 
-        /// <summary>
-        ///     From here: http://forum.unity3d.com/threads/changing-the-background-color-for-beginhorizontal.66015/.
-        /// </summary>
-        /// <param name="color">The color to fill the texture with.</param>
-        /// <returns>The generated texture.</returns>
-        private static Texture2D CreateSingleColorTexture(Color color)
-        {
-            const int width = 16;
-            const int height = 16;
-            var pix = new Color32[width * height];
-            Color32 color32 = color;
-            for (var index = 0; index < pix.Length; index++)
-            {
-                pix[index] = color32;
-            }
-
-            var result = new Texture2D(width, height);
-            result.SetPixels32(pix);
-            result.Apply();
-
-            return result;
-        }
-
-        /// <summary>
-        ///     Creates a GUI style with a contrasting background color based upon if the Unity Editor is the free (light) skin or the Pro (dark) skin.
-        /// </summary>
-        /// <returns>A GUI style with the appropriate background color set.</returns>
-        private static GUIStyle GetContrastStyle()
-        {
-            if (cachedContrastStyle != null)
-            {
-                return cachedContrastStyle;
-            }
-
-            cachedContrastStyle = new GUIStyle();
-            var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.3f, 0.3f, 0.3f) : new Color(0.6f, 0.6f, 0.6f);
-            cachedContrastStyle.normal.background = CreateSingleColorTexture(backgroundColor);
-
-            return cachedContrastStyle;
-        }
-
-        /// <summary>
-        ///     Creates a GUI style with a background color the same as the editor's current background color.
-        /// </summary>
-        /// <returns>A GUI style with the appropriate background color set.</returns>
-        private static GUIStyle GetBackgroundStyle()
-        {
-            if (cachedBackgroundStyle != null)
-            {
-                return cachedBackgroundStyle;
-            }
-
-            cachedBackgroundStyle = new GUIStyle();
-            var backgroundColor = EditorGUIUtility.isProSkin ? new Color32(56, 56, 56, 255) : new Color32(194, 194, 194, 255);
-            cachedBackgroundStyle.normal.background = CreateSingleColorTexture(backgroundColor);
-
-            return cachedBackgroundStyle;
-        }
-
-        private static GUIStyle GetHeaderStyle()
-        {
-            if (cachedHeaderStyle != null)
-            {
-                return cachedHeaderStyle;
-            }
-
-            cachedHeaderStyle = new GUIStyle();
-            var backgroundColor = EditorGUIUtility.isProSkin ? new Color(0.1f, 0.1f, 0.1f) : new Color(0.4f, 0.4f, 0.4f);
-            cachedHeaderStyle.alignment = TextAnchor.MiddleLeft;
-            cachedHeaderStyle.normal.background = CreateSingleColorTexture(backgroundColor);
-            cachedHeaderStyle.normal.textColor = Color.white;
-
-            return cachedHeaderStyle;
-        }
-
-        private static GUIStyle GetFoldoutStyle()
-        {
-            if (cachedFoldoutStyle != null)
-            {
-                return cachedFoldoutStyle;
-            }
-
-            cachedFoldoutStyle = new GUIStyle(EditorStyles.foldout)
-            {
-                focused = { textColor = Color.white },
-                onFocused = { textColor = Color.white },
-                active = { textColor = Color.white },
-                onActive = { textColor = Color.white },
-                alignment = TextAnchor.MiddleLeft,
-            };
-
-            return cachedFoldoutStyle;
-        }
-
-        private static GUIStyle GetSearchFieldStyle()
-        {
-            if (cachedSearchFieldStyle != null)
-            {
-                return cachedSearchFieldStyle;
-            }
-
-            cachedSearchFieldStyle = new GUIStyle(EditorStyles.toolbarSearchField)
-            {
-                fontSize = 12,
-                fixedHeight = 20f,
-            };
-
-            return cachedSearchFieldStyle;
-        }
-
         private static void DrawNoDataAvailableInfo(string message)
         {
             var labelStyle = new GUIStyle(EditorStyles.label)
@@ -709,7 +584,7 @@ namespace NugetForUnity.Ui
 
         private void DrawPackagesSplittedByManuallyInstalled(List<INugetPackage> packages)
         {
-            var headerStyle = GetHeaderStyle();
+            var headerStyle = Styles.HeaderStyle;
 
             var rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
             EditorGUI.LabelField(rectangle, " Installed packages", headerStyle);
@@ -725,7 +600,7 @@ namespace NugetForUnity.Ui
             rectangle = EditorGUILayout.GetControlRect(true, 20f, headerStyle);
             EditorGUI.LabelField(rectangle, string.Empty, headerStyle);
 
-            showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, GetFoldoutStyle());
+            showImplicitlyInstalled = EditorGUI.Foldout(rectangle, showImplicitlyInstalled, "Implicitly installed packages", true, Styles.FoldoutStyle);
             if (showImplicitlyInstalled)
             {
                 DrawPackages(packages.Where(package => !package.IsManuallyInstalled), true);
@@ -738,7 +613,7 @@ namespace NugetForUnity.Ui
         private void DrawOnline()
         {
             DrawOnlineHeader();
-            var headerStyle = GetHeaderStyle();
+            var headerStyle = Styles.HeaderStyle;
 
             if (selectedPackageInstalls.Count > 0)
             {
@@ -768,7 +643,7 @@ namespace NugetForUnity.Ui
                 showPackagesToInstall = false;
             }
 
-            var showMoreStyle = GetHeaderStyle();
+            var showMoreStyle = Styles.HeaderStyle;
             EditorGUILayout.BeginVertical(showMoreStyle);
 
             if (showPackagesToInstall)
@@ -846,7 +721,7 @@ namespace NugetForUnity.Ui
 
         private void DrawPackages(IEnumerable<INugetPackage> packages, bool canBeSelected = false)
         {
-            var backgroundStyle = GetBackgroundStyle();
+            var backgroundStyle = Styles.BackgroundStyle;
 
             foreach (var package in packages)
             {
@@ -882,7 +757,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawOnlineHeader()
         {
-            EditorGUILayout.BeginVertical(GetBackgroundStyle());
+            EditorGUILayout.BeginVertical(Styles.BackgroundStyle);
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
                 {
@@ -903,7 +778,7 @@ namespace NugetForUnity.Ui
                     var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
                     // draw search field
-                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
+                    onlineSearchTerm = EditorGUILayout.TextField(onlineSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
 
                     if (GUILayout.Button("Search", GUILayout.Width(100), GUILayout.Height(20)))
                     {
@@ -973,7 +848,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawInstalledHeader()
         {
-            var headerStyle = GetHeaderStyle();
+            var headerStyle = Styles.HeaderStyle;
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -1012,7 +887,7 @@ namespace NugetForUnity.Ui
                 };
                 EditorGUILayout.BeginHorizontal(style);
                 {
-                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
+                    installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
 
                 EditorGUILayout.EndHorizontal();
@@ -1026,7 +901,7 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawUpdatesHeader()
         {
-            var headerStyle = GetHeaderStyle();
+            var headerStyle = Styles.HeaderStyle;
 
             EditorGUILayout.BeginVertical(headerStyle);
             {
@@ -1069,7 +944,7 @@ namespace NugetForUnity.Ui
                 };
                 EditorGUILayout.BeginHorizontal(style);
                 {
-                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, GetSearchFieldStyle(), GUILayout.Height(20));
+                    updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
 
                 EditorGUILayout.EndHorizontal();
