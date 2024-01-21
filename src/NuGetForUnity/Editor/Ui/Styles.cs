@@ -20,7 +20,7 @@ namespace NugetForUnity.Ui
             {
                 if (EditorGUIUtility.isProSkin)
                 {
-                    return new Color(0.33f, 0.33f, 0.33f);
+                    return new Color(0.05f, 0.05f, 0.05f);
                 }
                 else
                 {
@@ -35,7 +35,7 @@ namespace NugetForUnity.Ui
             {
                 if (EditorGUIUtility.isProSkin)
                 {
-                    return new Color(0.25f, 0.25f, 0.25f);
+                    return new Color(0.55f, 0.55f, 0.55f);
                 }
                 else
                 {
