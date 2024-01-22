@@ -627,8 +627,6 @@ namespace NugetForUnity.Ui
                 DrawPackages(availablePackages.Where(p => !selectedPackageInstalls.Contains(p)), true);
             }
 
-            EditorGUILayout.BeginVertical();
-
             GUILayout.Space(3f);
 
             // allow the user to display more results
@@ -648,8 +646,6 @@ namespace NugetForUnity.Ui
             }
 
             GUILayout.Space(4f);
-
-            EditorGUILayout.EndVertical();
 
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndScrollView();
@@ -708,9 +704,9 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawOnlineHeader()
         {
-            EditorGUILayout.BeginVertical(Styles.BackgroundStyle);
+            using (new EditorGUILayout.VerticalScope(Styles.BackgroundStyle))
             {
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
                 {
                     var showPrereleaseTemp = GUILayout.Toggle(
                         showOnlinePrerelease,
@@ -728,9 +724,7 @@ namespace NugetForUnity.Ui
                     DrawMandatoryButtons();
                 }
 
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
+                using (new EditorGUILayout.HorizontalScope(Styles.ToolbarStyle))
                 {
                     var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
@@ -751,11 +745,7 @@ namespace NugetForUnity.Ui
                         UpdateOnlinePackages();
                     }
                 }
-
-                EditorGUILayout.EndHorizontal();
             }
-
-            EditorGUILayout.EndVertical();
         }
 
         private void DrawSelectFromClipboardButton()
@@ -803,11 +793,9 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawInstalledHeader()
         {
-            var headerStyle = Styles.HeaderStyle;
-
-            EditorGUILayout.BeginVertical(headerStyle);
+            using (new EditorGUILayout.VerticalScope(Styles.HeaderStyle))
             {
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
                 {
                     GUILayout.FlexibleSpace();
 
@@ -834,17 +822,11 @@ namespace NugetForUnity.Ui
                     DrawMandatoryButtons();
                 }
 
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
+                using (new EditorGUILayout.HorizontalScope(Styles.ToolbarStyle))
                 {
                     installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
-
-                EditorGUILayout.EndHorizontal();
             }
-
-            EditorGUILayout.EndVertical();
         }
 
         /// <summary>
@@ -852,11 +834,9 @@ namespace NugetForUnity.Ui
         /// </summary>
         private void DrawUpdatesHeader()
         {
-            var headerStyle = Styles.HeaderStyle;
-
-            EditorGUILayout.BeginVertical(headerStyle);
+            using (new EditorGUILayout.VerticalScope(Styles.HeaderStyle))
             {
-                EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
                 {
                     var showPrereleaseTemp = GUILayout.Toggle(
                         showPrereleaseUpdates,
@@ -909,17 +889,11 @@ namespace NugetForUnity.Ui
                     DrawMandatoryButtons();
                 }
 
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
+                using (new EditorGUILayout.HorizontalScope(Styles.ToolbarStyle))
                 {
                     updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
-
-                EditorGUILayout.EndHorizontal();
             }
-
-            EditorGUILayout.EndVertical();
         }
 
         /// <summary>
