@@ -746,8 +746,6 @@ namespace NugetForUnity.Ui
                     // search only if the enter key is pressed
                     if (enterPressed)
                     {
-                        GUI.FocusControl(string.Empty);
-
                         // reset the number to skip
                         numberToSkip = 0;
                         UpdateOnlinePackages();
