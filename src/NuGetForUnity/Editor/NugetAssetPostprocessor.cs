@@ -31,6 +31,17 @@ namespace NugetForUnity
     /// </summary>
     public class NugetAssetPostprocessor : AssetPostprocessor
     {
+        private const string MaxSupportedRoslynVersion =
+#if UNITY_2022_3_OR_NEWER && !UNITY_2022_3_1 && !UNITY_2022_3_2 && !UNITY_2022_3_3 && !UNITY_2022_3_3 && !UNITY_2022_3_4 && !UNITY_2022_3_5 && !UNITY_2022_3_6 && !UNITY_2022_3_7 && !UNITY_2022_3_8 && !UNITY_2022_3_9 && !UNITY_2022_3_10 && !UNITY_2022_3_11
+            "4.3.0";
+#elif UNITY_2022_2_OR_NEWER
+            "4.1.0";
+#elif UNITY_2021_2_OR_NEWER
+            "3.8.0";
+#else
+            "";
+#endif
+
         /// <summary>
         ///     Folder used to store Roslyn-Analyzers inside NuGet packages.
         /// </summary>
@@ -39,12 +50,12 @@ namespace NugetForUnity
         /// <summary>
         ///     Folder of root before the version of analyzers was split.
         /// </summary>
-        private static readonly string AnalyzersRoslynVersionsFolderName = JoinPathComponents(AnalyzersFolderName, "dotnet");
+        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Combine(AnalyzersFolderName, "dotnet");
 
         /// <summary>
         ///     Prefix for roslyn versioning of dll asset path.
         /// </summary>
-        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = JoinPathComponents(AnalyzersRoslynVersionsFolderName, "roslyn");
+        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Combine(AnalyzersRoslynVersionsFolderName, "roslyn");
 
         /// <summary>
         ///     Used to mark an asset as already processed by this class.
@@ -152,7 +163,7 @@ namespace NugetForUnity
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
-                ModifyImportSettingsOfRoslynAnalyzer(plugin, assetPathComponents, reimport);
+                ModifyImportSettingsOfRoslynAnalyzer(plugin, reimport);
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
 
                 yield break;
@@ -171,12 +182,6 @@ namespace NugetForUnity
         private static string[] GetPathComponents([NotNull] string path)
         {
             return path.Split(Path.DirectorySeparatorChar);
-        }
-
-        [NotNull]
-        private static string JoinPathComponents([NotNull] params string[] pathComponents)
-        {
-            return string.Join(Path.DirectorySeparatorChar.ToString(), pathComponents);
         }
 
         private static bool AssetIsDllInsideNuGetRepository([NotNull] string absoluteAssetPath, [NotNull] string absoluteRepositoryPath)
@@ -205,12 +210,13 @@ namespace NugetForUnity
                 return null;
             }
 
-            return analyzerAssetPath.Substring(versionPrefixIndex + AnalyzersRoslynVersionSubFolderPrefix.Length)
-                .Split(Path.DirectorySeparatorChar)
-                .First();
+            var startIndex = versionPrefixIndex + AnalyzersRoslynVersionSubFolderPrefix.Length;
+            var separatorIndex = analyzerAssetPath.IndexOf(Path.DirectorySeparatorChar, startIndex);
+            var length = separatorIndex >= 0 ? separatorIndex - startIndex : analyzerAssetPath.Length - startIndex;
+            return analyzerAssetPath.Substring(startIndex, length);
         }
 
-        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, string[] relativeRepositoryPathComponents, bool reimport)
+        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, bool reimport)
         {
             plugin.SetCompatibleWithAnyPlatform(false);
             plugin.SetCompatibleWithEditor(false);
@@ -219,7 +225,7 @@ namespace NugetForUnity
                 plugin.SetExcludeFromAnyPlatform(platform, false);
             }
 
-            AssetDatabase.SetLabels(plugin, new[] { RoslynAnalyzerLabel, ProcessedLabel });
+            var enableRoslynAnalyzer = true;
 
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
@@ -227,37 +233,21 @@ namespace NugetForUnity
             if (assetRoslynVersion != null)
             {
                 var versionPrefixIndex = plugin.assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                var analyzersVersionsRoot = JoinPathComponents(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                var analyzersVersionsRoot = Path.Combine(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
                 var analyzersFolders = AssetDatabase.GetSubFolders(analyzersVersionsRoot);
 
-                var enabledRoslynVersions = analyzersFolders
-                    .Select(GetRoslynVersionNumberFromAnalyzerPath)
-                    .Where(ver =>
-                    {
-                        if (ver == null)
-                        {
-                            return false;
-                        }
-#if UNITY_2022_3_OR_NEWER && !UNITY_2022_3_1 && !UNITY_2022_3_2 && !UNITY_2022_3_3 && !UNITY_2022_3_3 && !UNITY_2022_3_4 && !UNITY_2022_3_5 && !UNITY_2022_3_6 && !UNITY_2022_3_7 && !UNITY_2022_3_8 && !UNITY_2022_3_9 && !UNITY_2022_3_10 && !UNITY_2022_3_11
-                        return string.CompareOrdinal(ver, "4.3.0") <= 0;
-#elif UNITY_2022_2_OR_NEWER
-                        return string.CompareOrdinal(ver, "4.1.0") <= 0;
-#elif UNITY_2021_2_OR_NEWER
-                        return string.CompareOrdinal(ver, "3.8.0") <= 0;
-#else
-                        return false;
-#endif
-                    })
+                var enabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
+                    .Where(version => version != null && string.CompareOrdinal(version, MaxSupportedRoslynVersion) <= 0)
                     .ToArray();
 
                 // If most recent valid analyzers exist elsewhere, remove label `RoslynAnalyzer`
-                if (!enabledRoslynVersions.Contains(assetRoslynVersion) ||
-                    string.CompareOrdinal(assetRoslynVersion, enabledRoslynVersions.Max()) < 0)
+                if (!enabledRoslynVersions.Contains(assetRoslynVersion) || string.CompareOrdinal(assetRoslynVersion, enabledRoslynVersions.Max()) < 0)
                 {
-                    AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
+                    enableRoslynAnalyzer = false;
                 }
             }
 
+            AssetDatabase.SetLabels(plugin, enableRoslynAnalyzer ? new[] { RoslynAnalyzerLabel, ProcessedLabel } : new[] { ProcessedLabel });
 
             if (reimport)
             {
