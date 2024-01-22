@@ -1165,7 +1165,7 @@ namespace NugetForUnity.Ui
 
                     var summaryRect = EditorGUILayout.GetControlRect(
                             true,
-                            labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth - 10f) + 5f)
+                            labelStyle.CalcHeight(new GUIContent(summary), EditorGUIUtility.currentViewWidth - 20f) + 5f)
                         .AddX(10f);
                     EditorGUI.LabelField(summaryRect, summary, labelStyle);
 
@@ -1190,7 +1190,7 @@ namespace NugetForUnity.Ui
                             var descriptionContent = new GUIContent(package.Description);
                             var descriptionRect = EditorGUILayout.GetControlRect(
                                 true,
-                                labelStyle.CalcHeight(descriptionContent, EditorGUIUtility.currentViewWidth - 10f) + 12f);
+                                labelStyle.CalcHeight(descriptionContent, EditorGUIUtility.currentViewWidth - 20f) + 12f);
                             EditorGUI.LabelField(descriptionRect, descriptionContent, labelStyle);
                             GUILayout.Space(4f);
                         }
