@@ -372,8 +372,7 @@ namespace NugetForUnity.Ui
 
         private static void DrawNoDataAvailableInfo(string message)
         {
-            var labelStyle = new GUIStyle(EditorStyles.label) { fontStyle = FontStyle.Bold, fontSize = 12 };
-            EditorGUILayout.LabelField(message, labelStyle, GUILayout.Height(20));
+            EditorGUILayout.LabelField(message, Styles.BoldLabelStyle, GUILayout.Height(20));
         }
 
         /// <summary>
@@ -731,8 +730,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
-                EditorGUILayout.BeginHorizontal(style);
+                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
                 {
                     var enterPressed = Event.current.Equals(Event.KeyboardEvent("return"));
 
@@ -840,8 +838,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
-                EditorGUILayout.BeginHorizontal(style);
+                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
                 {
                     installedSearchTerm = EditorGUILayout.TextField(installedSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
@@ -916,8 +913,7 @@ namespace NugetForUnity.Ui
 
                 EditorGUILayout.EndHorizontal();
 
-                var style = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
-                EditorGUILayout.BeginHorizontal(style);
+                EditorGUILayout.BeginHorizontal(Styles.ToolbarStyle);
                 {
                     updatesSearchTerm = EditorGUILayout.TextField(updatesSearchTerm, Styles.SearchFieldStyle, GUILayout.Height(20));
                 }
@@ -1024,8 +1020,7 @@ namespace NugetForUnity.Ui
                     // text is allowed to get the half of the available space rest is for buttons and version label
                     rect.width = (position.width - rect.x) / 2;
 
-                    var labelStyle = new GUIStyle(EditorStyles.label) { fontStyle = FontStyle.Bold, fontSize = 15 };
-
+                    var labelStyle = Styles.PackageNameLabelStyle;
                     var idSize = labelStyle.CalcSize(new GUIContent(package.Id));
                     GUI.Label(rect, package.Id, labelStyle);
                     rect.x += Mathf.Min(idSize.x, rect.width) + paddingX;
@@ -1150,10 +1145,7 @@ namespace NugetForUnity.Ui
             // authors
             {
                 var rect = EditorGUILayout.GetControlRect().AddX(10f);
-                var labelStyle = new GUIStyle(EditorStyles.label) { fontSize = 10, fontStyle = FontStyle.Normal };
-                labelStyle.normal.textColor = Styles.AuthorsTextColor;
-                labelStyle.focused.textColor = Styles.AuthorsTextColor;
-                labelStyle.hover.textColor = Styles.AuthorsTextColor;
+                var labelStyle = Styles.AuthorsLabelStyle;
 
                 rect.y += labelStyle.fontSize / 2f;
 
@@ -1179,10 +1171,7 @@ namespace NugetForUnity.Ui
                 using (new EditorGUILayout.VerticalScope())
                 {
                     // Show the package details
-                    var labelStyle = new GUIStyle(EditorStyles.label)
-                    {
-                        wordWrap = true, fontStyle = FontStyle.Normal, alignment = TextAnchor.UpperLeft,
-                    };
+                    var labelStyle = Styles.DescriptionLabelStyle;
 
                     var summary = package.Summary;
                     if (string.IsNullOrEmpty(summary))
@@ -1263,6 +1252,7 @@ namespace NugetForUnity.Ui
                                 }
 
                                 EditorGUILayout.LabelField(builder.ToString(), labelStyle);
+                                labelStyle.fontStyle = FontStyle.Normal;
                             }
                         }
                         else

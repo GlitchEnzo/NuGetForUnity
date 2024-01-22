@@ -12,9 +12,19 @@ namespace NugetForUnity.Ui
 
         private static GUIStyle cachedHeaderStyle;
 
+        private static GUIStyle cachedToolbarStyle;
+
         private static GUIStyle cachedBackgroundStyle;
 
+        private static GUIStyle cachedBoldLabelStyle;
+
+        private static GUIStyle cachedAuthorsLabelStyle;
+
+        private static GUIStyle cachedDescriptionLabelStyle;
+
         private static GUIStyle cachedLinkLabelStyle;
+
+        private static GUIStyle cachedPackageNameLabelStyle;
 
         /// <summary>
         ///     Gets the color used for lines used as seperators.
@@ -107,7 +117,28 @@ namespace NugetForUnity.Ui
         }
 
         /// <summary>
-        ///     Gets the GUI style used for the package seach field.
+        ///     Gets the GUI style used for the toolbar of the NuGet window.
+        /// </summary>
+        public static GUIStyle ToolbarStyle
+        {
+            get
+            {
+                if (cachedToolbarStyle != null)
+                {
+                    return cachedToolbarStyle;
+                }
+
+                cachedToolbarStyle = new GUIStyle(EditorStyles.toolbar)
+                {
+                    fixedHeight = 25f,
+                };
+
+                return cachedToolbarStyle;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the GUI style used for the package search field.
         /// </summary>
         public static GUIStyle SearchFieldStyle
         {
@@ -122,6 +153,99 @@ namespace NugetForUnity.Ui
                 cachedSearchFieldStyle = new GUIStyle(original) { fontSize = 12, fixedHeight = 20f };
 
                 return cachedSearchFieldStyle;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the GUI style used for bold labels.
+        /// </summary>
+        public static GUIStyle BoldLabelStyle
+        {
+            get
+            {
+                if (cachedBoldLabelStyle != null)
+                {
+                    return cachedBoldLabelStyle;
+                }
+
+                cachedBoldLabelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold,
+                };
+
+                return cachedBoldLabelStyle;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the GUI style used for authors labels.
+        /// </summary>
+        public static GUIStyle AuthorsLabelStyle
+        {
+            get
+            {
+                if (cachedAuthorsLabelStyle != null)
+                {
+                    return cachedAuthorsLabelStyle;
+                }
+
+                cachedAuthorsLabelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = 10,
+                    fontStyle = FontStyle.Normal,
+                };
+
+                cachedAuthorsLabelStyle.normal.textColor = AuthorsTextColor;
+                cachedAuthorsLabelStyle.focused.textColor = AuthorsTextColor;
+                cachedAuthorsLabelStyle.hover.textColor = AuthorsTextColor;
+
+                return cachedAuthorsLabelStyle;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the GUI style used for description labels.
+        /// </summary>
+        public static GUIStyle DescriptionLabelStyle
+        {
+            get
+            {
+                if (cachedDescriptionLabelStyle != null)
+                {
+                    return cachedDescriptionLabelStyle;
+                }
+
+                cachedDescriptionLabelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    wordWrap = true,
+                    fontStyle = FontStyle.Normal,
+                    alignment = TextAnchor.UpperLeft,
+                };
+
+                return cachedDescriptionLabelStyle;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the GUI style used for package name labels.
+        /// </summary>
+        public static GUIStyle PackageNameLabelStyle
+        {
+            get
+            {
+                if (cachedPackageNameLabelStyle != null)
+                {
+                    return cachedPackageNameLabelStyle;
+                }
+
+                cachedPackageNameLabelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = 15,
+                    fontStyle = FontStyle.Bold,
+                };
+
+                return cachedPackageNameLabelStyle;
             }
         }
 
