@@ -166,6 +166,8 @@ namespace NugetForUnity.Ui
         /// </summary>
         private string updatesSearchTerm;
 
+        private StringBuilder cachedStringBuilder = new StringBuilder();
+
         /// <summary>
         ///     Gets the filtered list of package updates available.
         /// </summary>
@@ -1216,14 +1218,14 @@ namespace NugetForUnity.Ui
                             {
                                 EditorGUILayout.LabelField("Dependencies", EditorStyles.boldLabel);
                                 labelStyle.fontStyle = FontStyle.Italic;
-                                var builder = new StringBuilder();
+                                cachedStringBuilder.Clear();
 
                                 foreach (var dependency in frameworkDependencies)
                                 {
-                                    builder.AppendLine($"{dependency.Id} {dependency.Version};");
+                                    cachedStringBuilder.AppendLine($"{dependency.Id} {dependency.Version}");
                                 }
 
-                                EditorGUILayout.LabelField(builder.ToString(), labelStyle);
+                                EditorGUILayout.LabelField(cachedStringBuilder.ToString(), labelStyle);
                                 labelStyle.fontStyle = FontStyle.Normal;
                             }
                         }
