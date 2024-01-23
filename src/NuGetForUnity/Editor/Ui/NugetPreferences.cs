@@ -172,14 +172,40 @@ namespace NugetForUnity.Ui
                     }
                 }
             }
-
+            
             if (shouldShowPackagesConfigPathWarning)
             {
                 EditorGUILayout.HelpBox(
                     "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
                     MessageType.Warning);
             }
+            
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                var repositoryPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
 
+                GUILayout.Label(
+                    new GUIContent("Repository path:", $"Absolute path: {repositoryPath}"),
+                    GUILayout.Width(EditorGUIUtility.labelWidth));
+                GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativeRepositoryPath);
+                if (GUILayout.Button("Create NuGetAssets Directory", GUILayout.Width(200)))
+                {
+                    InstalledPackagesManager.CreateNuGetAssetsDirectory();
+                }
+                if (GUILayout.Button("Browse", GUILayout.Width(100)))
+                {
+                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", repositoryPath, string.Empty);
+
+                    if (!string.IsNullOrEmpty(newPath) && newPath != repositoryPath)
+                    {
+                        InstalledPackagesManager.Move(newPath);
+                        preferencesChangedThisFrame = true;
+                    }
+                }
+                
+                
+            }
+            
             var requestTimeout = EditorGUILayout.IntField(
                 new GUIContent(
                     "Request Timeout in seconds",

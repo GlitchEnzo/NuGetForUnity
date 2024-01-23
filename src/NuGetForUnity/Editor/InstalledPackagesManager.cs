@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
+using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
@@ -377,6 +378,90 @@ namespace NugetForUnity
             {
                 Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
             }
+        }
+
+        internal static void CreateNuGetAssetsDirectory()
+        {
+            var nugetAssetsPath = Path.Combine(UnityPathHelper.AbsoluteProjectPath,Path.Combine("Packages","NuGetAssets"));
+            
+            if (!Directory.Exists(nugetAssetsPath))
+            {
+                Directory.CreateDirectory(nugetAssetsPath);
+            }
+
+            var packageJsonPath = Path.Combine(nugetAssetsPath, "package.json");
+            if (!File.Exists(packageJsonPath))
+                File.WriteAllText(packageJsonPath,
+                    @"{ ""name"": ""com.dummy.nugetassets"",""version"": ""1.0.0"",""displayName"": ""NuGetAssets"", ""description"": ""NuGetAssets"", ""dependencies"": {}}", new System.Text.UTF8Encoding());
+
+        }
+        
+         /// <summary>
+        /// </summary>
+        /// <param name="newPath">Path to move packages.config file to.</param>
+        internal static void Move([NotNull] string newPath)
+        {
+            var nugetConfig = ConfigurationManager.NugetConfigFile;
+            var oldPath = nugetConfig.RepositoryPath;
+            var keys = InstalledPackagesDictionary.Keys;
+            // foreach (var s in keys)
+            // {
+            //     Debug.Log(s);
+            // }
+            var dirs = Directory.GetDirectories(oldPath);
+            try
+            {
+                foreach (var subDir in dirs)
+                {
+                    var relativePath = subDir.Split(Path.DirectorySeparatorChar).Last();
+                    if (keys.All(x =>!relativePath.Contains(x)))
+                    {
+                        Debug.Log(relativePath);
+                        break;
+                    }
+                  
+                    var newPath1 = Path.Combine(newPath,relativePath);
+                    //Debug.Log(newPath1);
+                    Directory.Move(subDir,newPath1);
+                }
+            }
+            catch (Exception e)
+            {
+                // usually unauthorized access or IO exception (trying to move to a folder where the same file exists)
+                Debug.LogException(e);
+                return;
+            }
+            //return;
+         
+            foreach (var subDir in dirs)
+            {
+                var relativePath = subDir.Split(Path.DirectorySeparatorChar).Last();
+                if (keys.All(x =>!relativePath.Contains(x)))
+                {
+                    Debug.Log(relativePath);
+                    break;
+                }
+                if(Directory.Exists(subDir))
+                    Directory.Delete(subDir);
+            
+                // also delete its meta file if it exists
+                if (File.Exists(Path.Combine(oldPath,$"{relativePath}.meta")))
+                {
+                    File.Delete(Path.Combine(oldPath,$"{relativePath}.meta"));
+                }
+            }
+            // if the old path is now an empty directory, delete it
+            if (!Directory.EnumerateFileSystemEntries(oldPath).Any())
+            {
+                Directory.Delete(oldPath);
+
+                // also delete its meta file if it exists
+                if (File.Exists($"{oldPath}.meta"))
+                {
+                    File.Delete($"{oldPath}.meta");
+                }
+            }
+            nugetConfig.RepositoryPath = newPath;
         }
     }
 }
