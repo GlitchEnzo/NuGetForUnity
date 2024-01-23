@@ -359,27 +359,10 @@ namespace NugetForUnity
 
             return roots;
         }
-
-        private static void AddPackageToInstalledInternal([NotNull] INugetPackage package, ref int manuallyInstalledPackagesNumber)
-        {
-            var packages = InstalledPackagesDictionary;
-            if (!packages.ContainsKey(package.Id))
-            {
-                PluginRegistry.Instance.ProcessInstalledPackage(package);
-                package.IsManuallyInstalled = GetPackageConfigurationById(package.Id)?.IsManuallyInstalled ?? false;
-                if (package.IsManuallyInstalled)
-                {
-                    manuallyInstalledPackagesNumber++;
-                }
-
-                packages.Add(package.Id, package);
-            }
-            else
-            {
-                Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
-            }
-        }
-
+        
+        /// <summary>
+        ///     Create /Packages/NuGetAssets Directory
+        /// </summary>
         internal static void CreateNuGetAssetsDirectory()
         {
             var nugetAssetsPath = Path.Combine(UnityPathHelper.AbsoluteProjectPath,Path.Combine("Packages","NuGetAssets"));
@@ -391,37 +374,35 @@ namespace NugetForUnity
 
             var packageJsonPath = Path.Combine(nugetAssetsPath, "package.json");
             if (!File.Exists(packageJsonPath))
+            {
                 File.WriteAllText(packageJsonPath,
-                    @"{ ""name"": ""com.dummy.nugetassets"",""version"": ""1.0.0"",""displayName"": ""NuGetAssets"", ""description"": ""NuGetAssets"", ""dependencies"": {}}", new System.Text.UTF8Encoding());
-
+                    @"{ ""name"": ""com.dummy.nugetassets"",""version"": ""1.0.0"",""displayName"": ""NuGetAssets"", ""description"": ""NuGetAssets"", ""dependencies"": {}}",
+                    new System.Text.UTF8Encoding());
+            }
         }
         
          /// <summary>
+         ///     Move installed packages
         /// </summary>
-        /// <param name="newPath">Path to move packages.config file to.</param>
+        /// <param name="newPath">Path to move installed packages to.</param>
         internal static void Move([NotNull] string newPath)
         {
             var nugetConfig = ConfigurationManager.NugetConfigFile;
             var oldPath = nugetConfig.RepositoryPath;
-            var keys = InstalledPackagesDictionary.Keys;
-            // foreach (var s in keys)
-            // {
-            //     Debug.Log(s);
-            // }
+            var installedPackageIds = InstalledPackagesDictionary.Keys;
             var dirs = Directory.GetDirectories(oldPath);
             try
             {
                 foreach (var subDir in dirs)
                 {
                     var relativePath = subDir.Split(Path.DirectorySeparatorChar).Last();
-                    if (keys.All(x =>!relativePath.Contains(x)))
+                    if (installedPackageIds.All(x =>!relativePath.Contains(x)))
                     {
                         Debug.Log(relativePath);
                         break;
                     }
                   
                     var newPath1 = Path.Combine(newPath,relativePath);
-                    //Debug.Log(newPath1);
                     Directory.Move(subDir,newPath1);
                 }
             }
@@ -431,18 +412,20 @@ namespace NugetForUnity
                 Debug.LogException(e);
                 return;
             }
-            //return;
          
             foreach (var subDir in dirs)
             {
                 var relativePath = subDir.Split(Path.DirectorySeparatorChar).Last();
-                if (keys.All(x =>!relativePath.Contains(x)))
+                if (installedPackageIds.All(x =>!relativePath.Contains(x)))
                 {
                     Debug.Log(relativePath);
                     break;
                 }
+                
                 if(Directory.Exists(subDir))
+                {
                     Directory.Delete(subDir);
+                }
             
                 // also delete its meta file if it exists
                 if (File.Exists(Path.Combine(oldPath,$"{relativePath}.meta")))
@@ -461,7 +444,28 @@ namespace NugetForUnity
                     File.Delete($"{oldPath}.meta");
                 }
             }
+            
             nugetConfig.RepositoryPath = newPath;
+        }
+         
+        private static void AddPackageToInstalledInternal([NotNull] INugetPackage package, ref int manuallyInstalledPackagesNumber)
+        {
+            var packages = InstalledPackagesDictionary;
+            if (!packages.ContainsKey(package.Id))
+            {
+                PluginRegistry.Instance.ProcessInstalledPackage(package);
+                package.IsManuallyInstalled = GetPackageConfigurationById(package.Id)?.IsManuallyInstalled ?? false;
+                if (package.IsManuallyInstalled)
+                {
+                    manuallyInstalledPackagesNumber++;
+                }
+
+                packages.Add(package.Id, package);
+            }
+            else
+            {
+                Debug.LogErrorFormat("Package is already in installed list: {0}", package.Id);
+            }
         }
     }
 }

@@ -87,25 +87,24 @@ namespace NugetForUnity.Configuration
         ///     The underlying absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
-        private string underlyingRepositoryPath= Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
+        private string underlyingRepositoryPath { get; set; } = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
         
         /// <summary>
         ///     Gets the absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
-        public string RepositoryPath { get=>underlyingRepositoryPath;
-             set => underlyingRepositoryPath = savedRepositoryPath = value;
+        public string RepositoryPath 
+        { 
+            get=>underlyingRepositoryPath;
+            set => underlyingRepositoryPath = savedRepositoryPath = value;
         }
 
         /// <summary>
         ///     Gets the relative path to directory where packages are to be installed. The path is relative to the folder containing the 'NuGet.config' file.
         /// </summary>
         [NotNull]
-        public string RelativeRepositoryPath
-        {
-            get => PathHelper.GetRelativePath(Application.dataPath, RepositoryPath);
-            private set => savedRepositoryPath=RepositoryPath = Path.GetFullPath(Path.Combine(Application.dataPath, value));
-        }
+        public string RelativeRepositoryPath => PathHelper.GetRelativePath(Application.dataPath, RepositoryPath);
+
         /// <summary>
         ///     Gets the default package source to push NuGet packages to.
         /// </summary>
