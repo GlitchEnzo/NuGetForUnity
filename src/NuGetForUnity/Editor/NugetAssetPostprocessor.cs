@@ -229,10 +229,11 @@ namespace NugetForUnity
 
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
-            var assetRoslynVersion = GetRoslynVersionNumberFromAnalyzerPath(plugin.assetPath);
+            var assetPath = Path.GetFullPath(plugin.assetPath);
+            var assetRoslynVersion = GetRoslynVersionNumberFromAnalyzerPath(assetPath);
             if (assetRoslynVersion != null)
             {
-                var versionPrefixIndex = plugin.assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
+                var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
                 var analyzersVersionsRoot = Path.Combine(plugin.assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
                 var analyzersFolders = AssetDatabase.GetSubFolders(analyzersVersionsRoot);
 
