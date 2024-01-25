@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using UnityEngine;
 
 #region No ReShaper
@@ -51,6 +52,45 @@ namespace NugetForUnity.Helper
         {
             var assetsRelativePath = GetAssetsRelativePath(path);
             return !Path.IsPathRooted(assetsRelativePath) && !assetsRelativePath.StartsWith("..", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        ///     Checks if given relative path is a valid for packages installations.
+        /// </summary>
+        /// <param name="path">Relative path to check.</param>
+        /// <returns>True if path is within Assets folder or Packages subfolder, false otherwise.</returns>
+        internal static bool IsValidInstallPath([NotNull] string path)
+        {
+            if (!Path.IsPathRooted(path) && !path.StartsWith("..", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return path.Length > "../Packages/".Length && path.StartsWith("../Packages/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Ensures that the package install directory exists and in case it is under Unity's
+        /// Packages folder that it contains a dummy package.json file so that Unity can see it.
+        /// </summary>
+        internal static void EnsurePackageInstallDirIsSetup()
+        {
+            var relativePath = ConfigurationManager.NugetConfigFile.RelativeRepositoryPath;
+
+            Directory.CreateDirectory(ConfigurationManager.NugetConfigFile.RepositoryPath);
+
+            if (relativePath.Length <= "../Packages/".Length || !relativePath.StartsWith("../Packages/", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var jsonPath = Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, "package.json");
+            if (!File.Exists(jsonPath))
+            {
+                File.WriteAllText(
+                    jsonPath,
+                    @"{ ""name"": ""com.dummy.nugetpackages"",""version"": ""1.0.0"",""displayName"": ""NuGetPackages"", ""description"": ""NuGetPackages"", ""dependencies"": {}}");
+            }
         }
 
         /// <summary>

@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -108,6 +109,7 @@ namespace NugetForUnity.Ui
 
             var preferencesChangedThisFrame = false;
             var sourcePathChangedThisFrame = false;
+            var needsAssetRefresh = false;
 
             var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Request Timeout in seconds")).x;
             EditorGUIUtility.labelWidth = biggestLabelSize;
@@ -151,6 +153,48 @@ namespace NugetForUnity.Ui
 
             using (new EditorGUILayout.HorizontalScope())
             {
+                var repositoryPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
+
+                GUILayout.Label(
+                    new GUIContent("Packages Install path:", $"Absolute path: {repositoryPath}"),
+                    GUILayout.Width(EditorGUIUtility.labelWidth));
+                GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativeRepositoryPath);
+
+                if (GUILayout.Button("Browse", GUILayout.Width(100)))
+                {
+                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", repositoryPath, string.Empty);
+                    if (!string.IsNullOrEmpty(newPath))
+                    {
+                        var newRelativePath = PathHelper.GetRelativePath(Application.dataPath, newPath);
+                        if (string.Equals(newRelativePath, @"..\Packages", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(newRelativePath, "../Packages", StringComparison.OrdinalIgnoreCase))
+                        {
+                            newRelativePath = Path.Combine(newRelativePath, "NuGetPackages");
+                            newPath = Path.Combine(newPath, "NuGetPackages");
+                        }
+
+                        // We need to make sure saved path is using forward slashes so it works on all systems
+                        newRelativePath = newRelativePath.Replace('\\', '/');
+
+                        if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
+                        {
+                            PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
+                            ConfigurationManager.NugetConfigFile.RelativeRepositoryPath = newRelativePath;
+                            UnityPathHelper.EnsurePackageInstallDirIsSetup();
+                            preferencesChangedThisFrame = true;
+                            needsAssetRefresh = true;
+                        }
+                        else if (newPath != repositoryPath)
+                        {
+                            Debug.LogError(
+                                $"Packages install path {newPath} {newRelativePath} is not valid. It must be somewhere under Assets or Packages folder.");
+                        }
+                    }
+                }
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
                 var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
 
                 GUILayout.Label(
@@ -169,6 +213,7 @@ namespace NugetForUnity.Ui
 
                         PackagesConfigFile.Move(newPath);
                         preferencesChangedThisFrame = true;
+                        needsAssetRefresh = true;
                     }
                 }
             }
@@ -488,6 +533,11 @@ namespace NugetForUnity.Ui
                 // we need to force reload as the changed 'url' can lead to a package source type change.
                 // e.g. the 'url' can be changed to a V3 nuget API url so we need to create a V3 package source.
                 ConfigurationManager.LoadNugetConfigFile();
+            }
+
+            if (needsAssetRefresh)
+            {
+                AssetDatabase.Refresh();
             }
         }
 

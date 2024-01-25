@@ -159,7 +159,7 @@ namespace NugetForUnity
 
                 if (File.Exists(cachedPackagePath))
                 {
-                    var baseDirectory = Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
+                    var baseDirectory = package.GetPackageInstallPath();
 
                     // unzip the package
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))

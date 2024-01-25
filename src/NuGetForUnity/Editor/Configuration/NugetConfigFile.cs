@@ -60,11 +60,8 @@ namespace NugetForUnity.Configuration
 
         private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
 
-        /// <summary>
-        ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
-        /// </summary>
-        [CanBeNull]
-        private string savedRepositoryPath;
+        [NotNull]
+        private string relativeRepositoryPath = "Packages";
 
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
@@ -88,6 +85,29 @@ namespace NugetForUnity.Configuration
         /// </summary>
         [NotNull]
         public string RepositoryPath { get; private set; } = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
+
+        /// <summary>
+        ///     Gets or sets the incomplete path that is saved.  The path is expanded and made public via the property above.
+        /// </summary>
+        [NotNull]
+        public string RelativeRepositoryPath
+        {
+            get => relativeRepositoryPath;
+
+            set
+            {
+                relativeRepositoryPath = value;
+
+                var repositoryPath = Environment.ExpandEnvironmentVariables(value);
+
+                if (!Path.IsPathRooted(repositoryPath))
+                {
+                    repositoryPath = Path.Combine(Application.dataPath, repositoryPath);
+                }
+
+                RepositoryPath = Path.GetFullPath(repositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            }
+        }
 
         /// <summary>
         ///     Gets the default package source to push NuGet packages to.
@@ -299,16 +319,7 @@ namespace NugetForUnity.Configuration
 
                 if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                 {
-                    configFile.savedRepositoryPath = value;
-                    configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
-
-                    if (!Path.IsPathRooted(configFile.RepositoryPath))
-                    {
-                        configFile.RepositoryPath = Path.Combine(Application.dataPath, configFile.RepositoryPath);
-                    }
-
-                    configFile.RepositoryPath = Path.GetFullPath(
-                        configFile.RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                    configFile.RelativeRepositoryPath = value;
                 }
                 else if (string.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
                 {
@@ -454,12 +465,12 @@ namespace NugetForUnity.Configuration
 
             var config = new XElement("config");
 
-            if (!string.IsNullOrEmpty(savedRepositoryPath))
+            if (!string.IsNullOrEmpty(RelativeRepositoryPath))
             {
                 // save the un-expanded repository path
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "repositoryPath"));
-                addElement.Add(new XAttribute("value", savedRepositoryPath));
+                addElement.Add(new XAttribute("value", RelativeRepositoryPath));
                 config.Add(addElement);
             }
 
