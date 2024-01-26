@@ -162,21 +162,19 @@ namespace NugetForUnity.Ui
 
                 if (GUILayout.Button("Browse", GUILayout.Width(100)))
                 {
-                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", repositoryPath, string.Empty);
+                    var newPath = EditorUtility.OpenFolderPanel("Select folder where packages will be installed", repositoryPath, string.Empty);
                     if (!string.IsNullOrEmpty(newPath))
                     {
                         var newRelativePath = PathHelper.GetRelativePath(Application.dataPath, newPath);
-                        if (string.Equals(newRelativePath, @"..\Packages", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(newRelativePath, "../Packages", StringComparison.OrdinalIgnoreCase))
-                        {
-                            newRelativePath = Path.Combine(newRelativePath, "NuGetPackages");
-                            newPath = Path.Combine(newPath, "NuGetPackages");
-                        }
 
                         // We need to make sure saved path is using forward slashes so it works on all systems
                         newRelativePath = newRelativePath.Replace('\\', '/');
 
-                        if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
+                        if (string.Equals(newRelativePath, "../Packages", StringComparison.OrdinalIgnoreCase))
+                        {
+                            EditorUtility.DisplayDialog("Error", "You must create and select a subfolder since Packages folder can't be used directly.", "OK");
+                        }
+                        else if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
                         {
                             PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
                             ConfigurationManager.NugetConfigFile.RelativeRepositoryPath = newRelativePath;
