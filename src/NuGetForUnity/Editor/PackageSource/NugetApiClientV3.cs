@@ -45,7 +45,11 @@ namespace NugetForUnity.PackageSource
         [NonSerialized]
         [NotNull]
         private readonly HttpClient httpClient = new HttpClient(
-            new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate });
+            new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                Proxy = WebRequest.DefaultWebProxy
+            });
 
         [NonSerialized]
         [CanBeNull]
