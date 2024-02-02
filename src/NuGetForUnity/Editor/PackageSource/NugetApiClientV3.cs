@@ -48,7 +48,9 @@ namespace NugetForUnity.PackageSource
             new HttpClientHandler
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                Proxy = WebRequest.DefaultWebProxy
+#if UNITY_EDITOR_WIN
+                Proxy = WebRequest.GetSystemWebProxy(),
+#endif
             });
 
         [NonSerialized]
