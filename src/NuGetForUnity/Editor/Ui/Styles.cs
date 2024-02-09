@@ -128,10 +128,7 @@ namespace NugetForUnity.Ui
                     return cachedToolbarStyle;
                 }
 
-                cachedToolbarStyle = new GUIStyle(EditorStyles.toolbar)
-                {
-                    fixedHeight = 25f,
-                };
+                cachedToolbarStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 25f };
 
                 return cachedToolbarStyle;
             }
@@ -168,11 +165,7 @@ namespace NugetForUnity.Ui
                     return cachedBoldLabelStyle;
                 }
 
-                cachedBoldLabelStyle = new GUIStyle(EditorStyles.label)
-                {
-                    fontSize = 12,
-                    fontStyle = FontStyle.Bold,
-                };
+                cachedBoldLabelStyle = new GUIStyle(EditorStyles.label) { fontSize = 12, fontStyle = FontStyle.Bold };
 
                 return cachedBoldLabelStyle;
             }
@@ -190,11 +183,7 @@ namespace NugetForUnity.Ui
                     return cachedAuthorsLabelStyle;
                 }
 
-                cachedAuthorsLabelStyle = new GUIStyle(EditorStyles.label)
-                {
-                    fontSize = 10,
-                    fontStyle = FontStyle.Normal,
-                };
+                cachedAuthorsLabelStyle = new GUIStyle(EditorStyles.label) { fontSize = 10, fontStyle = FontStyle.Normal };
 
                 cachedAuthorsLabelStyle.normal.textColor = AuthorsTextColor;
                 cachedAuthorsLabelStyle.focused.textColor = AuthorsTextColor;
@@ -218,9 +207,7 @@ namespace NugetForUnity.Ui
 
                 cachedDescriptionLabelStyle = new GUIStyle(EditorStyles.label)
                 {
-                    wordWrap = true,
-                    fontStyle = FontStyle.Normal,
-                    alignment = TextAnchor.UpperLeft,
+                    wordWrap = true, fontStyle = FontStyle.Normal, alignment = TextAnchor.UpperLeft,
                 };
 
                 return cachedDescriptionLabelStyle;
@@ -239,11 +226,7 @@ namespace NugetForUnity.Ui
                     return cachedPackageNameLabelStyle;
                 }
 
-                cachedPackageNameLabelStyle = new GUIStyle(EditorStyles.label)
-                {
-                    fontSize = 15,
-                    fontStyle = FontStyle.Bold,
-                };
+                cachedPackageNameLabelStyle = new GUIStyle(EditorStyles.label) { fontSize = 15, fontStyle = FontStyle.Bold };
 
                 return cachedPackageNameLabelStyle;
             }

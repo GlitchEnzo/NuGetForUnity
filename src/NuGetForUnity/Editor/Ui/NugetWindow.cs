@@ -73,6 +73,8 @@ namespace NugetForUnity.Ui
         /// </summary>
         private List<INugetPackage> availablePackages = new List<INugetPackage>();
 
+        private readonly StringBuilder cachedStringBuilder = new StringBuilder();
+
         /// <summary>
         ///     The currently selected tab in the window.
         /// </summary>
@@ -165,8 +167,6 @@ namespace NugetForUnity.Ui
         ///     The search term to search the update packages for.
         /// </summary>
         private string updatesSearchTerm;
-
-        private StringBuilder cachedStringBuilder = new StringBuilder();
 
         /// <summary>
         ///     Gets the filtered list of package updates available.
