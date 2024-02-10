@@ -22,6 +22,8 @@ namespace NugetForUnity.Ui
     /// </summary>
     public class NugetWindow : EditorWindow, ISerializationCallbackReceiver
     {
+        private readonly StringBuilder cachedStringBuilder = new StringBuilder();
+
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>
@@ -72,8 +74,6 @@ namespace NugetForUnity.Ui
         ///     The list of NugetPackages available to install.
         /// </summary>
         private List<INugetPackage> availablePackages = new List<INugetPackage>();
-
-        private readonly StringBuilder cachedStringBuilder = new StringBuilder();
 
         /// <summary>
         ///     The currently selected tab in the window.
