@@ -82,24 +82,16 @@ namespace NugetForUnity.PackageSource
 
             apiIndexJsonUrl = new Uri(url);
 
-            InitializeFromSessionState();
-
-            // On Windows, Mono HttpClient does not automatically pick up proxy settings.
+            var handler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
             if (Application.platform == RuntimePlatform.WindowsEditor)
             {
-                httpClient = new HttpClient(new HttpClientHandler
-                {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                    Proxy = WebRequest.GetSystemWebProxy()
-                });
+                // On Windows, Mono HttpClient does not automatically pick up proxy settings.
+                handler.Proxy = WebRequest.GetSystemWebProxy();
             }
-            else
-            {
-                httpClient = new HttpClient(new HttpClientHandler
-                {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-                });
-            }
+
+            httpClient = new HttpClient(handler);
+
+            InitializeFromSessionState();
         }
 
         /// <summary>
