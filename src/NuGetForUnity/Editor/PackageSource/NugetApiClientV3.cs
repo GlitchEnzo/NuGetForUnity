@@ -44,14 +44,7 @@ namespace NugetForUnity.PackageSource
 
         [NonSerialized]
         [NotNull]
-        private readonly HttpClient httpClient = new HttpClient(
-            new HttpClientHandler
-            {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-#if UNITY_EDITOR_WIN
-                Proxy = WebRequest.GetSystemWebProxy(),
-#endif
-            });
+        private readonly HttpClient httpClient;
 
         [NonSerialized]
         [CanBeNull]
@@ -90,6 +83,23 @@ namespace NugetForUnity.PackageSource
             apiIndexJsonUrl = new Uri(url);
 
             InitializeFromSessionState();
+
+            // On Windows, Mono HttpClient does not automatically pick up proxy settings.
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+            {
+                httpClient = new HttpClient(new HttpClientHandler
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    Proxy = WebRequest.GetSystemWebProxy()
+                });
+            }
+            else
+            {
+                httpClient = new HttpClient(new HttpClientHandler
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                });
+            }
         }
 
         /// <summary>
