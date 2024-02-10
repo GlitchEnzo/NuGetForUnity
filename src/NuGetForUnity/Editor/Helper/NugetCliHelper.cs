@@ -184,7 +184,7 @@ namespace NugetForUnity.Helper
                     using (var process = Process.Start(
                                              new ProcessStartInfo("which", commandLineToolName)
                                              {
-                                                 RedirectStandardOutput = true, StandardOutputEncoding = outputEncoding,
+                                                 RedirectStandardOutput = true, StandardOutputEncoding = outputEncoding, UseShellExecute = false,
                                              }) ??
                                          throw new InvalidOperationException("Failed to start process."))
                     {
