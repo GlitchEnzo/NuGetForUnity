@@ -8,6 +8,7 @@ using System.Reflection;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
+using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -31,17 +32,6 @@ namespace NugetForUnity
     /// </summary>
     public class NugetAssetPostprocessor : AssetPostprocessor
     {
-        private const string MaxSupportedRoslynVersion =
-#if UNITY_2022_3_OR_NEWER && !UNITY_2022_3_1 && !UNITY_2022_3_2 && !UNITY_2022_3_3 && !UNITY_2022_3_3 && !UNITY_2022_3_4 && !UNITY_2022_3_5 && !UNITY_2022_3_6 && !UNITY_2022_3_7 && !UNITY_2022_3_8 && !UNITY_2022_3_9 && !UNITY_2022_3_10 && !UNITY_2022_3_11
-            "4.3.0";
-#elif UNITY_2022_2_OR_NEWER
-            "4.1.0";
-#elif UNITY_2021_2_OR_NEWER
-            "3.8.0";
-#else
-            "";
-#endif
-
         /// <summary>
         ///     Folder used to store Roslyn-Analyzers inside NuGet packages.
         /// </summary>
@@ -202,7 +192,29 @@ namespace NugetForUnity
         }
 
         [CanBeNull]
-        private static string GetRoslynVersionNumberFromAnalyzerPath(string analyzerAssetPath)
+        private static NugetPackageVersion GetMaxSupportedRoslynVersion()
+        {
+            var unityVersion = UnityVersion.Current;
+            if (unityVersion >= new UnityVersion(2022, 3, 12, 'f', 1))
+            {
+                return new NugetPackageVersion("4.3.0");
+            }
+
+            if (unityVersion >= new UnityVersion(2022, 2, 1, 'f', 1))
+            {
+                return new NugetPackageVersion("4.1.0");
+            }
+
+            if (unityVersion >= new UnityVersion(2021, 2, 1, 'f', 1))
+            {
+                return new NugetPackageVersion("3.8.0");
+            }
+
+            return null;
+        }
+
+        [CanBeNull]
+        private static NugetPackageVersion GetRoslynVersionNumberFromAnalyzerPath(string analyzerAssetPath)
         {
             var versionPrefixIndex = analyzerAssetPath.IndexOf(AnalyzersRoslynVersionSubFolderPrefix, StringComparison.Ordinal);
             if (versionPrefixIndex < 0)
@@ -213,7 +225,8 @@ namespace NugetForUnity
             var startIndex = versionPrefixIndex + AnalyzersRoslynVersionSubFolderPrefix.Length;
             var separatorIndex = analyzerAssetPath.IndexOf(Path.DirectorySeparatorChar, startIndex);
             var length = separatorIndex >= 0 ? separatorIndex - startIndex : analyzerAssetPath.Length - startIndex;
-            return analyzerAssetPath.Substring(startIndex, length);
+            var versionString = analyzerAssetPath.Substring(startIndex, length);
+            return string.IsNullOrEmpty(versionString) ? null : new NugetPackageVersion(versionString);
         }
 
         private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, bool reimport)
@@ -233,15 +246,16 @@ namespace NugetForUnity
             var assetRoslynVersion = GetRoslynVersionNumberFromAnalyzerPath(assetPath);
             if (assetRoslynVersion != null)
             {
+                var maxSupportedRoslynVersion = GetMaxSupportedRoslynVersion();
                 var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
                 var analyzersVersionsRoot = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
                 var analyzersFolders = Directory.GetDirectories(analyzersVersionsRoot);
                 var enabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
-                    .Where(version => version != null && string.CompareOrdinal(version, MaxSupportedRoslynVersion) <= 0)
+                    .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
                     .ToArray();
 
                 // If most recent valid analyzers exist elsewhere, remove label `RoslynAnalyzer`
-                if (!enabledRoslynVersions.Contains(assetRoslynVersion) || string.CompareOrdinal(assetRoslynVersion, enabledRoslynVersions.Max()) < 0)
+                if (!enabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < enabledRoslynVersions.Max())
                 {
                     enableRoslynAnalyzer = false;
                 }
