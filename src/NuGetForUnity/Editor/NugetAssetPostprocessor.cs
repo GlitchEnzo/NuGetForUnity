@@ -247,17 +247,26 @@ namespace NugetForUnity
             if (assetRoslynVersion != null)
             {
                 var maxSupportedRoslynVersion = GetMaxSupportedRoslynVersion();
-                var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                var analyzerVersionsRootDirectoryPath = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
-                var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
-                var enabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
-                    .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
-                    .ToArray();
-
-                // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
-                if (!enabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < enabledRoslynVersions.Max())
+                if (maxSupportedRoslynVersion == null)
                 {
+                    // the current unity version doesn't support roslyn analyzers
                     enableRoslynAnalyzer = false;
+                }
+                else
+                {
+                    var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
+                    var analyzerVersionsRootDirectoryPath = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                    var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
+                    var allEnabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
+                        .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
+                        .ToArray();
+
+                    // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
+                    var maxMatchingVersion = allEnabledRoslynVersions.Max();
+                    if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
+                    {
+                        enableRoslynAnalyzer = false;
+                    }
                 }
             }
 
