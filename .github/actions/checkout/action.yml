@@ -3,7 +3,7 @@ description: Checkout the source code. For pull requests it checks out the merge
 runs:
   using: composite
   steps:
-    - name: clear .git
+    - name: clear .git from previous checkout
       shell: bash
       run: rm -r .git
 
