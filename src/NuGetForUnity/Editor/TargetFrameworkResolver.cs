@@ -6,13 +6,10 @@ using UnityEditor.Build;
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
-using UnityEngine;
 
 #region No ReShaper
 
@@ -288,127 +285,6 @@ namespace NugetForUnity
             public string Name { get; }
 
             public DotnetVersionCompatibilityLevel[] SupportedDotnetVersions { get; }
-        }
-
-        private readonly struct UnityVersion : IComparable<UnityVersion>
-        {
-            private readonly int build;
-
-            private readonly int major;
-
-            private readonly int minor;
-
-            private readonly char release;
-
-            private readonly int revision;
-
-            public UnityVersion(int major, int minor, int revision, char release, int build)
-            {
-                this.major = major;
-                this.minor = minor;
-                this.revision = revision;
-                this.release = release;
-                this.build = build;
-            }
-
-            [SuppressMessage("ReSharper", "MemberCanBePrivate.Local", Justification = "Called by Unit Test.")]
-            public UnityVersion(string version)
-            {
-                var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
-                if (!match.Success)
-                {
-                    throw new ArgumentException("Invalid unity version");
-                }
-
-                major = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-                minor = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
-                revision = int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
-                release = match.Groups[4].Value[0];
-                build = int.Parse(match.Groups[5].Value, CultureInfo.InvariantCulture);
-            }
-
-            [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
-            public static UnityVersion Current { get; private set; } = new UnityVersion(Application.unityVersion);
-
-            public static bool operator <(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) < 0;
-            }
-
-            public static bool operator <=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) <= 0;
-            }
-
-            public static bool operator >(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) > 0;
-            }
-
-            public static bool operator >=(UnityVersion left, UnityVersion right)
-            {
-                return left.CompareTo(right) >= 0;
-            }
-
-            public int CompareTo(UnityVersion other)
-            {
-                return Compare(this, other);
-            }
-
-            private static int Compare(UnityVersion a, UnityVersion b)
-            {
-                if (a.major < b.major)
-                {
-                    return -1;
-                }
-
-                if (a.major > b.major)
-                {
-                    return 1;
-                }
-
-                if (a.minor < b.minor)
-                {
-                    return -1;
-                }
-
-                if (a.minor > b.minor)
-                {
-                    return 1;
-                }
-
-                if (a.revision < b.revision)
-                {
-                    return -1;
-                }
-
-                if (a.revision > b.revision)
-                {
-                    return 1;
-                }
-
-                if (a.release < b.release)
-                {
-                    return -1;
-                }
-
-                if (a.release > b.release)
-                {
-                    return 1;
-                }
-
-                if (a.build < b.build)
-                {
-                    return -1;
-                }
-
-                if (a.build > b.build)
-                {
-                    return 1;
-                }
-
-                return 0;
-            }
         }
     }
 }

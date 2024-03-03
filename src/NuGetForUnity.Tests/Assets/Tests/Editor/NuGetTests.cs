@@ -95,6 +95,13 @@ public class NuGetTests
             AssetDatabase.Refresh();
             var path = $"Assets/Packages/{analyzer.Id}.{analyzer.Version}/analyzers/dotnet/cs/ErrorProne.NET.Core.dll";
             var meta = (PluginImporter)AssetImporter.GetAtPath(path);
+
+#if UNITY_2022_3_OR_NEWER
+            // somehow unity doesn't import the .dll on newer unity version
+            var postprocessor = new NugetAssetPostprocessor() { assetPath = path };
+            postprocessor.GetType().GetMethod("OnPreprocessAsset", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(postprocessor, null);
+#endif
+
             meta.SaveAndReimport();
             AssetDatabase.Refresh();
 
@@ -107,8 +114,8 @@ public class NuGetTests
             // Verify analyzer dll import settings
             meta = AssetImporter.GetAtPath(path) as PluginImporter;
             Assert.IsNotNull(meta, "Get meta file");
-            Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Not compatible any platform");
-            Assert.IsFalse(meta.GetCompatibleWithEditor(), "Not compatible editor");
+            Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Expected to have set compatible with any platform to false");
+            Assert.IsFalse(meta.GetCompatibleWithEditor(), "Expected to have set compatible with editor to false");
             foreach (var platform in Enum.GetValues(typeof(BuildTarget)))
             {
                 Assert.IsFalse(
@@ -127,6 +134,70 @@ public class NuGetTests
                 "The package is STILL installed: {0} {1}",
                 analyzer.Id,
                 analyzer.Version);
+        }
+    }
+
+    [Test]
+    [TestCase("2020.2.1f1", "")]
+    [TestCase("2021.2.1f1", "")] // no version selected because it only supports <= 3.8
+    [TestCase("2022.2.1f1", "4.0")]
+    [TestCase("2022.3.12f1", "4.0")]
+    public void InstallRoslynAnalyzerWithMultipleVersionsTest(string unityVersion, string expectedEnabledRoslynAnalyzerVersion)
+    {
+        var jsonPackageId = new NugetPackageIdentifier("System.Text.Json", "7.0.1");
+        var roslynAnalyzerVersions = new[] { "3.11", "4.0", "4.4" };
+
+        var unityVersionType = typeof(UnityVersion);
+        var currentUnityVersionProperty = unityVersionType.GetProperty(nameof(UnityVersion.Current), BindingFlags.Public | BindingFlags.Static);
+        Assume.That(currentUnityVersionProperty, Is.Not.Null);
+        Assume.That(currentUnityVersionProperty.CanRead, Is.True);
+        Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
+
+        var oldUnityVersion = currentUnityVersionProperty.GetValue(null);
+        try
+        {
+            currentUnityVersionProperty.SetValue(null, new UnityVersion(unityVersion));
+            NugetPackageInstaller.InstallIdentifier(jsonPackageId);
+            AssetDatabase.Refresh();
+
+            foreach (var roslynAnalyzerVersion in roslynAnalyzerVersions)
+            {
+                var path = $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
+                Assert.That(path, Does.Exist.IgnoreDirectories);
+                var meta = (PluginImporter)AssetImporter.GetAtPath(path);
+                meta.SaveAndReimport();
+
+#if UNITY_2022_3_OR_NEWER
+                // somehow unity doesn't import the .dll on newer unity version
+                var postprocessor = new NugetAssetPostprocessor() { assetPath = path };
+                postprocessor.GetType().GetMethod("OnPreprocessAsset", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(postprocessor, null);
+#endif
+            }
+
+            AssetDatabase.Refresh();
+
+            foreach (var roslynAnalyzerVersion in roslynAnalyzerVersions)
+            {
+                var path = $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
+                Assert.That(path, Does.Exist.IgnoreDirectories);
+                var meta = (PluginImporter)AssetImporter.GetAtPath(path);
+                Assert.IsNotNull(meta, "Get meta file");
+                Assert.That(AssetDatabase.GetLabels(meta), Does.Contain("NuGetForUnity"));
+                Assert.IsFalse(meta.GetCompatibleWithAnyPlatform(), "Expected to have set compatible with any platform to false");
+                Assert.IsFalse(meta.GetCompatibleWithEditor(), "Expected to have set compatible with editor to false");
+                if (roslynAnalyzerVersion == expectedEnabledRoslynAnalyzerVersion)
+                {
+                    Assert.That(AssetDatabase.GetLabels(meta), Does.Contain("RoslynAnalyzer"), $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should have 'RoslynAnalyzer' label");
+                }
+                else
+                {
+                    Assert.That(AssetDatabase.GetLabels(meta), Does.Not.Contain("RoslynAnalyzer"), $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should not have 'RoslynAnalyzer' label");
+                }
+            }
+        }
+        finally
+        {
+            currentUnityVersionProperty.SetValue(null, oldUnityVersion);
         }
     }
 
@@ -615,10 +686,8 @@ public class NuGetTests
         bool supportsNetStandard21,
         bool supportsNet48)
     {
-        var unityVersionType = typeof(TargetFrameworkResolver).GetNestedType("UnityVersion", BindingFlags.NonPublic);
-        Assume.That(unityVersionType, Is.Not.Null);
-
-        var currentUnityVersionProperty = unityVersionType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
+        var unityVersionType = typeof(UnityVersion);
+        var currentUnityVersionProperty = unityVersionType.GetProperty(nameof(UnityVersion.Current), BindingFlags.Public | BindingFlags.Static);
         Assume.That(currentUnityVersionProperty, Is.Not.Null);
         Assume.That(currentUnityVersionProperty.CanRead, Is.True);
         Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
@@ -635,7 +704,7 @@ public class NuGetTests
 
         try
         {
-            currentUnityVersionProperty.SetValue(null, Activator.CreateInstance(unityVersionType, unityVersion));
+            currentUnityVersionProperty.SetValue(null, new UnityVersion(unityVersion));
 
             var expectedCompatibilityLevel = useNetStandard ? ApiCompatibilityLevel.NET_Standard_2_0 : ApiCompatibilityLevel.NET_4_6;
             currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, new Lazy<ApiCompatibilityLevel>(() => expectedCompatibilityLevel));
