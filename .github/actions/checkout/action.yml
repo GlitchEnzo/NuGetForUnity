@@ -21,7 +21,7 @@ runs:
     - name: Get changed files in the .github folder
       if: github.event_name == 'pull_request_target'
       id: changedWorkflowFiles
-      uses: tj-actions/changed-files@v35
+      uses: tj-actions/changed-files@v42
       with:
         files: |
           .github/**

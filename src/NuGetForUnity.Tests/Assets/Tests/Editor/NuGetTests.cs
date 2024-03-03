@@ -97,8 +97,9 @@ public class NuGetTests
             var meta = (PluginImporter)AssetImporter.GetAtPath(path);
 
 #if UNITY_2022_3_OR_NEWER
+
             // somehow unity doesn't import the .dll on newer unity version
-            var postprocessor = new NugetAssetPostprocessor() { assetPath = path };
+            var postprocessor = new NugetAssetPostprocessor { assetPath = path };
             postprocessor.GetType().GetMethod("OnPreprocessAsset", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(postprocessor, null);
 #endif
 
@@ -162,14 +163,16 @@ public class NuGetTests
 
             foreach (var roslynAnalyzerVersion in roslynAnalyzerVersions)
             {
-                var path = $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
+                var path =
+                    $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
                 Assert.That(path, Does.Exist.IgnoreDirectories);
                 var meta = (PluginImporter)AssetImporter.GetAtPath(path);
                 meta.SaveAndReimport();
 
 #if UNITY_2022_3_OR_NEWER
+
                 // somehow unity doesn't import the .dll on newer unity version
-                var postprocessor = new NugetAssetPostprocessor() { assetPath = path };
+                var postprocessor = new NugetAssetPostprocessor { assetPath = path };
                 postprocessor.GetType().GetMethod("OnPreprocessAsset", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(postprocessor, null);
 #endif
             }
@@ -178,7 +181,8 @@ public class NuGetTests
 
             foreach (var roslynAnalyzerVersion in roslynAnalyzerVersions)
             {
-                var path = $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
+                var path =
+                    $"Assets/Packages/{jsonPackageId.Id}.{jsonPackageId.Version}/analyzers/dotnet/roslyn{roslynAnalyzerVersion}/cs/System.Text.Json.SourceGeneration.dll";
                 Assert.That(path, Does.Exist.IgnoreDirectories);
                 var meta = (PluginImporter)AssetImporter.GetAtPath(path);
                 Assert.IsNotNull(meta, "Get meta file");
@@ -187,11 +191,17 @@ public class NuGetTests
                 Assert.IsFalse(meta.GetCompatibleWithEditor(), "Expected to have set compatible with editor to false");
                 if (roslynAnalyzerVersion == expectedEnabledRoslynAnalyzerVersion)
                 {
-                    Assert.That(AssetDatabase.GetLabels(meta), Does.Contain("RoslynAnalyzer"), $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should have 'RoslynAnalyzer' label");
+                    Assert.That(
+                        AssetDatabase.GetLabels(meta),
+                        Does.Contain("RoslynAnalyzer"),
+                        $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should have 'RoslynAnalyzer' label");
                 }
                 else
                 {
-                    Assert.That(AssetDatabase.GetLabels(meta), Does.Not.Contain("RoslynAnalyzer"), $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should not have 'RoslynAnalyzer' label");
+                    Assert.That(
+                        AssetDatabase.GetLabels(meta),
+                        Does.Not.Contain("RoslynAnalyzer"),
+                        $"DLL of Roslyn analyzer version '{roslynAnalyzerVersion}' should not have 'RoslynAnalyzer' label");
                 }
             }
         }

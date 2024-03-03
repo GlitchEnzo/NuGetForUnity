@@ -255,7 +255,9 @@ namespace NugetForUnity
                 else
                 {
                     var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                    var analyzerVersionsRootDirectoryPath = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                    var analyzerVersionsRootDirectoryPath = Path.Combine(
+                        assetPath.Substring(0, versionPrefixIndex),
+                        AnalyzersRoslynVersionsFolderName);
                     var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
                     var allEnabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
                         .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)

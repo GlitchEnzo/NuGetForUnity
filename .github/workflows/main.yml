@@ -23,9 +23,10 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -56,9 +57,10 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -69,7 +71,7 @@ jobs:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
       - name: Upload NuGetForUnity dlls
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: NuGetForUnity-dlls
           path: |
@@ -81,7 +83,7 @@ jobs:
       - name: Check if files in NuGetForUnity.PluginAPI changed
         if: github.event_name == 'pull_request_target'
         id: changedPluginApiCode
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v42
         with:
           files: |
             src/NuGetForUnity.PluginAPI/**.cs
@@ -89,7 +91,7 @@ jobs:
       - name: Check if NuGetForUnity.PluginAPI.dll is updated
         if: github.event_name == 'pull_request_target'
         id: changedPluginApiDll
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v42
         with:
           files: |
             src/NuGetForUnity/Editor/PluginAPI/NuGetForUnity.PluginAPI.dll
@@ -112,15 +114,16 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
 
       - name: Download NuGetForUnity dlls
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: NuGetForUnity-dlls
           path: ./src/NuGetForUnity.Packager/Assets/NuGet/Editor
@@ -145,7 +148,7 @@ jobs:
           version: ${{ needs.determineVersionNumber.outputs.version }}
 
       - name: Upload UnityPackage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: NuGetForUnity.${{ needs.determineVersionNumber.outputs.version }}.unitypackage
           path: ./src/NuGetForUnity.Packager/NugetForUnity.unitypackage
@@ -158,15 +161,16 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
@@ -195,7 +199,7 @@ jobs:
           --source https://api.nuget.org/v3/index.json
 
       - name: Upload NuGet packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: NuGetForUnity-NuGetPackages
           path: |
@@ -208,9 +212,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -239,15 +244,16 @@ jobs:
 
     steps:
       - name: Checkout action file
-        uses: Bhacaz/checkout-files@v2
+        uses: actions/checkout@v4
         with:
-          files: .github/actions/checkout/action.yml
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
 
       - name: Download NuGetForUnity.Cli NuGet package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: NuGetForUnity-NuGetPackages
           path: .
