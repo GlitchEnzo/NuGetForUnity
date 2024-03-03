@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -117,7 +117,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -164,7 +164,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -215,7 +215,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
@@ -247,7 +247,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions/checkout/action.yml
-          lfs: true
+          sparse-checkout-cone-mode: false
 
       - name: Checkout
         uses: ./.github/actions/checkout
