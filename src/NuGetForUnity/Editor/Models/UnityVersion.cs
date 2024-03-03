@@ -7,7 +7,7 @@ using UnityEngine;
 namespace NugetForUnity.Models
 {
     /// <summary>
-    ///    Represents a unity version.
+    ///     Represents a unity version.
     /// </summary>
     internal readonly struct UnityVersion : IComparable<UnityVersion>
     {
@@ -22,7 +22,7 @@ namespace NugetForUnity.Models
         private readonly int revision;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UnityVersion"/> struct.
+        ///     Initializes a new instance of the <see cref="UnityVersion" /> struct.
         /// </summary>
         /// <param name="major">Major version number.</param>
         /// <param name="minor">Minor version number.</param>
@@ -39,7 +39,7 @@ namespace NugetForUnity.Models
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UnityVersion"/> struct.
+        ///     Initializes a new instance of the <see cref="UnityVersion" /> struct.
         /// </summary>
         /// <param name="version">A string representation of Unity version.</param>
         /// <exception cref="ArgumentException">Cannot parse version.</exception>
@@ -65,32 +65,57 @@ namespace NugetForUnity.Models
         [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local", Justification = "Property setter needed for unit test")]
         public static UnityVersion Current { get; private set; } = new UnityVersion(Application.unityVersion);
 
-        public static bool operator <(UnityVersion left, UnityVersion right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="UnityVersion" /> is less than the right.
+        /// </summary>
+        /// <param name="left">The first value to compare.</param>
+        /// <param name="right">The second value to compare.</param>
+        /// <returns>True if left is less than the right.</returns>
+        public static bool operator <(in UnityVersion left, in UnityVersion right)
         {
             return left.CompareTo(right) < 0;
         }
 
-        public static bool operator <=(UnityVersion left, UnityVersion right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="UnityVersion" /> is less than or equal to the right.
+        /// </summary>
+        /// <param name="left">The first value to compare.</param>
+        /// <param name="right">The second value to compare.</param>
+        /// <returns>True if left is less than or equal to the right.</returns>
+        public static bool operator <=(in UnityVersion left, in UnityVersion right)
         {
             return left.CompareTo(right) <= 0;
         }
 
-        public static bool operator >(UnityVersion left, UnityVersion right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="UnityVersion" /> is greater than the right.
+        /// </summary>
+        /// <param name="left">The first value to compare.</param>
+        /// <param name="right">The second value to compare.</param>
+        /// <returns>True if left is greater than the right.</returns>
+        public static bool operator >(in UnityVersion left, in UnityVersion right)
         {
             return left.CompareTo(right) > 0;
         }
 
-        public static bool operator >=(UnityVersion left, UnityVersion right)
+        /// <summary>
+        ///     Checks to see if the left <see cref="UnityVersion" /> is greater than or equal to the right.
+        /// </summary>
+        /// <param name="left">The first value to compare.</param>
+        /// <param name="right">The second value to compare.</param>
+        /// <returns>True if left is greater than or equal to the right.</returns>
+        public static bool operator >=(in UnityVersion left, in UnityVersion right)
         {
             return left.CompareTo(right) >= 0;
         }
 
+        /// <inheritdoc />
         public int CompareTo(UnityVersion other)
         {
             return Compare(this, other);
         }
 
-        private static int Compare(UnityVersion a, UnityVersion b)
+        private static int Compare(in UnityVersion a, in UnityVersion b)
         {
             if (a.major < b.major)
             {

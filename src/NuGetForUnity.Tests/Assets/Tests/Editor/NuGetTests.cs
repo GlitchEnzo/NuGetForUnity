@@ -615,10 +615,10 @@ public class NuGetTests
         bool supportsNetStandard21,
         bool supportsNet48)
     {
-        var unityVersionType = typeof(TargetFrameworkResolver).GetNestedType("UnityVersion", BindingFlags.NonPublic);
+        var unityVersionType = typeof(UnityVersion);
         Assume.That(unityVersionType, Is.Not.Null);
 
-        var currentUnityVersionProperty = unityVersionType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
+        var currentUnityVersionProperty = unityVersionType.GetProperty(nameof(UnityVersion.Current), BindingFlags.Public | BindingFlags.Static);
         Assume.That(currentUnityVersionProperty, Is.Not.Null);
         Assume.That(currentUnityVersionProperty.CanRead, Is.True);
         Assume.That(currentUnityVersionProperty.CanWrite, Is.True);

@@ -6,13 +6,10 @@ using UnityEditor.Build;
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
 using UnityEditor;
-using UnityEngine;
 
 #region No ReShaper
 

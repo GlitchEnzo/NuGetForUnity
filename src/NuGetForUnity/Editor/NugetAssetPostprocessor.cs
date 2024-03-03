@@ -38,16 +38,6 @@ namespace NugetForUnity
         private const string AnalyzersFolderName = "analyzers";
 
         /// <summary>
-        ///     Folder of root before the version of analyzers was split.
-        /// </summary>
-        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Combine(AnalyzersFolderName, "dotnet");
-
-        /// <summary>
-        ///     Prefix for roslyn versioning of dll asset path.
-        /// </summary>
-        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Combine(AnalyzersRoslynVersionsFolderName, "roslyn");
-
-        /// <summary>
         ///     Used to mark an asset as already processed by this class.
         /// </summary>
         private const string ProcessedLabel = "NuGetForUnity";
@@ -56,6 +46,16 @@ namespace NugetForUnity
         ///     Used to let unity know an asset is a Roslyn-Analyzer.
         /// </summary>
         private const string RoslynAnalyzerLabel = "RoslynAnalyzer";
+
+        /// <summary>
+        ///     Name of the root folder containing dotnet analyzers.
+        /// </summary>
+        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Combine(AnalyzersFolderName, "dotnet");
+
+        /// <summary>
+        ///     Prefix for the path of dll's of roslyn analyzers.
+        /// </summary>
+        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Combine(AnalyzersRoslynVersionsFolderName, "roslyn");
 
         private static readonly List<BuildTarget> NonObsoleteBuildTargets = typeof(BuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(fieldInfo => fieldInfo.GetCustomAttribute(typeof(ObsoleteAttribute)) == null)
@@ -216,16 +216,16 @@ namespace NugetForUnity
         [CanBeNull]
         private static NugetPackageVersion GetRoslynVersionNumberFromAnalyzerPath(string analyzerAssetPath)
         {
-            var versionPrefixIndex = analyzerAssetPath.IndexOf(AnalyzersRoslynVersionSubFolderPrefix, StringComparison.Ordinal);
-            if (versionPrefixIndex < 0)
+            var versionPrefixStartIndex = analyzerAssetPath.IndexOf(AnalyzersRoslynVersionSubFolderPrefix, StringComparison.Ordinal);
+            if (versionPrefixStartIndex < 0)
             {
                 return null;
             }
 
-            var startIndex = versionPrefixIndex + AnalyzersRoslynVersionSubFolderPrefix.Length;
-            var separatorIndex = analyzerAssetPath.IndexOf(Path.DirectorySeparatorChar, startIndex);
-            var length = separatorIndex >= 0 ? separatorIndex - startIndex : analyzerAssetPath.Length - startIndex;
-            var versionString = analyzerAssetPath.Substring(startIndex, length);
+            var versionStartIndex = versionPrefixStartIndex + AnalyzersRoslynVersionSubFolderPrefix.Length;
+            var separatorIndex = analyzerAssetPath.IndexOf(Path.DirectorySeparatorChar, versionStartIndex);
+            var versionLength = separatorIndex >= 0 ? separatorIndex - versionStartIndex : analyzerAssetPath.Length - versionStartIndex;
+            var versionString = analyzerAssetPath.Substring(versionStartIndex, versionLength);
             return string.IsNullOrEmpty(versionString) ? null : new NugetPackageVersion(versionString);
         }
 
@@ -248,13 +248,13 @@ namespace NugetForUnity
             {
                 var maxSupportedRoslynVersion = GetMaxSupportedRoslynVersion();
                 var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                var analyzersVersionsRoot = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
-                var analyzersFolders = Directory.GetDirectories(analyzersVersionsRoot);
+                var analyzerVersionsRootDirectoryPath = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
                 var enabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
                     .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
                     .ToArray();
 
-                // If most recent valid analyzers exist elsewhere, remove label `RoslynAnalyzer`
+                // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
                 if (!enabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < enabledRoslynVersions.Max())
                 {
                     enableRoslynAnalyzer = false;

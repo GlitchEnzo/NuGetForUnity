@@ -1182,9 +1182,7 @@ namespace NugetForUnity.Ui
 
                 // Show the version selection dropdown only on Updates tab OR on Online tab if the package is not installed and not already in Unity
                 if (currentTab == NugetWindowTab.UpdatesTab ||
-                    (currentTab == NugetWindowTab.OnlineTab &&
-                     installed == null &&
-                     !isAlreadyImportedInEngine))
+                    (currentTab == NugetWindowTab.OnlineTab && installed == null && !isAlreadyImportedInEngine))
                 {
                     if (package.Versions.Count <= 1)
                     {
