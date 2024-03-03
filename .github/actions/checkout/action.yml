@@ -3,6 +3,10 @@ description: Checkout the source code. For pull requests it checks out the merge
 runs:
   using: composite
   steps:
+    - name: clear .git from previous checkout
+      shell: bash
+      run: rm -r .git
+
     - name: Checkout normal
       uses: actions/checkout@v4
       if: github.event_name != 'pull_request_target'
