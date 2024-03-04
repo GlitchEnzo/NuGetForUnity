@@ -158,7 +158,7 @@ namespace NugetForUnity.Ui
                 GUILayout.Label(
                     new GUIContent("Packages Install path:", $"Absolute path: {repositoryPath}"),
                     GUILayout.Width(EditorGUIUtility.labelWidth));
-                GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativeRepositoryPath);
+                GUILayout.Label(ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath);
 
                 if (GUILayout.Button("Browse", GUILayout.Width(100)))
                 {
@@ -177,7 +177,7 @@ namespace NugetForUnity.Ui
                         else if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
                         {
                             PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
-                            ConfigurationManager.NugetConfigFile.RelativeRepositoryPath = newRelativePath;
+                            ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath = newRelativePath;
                             UnityPathHelper.EnsurePackageInstallDirIsSetup();
                             preferencesChangedThisFrame = true;
                             needsAssetRefresh = true;

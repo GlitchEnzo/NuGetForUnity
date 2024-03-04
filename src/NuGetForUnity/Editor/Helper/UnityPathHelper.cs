@@ -61,12 +61,7 @@ namespace NugetForUnity.Helper
         /// <returns>True if path is within Assets folder or Packages subfolder, false otherwise.</returns>
         internal static bool IsValidInstallPath([NotNull] string path)
         {
-            if (!Path.IsPathRooted(path) && !path.StartsWith("..", StringComparison.Ordinal))
-            {
-                return true;
-            }
-
-            return path.Length > "../Packages/".Length && path.StartsWith("../Packages/", StringComparison.OrdinalIgnoreCase);
+            return !Path.IsPathRooted(path) && !path.StartsWith("..", StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -75,7 +70,7 @@ namespace NugetForUnity.Helper
         /// </summary>
         internal static void EnsurePackageInstallDirIsSetup()
         {
-            var relativePath = ConfigurationManager.NugetConfigFile.RelativeRepositoryPath;
+            var relativePath = ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath;
 
             Directory.CreateDirectory(ConfigurationManager.NugetConfigFile.RepositoryPath);
 
@@ -96,7 +91,7 @@ namespace NugetForUnity.Helper
         /// <summary>
         ///     Returns the path relative to Assets directory, or <c>"."</c> if it is the Assets directory.
         /// </summary>
-        /// <param name="path">The path of witch we calculate the relative path of.</param>
+        /// <param name="path">The path of which we calculate the relative path of.</param>
         /// <returns>The path relative to Assets directory, or <c>"."</c> if it is the Assets directory.</returns>
         [NotNull]
         private static string GetAssetsRelativePath([NotNull] string path)

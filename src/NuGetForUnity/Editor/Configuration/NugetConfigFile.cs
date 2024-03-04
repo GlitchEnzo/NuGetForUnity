@@ -61,7 +61,7 @@ namespace NugetForUnity.Configuration
         private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
 
         [NotNull]
-        private string relativeRepositoryPath = "Packages";
+        private string configuredRepositoryPath = "Packages";
 
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
@@ -90,13 +90,13 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets the incomplete path that is saved.  The path is expanded and made public via the property above.
         /// </summary>
         [NotNull]
-        public string RelativeRepositoryPath
+        public string ConfiguredRepositoryPath
         {
-            get => relativeRepositoryPath;
+            get => configuredRepositoryPath;
 
             set
             {
-                relativeRepositoryPath = value;
+                configuredRepositoryPath = value;
 
                 var repositoryPath = Environment.ExpandEnvironmentVariables(value);
 
@@ -319,7 +319,7 @@ namespace NugetForUnity.Configuration
 
                 if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                 {
-                    configFile.RelativeRepositoryPath = value;
+                    configFile.ConfiguredRepositoryPath = value;
                 }
                 else if (string.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
                 {
@@ -465,12 +465,12 @@ namespace NugetForUnity.Configuration
 
             var config = new XElement("config");
 
-            if (!string.IsNullOrEmpty(RelativeRepositoryPath))
+            if (!string.IsNullOrEmpty(ConfiguredRepositoryPath))
             {
                 // save the un-expanded repository path
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "repositoryPath"));
-                addElement.Add(new XAttribute("value", RelativeRepositoryPath));
+                addElement.Add(new XAttribute("value", ConfiguredRepositoryPath));
                 config.Add(addElement);
             }
 
