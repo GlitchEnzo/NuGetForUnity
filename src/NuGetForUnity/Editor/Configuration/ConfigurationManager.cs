@@ -34,8 +34,16 @@ namespace NugetForUnity.Configuration
 
         static ConfigurationManager()
         {
-            NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
-            NugetConfigFilePath = Path.Combine(NugetConfigFileDirectoryPath, NugetConfigFile.FileName);
+            NugetConfigFilePath = Path.Combine(UnityPathHelper.AbsoluteUnityPackagesNugetPath, NugetConfigFile.FileName);
+            if (File.Exists(NugetConfigFilePath))
+            {
+                NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteUnityPackagesNugetPath;
+            }
+            else
+            {
+                NugetConfigFilePath = Path.Combine(UnityPathHelper.AbsoluteAssetsPath, NugetConfigFile.FileName);
+                NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
+            }
         }
 
         /// <summary>
@@ -45,7 +53,7 @@ namespace NugetForUnity.Configuration
         ///     <see cref="NugetConfigFile" />.
         /// </remarks>
         [NotNull]
-        public static string NugetConfigFilePath { get; }
+        public static string NugetConfigFilePath { get; private set; }
 
         /// <summary>
         ///     Gets the loaded NuGet.config file that holds the settings for NuGet.
@@ -69,7 +77,7 @@ namespace NugetForUnity.Configuration
         ///     Gets the path to the directory containing the NuGet.config file.
         /// </summary>
         [NotNull]
-        internal static string NugetConfigFileDirectoryPath { get; }
+        internal static string NugetConfigFileDirectoryPath { get; private set; }
 
         /// <summary>
         ///     Gets a value indicating whether verbose logging is enabled.
@@ -206,6 +214,29 @@ namespace NugetForUnity.Configuration
         public static INugetPackage GetSpecificPackage([NotNull] INugetPackageIdentifier nugetPackageIdentifier)
         {
             return ActivePackageSource.GetSpecificPackage(nugetPackageIdentifier);
+        }
+
+        /// <summary>
+        ///  Moves the Nuget.config under newPlacement and updated local properties to point to it.
+        /// </summary>
+        /// <param name="newPlacement">New placement for configs.</param>
+        public static void MoveConfig(NugetPlacement newPlacement)
+        {
+            NugetConfigFile.ChangePlacement(newPlacement);
+            var newConfigsPath = newPlacement == NugetPlacement.InPackagesFolder ?
+                UnityPathHelper.AbsoluteUnityPackagesNugetPath :
+                UnityPathHelper.AbsoluteAssetsPath;
+            var newConfigFilePath = Path.Combine(newConfigsPath, NugetConfigFile.FileName);
+
+            File.Move(NugetConfigFilePath, newConfigFilePath);
+            var configMeta = NugetConfigFilePath + ".meta";
+            if (File.Exists(configMeta))
+            {
+                File.Move(configMeta, newConfigFilePath + ".meta");
+            }
+
+            NugetConfigFilePath = newConfigFilePath;
+            NugetConfigFileDirectoryPath = newConfigsPath;
         }
     }
 }

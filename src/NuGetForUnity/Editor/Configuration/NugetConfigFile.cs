@@ -61,7 +61,16 @@ namespace NugetForUnity.Configuration
         private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
 
         [NotNull]
+        private readonly string unityPackagesNugetInstallPath = Path.Combine(UnityPathHelper.AbsoluteUnityPackagesNugetPath, "InstalledPackages");
+
+        [NotNull]
         private string configuredRepositoryPath = "Packages";
+
+        [NotNull]
+        private string packagesConfigDirectoryPath = Application.dataPath;
+
+        [NotNull]
+        private string repositoryPath = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
 
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
@@ -81,10 +90,20 @@ namespace NugetForUnity.Configuration
         public INugetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
+        ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
+        /// </summary>
+        public NugetPlacement Placement { get; private set; }
+
+        /// <summary>
         ///     Gets the absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
-        public string RepositoryPath { get; private set; } = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
+        public string RepositoryPath
+        {
+            get => Placement == NugetPlacement.InPackagesFolder ? unityPackagesNugetInstallPath : repositoryPath;
+
+            private set => repositoryPath = value;
+        }
 
         /// <summary>
         ///     Gets or sets the incomplete path that is saved.  The path is expanded and made public via the property above.
@@ -98,14 +117,14 @@ namespace NugetForUnity.Configuration
             {
                 configuredRepositoryPath = value;
 
-                var repositoryPath = Environment.ExpandEnvironmentVariables(value);
+                var expandedPath = Environment.ExpandEnvironmentVariables(value);
 
-                if (!Path.IsPathRooted(repositoryPath))
+                if (!Path.IsPathRooted(expandedPath))
                 {
-                    repositoryPath = Path.Combine(Application.dataPath, repositoryPath);
+                    expandedPath = Path.Combine(Application.dataPath, expandedPath);
                 }
 
-                RepositoryPath = Path.GetFullPath(repositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                RepositoryPath = Path.GetFullPath(expandedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             }
         }
 
@@ -141,7 +160,12 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets absolute path to directory containing packages.config file.
         /// </summary>
         [NotNull]
-        public string PackagesConfigDirectoryPath { get; set; } = Application.dataPath;
+        public string PackagesConfigDirectoryPath
+        {
+            get => Placement == NugetPlacement.InPackagesFolder ? UnityPathHelper.AbsoluteUnityPackagesNugetPath : packagesConfigDirectoryPath;
+
+            set => packagesConfigDirectoryPath = value;
+        }
 
         /// <summary>
         ///     Gets the relative path to directory containing packages.config file. The path is relative to the folder containing the 'NuGet.config' file.
@@ -168,6 +192,29 @@ namespace NugetForUnity.Configuration
         ///     Gets the list of enabled plugins.
         /// </summary>
         internal List<NugetForUnityPluginId> EnabledPlugins { get; } = new List<NugetForUnityPluginId>();
+
+        /// <summary>
+        /// Changes the placement config and also moves the packages.config to the new location.
+        /// </summary>
+        /// <param name="newPlacement">New placement to set.</param>
+        public void ChangePlacement(NugetPlacement newPlacement)
+        {
+            if (newPlacement == Placement)
+            {
+                return;
+            }
+
+            var oldPackagesConfigPath = PackagesConfigFilePath;
+            Placement = newPlacement;
+            UnityPathHelper.EnsurePackageInstallDirIsSetup();
+            var newConfigPath = PackagesConfigFilePath;
+            File.Move(oldPackagesConfigPath, newConfigPath);
+            var configMeta = oldPackagesConfigPath + ".meta";
+            if (File.Exists(configMeta))
+            {
+                File.Move(configMeta, newConfigPath + ".meta");
+            }
+        }
 
         /// <summary>
         ///     Loads a NuGet.config file at the given file-path.
@@ -317,7 +364,11 @@ namespace NugetForUnity.Configuration
                 var key = add.Attribute("key")?.Value;
                 var value = add.Attribute("value")?.Value ?? throw new InvalidOperationException($"config misses 'value' attribute. Element:\n{add}");
 
-                if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(key, "Placement", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.Placement = (NugetPlacement)Enum.Parse(typeof(NugetPlacement), value);
+                }
+                else if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                 {
                     configFile.ConfiguredRepositoryPath = value;
                 }
@@ -373,6 +424,7 @@ namespace NugetForUnity.Configuration
     <add key=""All"" value=""(Aggregate source)"" />
   </activePackageSource>
   <config>
+    <add key=""Placement"" value=""CustomWithinAssets"" />
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
     <add key=""slimRestore"" value=""true"" />
@@ -465,6 +517,11 @@ namespace NugetForUnity.Configuration
 
             var config = new XElement("config");
 
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "Placement"));
+            addElement.Add(new XAttribute("value", Placement.ToString()));
+            config.Add(addElement);
+
             if (!string.IsNullOrEmpty(ConfiguredRepositoryPath))
             {
                 // save the un-expanded repository path
@@ -476,7 +533,7 @@ namespace NugetForUnity.Configuration
 
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", PackagesConfigDirectoryPathConfigKey));
-            addElement.Add(new XAttribute("value", RelativePackagesConfigDirectoryPath));
+            addElement.Add(new XAttribute("value", PathHelper.GetRelativePath(Application.dataPath, packagesConfigDirectoryPath)));
             config.Add(addElement);
 
             // save the default push source

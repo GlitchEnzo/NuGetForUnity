@@ -29,7 +29,14 @@ namespace NugetForUnity.Helper
         {
             AbsoluteAssetsPath = Path.GetFullPath(Application.dataPath);
             AbsoluteProjectPath = Path.GetDirectoryName(AbsoluteAssetsPath) ?? throw new InvalidOperationException("Can't detect project root.");
+            AbsoluteUnityPackagesNugetPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../Packages/nuget-packages"));
         }
+
+        /// <summary>
+        ///    Gets the absolute path to 'project root'/Packages/nuget-packages.
+        /// </summary>
+        [NotNull]
+        internal static string AbsoluteUnityPackagesNugetPath { get; }
 
         /// <summary>
         ///     Gets the absolute path to the Unity-Project 'Assets' directory.
@@ -70,21 +77,19 @@ namespace NugetForUnity.Helper
         /// </summary>
         internal static void EnsurePackageInstallDirIsSetup()
         {
-            var relativePath = ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath;
-
             Directory.CreateDirectory(ConfigurationManager.NugetConfigFile.RepositoryPath);
 
-            if (relativePath.Length <= "../Packages/".Length || !relativePath.StartsWith("../Packages/", StringComparison.Ordinal))
+            if (ConfigurationManager.NugetConfigFile.Placement == NugetPlacement.CustomWithinAssets)
             {
                 return;
             }
 
-            var jsonPath = Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, "package.json");
+            var jsonPath = Path.Combine(AbsoluteUnityPackagesNugetPath, "package.json");
             if (!File.Exists(jsonPath))
             {
                 File.WriteAllText(
                     jsonPath,
-                    @"{ ""name"": ""com.dummy.nugetpackages"",""version"": ""1.0.0"",""displayName"": ""NuGetPackages"", ""description"": ""NuGetPackages"", ""dependencies"": {}}");
+                    @"{ ""name"": ""nuget-packages"",""version"": ""1.0.0"",""displayName"": ""NuGetPackages"", ""description"": ""NuGetPackages"", ""dependencies"": {}}");
             }
         }
 

@@ -1,7 +1,7 @@
 ﻿namespace NugetForUnity.Configuration
 {
     /// <summary>
-    ///     Tells the system where the packages are to be installed and configurations are to be stored.
+    ///     Tells the system how to determine where the packages are to be installed and configurations are to be stored.
     /// </summary>
     public enum NugetPlacement
     {
