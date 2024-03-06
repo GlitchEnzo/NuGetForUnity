@@ -36,6 +36,8 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.0.2";
 
+        private const string RefreshOnStartKey = "NugetForUnityPrefsShouldRefreshOnNextStart";
+
         private const float LabelPading = 5;
 
         private readonly GUIContent deleteX = new GUIContent("\u2716");
@@ -76,7 +78,14 @@ namespace NugetForUnity.Ui
         private NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
-            shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
+            if (SessionState.GetBool(RefreshOnStartKey, false))
+            {
+                SessionState.EraseBool(RefreshOnStartKey);
+                AssetDatabase.Refresh();
+            }
+
+            shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.Placement == NugetPlacement.CustomWithinAssets &&
+                                                    !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
             plugins = assemblies.Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -154,6 +163,12 @@ namespace NugetForUnity.Ui
             var newPlacement = (NugetPlacement)EditorGUILayout.EnumPopup("Placement:", ConfigurationManager.NugetConfigFile.Placement);
             if (newPlacement != ConfigurationManager.NugetConfigFile.Placement)
             {
+                // For some reason Unity needs to do one additional refresh after the first one when we move files to Packages folder.
+                if (newPlacement == NugetPlacement.InPackagesFolder)
+                {
+                    SessionState.SetBool(RefreshOnStartKey, true);
+                }
+
                 var oldRepoPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
                 InstalledPackagesManager.UpdateInstalledPackages(); // Make sure it is initialized before we move files around
                 ConfigurationManager.MoveConfig(newPlacement);
