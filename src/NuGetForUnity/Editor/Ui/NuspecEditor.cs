@@ -209,7 +209,7 @@ namespace NugetForUnity.Ui
 
                     // display the dependencies
                     NugetPackageIdentifier toDelete = null;
-                    var nuspecFrameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec);
+                    var nuspecFrameworkGroup = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(nuspec, null);
                     foreach (var dependency in nuspecFrameworkGroup.Dependencies.Cast<NugetPackageIdentifier>())
                     {
                         EditorGUILayout.BeginHorizontal();
