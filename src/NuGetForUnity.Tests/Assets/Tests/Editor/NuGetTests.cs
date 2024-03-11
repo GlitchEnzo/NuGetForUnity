@@ -83,6 +83,26 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallJsonWithTargetFrameworkOverwriteTest()
+    {
+        // install a specific version
+        var package = new PackageConfig
+        {
+            Id = "Newtonsoft.Json", Version = "13.0.3", IsManuallyInstalled = true, TargetFramework = "netstandard1.3",
+        };
+        InstalledPackagesManager.PackagesConfigFile.Packages.Add(package);
+        NugetPackageInstaller.InstallIdentifier(package);
+        Assert.IsTrue(InstalledPackagesManager.IsInstalled(package, false), "The package was NOT installed: {0} {1}", package.Id, package.Version);
+        var libraryDirectory = Path.Combine(
+            ConfigurationManager.NugetConfigFile.RepositoryPath,
+            $"{package.Id}.{package.Version}",
+            "lib",
+            "netstandard1.3");
+        Assert.That(libraryDirectory, Does.Exist.IgnoreFiles);
+        Assert.That(Directory.EnumerateFiles(libraryDirectory, "*.dll"), Is.Not.Empty);
+    }
+
+    [Test]
     public void InstallRoslynAnalyzerTest([Values] InstallMode installMode)
     {
         ConfigureNugetConfig(installMode);
@@ -755,7 +775,7 @@ public class NuGetTests
             var foundBestMatch = new List<string>();
             while (allFrameworks.Count > 0)
             {
-                var bestMatch = TargetFrameworkResolver.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks);
+                var bestMatch = TargetFrameworkResolver.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks, null);
                 foundBestMatch.Add(bestMatch);
                 var expectedMatchIndex = 0;
                 if (!useNetStandard)

@@ -142,11 +142,17 @@ namespace NugetForUnity
         ///     See here: https://docs.nuget.org/ndocs/schema/target-frameworks.
         /// </summary>
         /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <returns>The best matching target-framework.</returns>
         [CanBeNull]
-        public static string TryGetBestTargetFramework([NotNull] [ItemNotNull] IReadOnlyCollection<string> availableTargetFrameworks)
+        public static string TryGetBestTargetFramework(
+            [NotNull] [ItemNotNull] IReadOnlyCollection<string> availableTargetFrameworks,
+            [CanBeNull] string preferredTargetFramework)
         {
-            return TryGetBestTargetFramework(availableTargetFrameworks, targetFramework => targetFramework);
+            return TryGetBestTargetFramework(availableTargetFrameworks, preferredTargetFramework, targetFramework => targetFramework);
         }
 
         /// <summary>
@@ -155,13 +161,34 @@ namespace NugetForUnity
         /// </summary>
         /// <typeparam name="T">The type of the target-framework.</typeparam>
         /// <param name="availableTargetFrameworks">The list of available target-frameworks.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <param name="getTargetFrameworkString">A function to get the target-framework string.</param>
         /// <returns>The best matching target-framework.</returns>
         [CanBeNull]
         public static T TryGetBestTargetFramework<T>(
             [NotNull] [ItemNotNull] IReadOnlyCollection<T> availableTargetFrameworks,
+            [CanBeNull] string preferredTargetFramework,
             [NotNull] Func<T, string> getTargetFrameworkString)
         {
+            if (!string.IsNullOrEmpty(preferredTargetFramework))
+            {
+                preferredTargetFramework = preferredTargetFramework.Replace(".", string.Empty);
+                var bestMatch = availableTargetFrameworks.FirstOrDefault(
+                    availableTargetFramework =>
+                    {
+                        var availableString = getTargetFrameworkString(availableTargetFramework).Replace(".", string.Empty);
+                        return availableString.Equals(preferredTargetFramework, StringComparison.OrdinalIgnoreCase);
+                    });
+
+                if (!Equals(bestMatch, default(T)))
+                {
+                    return bestMatch;
+                }
+            }
+
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
             foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
@@ -197,12 +224,20 @@ namespace NugetForUnity
         ///     Select the best target-framework group of a NuGet package.
         /// </summary>
         /// <param name="packageDependencies">The available frameworks.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <returns>The selected target framework group or null if non is matching.</returns>
         [CanBeNull]
         internal static NugetFrameworkGroup GetNullableBestDependencyFrameworkGroupForCurrentSettings(
-            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies)
+            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies,
+            [CanBeNull] string preferredTargetFramework)
         {
-            var bestTargetFramework = TryGetBestTargetFramework(packageDependencies, frameworkGroup => frameworkGroup.TargetFramework);
+            var bestTargetFramework = TryGetBestTargetFramework(
+                packageDependencies,
+                preferredTargetFramework,
+                frameworkGroup => frameworkGroup.TargetFramework);
             NugetLogger.LogVerbose(
                 "Selecting {0} as the best target framework for current settings",
                 bestTargetFramework?.TargetFramework ?? "(null)");
@@ -213,34 +248,52 @@ namespace NugetForUnity
         ///     Select the best target-framework group of a NuGet package.
         /// </summary>
         /// <param name="packageDependencies">The available frameworks.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
         [NotNull]
         internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(
-            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies)
+            [NotNull] [ItemNotNull] List<NugetFrameworkGroup> packageDependencies,
+            [CanBeNull] string preferredTargetFramework)
         {
-            return GetNullableBestDependencyFrameworkGroupForCurrentSettings(packageDependencies) ?? new NugetFrameworkGroup();
+            return GetNullableBestDependencyFrameworkGroupForCurrentSettings(packageDependencies, preferredTargetFramework) ??
+                   new NugetFrameworkGroup();
         }
 
         /// <summary>
         ///     Select the best target-framework group of a NuGet package.
         /// </summary>
         /// <param name="nuspec">The package of witch the dependencies are selected.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <returns>The selected target framework group or a empty group if non is matching.</returns>
         [NotNull]
-        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings([NotNull] NuspecFile nuspec)
+        internal static NugetFrameworkGroup GetBestDependencyFrameworkGroupForCurrentSettings(
+            [NotNull] NuspecFile nuspec,
+            [CanBeNull] string preferredTargetFramework)
         {
-            return GetBestDependencyFrameworkGroupForCurrentSettings(nuspec.Dependencies);
+            return GetBestDependencyFrameworkGroupForCurrentSettings(nuspec.Dependencies, preferredTargetFramework);
         }
 
         /// <summary>
         ///     Select the best target-framework name.
         /// </summary>
         /// <param name="targetFrameworks">The available frameworks.</param>
+        /// <param name="preferredTargetFramework">
+        ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
+        ///     from the Unity settings ('Api Compatibility Level').
+        /// </param>
         /// <returns>The selected target framework or null if non is matching.</returns>
         [CanBeNull]
-        internal static string TryGetBestTargetFrameworkForCurrentSettings([NotNull] [ItemNotNull] IReadOnlyCollection<string> targetFrameworks)
+        internal static string TryGetBestTargetFrameworkForCurrentSettings(
+            [NotNull] [ItemNotNull] IReadOnlyCollection<string> targetFrameworks,
+            [CanBeNull] string preferredTargetFramework)
         {
-            var result = TryGetBestTargetFramework(targetFrameworks);
+            var result = TryGetBestTargetFramework(targetFrameworks, preferredTargetFramework);
             NugetLogger.LogVerbose("Selecting {0} as the best target framework for current settings", result ?? "(null)");
             return result;
         }

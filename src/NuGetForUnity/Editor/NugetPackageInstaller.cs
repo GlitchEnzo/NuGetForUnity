@@ -110,18 +110,20 @@ namespace NugetForUnity
 
                 if (!isSlimRestoreInstall)
                 {
-                    var dependencies = package.Dependencies;
+                    var dependencyGroups = package.Dependencies;
 
                     // install all dependencies for target framework
-                    var frameworkGroup = TargetFrameworkResolver.GetNullableBestDependencyFrameworkGroupForCurrentSettings(dependencies);
+                    var frameworkGroup = TargetFrameworkResolver.GetNullableBestDependencyFrameworkGroupForCurrentSettings(
+                        dependencyGroups,
+                        InstalledPackagesManager.GetPackageConfigurationById(package.Id)?.TargetFramework);
 
-                    if (frameworkGroup == null && dependencies.Count != 0)
+                    if (frameworkGroup == null && dependencyGroups.Count != 0)
                     {
                         Debug.LogWarningFormat(
                             "Can't find a matching dependency group for the NuGet Package {0} {1} that has a TargetFramework supported by the current Unity Scripting Backend. The NuGet Package supports the following TargetFramework's: {2}",
                             package.Id,
                             package.Version,
-                            string.Join(", ", dependencies.Select(dependency => dependency.TargetFramework)));
+                            string.Join(", ", dependencyGroups.Select(dependency => dependency.TargetFramework)));
                     }
                     else if (frameworkGroup != null)
                     {
@@ -139,7 +141,7 @@ namespace NugetForUnity
                 }
 
                 // update packages.config
-                InstalledPackagesManager.AddPackageToConfig(package);
+                var packageConfig = InstalledPackagesManager.AddPackageToConfig(package);
 
                 var cachedPackagePath = Path.Combine(PackageCacheManager.CacheOutputDirectory, package.PackageFileName);
                 if (ConfigurationManager.NugetConfigFile.InstallFromCache && File.Exists(cachedPackagePath))
@@ -244,7 +246,10 @@ namespace NugetForUnity
                         // go through all lib zip entries and find the best target framework, then unpack it
                         if (libs.Count > 0)
                         {
-                            var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(libs, framework => framework.Key);
+                            var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(
+                                libs,
+                                packageConfig.TargetFramework,
+                                framework => framework.Key);
                             if (bestFrameworkMatch.Value != null)
                             {
                                 NugetLogger.LogVerbose(
@@ -267,11 +272,11 @@ namespace NugetForUnity
                         // go through all content files' frameworks and figure the best target network, prioritizing 'cs' over 'any' language
                         if (csFiles.Count > 0)
                         {
-                            TryExtractBestFrameworkSources(csFiles, baseDirectory, package);
+                            TryExtractBestFrameworkSources(csFiles, baseDirectory, package, packageConfig);
                         }
                         else if (anyFiles.Count > 0)
                         {
-                            TryExtractBestFrameworkSources(anyFiles, baseDirectory, package);
+                            TryExtractBestFrameworkSources(anyFiles, baseDirectory, package, packageConfig);
                         }
                     }
                 }
@@ -309,9 +314,13 @@ namespace NugetForUnity
         private static void TryExtractBestFrameworkSources(
             [NotNull] [ItemNotNull] IReadOnlyDictionary<string, List<ZipArchiveEntry>> frameworks,
             [NotNull] string sourceDirName,
-            [NotNull] INugetPackage package)
+            [NotNull] INugetPackage package,
+            [NotNull] PackageConfig packageConfig)
         {
-            var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(frameworks, framework => framework.Key);
+            var bestFrameworkMatch = TargetFrameworkResolver.TryGetBestTargetFramework(
+                frameworks,
+                packageConfig.TargetFramework,
+                framework => framework.Key);
             var frameworkKey = bestFrameworkMatch.Key ?? "any";
 
             if (frameworks.TryGetValue(frameworkKey, out var bestFramework))

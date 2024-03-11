@@ -22,6 +22,8 @@ namespace NugetForUnity.Configuration
 
         private const string AutoReferencedAttributeName = "autoReferenced";
 
+        private const string TargetFrameworkAttributeName = "targetFramework";
+
         [CanBeNull]
         private string contentIsSameAsInFilePath;
 
@@ -69,6 +71,7 @@ namespace NugetForUnity.Configuration
                         packageElement.Attribute("manuallyInstalled")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
                                             new XAttribute(AutoReferencedAttributeName, true)),
+                    TargetFramework = packageElement.Attribute(TargetFrameworkAttributeName)?.Value,
                 };
                 configFile.Packages.Add(package);
             }
@@ -81,9 +84,10 @@ namespace NugetForUnity.Configuration
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        public void AddPackage([NotNull] INugetPackageIdentifier package)
+        /// <returns>The newly added or allready existing config entry from the packages.config file.</returns>
+        public PackageConfig AddPackage([NotNull] INugetPackageIdentifier package)
         {
-            AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
+            return AddPackage(new PackageConfig { Id = package.Id, Version = package.Version, IsManuallyInstalled = package.IsManuallyInstalled });
         }
 
         /// <summary>
@@ -140,6 +144,11 @@ namespace NugetForUnity.Configuration
                 if (!package.AutoReferenced)
                 {
                     packageElement.Add(new XAttribute(AutoReferencedAttributeName, package.AutoReferenced));
+                }
+
+                if (!string.IsNullOrEmpty(package.TargetFramework))
+                {
+                    packageElement.Add(new XAttribute(TargetFrameworkAttributeName, package.TargetFramework));
                 }
 
                 packagesFile.Root?.Add(packageElement);
@@ -224,7 +233,7 @@ namespace NugetForUnity.Configuration
         internal void SetManuallyInstalledFlag([NotNull] INugetPackageIdentifier package)
         {
             package.IsManuallyInstalled = true;
-            var packageConfig = Packages.Find(p => string.Equals(p.Id, package.Id, StringComparison.OrdinalIgnoreCase));
+            var packageConfig = GetPackageConfigurationById(package);
             if (packageConfig != null && !packageConfig.IsManuallyInstalled)
             {
                 packageConfig.IsManuallyInstalled = true;
@@ -233,40 +242,67 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
+        ///     Gets the <see cref="PackageConfig" /> entry of the NuGet package with the id <paramref name="package" />.
+        /// </summary>
+        /// <param name="package">The package id to serch.</param>
+        /// <returns>The configuration of the NuGet package or null if the package is not in the <see cref="Packages" /> collection.</returns>
+        [CanBeNull]
+        internal PackageConfig GetPackageConfigurationById([NotNull] INugetPackageIdentifier package)
+        {
+            return GetPackageConfigurationById(package.Id);
+        }
+
+        /// <summary>
+        ///     Gets the <see cref="PackageConfig" /> entry of the NuGet package with the id <paramref name="packageId" />.
+        /// </summary>
+        /// <param name="packageId">The package id to serch.</param>
+        /// <returns>The configuration of the NuGet package or null if the package is not in the <see cref="Packages" /> collection.</returns>
+        [CanBeNull]
+        internal PackageConfig GetPackageConfigurationById([NotNull] string packageId)
+        {
+            return Packages.Find(p => string.Equals(p.Id, packageId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
         ///     Adds a package to the packages.config file.
         /// </summary>
         /// <param name="package">The NugetPackage to add to the packages.config file.</param>
-        private void AddPackage([NotNull] PackageConfig package)
+        /// <returns>The newly added or allready existing config entry from the packages.config file.</returns>
+        private PackageConfig AddPackage([NotNull] PackageConfig package)
         {
-            var existingPackage = Packages.Find(p => string.Equals(p.Id, package.Id, StringComparison.OrdinalIgnoreCase));
-            if (existingPackage != null)
-            {
-                var compared = existingPackage.CompareTo(package);
-                if (compared < 0)
-                {
-                    Debug.LogWarningFormat(
-                        "{0} {1} is already listed in the packages.config file.  Updating to {2}",
-                        existingPackage.Id,
-                        existingPackage.Version,
-                        package.Version);
-                    Packages.Remove(existingPackage);
-                    Packages.Add(package);
-                    MarkAsModified();
-                }
-                else if (compared > 0)
-                {
-                    Debug.LogWarningFormat(
-                        "Trying to add {0} {1} to the packages.config file.  {2} is already listed, so using that.",
-                        package.Id,
-                        package.Version,
-                        existingPackage.Version);
-                }
-            }
-            else
+            var existingPackage = GetPackageConfigurationById(package);
+            if (existingPackage is null)
             {
                 Packages.Add(package);
                 MarkAsModified();
+                return package;
             }
+
+            var compared = existingPackage.CompareTo(package);
+            if (compared < 0)
+            {
+                Debug.LogWarningFormat(
+                    "{0} {1} is already listed in the packages.config file.  Updating to {2}",
+                    existingPackage.Id,
+                    existingPackage.Version,
+                    package.Version);
+                Packages.Remove(existingPackage);
+                Packages.Add(package);
+                MarkAsModified();
+                return package;
+            }
+
+            if (compared > 0)
+            {
+                Debug.LogWarningFormat(
+                    "Trying to add {0} {1} to the packages.config file.  {2} is already listed, so using that.",
+                    package.Id,
+                    package.Version,
+                    existingPackage.Version);
+                return existingPackage;
+            }
+
+            return existingPackage;
         }
 
         private void MarkAsModified()

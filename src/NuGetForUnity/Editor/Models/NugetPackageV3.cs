@@ -196,8 +196,10 @@ namespace NugetForUnity.Models
             {
                 if (currentFrameworkDependencies == null)
                 {
-                    currentFrameworkDependencies =
-                        TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(Dependencies).Dependencies;
+                    currentFrameworkDependencies = TargetFrameworkResolver.GetBestDependencyFrameworkGroupForCurrentSettings(
+                            Dependencies,
+                            InstalledPackagesManager.GetPackageConfigurationById(Id)?.TargetFramework)
+                        .Dependencies;
                 }
 
                 return currentFrameworkDependencies;

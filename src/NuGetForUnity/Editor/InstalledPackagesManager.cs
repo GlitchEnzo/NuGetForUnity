@@ -78,7 +78,7 @@ namespace NugetForUnity
         [CanBeNull]
         internal static PackageConfig GetPackageConfigurationById([NotNull] string packageIdentifier)
         {
-            return PackagesConfigFile.Packages.Find(pkg => string.Equals(pkg.Id, packageIdentifier, StringComparison.OrdinalIgnoreCase));
+            return PackagesConfigFile.GetPackageConfigurationById(packageIdentifier);
         }
 
         /// <summary>
@@ -129,10 +129,13 @@ namespace NugetForUnity
         ///     Adds the package to the 'packages.config' file.
         /// </summary>
         /// <param name="package">The package to add.</param>
-        internal static void AddPackageToConfig([NotNull] INugetPackage package)
+        /// <returns>The newly added or allready existing config entry from the packages.config file.</returns>
+        [NotNull]
+        internal static PackageConfig AddPackageToConfig([NotNull] INugetPackage package)
         {
-            PackagesConfigFile.AddPackage(package);
+            var packageConfig = PackagesConfigFile.AddPackage(package);
             PackagesConfigFile.Save();
+            return packageConfig;
         }
 
         /// <summary>
