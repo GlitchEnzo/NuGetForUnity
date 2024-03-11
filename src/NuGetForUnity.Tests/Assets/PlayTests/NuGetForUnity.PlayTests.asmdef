@@ -1,5 +1,5 @@
 {
-    "name": "PlayTest",
+    "name": "NuGetForUnity.PlayTests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",

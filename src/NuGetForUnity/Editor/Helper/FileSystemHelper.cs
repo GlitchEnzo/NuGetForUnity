@@ -111,7 +111,8 @@ namespace NugetForUnity.Helper
             }
             catch (UnauthorizedAccessException e) when (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && e.Message.Contains(".dll"))
             {
-                Debug.LogError("Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files");
+                Debug.LogError(
+                    "Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files.");
             }
         }
 
@@ -133,7 +134,8 @@ namespace NugetForUnity.Helper
             }
             catch (UnauthorizedAccessException e) when (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && e.Message.Contains(".dll"))
             {
-                Debug.LogError("Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files");
+                Debug.LogError(
+                    "Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files.");
             }
         }
 

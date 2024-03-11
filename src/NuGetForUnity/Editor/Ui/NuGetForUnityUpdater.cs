@@ -16,7 +16,10 @@ namespace NugetForUnity.Ui
     /// </summary>
     internal static class NuGetForUnityUpdater
     {
-        private const string UpmPackageName = "com.github-glitchenzo.nugetforunity";
+        /// <summary>
+        ///     The name of the NuGetForUnity upm package.
+        /// </summary>
+        public const string UpmPackageName = "com.github-glitchenzo.nugetforunity";
 
         private const string UpmPackageGitUrl = "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity";
 
