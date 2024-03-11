@@ -996,6 +996,27 @@ public class NuGetTests
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
+    [Test]
+    [TestCase("win7-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win7-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("win-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
+    [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
+    public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
+    {
+        // Call load settings directly to ensure we're testing the deserialised file
+        var settings = ConfigurationManager.NativeRuntimeSettings;
+        var nativeRuntimes = settings.Configurations;
+
+        var runtimeConfig = nativeRuntimes.Find(config => config.Runtime == runtime);
+        Assert.That(runtimeConfig, Is.Not.Null, $"Native mappings is missing {runtime}");
+        Assert.That(
+            runtimeConfig.SupportetPlatformTargets,
+            Is.EqualTo(new[] { buildTarget }),
+            $"Native mapping for {runtime} is missing build target {buildTarget}");
+    }
+
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
         var nugetConfigFile = ConfigurationManager.NugetConfigFile;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using UnityEngine;
 
@@ -104,7 +105,15 @@ namespace NugetForUnity.Helper
             directoryInfo.Attributes = FileAttributes.Normal;
 
             // delete the directory
-            directoryInfo.Delete(true);
+            try
+            {
+                directoryInfo.Delete(true);
+            }
+            catch (UnauthorizedAccessException e) when (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && e.Message.Contains(".dll"))
+            {
+                Debug.LogError(
+                    "Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files.");
+            }
         }
 
         /// <summary>
@@ -119,7 +128,15 @@ namespace NugetForUnity.Helper
             }
 
             File.SetAttributes(filePath, FileAttributes.Normal);
-            File.Delete(filePath);
+            try
+            {
+                File.Delete(filePath);
+            }
+            catch (UnauthorizedAccessException e) when (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && e.Message.Contains(".dll"))
+            {
+                Debug.LogError(
+                    "Windows was unable to delete all the files, if you are using Native files this is because the file is in use by Unity. Please restart Unity to remove all the files.");
+            }
         }
 
         /// <summary>

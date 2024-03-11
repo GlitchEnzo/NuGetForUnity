@@ -9,9 +9,11 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
+using NugetForUnity.Ui;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+[assembly: InternalsVisibleTo("NuGetForUnity.PlayTests")]
 
 namespace NugetForUnity.Configuration
 {
@@ -32,10 +34,22 @@ namespace NugetForUnity.Configuration
         [CanBeNull]
         private static NugetConfigFile nugetConfigFile;
 
+        [CanBeNull]
+        private static NativeRuntimeSettings nativeRuntimeSettings;
+
+        [NotNull]
+        private static readonly string nativeRuntimeSettingsFilePath;
+
         static ConfigurationManager()
         {
             NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
             NugetConfigFilePath = Path.Combine(NugetConfigFileDirectoryPath, NugetConfigFile.FileName);
+            nativeRuntimeSettingsFilePath = Path.Combine(
+                UnityPathHelper.AbsoluteProjectPath,
+                "ProjectSettings",
+                "Packages",
+                NuGetForUnityUpdater.UpmPackageName,
+                "NativeRuntimeSettings.json");
         }
 
         /// <summary>
@@ -62,6 +76,20 @@ namespace NugetForUnity.Configuration
 
                 Debug.Assert(nugetConfigFile != null, nameof(nugetConfigFile) + " != null");
                 return nugetConfigFile;
+            }
+        }
+
+        [NotNull]
+        internal static NativeRuntimeSettings NativeRuntimeSettings
+        {
+            get
+            {
+                if (nativeRuntimeSettings is null)
+                {
+                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(nativeRuntimeSettingsFilePath);
+                }
+
+                return nativeRuntimeSettings;
             }
         }
 
