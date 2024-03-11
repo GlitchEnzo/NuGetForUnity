@@ -49,6 +49,8 @@ namespace NugetForUnity.Configuration
                 Debug.LogFormat("No packages.config file found. Creating default at {0}", filePath);
 
                 configFile.Save();
+                configFile.contentIsSameAsInFilePath = filePath;
+                return configFile;
             }
 
             var packagesFile = XDocument.Load(filePath);

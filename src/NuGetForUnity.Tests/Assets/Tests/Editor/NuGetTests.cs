@@ -1106,17 +1106,18 @@ public class NuGetTests
     [TestCase("win-x86", BuildTarget.StandaloneWindows)]
     [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
     [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
-    public void NativeSettingsTest(string key, BuildTarget buildTarget)
+    public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
     {
-        Settings.CreateDefault(NugetHelper.SettingsFilePath);
-
         // Call load settings directly to ensure we're testing the deserialised file
-        var settings = Settings.Load(NugetHelper.SettingsFilePath);
-        var nativeRuntimes = settings.NativeRuntimesMappings;
+        var settings = ConfigurationManager.NativeRuntimeSettings;
+        var nativeRuntimes = settings.Configurations;
 
-        Assert.IsTrue(nativeRuntimes.ContainsKey(key), $"Native mappings is missing {key}");
-        Assert.IsTrue(nativeRuntimes[key].Contains(buildTarget),
-            $"Native mapping for {key} is missing build target {buildTarget}");
+        var runtimeConfig = nativeRuntimes.Find(config => config.Runtime == runtime);
+        Assert.That(runtimeConfig, Is.Not.Null, $"Native mappings is missing {runtime}");
+        Assert.That(
+            runtimeConfig.SupportedPlatformTargets,
+            Is.EqualTo(new[] { buildTarget }),
+            $"Native mapping for {runtime} is missing build target {buildTarget}");
     }
 
     private static void IgnorePackagesConfigImportError()

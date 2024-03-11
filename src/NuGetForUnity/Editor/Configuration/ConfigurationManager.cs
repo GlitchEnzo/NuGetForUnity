@@ -9,9 +9,11 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
+using NugetForUnity.Ui;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+[assembly: InternalsVisibleTo("NuGetForUnity.PlayTests")]
 
 namespace NugetForUnity.Configuration
 {
@@ -32,6 +34,12 @@ namespace NugetForUnity.Configuration
         [CanBeNull]
         private static NugetConfigFile nugetConfigFile;
 
+        [CanBeNull]
+        private static NativeRuntimeSettings nativeRuntimeSettings;
+
+        [NotNull]
+        private static readonly string nativeRuntimeSettingsFilePath;
+
         static ConfigurationManager()
         {
             NugetConfigFilePath = Path.Combine(UnityPathHelper.AbsoluteUnityPackagesNugetPath, NugetConfigFile.FileName);
@@ -44,6 +52,13 @@ namespace NugetForUnity.Configuration
                 NugetConfigFilePath = Path.Combine(UnityPathHelper.AbsoluteAssetsPath, NugetConfigFile.FileName);
                 NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
             }
+
+            nativeRuntimeSettingsFilePath = Path.Combine(
+                UnityPathHelper.AbsoluteProjectPath,
+                "ProjectSettings",
+                "Packages",
+                NuGetForUnityUpdater.UpmPackageName,
+                "NativeRuntimeSettings.json");
         }
 
         /// <summary>
@@ -70,6 +85,20 @@ namespace NugetForUnity.Configuration
 
                 Debug.Assert(nugetConfigFile != null, nameof(nugetConfigFile) + " != null");
                 return nugetConfigFile;
+            }
+        }
+
+        [NotNull]
+        internal static NativeRuntimeSettings NativeRuntimeSettings
+        {
+            get
+            {
+                if (nativeRuntimeSettings is null)
+                {
+                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(nativeRuntimeSettingsFilePath);
+                }
+
+                return nativeRuntimeSettings;
             }
         }
 

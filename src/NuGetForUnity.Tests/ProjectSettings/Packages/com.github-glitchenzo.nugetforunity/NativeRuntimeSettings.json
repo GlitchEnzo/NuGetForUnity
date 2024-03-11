@@ -1,0 +1,60 @@
+{
+    "configurations": [
+        {
+            "supportedPlatformTargets": ["StandaloneWindows64"],
+            "cpuArchitecture": "x86_64",
+            "runtime": "win10-x64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneWindows"],
+            "cpuArchitecture": "AnyCPU",
+            "runtime": "win10-x86",
+            "editorCpuArchitecture": "AnyCPU",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneWindows64"],
+            "cpuArchitecture": "x86_64",
+            "runtime": "win7-x64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneWindows"],
+            "cpuArchitecture": "AnyCPU",
+            "runtime": "win7-x86",
+            "editorCpuArchitecture": "AnyCPU",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneWindows64"],
+            "cpuArchitecture": "x86_64",
+            "runtime": "win-x64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneWindows"],
+            "cpuArchitecture": "AnyCPU",
+            "runtime": "win-x86",
+            "editorCpuArchitecture": "AnyCPU",
+            "editorOperatingSystem": "Windows"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneLinux64"],
+            "cpuArchitecture": "x86_64",
+            "runtime": "linux-x64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Linux"
+        },
+        {
+            "supportedPlatformTargets": ["StandaloneOSX"],
+            "cpuArchitecture": "x86_64",
+            "runtime": "osx-x64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "OSX"
+        }
+    ]
+}
