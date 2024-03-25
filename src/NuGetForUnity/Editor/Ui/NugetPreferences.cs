@@ -76,8 +76,8 @@ namespace NugetForUnity.Ui
         private NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
-            shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.Placement == NugetPlacement.CustomWithinAssets &&
-                                                    !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
+            shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.InstallLocation == PackageInstallLocation.CustomWithinAssets &&
+                                                  !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
             plugins = assemblies.Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -152,16 +152,19 @@ namespace NugetForUnity.Ui
                 ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
             }
 
-            var newPlacement = (NugetPlacement)EditorGUILayout.EnumPopup("Placement:", ConfigurationManager.NugetConfigFile.Placement);
-            if (newPlacement != ConfigurationManager.NugetConfigFile.Placement)
+            var newInstallLocation = (PackageInstallLocation)EditorGUILayout.EnumPopup(
+                "Placement:",
+                ConfigurationManager.NugetConfigFile.InstallLocation);
+            if (newInstallLocation != ConfigurationManager.NugetConfigFile.InstallLocation)
             {
                 var oldRepoPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
                 InstalledPackagesManager.UpdateInstalledPackages(); // Make sure it is initialized before we move files around
-                ConfigurationManager.MoveConfig(newPlacement);
+                ConfigurationManager.MoveConfig(newInstallLocation);
                 var newRepoPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
                 PackageContentManager.MoveInstalledPackages(oldRepoPath, newRepoPath);
 
-                if (newPlacement == NugetPlacement.CustomWithinAssets && Directory.Exists(UnityPathHelper.AbsoluteUnityPackagesNugetPath))
+                if (newInstallLocation == PackageInstallLocation.CustomWithinAssets &&
+                    Directory.Exists(UnityPathHelper.AbsoluteUnityPackagesNugetPath))
                 {
                     Directory.Delete(UnityPathHelper.AbsoluteUnityPackagesNugetPath, true);
                 }
@@ -170,7 +173,7 @@ namespace NugetForUnity.Ui
                 needsAssetRefresh = true;
             }
 
-            if (newPlacement == NugetPlacement.CustomWithinAssets)
+            if (newInstallLocation == PackageInstallLocation.CustomWithinAssets)
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -195,7 +198,7 @@ namespace NugetForUnity.Ui
                             {
                                 PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
                                 ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath = newRelativePath;
-                                UnityPathHelper.EnsurePackageInstallDirIsSetup();
+                                UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
                                 preferencesChangedThisFrame = true;
                                 needsAssetRefresh = true;
                             }

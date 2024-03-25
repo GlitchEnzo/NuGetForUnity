@@ -165,11 +165,6 @@ namespace NugetForUnity.Ui
         private bool showPrereleaseUpdates;
 
         /// <summary>
-        ///     The current position of the scroll bar for packages selected for installation.
-        /// </summary>
-        private Vector2 toInstallScrollPosition;
-
-        /// <summary>
         ///     The list of package updates available, based on the already installed packages.
         /// </summary>
         private List<INugetPackage> updatePackages = new List<INugetPackage>();
@@ -505,7 +500,7 @@ namespace NugetForUnity.Ui
             name = "NuGetForUnity";
             titleContent = new GUIContent("NuGet For Unity");
             Refresh(false);
-            UnityPathHelper.EnsurePackageInstallDirIsSetup();
+            UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
         }
 
         private void ClearViewCache()
@@ -1183,9 +1178,7 @@ namespace NugetForUnity.Ui
 
                 // Show the version selection dropdown only on Updates tab OR on Online tab if the package is not installed and not already in Unity
                 if (currentTab == NugetWindowTab.UpdatesTab ||
-                    (currentTab == NugetWindowTab.OnlineTab &&
-                     installed == null &&
-                     !isAlreadyImportedInEngine))
+                    (currentTab == NugetWindowTab.OnlineTab && installed == null && !isAlreadyImportedInEngine))
                 {
                     if (package.Versions.Count <= 1)
                     {

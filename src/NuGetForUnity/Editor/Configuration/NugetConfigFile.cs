@@ -90,17 +90,12 @@ namespace NugetForUnity.Configuration
         public INugetPackageSource ActivePackageSource { get; private set; }
 
         /// <summary>
-        ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
-        /// </summary>
-        public NugetPlacement Placement { get; private set; }
-
-        /// <summary>
         ///     Gets the absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
         public string RepositoryPath
         {
-            get => Placement == NugetPlacement.InPackagesFolder ? unityPackagesNugetInstallPath : repositoryPath;
+            get => InstallLocation == PackageInstallLocation.InPackagesFolder ? unityPackagesNugetInstallPath : repositoryPath;
 
             private set => repositoryPath = value;
         }
@@ -162,7 +157,10 @@ namespace NugetForUnity.Configuration
         [NotNull]
         public string PackagesConfigDirectoryPath
         {
-            get => Placement == NugetPlacement.InPackagesFolder ? UnityPathHelper.AbsoluteUnityPackagesNugetPath : packagesConfigDirectoryPath;
+            get =>
+                InstallLocation == PackageInstallLocation.InPackagesFolder ?
+                    UnityPathHelper.AbsoluteUnityPackagesNugetPath :
+                    packagesConfigDirectoryPath;
 
             set => packagesConfigDirectoryPath = value;
         }
@@ -189,32 +187,14 @@ namespace NugetForUnity.Configuration
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
 
         /// <summary>
+        ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
+        /// </summary>
+        internal PackageInstallLocation InstallLocation { get; private set; }
+
+        /// <summary>
         ///     Gets the list of enabled plugins.
         /// </summary>
         internal List<NugetForUnityPluginId> EnabledPlugins { get; } = new List<NugetForUnityPluginId>();
-
-        /// <summary>
-        /// Changes the placement config and also moves the packages.config to the new location.
-        /// </summary>
-        /// <param name="newPlacement">New placement to set.</param>
-        public void ChangePlacement(NugetPlacement newPlacement)
-        {
-            if (newPlacement == Placement)
-            {
-                return;
-            }
-
-            var oldPackagesConfigPath = PackagesConfigFilePath;
-            Placement = newPlacement;
-            UnityPathHelper.EnsurePackageInstallDirIsSetup();
-            var newConfigPath = PackagesConfigFilePath;
-            File.Move(oldPackagesConfigPath, newConfigPath);
-            var configMeta = oldPackagesConfigPath + ".meta";
-            if (File.Exists(configMeta))
-            {
-                File.Move(configMeta, newConfigPath + ".meta");
-            }
-        }
 
         /// <summary>
         ///     Loads a NuGet.config file at the given file-path.
@@ -366,7 +346,7 @@ namespace NugetForUnity.Configuration
 
                 if (string.Equals(key, "Placement", StringComparison.OrdinalIgnoreCase))
                 {
-                    configFile.Placement = (NugetPlacement)Enum.Parse(typeof(NugetPlacement), value);
+                    configFile.InstallLocation = (PackageInstallLocation)Enum.Parse(typeof(PackageInstallLocation), value);
                 }
                 else if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                 {
@@ -519,7 +499,7 @@ namespace NugetForUnity.Configuration
 
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", "Placement"));
-            addElement.Add(new XAttribute("value", Placement.ToString()));
+            addElement.Add(new XAttribute("value", InstallLocation.ToString()));
             config.Add(addElement);
 
             if (!string.IsNullOrEmpty(ConfiguredRepositoryPath))
@@ -620,6 +600,29 @@ namespace NugetForUnity.Configuration
             }
 
             configFile.Save(filePath);
+        }
+
+        /// <summary>
+        ///     Changes the package install location config and also moves the packages.config to the new location.
+        /// </summary>
+        /// <param name="newInstallLocation">New install location to set.</param>
+        internal void ChangeInstallLocation(PackageInstallLocation newInstallLocation)
+        {
+            if (newInstallLocation == InstallLocation)
+            {
+                return;
+            }
+
+            var oldPackagesConfigPath = PackagesConfigFilePath;
+            InstallLocation = newInstallLocation;
+            UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
+            var newConfigPath = PackagesConfigFilePath;
+            File.Move(oldPackagesConfigPath, newConfigPath);
+            var configMeta = oldPackagesConfigPath + ".meta";
+            if (File.Exists(configMeta))
+            {
+                File.Move(configMeta, newConfigPath + ".meta");
+            }
         }
     }
 }

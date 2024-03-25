@@ -75,11 +75,11 @@ namespace NugetForUnity.Helper
         /// Ensures that the package install directory exists and in case it is under Unity's
         /// Packages folder that it contains a dummy package.json file so that Unity can see it.
         /// </summary>
-        internal static void EnsurePackageInstallDirIsSetup()
+        internal static void EnsurePackageInstallDirectoryIsSetup()
         {
             Directory.CreateDirectory(ConfigurationManager.NugetConfigFile.RepositoryPath);
 
-            if (ConfigurationManager.NugetConfigFile.Placement == NugetPlacement.CustomWithinAssets)
+            if (ConfigurationManager.NugetConfigFile.InstallLocation == PackageInstallLocation.CustomWithinAssets)
             {
                 return;
             }

@@ -3,7 +3,7 @@
     /// <summary>
     ///     Tells the system how to determine where the packages are to be installed and configurations are to be stored.
     /// </summary>
-    public enum NugetPlacement
+    internal enum PackageInstallLocation
     {
         /// <summary>
         ///     This option will place Nuget.config into the Assets folder and will allow the user to

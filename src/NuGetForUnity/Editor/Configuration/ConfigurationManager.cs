@@ -219,11 +219,11 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///  Moves the Nuget.config under newPlacement and updated local properties to point to it.
         /// </summary>
-        /// <param name="newPlacement">New placement for configs.</param>
-        public static void MoveConfig(NugetPlacement newPlacement)
+        /// <param name="newInstallLocation">New placement for configs.</param>
+        internal static void MoveConfig(PackageInstallLocation newInstallLocation)
         {
-            NugetConfigFile.ChangePlacement(newPlacement);
-            var newConfigsPath = newPlacement == NugetPlacement.InPackagesFolder ?
+            NugetConfigFile.ChangeInstallLocation(newInstallLocation);
+            var newConfigsPath = newInstallLocation == PackageInstallLocation.InPackagesFolder ?
                 UnityPathHelper.AbsoluteUnityPackagesNugetPath :
                 UnityPathHelper.AbsoluteAssetsPath;
             var newConfigFilePath = Path.Combine(newConfigsPath, NugetConfigFile.FileName);
