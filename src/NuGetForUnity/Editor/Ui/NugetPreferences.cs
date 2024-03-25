@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -75,7 +76,8 @@ namespace NugetForUnity.Ui
         private NugetPreferences()
             : base("Preferences/NuGet For Unity", SettingsScope.User)
         {
-            shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
+            shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.InstallLocation == PackageInstallLocation.CustomWithinAssets &&
+                                                  !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
             plugins = assemblies.Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -108,6 +110,7 @@ namespace NugetForUnity.Ui
 
             var preferencesChangedThisFrame = false;
             var sourcePathChangedThisFrame = false;
+            var needsAssetRefresh = false;
 
             var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Request Timeout in seconds")).x;
             EditorGUIUtility.labelWidth = biggestLabelSize;
@@ -149,35 +152,96 @@ namespace NugetForUnity.Ui
                 ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
             }
 
-            using (new EditorGUILayout.HorizontalScope())
+            var newInstallLocation = (PackageInstallLocation)EditorGUILayout.EnumPopup(
+                "Placement:",
+                ConfigurationManager.NugetConfigFile.InstallLocation);
+            if (newInstallLocation != ConfigurationManager.NugetConfigFile.InstallLocation)
             {
-                var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
+                var oldRepoPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
+                InstalledPackagesManager.UpdateInstalledPackages(); // Make sure it is initialized before we move files around
+                ConfigurationManager.MoveConfig(newInstallLocation);
+                var newRepoPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
+                PackageContentManager.MoveInstalledPackages(oldRepoPath, newRepoPath);
 
-                GUILayout.Label(
-                    new GUIContent("Packages Config path:", $"Absolute path: {packagesConfigPath}"),
-                    GUILayout.Width(EditorGUIUtility.labelWidth));
-                GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativePackagesConfigDirectoryPath);
-
-                if (GUILayout.Button("Browse", GUILayout.Width(100)))
+                if (newInstallLocation == PackageInstallLocation.CustomWithinAssets &&
+                    Directory.Exists(UnityPathHelper.AbsoluteUnityPackagesNugetPath))
                 {
-                    var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, string.Empty);
-
-                    if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
-                    {
-                        // if the path root is different or it is not under Assets folder, we want to show a warning message
-                        shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(newPath);
-
-                        PackagesConfigFile.Move(newPath);
-                        preferencesChangedThisFrame = true;
-                    }
+                    Directory.Delete(UnityPathHelper.AbsoluteUnityPackagesNugetPath, true);
                 }
+
+                preferencesChangedThisFrame = true;
+                needsAssetRefresh = true;
             }
 
-            if (shouldShowPackagesConfigPathWarning)
+            if (newInstallLocation == PackageInstallLocation.CustomWithinAssets)
             {
-                EditorGUILayout.HelpBox(
-                    "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
-                    MessageType.Warning);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    var repositoryPath = ConfigurationManager.NugetConfigFile.RepositoryPath;
+
+                    GUILayout.Label(
+                        new GUIContent("Packages Install path:", $"Absolute path: {repositoryPath}"),
+                        GUILayout.Width(EditorGUIUtility.labelWidth));
+                    GUILayout.Label(ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath);
+
+                    if (GUILayout.Button("Browse", GUILayout.Width(100)))
+                    {
+                        var newPath = EditorUtility.OpenFolderPanel("Select folder where packages will be installed", repositoryPath, string.Empty);
+                        if (!string.IsNullOrEmpty(newPath))
+                        {
+                            var newRelativePath = PathHelper.GetRelativePath(Application.dataPath, newPath);
+
+                            // We need to make sure saved path is using forward slashes so it works on all systems
+                            newRelativePath = newRelativePath.Replace('\\', '/');
+
+                            if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
+                            {
+                                PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
+                                ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath = newRelativePath;
+                                UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
+                                preferencesChangedThisFrame = true;
+                                needsAssetRefresh = true;
+                            }
+                            else if (newPath != repositoryPath)
+                            {
+                                Debug.LogError(
+                                    $"Packages install path {newPath} {newRelativePath} is not valid. It must be somewhere under Assets or Packages folder.");
+                            }
+                        }
+                    }
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    var packagesConfigPath = ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath;
+
+                    GUILayout.Label(
+                        new GUIContent("Packages Config path:", $"Absolute path: {packagesConfigPath}"),
+                        GUILayout.Width(EditorGUIUtility.labelWidth));
+                    GUILayout.Label(ConfigurationManager.NugetConfigFile.RelativePackagesConfigDirectoryPath);
+
+                    if (GUILayout.Button("Browse", GUILayout.Width(100)))
+                    {
+                        var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, string.Empty);
+
+                        if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
+                        {
+                            // if the path root is different or it is not under Assets folder, we want to show a warning message
+                            shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(newPath);
+
+                            PackagesConfigFile.Move(newPath);
+                            preferencesChangedThisFrame = true;
+                            needsAssetRefresh = true;
+                        }
+                    }
+                }
+
+                if (shouldShowPackagesConfigPathWarning)
+                {
+                    EditorGUILayout.HelpBox(
+                        "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
+                        MessageType.Warning);
+                }
             }
 
             var requestTimeout = EditorGUILayout.IntField(
@@ -488,6 +552,12 @@ namespace NugetForUnity.Ui
                 // we need to force reload as the changed 'url' can lead to a package source type change.
                 // e.g. the 'url' can be changed to a V3 nuget API url so we need to create a V3 package source.
                 ConfigurationManager.LoadNugetConfigFile();
+            }
+
+            if (needsAssetRefresh)
+            {
+                // AssetDatabase.Refresh(); doesn't work when we move the files from Assets to Packages so we use this instead:
+                EditorApplication.ExecuteMenuItem("Assets/Refresh");
             }
         }
 

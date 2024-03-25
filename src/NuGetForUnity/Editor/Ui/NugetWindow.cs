@@ -385,6 +385,7 @@ namespace NugetForUnity.Ui
             name = "NuGetForUnity";
             titleContent = new GUIContent("NuGet For Unity");
             Refresh(false);
+            UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
         }
 
         private void ClearViewCache()
