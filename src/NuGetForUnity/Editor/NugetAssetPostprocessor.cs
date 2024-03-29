@@ -498,17 +498,17 @@ namespace NugetForUnity
             var otherRuntimeWithSameRuntimeConfiguration = runtimeConfigurations.Find(
                 otherRuntime => string.Equals(otherRuntime.CpuArchitecture, configuration.CpuArchitecture, StringComparison.OrdinalIgnoreCase) &&
                                 otherRuntimes.Contains(otherRuntime.Runtime) &&
-                                otherRuntime.SupportetPlatformTargets.Any(configuration.SupportetPlatformTargets.Contains));
+                                otherRuntime.SupportedPlatformTargets.Any(configuration.SupportedPlatformTargets.Contains));
             if (otherRuntimeWithSameRuntimeConfiguration == null ||
                 otherRuntimeWithSameRuntimeConfiguration.Runtime.CompareTo(configuration.Runtime) <= 0)
             {
-                foreach (var platform in NonObsoleteBuildTargets.Except(configuration.SupportetPlatformTargets))
+                foreach (var platform in NonObsoleteBuildTargets.Except(configuration.SupportedPlatformTargets))
                 {
                     plugin.SetExcludeFromAnyPlatform(platform, true);
                     plugin.SetCompatibleWithPlatform(platform, false);
                 }
 
-                foreach (var platform in configuration.SupportetPlatformTargets)
+                foreach (var platform in configuration.SupportedPlatformTargets)
                 {
                     plugin.SetCompatibleWithPlatform(platform, true);
 

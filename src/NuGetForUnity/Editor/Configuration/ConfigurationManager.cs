@@ -22,6 +22,9 @@ namespace NugetForUnity.Configuration
     /// </summary>
     public static class ConfigurationManager
     {
+        [NotNull]
+        private static readonly string NativeRuntimeSettingsFilePath;
+
         /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
         /// </summary>
@@ -37,14 +40,11 @@ namespace NugetForUnity.Configuration
         [CanBeNull]
         private static NativeRuntimeSettings nativeRuntimeSettings;
 
-        [NotNull]
-        private static readonly string nativeRuntimeSettingsFilePath;
-
         static ConfigurationManager()
         {
             NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
             NugetConfigFilePath = Path.Combine(NugetConfigFileDirectoryPath, NugetConfigFile.FileName);
-            nativeRuntimeSettingsFilePath = Path.Combine(
+            NativeRuntimeSettingsFilePath = Path.Combine(
                 UnityPathHelper.AbsoluteProjectPath,
                 "ProjectSettings",
                 "Packages",
@@ -79,6 +79,9 @@ namespace NugetForUnity.Configuration
             }
         }
 
+        /// <summary>
+        ///     Gets the loaded <see cref="NativeRuntimeSettings" /> file that holds the settings for how to install native runtime dependencies.
+        /// </summary>
         [NotNull]
         internal static NativeRuntimeSettings NativeRuntimeSettings
         {
@@ -86,7 +89,7 @@ namespace NugetForUnity.Configuration
             {
                 if (nativeRuntimeSettings is null)
                 {
-                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(nativeRuntimeSettingsFilePath);
+                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(NativeRuntimeSettingsFilePath);
                 }
 
                 return nativeRuntimeSettings;

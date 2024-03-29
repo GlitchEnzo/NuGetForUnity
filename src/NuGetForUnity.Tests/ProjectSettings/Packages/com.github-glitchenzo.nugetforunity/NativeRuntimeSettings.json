@@ -1,60 +1,60 @@
 {
     "configurations": [
         {
-            "supportetPlatformTargets": ["StandaloneWindows64"],
             "cpuArchitecture": "x86_64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows",
             "runtime": "win10-x64",
-            "editorCpuArchitecture": "x86_64",
-            "editorOperatingSystem": "Windows"
+            "supportedPlatformTargets": ["StandaloneWindows64"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneWindows"],
             "cpuArchitecture": "AnyCPU",
+            "editorCpuArchitecture": "AnyCPU",
+            "editorOperatingSystem": "Windows",
             "runtime": "win10-x86",
-            "editorCpuArchitecture": "AnyCPU",
-            "editorOperatingSystem": "Windows"
+            "supportedPlatformTargets": ["StandaloneWindows"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneWindows64"],
             "cpuArchitecture": "x86_64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows",
             "runtime": "win7-x64",
-            "editorCpuArchitecture": "x86_64",
-            "editorOperatingSystem": "Windows"
+            "supportedPlatformTargets": ["StandaloneWindows64"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneWindows"],
             "cpuArchitecture": "AnyCPU",
+            "editorCpuArchitecture": "AnyCPU",
+            "editorOperatingSystem": "Windows",
             "runtime": "win7-x86",
-            "editorCpuArchitecture": "AnyCPU",
-            "editorOperatingSystem": "Windows"
+            "supportedPlatformTargets": ["StandaloneWindows"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneWindows64"],
             "cpuArchitecture": "x86_64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Windows",
             "runtime": "win-x64",
-            "editorCpuArchitecture": "x86_64",
-            "editorOperatingSystem": "Windows"
+            "supportedPlatformTargets": ["StandaloneWindows64"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneWindows"],
             "cpuArchitecture": "AnyCPU",
-            "runtime": "win-x86",
             "editorCpuArchitecture": "AnyCPU",
-            "editorOperatingSystem": "Windows"
+            "editorOperatingSystem": "Windows",
+            "runtime": "win-x86",
+            "supportedPlatformTargets": ["StandaloneWindows"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneLinux64"],
             "cpuArchitecture": "x86_64",
+            "editorCpuArchitecture": "x86_64",
+            "editorOperatingSystem": "Linux",
             "runtime": "linux-x64",
-            "editorCpuArchitecture": "x86_64",
-            "editorOperatingSystem": "Linux"
+            "supportedPlatformTargets": ["StandaloneLinux64"]
         },
         {
-            "supportetPlatformTargets": ["StandaloneOSX"],
             "cpuArchitecture": "x86_64",
-            "runtime": "osx-x64",
             "editorCpuArchitecture": "x86_64",
-            "editorOperatingSystem": "OSX"
+            "editorOperatingSystem": "OSX",
+            "runtime": "osx-x64",
+            "supportedPlatformTargets": ["StandaloneOSX"]
         }
     ]
 }
