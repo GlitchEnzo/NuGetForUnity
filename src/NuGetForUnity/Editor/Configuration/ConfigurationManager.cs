@@ -217,7 +217,7 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        ///  Moves the Nuget.config under newPlacement and updated local properties to point to it.
+        ///     Moves the Nuget.config under newPlacement and updated local properties to point to it.
         /// </summary>
         /// <param name="newInstallLocation">New placement for configs.</param>
         internal static void MoveConfig(PackageInstallLocation newInstallLocation)

@@ -291,7 +291,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        /// Moves already installed packages from the old to a new path.
+        ///     Moves already installed packages from the old to a new path.
         /// </summary>
         /// <param name="oldPath">Old package installation absolute path.</param>
         /// <param name="newPath">New package installation absolute path.</param>

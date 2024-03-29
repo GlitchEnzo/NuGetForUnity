@@ -33,7 +33,7 @@ namespace NugetForUnity.Helper
         }
 
         /// <summary>
-        ///    Gets the absolute path to 'project root'/Packages/nuget-packages.
+        ///     Gets the absolute path to 'project root'/Packages/nuget-packages.
         /// </summary>
         [NotNull]
         internal static string AbsoluteUnityPackagesNugetPath { get; }
@@ -72,8 +72,8 @@ namespace NugetForUnity.Helper
         }
 
         /// <summary>
-        /// Ensures that the package install directory exists and in case it is under Unity's
-        /// Packages folder that it contains a dummy package.json file so that Unity can see it.
+        ///     Ensures that the package install directory exists and in case it is under Unity's
+        ///     Packages folder that it contains a dummy package.json file so that Unity can see it.
         /// </summary>
         internal static void EnsurePackageInstallDirectoryIsSetup()
         {
