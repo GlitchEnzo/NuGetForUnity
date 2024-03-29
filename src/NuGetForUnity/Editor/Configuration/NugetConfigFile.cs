@@ -344,7 +344,7 @@ namespace NugetForUnity.Configuration
                 var key = add.Attribute("key")?.Value;
                 var value = add.Attribute("value")?.Value ?? throw new InvalidOperationException($"config misses 'value' attribute. Element:\n{add}");
 
-                if (string.Equals(key, "Placement", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(key, "packageInstallLocation", StringComparison.OrdinalIgnoreCase))
                 {
                     configFile.InstallLocation = (PackageInstallLocation)Enum.Parse(typeof(PackageInstallLocation), value);
                 }
@@ -404,7 +404,7 @@ namespace NugetForUnity.Configuration
     <add key=""All"" value=""(Aggregate source)"" />
   </activePackageSource>
   <config>
-    <add key=""Placement"" value=""CustomWithinAssets"" />
+    <add key=""packageInstallLocation"" value=""CustomWithinAssets"" />
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
     <add key=""slimRestore"" value=""true"" />
@@ -498,7 +498,7 @@ namespace NugetForUnity.Configuration
             var config = new XElement("config");
 
             addElement = new XElement("add");
-            addElement.Add(new XAttribute("key", "Placement"));
+            addElement.Add(new XAttribute("key", "packageInstallLocation"));
             addElement.Add(new XAttribute("value", InstallLocation.ToString()));
             config.Add(addElement);
 
