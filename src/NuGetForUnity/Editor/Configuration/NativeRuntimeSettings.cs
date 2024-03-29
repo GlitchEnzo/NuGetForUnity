@@ -6,6 +6,9 @@ using UnityEngine;
 
 namespace NugetForUnity.Configuration
 {
+    /// <summary>
+    ///     Serializable configuration about how native runtime assets (.dll's) are installed.
+    /// </summary>
     [Serializable]
     internal class NativeRuntimeSettings
     {
@@ -17,6 +20,12 @@ namespace NugetForUnity.Configuration
         /// </summary>
         internal List<NativeRuntimeAssetConfiguration> Configurations => configurations;
 
+        /// <summary>
+        ///     Loads the configuration from the file at <paramref name="filePath" /> if it exists.
+        ///     If the file <paramref name="filePath" /> doesn't exist it is created and filled with <see cref="DefaultSettings" />.
+        /// </summary>
+        /// <param name="filePath">The path of the configuration file.</param>
+        /// <returns>The configuration loaded from the file, or the default settings.</returns>
         internal static NativeRuntimeSettings LoadOrCreateDefault(string filePath)
         {
             if (!File.Exists(filePath))
@@ -31,6 +40,10 @@ namespace NugetForUnity.Configuration
             return JsonUtility.FromJson<NativeRuntimeSettings>(jsonContent);
         }
 
+        /// <summary>
+        ///     Saves the current configuration in a file at <paramref name="filePath" />.
+        /// </summary>
+        /// <param name="filePath">The path to the file to write the configuration to.</param>
         internal void Save(string filePath)
         {
             // remove the read only flag on the file, if there is one.

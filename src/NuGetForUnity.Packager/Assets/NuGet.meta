@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:src/NuGetForUnity.Packager/Assets/NuGet.meta
 guid: dbf134857daf7df428aa31cdd055514f
-========
-guid: c1f8f59114e0f0994ade28a7e9e164f0
->>>>>>>> 650e551 (feat: Add support for native runtimes #419):src/NuGetForUnity.Tests/Assets/PlayTests.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

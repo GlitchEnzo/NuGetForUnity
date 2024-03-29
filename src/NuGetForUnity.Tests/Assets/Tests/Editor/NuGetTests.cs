@@ -12,6 +12,7 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginAPI;
+using NugetForUnity.Ui;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -1108,10 +1109,21 @@ public class NuGetTests
     [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
     public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
     {
-        // Call load settings directly to ensure we're testing the deserialised file
-        var settings = ConfigurationManager.NativeRuntimeSettings;
-        var nativeRuntimes = settings.Configurations;
+        var nativeSettingsFilePath = Path.Combine(
+            UnityPathHelper.AbsoluteProjectPath,
+            "ProjectSettings",
+            "Packages",
+            NuGetForUnityUpdater.UpmPackageName,
+            "NativeRuntimeSettings.json");
+        FileSystemHelper.DeleteFile(nativeSettingsFilePath);
 
+        // Call twice to ensure we're testing the deserialised file
+        var settings = ConfigurationManager.NativeRuntimeSettings;
+        Assert.That(nativeSettingsFilePath, Does.Exist.IgnoreDirectories);
+        typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, null);
+        settings = ConfigurationManager.NativeRuntimeSettings;
+
+        var nativeRuntimes = settings.Configurations;
         var runtimeConfig = nativeRuntimes.Find(config => config.Runtime == runtime);
         Assert.That(runtimeConfig, Is.Not.Null, $"Native mappings is missing {runtime}");
         Assert.That(

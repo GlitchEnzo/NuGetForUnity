@@ -8,6 +8,9 @@ using UnityEngine;
 
 namespace NugetForUnity.Configuration
 {
+    /// <summary>
+    ///     Serializable configuration about how native runtime assets (.dll's) are imported.
+    /// </summary>
     [Serializable]
     internal class NativeRuntimeAssetConfiguration : ISerializationCallbackReceiver
     {
@@ -35,6 +38,14 @@ namespace NugetForUnity.Configuration
         {
         }
 
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="NativeRuntimeAssetConfiguration" /> class.
+        /// </summary>
+        /// <param name="runtime">The name of the runtime, the name of the folder inside the runtimes/native folder, for witch this configuration is used.</param>
+        /// <param name="cpuArchitecture">The cpu architecture of the target device for witch assets of this runtime should be included in the build.</param>
+        /// <param name="editorCpuArchitecture">The cpu architecture of the Unity Editor on witch the assets should be included.</param>
+        /// <param name="editorOperatingSystem">The name of the operating system running the Unity Editor on witch the assets should be used in.</param>
+        /// <param name="supportedPlatformTargets">The target platforms for witch this asset should be included in the build.</param>
         public NativeRuntimeAssetConfiguration(
             [NotNull] string runtime,
             [CanBeNull] string cpuArchitecture,
@@ -50,6 +61,9 @@ namespace NugetForUnity.Configuration
             SetNullStringsToEmpty();
         }
 
+        /// <summary>
+        ///     Gets or sets the name of the runtime, the name of the folder inside the runtimes/native folder, for witch this configuration is used.
+        /// </summary>
         [NotNull]
         public string Runtime
         {
@@ -57,10 +71,17 @@ namespace NugetForUnity.Configuration
             set => runtime = value;
         }
 
+        /// <summary>
+        ///     Gets or sets the target platforms for witch assets of this runtime should be included in the build.
+        /// </summary>
         [field: NonSerialized]
         [NotNull]
         public List<BuildTarget> SupportedPlatformTargets { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the cpu architecture of the target device for witch assets of this runtime should be included in the build.
+        ///     If this is null / empty the assets are included for all cpu architectures.
+        /// </summary>
         [CanBeNull]
         public string CpuArchitecture
         {
@@ -68,6 +89,10 @@ namespace NugetForUnity.Configuration
             set => cpuArchitecture = value;
         }
 
+        /// <summary>
+        ///     Gets or sets the cpu architecture of the Unity Editor on witch the assets should be included.
+        ///     If this is null / empty the asset is used by all Unity Editors.
+        /// </summary>
         [CanBeNull]
         public string EditorCpuArchitecture
         {
@@ -75,6 +100,10 @@ namespace NugetForUnity.Configuration
             set => editorCpuArchitecture = value;
         }
 
+        /// <summary>
+        ///     Gets or sets the name of the operating system running the Unity Editor on witch the assets should be used in.
+        ///     If this is null the assets are only used in Runtime.
+        /// </summary>
         [CanBeNull]
         public string EditorOperatingSystem
         {
