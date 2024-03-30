@@ -10,9 +10,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-[assembly: PrebuildSetup(typeof(NuGetPlayTests))]
-[assembly: PostBuildCleanup(typeof(NuGetPlayTests))]
-
 /// <summary>
 ///     Play mode tests allow us to install NuGet packages with Native code before play mode starts, then when play mode
 ///     runs the native libraries are available for use.
