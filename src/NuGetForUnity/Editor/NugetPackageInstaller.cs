@@ -32,10 +32,27 @@ namespace NugetForUnity
             bool isSlimRestoreInstall = false,
             bool allowUpdateForExplicitlyInstalled = true)
         {
+            var result = Install(package, refreshAssets, isSlimRestoreInstall);
+            return result.Successful;
+        }
+
+        /// <summary>
+        ///     Installs the package given by the identifier. It fetches the appropriate full package from the installed packages, package cache, or package
+        ///     sources and installs it.
+        /// </summary>
+        /// <param name="package">The identifier of the package to install.</param>
+        /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
+        /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
+        /// <returns>True if the package was installed successfully, otherwise false.</returns>
+        internal static PackageInstallOperationResult Install(
+            [NotNull] INugetPackageIdentifier package,
+            bool refreshAssets = true,
+            bool isSlimRestoreInstall = false)
+        {
             if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
-                return true;
+                return new PackageInstallOperationResult { Successful = true };
             }
 
             var foundPackage = PackageCacheManager.GetPackageFromCacheOrSource(package);
@@ -43,7 +60,7 @@ namespace NugetForUnity
             if (foundPackage == null)
             {
                 Debug.LogErrorFormat("Could not find {0} {1} or greater.", package.Id, package.Version);
-                return false;
+                return new PackageInstallOperationResult { Successful = false };
             }
 
             foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
@@ -58,7 +75,7 @@ namespace NugetForUnity
         /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
         /// <param name="allowUpdateForExplicitlyInstalled">False to prevent updating of packages that are explicitly installed.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        private static bool Install(
+        private static PackageInstallOperationResult Install(
             [NotNull] INugetPackage package,
             bool refreshAssets,
             bool isSlimRestoreInstall,
@@ -67,7 +84,7 @@ namespace NugetForUnity
             if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
                 NugetLogger.LogVerbose("Package {0} is already imported in engine, skipping install.", package);
-                return true;
+                return new PackageInstallOperationResult { Successful = true };
             }
 
             // check if the package (any version) is already installed
@@ -94,7 +111,7 @@ namespace NugetForUnity
                         installedPackage.Version,
                         package.Version,
                         package.Version);
-                    return NugetPackageUpdater.Update(installedPackage, package, refreshAssets);
+                    return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets);
                 }
 
                 if (comparisonResult > 0)
@@ -107,7 +124,7 @@ namespace NugetForUnity
                             installedPackage.Id,
                             installedPackage.Version,
                             package.Version);
-                        return NugetPackageUpdater.Update(installedPackage, package, refreshAssets);
+                        return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets);
                     }
 
                     NugetLogger.LogVerbose(
@@ -121,11 +138,12 @@ namespace NugetForUnity
                     NugetLogger.LogVerbose("Already installed: {0} {1}", package.Id, package.Version);
                 }
 
-                return true;
+                return new PackageInstallOperationResult { Successful = true };
             }
 
             try
             {
+                var result = new PackageInstallOperationResult { Successful = true };
                 NugetLogger.LogVerbose("Installing: {0} {1}", package.Id, package.Version);
 
                 EditorUtility.DisplayProgressBar($"Installing {package.Id} {package.Version}", "Installing Dependencies", 0.1f);
@@ -153,8 +171,9 @@ namespace NugetForUnity
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
                             NugetLogger.LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                            var installed = InstallIdentifier(dependency, false, false, false);
-                            if (!installed)
+                            var dependencyResult = Install(dependency, false, false, false);
+                            result.Combine(dependencyResult);
+                            if (!dependencyResult.Successful)
                             {
                                 throw new InvalidOperationException($"Failed to install dependency: {dependency.Id} {dependency.Version}.");
                             }
@@ -183,6 +202,8 @@ namespace NugetForUnity
 
                 if (File.Exists(cachedPackagePath))
                 {
+                    var resultEntry = new PackageInstallOperationResultEntry(package);
+                    result.Packages.Add(resultEntry);
                     var baseDirectory = package.GetPackageInstallPath();
 
                     // unzip the package
@@ -201,7 +222,7 @@ namespace NugetForUnity
                                 continue;
                             }
 
-                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName))
+                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName, resultEntry))
                             {
                                 continue;
                             }
@@ -314,12 +335,12 @@ namespace NugetForUnity
 
                 // update the installed packages list
                 InstalledPackagesManager.AddPackageToInstalled(package);
-                return true;
+                return result;
             }
             catch (Exception e)
             {
                 Debug.LogErrorFormat("Unable to install package {0} {1}\n{2}", package.Id, package.Version, e);
-                return false;
+                return new PackageInstallOperationResult { Successful = false };
             }
             finally
             {

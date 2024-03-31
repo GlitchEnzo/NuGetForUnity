@@ -377,6 +377,22 @@ namespace NugetForUnity.Ui
             EditorGUILayout.LabelField(message, Styles.BoldLabelStyle, GUILayout.Height(20));
         }
 
+        private static void ShowInstallInformationDialog(PackageInstallOperationResult installResult)
+        {
+            var packagesWithNativeRuntimes = installResult.Packages.Where(package => package.AvailableNativeRuntimes.Count > 0).ToList();
+            if (packagesWithNativeRuntimes.Count == 0)
+            {
+                return;
+            }
+
+            var runtimesWithConfiguration =
+                ConfigurationManager.NativeRuntimeSettings.Configurations.Select(runtimeConfiguration => runtimeConfiguration.Runtime);
+            EditorUtility.DisplayDialog(
+                "[Warning] Installed Packages has Native Runtime dependeincies",
+                $"The packages:\n{string.Join("\n", packagesWithNativeRuntimes.Select(package => $"{package.Package.Id} has native dependencies for runtimes: {string.Join(", ", package.AvailableNativeRuntimes)}"))}\n\nNuGetForUnity has configuration on how to include the runtimes [{string.Join(", ", runtimesWithConfiguration)}] so they are included in the Unity build.\n\nSo the package will propably only work on devices using one of the runtimes configured in NuGetForUnity and provided by the package.",
+                "OK");
+        }
+
         /// <summary>
         ///     Called when enabling the window.
         /// </summary>
@@ -675,13 +691,17 @@ namespace NugetForUnity.Ui
 
             if (GUI.Button(foldoutRect, "Install All Selected"))
             {
+                var installResult = new PackageInstallOperationResult();
                 foreach (var package in selectedPackageInstalls)
                 {
                     package.IsManuallyInstalled = true;
-                    NugetPackageInstaller.InstallIdentifier(package, false);
+                    var subResult = NugetPackageInstaller.Install(package, false);
+                    installResult.Combine(subResult);
                 }
 
                 selectedPackageInstalls.Clear();
+
+                ShowInstallInformationDialog(installResult);
 
                 AssetDatabase.Refresh();
                 UpdateInstalledPackages();
@@ -1109,7 +1129,8 @@ namespace NugetForUnity.Ui
                         if (GUILayout.Button(new GUIContent("Install", null, existsInUnity ? "Already imported by Unity" : null)))
                         {
                             package.IsManuallyInstalled = true;
-                            NugetPackageInstaller.InstallIdentifier(package);
+                            var result = NugetPackageInstaller.Install(package);
+                            ShowInstallInformationDialog(result);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }

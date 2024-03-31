@@ -110,8 +110,9 @@ namespace NugetForUnity
         ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
         ///     platforms.
         /// </param>
+        /// <param name="operationResultEntry">The collected operation result of the install operation.</param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
-        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
+        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, PackageInstallOperationResultEntry operationResultEntry)
         {
             if (path.EndsWith("/"))
             {
@@ -175,6 +176,7 @@ namespace NugetForUnity
                     return true;
                 }
 
+                operationResultEntry.AvailableNativeRuntimes.Add(runtime);
                 var runtimeConfigurations = ConfigurationManager.NativeRuntimeSettings.Configurations;
                 var hasRuntimeConfiguration =
                     runtimeConfigurations.Exists(conifg => string.Equals(conifg.Runtime, runtime, StringComparison.OrdinalIgnoreCase));
