@@ -11,6 +11,7 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginAPI;
+using NugetForUnity.Ui;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -1014,6 +1015,40 @@ public class NuGetTests
         // cleanup and uninstall everything
         NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
+    }
+
+    [Test]
+    [TestCase("win7-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win7-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("win-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
+    [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
+    public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
+    {
+        var nativeSettingsFilePath = Path.Combine(
+            UnityPathHelper.AbsoluteProjectPath,
+            "ProjectSettings",
+            "Packages",
+            NuGetForUnityUpdater.UpmPackageName,
+            "NativeRuntimeSettings.json");
+        FileSystemHelper.DeleteFile(nativeSettingsFilePath);
+
+        // Call twice to ensure we're testing the deserialised file
+        var nativeRuntimeSettingsField = typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic);
+        nativeRuntimeSettingsField.SetValue(null, null);
+        var settings = ConfigurationManager.NativeRuntimeSettings;
+        Assert.That(nativeSettingsFilePath, Does.Exist.IgnoreDirectories);
+        nativeRuntimeSettingsField.SetValue(null, null);
+        settings = ConfigurationManager.NativeRuntimeSettings;
+
+        var nativeRuntimes = settings.Configurations;
+        var runtimeConfig = nativeRuntimes.Find(config => config.Runtime == runtime);
+        Assert.That(runtimeConfig, Is.Not.Null, $"Native mappings is missing {runtime}");
+        Assert.That(
+            runtimeConfig.SupportedPlatformTargets,
+            Is.EqualTo(new[] { buildTarget }),
+            $"Native mapping for {runtime} is missing build target {buildTarget}");
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)

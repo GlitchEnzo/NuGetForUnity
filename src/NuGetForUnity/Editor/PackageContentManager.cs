@@ -108,8 +108,9 @@ namespace NugetForUnity
         ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
         ///     platforms.
         /// </param>
+        /// <param name="operationResultEntry">The collected operation result of the install operation.</param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
-        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
+        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, PackageInstallOperationResultEntry operationResultEntry)
         {
             if (path.EndsWith("/"))
             {
@@ -147,11 +148,39 @@ namespace NugetForUnity
                 return true;
             }
 
-            // Since we don't automatically fix up the runtime dll platforms, skip them until we improve support
-            // for this newer feature of nuget packages.
-            if (path.StartsWith("runtimes/", StringComparison.Ordinal) || path.Contains("/runtimes/"))
+            // Native runtime dll are platform dependent.
+            // Format of these entries is runtimes/<runtime-identifier>/native/...
+            const string runtimesDirectoryName = "runtimes/";
+            if (path.StartsWith(runtimesDirectoryName, StringComparison.Ordinal) || path.Contains("/runtimes/"))
             {
-                return true;
+                var runtimesSlashIndex = path.IndexOf(runtimesDirectoryName, StringComparison.Ordinal) + runtimesDirectoryName.Length;
+                var secondSlashIndex = path.IndexOf('/', runtimesSlashIndex);
+                if (secondSlashIndex == -1)
+                {
+                    return true;
+                }
+
+                var thirdSlashIndex = path.IndexOf('/', secondSlashIndex + 1);
+                if (thirdSlashIndex == -1)
+                {
+                    return true;
+                }
+
+                var runtime = path.Substring(runtimesSlashIndex, secondSlashIndex - runtimesSlashIndex);
+                var runtimeSubFolderName = path.Substring(secondSlashIndex, thirdSlashIndex - secondSlashIndex);
+
+                if (!string.Equals(runtimeSubFolderName, "/native", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                operationResultEntry.AvailableNativeRuntimes.Add(runtime);
+                var runtimeConfigurations = ConfigurationManager.NativeRuntimeSettings.Configurations;
+                var hasRuntimeConfiguration =
+                    runtimeConfigurations.Exists(conifg => string.Equals(conifg.Runtime, runtime, StringComparison.OrdinalIgnoreCase));
+
+                // only keep if the runtime is listet in the NativeRuntimeSettings
+                return !hasRuntimeConfiguration;
             }
 
             // Skip documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"

@@ -9,9 +9,11 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
+using NugetForUnity.Ui;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+[assembly: InternalsVisibleTo("NuGetForUnity.PlayTests")]
 
 namespace NugetForUnity.Configuration
 {
@@ -20,6 +22,9 @@ namespace NugetForUnity.Configuration
     /// </summary>
     public static class ConfigurationManager
     {
+        [NotNull]
+        private static readonly string NativeRuntimeSettingsFilePath;
+
         /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
         /// </summary>
@@ -32,10 +37,19 @@ namespace NugetForUnity.Configuration
         [CanBeNull]
         private static NugetConfigFile nugetConfigFile;
 
+        [CanBeNull]
+        private static NativeRuntimeSettings nativeRuntimeSettings;
+
         static ConfigurationManager()
         {
             NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
             NugetConfigFilePath = Path.Combine(NugetConfigFileDirectoryPath, NugetConfigFile.FileName);
+            NativeRuntimeSettingsFilePath = Path.Combine(
+                UnityPathHelper.AbsoluteProjectPath,
+                "ProjectSettings",
+                "Packages",
+                NuGetForUnityUpdater.UpmPackageName,
+                "NativeRuntimeSettings.json");
         }
 
         /// <summary>
@@ -62,6 +76,23 @@ namespace NugetForUnity.Configuration
 
                 Debug.Assert(nugetConfigFile != null, nameof(nugetConfigFile) + " != null");
                 return nugetConfigFile;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the loaded <see cref="NativeRuntimeSettings" /> file that holds the settings for how to install native runtime dependencies.
+        /// </summary>
+        [NotNull]
+        internal static NativeRuntimeSettings NativeRuntimeSettings
+        {
+            get
+            {
+                if (nativeRuntimeSettings is null)
+                {
+                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(NativeRuntimeSettingsFilePath);
+                }
+
+                return nativeRuntimeSettings;
             }
         }
 
