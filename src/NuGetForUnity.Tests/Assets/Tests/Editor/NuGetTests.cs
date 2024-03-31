@@ -1118,9 +1118,11 @@ public class NuGetTests
         FileSystemHelper.DeleteFile(nativeSettingsFilePath);
 
         // Call twice to ensure we're testing the deserialised file
+        var nativeRuntimeSettingsField = typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic);
+        nativeRuntimeSettingsField.SetValue(null, null);
         var settings = ConfigurationManager.NativeRuntimeSettings;
         Assert.That(nativeSettingsFilePath, Does.Exist.IgnoreDirectories);
-        typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, null);
+        nativeRuntimeSettingsField.SetValue(null, null);
         settings = ConfigurationManager.NativeRuntimeSettings;
 
         var nativeRuntimes = settings.Configurations;

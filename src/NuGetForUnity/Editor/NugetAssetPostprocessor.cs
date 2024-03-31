@@ -392,7 +392,8 @@ namespace NugetForUnity
         {
             if (!GetPluginImporter(analyzerAssetPath, out var plugin))
             {
-                return ResultStatus.Failure;
+                // Ignore a configuration file that has no plugin importer.
+                return ResultStatus.AlreadyProcessed;
             }
 
             if (AlreadyProcessed(plugin))
