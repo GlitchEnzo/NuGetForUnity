@@ -60,11 +60,17 @@ namespace NugetForUnity.Configuration
 
         private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
 
-        /// <summary>
-        ///     The incomplete path that is saved.  The path is expanded and made public via the property above.
-        /// </summary>
-        [CanBeNull]
-        private string savedRepositoryPath;
+        [NotNull]
+        private readonly string unityPackagesNugetInstallPath = Path.Combine(UnityPathHelper.AbsoluteUnityPackagesNugetPath, "InstalledPackages");
+
+        [NotNull]
+        private string configuredRepositoryPath = "Packages";
+
+        [NotNull]
+        private string packagesConfigDirectoryPath = Application.dataPath;
+
+        [NotNull]
+        private string repositoryPath = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
 
         /// <summary>
         ///     Gets the list of package sources that are defined in the NuGet.config file.
@@ -87,7 +93,35 @@ namespace NugetForUnity.Configuration
         ///     Gets the absolute path where packages are to be installed.
         /// </summary>
         [NotNull]
-        public string RepositoryPath { get; private set; } = Path.GetFullPath(Path.Combine(Application.dataPath, "Packages"));
+        public string RepositoryPath
+        {
+            get => InstallLocation == PackageInstallLocation.InPackagesFolder ? unityPackagesNugetInstallPath : repositoryPath;
+
+            private set => repositoryPath = value;
+        }
+
+        /// <summary>
+        ///     Gets or sets the incomplete path that is saved.  The path is expanded and made public via the property above.
+        /// </summary>
+        [NotNull]
+        public string ConfiguredRepositoryPath
+        {
+            get => configuredRepositoryPath;
+
+            set
+            {
+                configuredRepositoryPath = value;
+
+                var expandedPath = Environment.ExpandEnvironmentVariables(value);
+
+                if (!Path.IsPathRooted(expandedPath))
+                {
+                    expandedPath = Path.Combine(Application.dataPath, expandedPath);
+                }
+
+                RepositoryPath = Path.GetFullPath(expandedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            }
+        }
 
         /// <summary>
         ///     Gets the default package source to push NuGet packages to.
@@ -121,7 +155,15 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets absolute path to directory containing packages.config file.
         /// </summary>
         [NotNull]
-        public string PackagesConfigDirectoryPath { get; set; } = Application.dataPath;
+        public string PackagesConfigDirectoryPath
+        {
+            get =>
+                InstallLocation == PackageInstallLocation.InPackagesFolder ?
+                    UnityPathHelper.AbsoluteUnityPackagesNugetPath :
+                    packagesConfigDirectoryPath;
+
+            set => packagesConfigDirectoryPath = value;
+        }
 
         /// <summary>
         ///     Gets the relative path to directory containing packages.config file. The path is relative to the folder containing the 'NuGet.config' file.
@@ -143,6 +185,11 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets the timeout in seconds used for all web requests to NuGet sources.
         /// </summary>
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
+
+        /// <summary>
+        ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
+        /// </summary>
+        internal PackageInstallLocation InstallLocation { get; private set; }
 
         /// <summary>
         ///     Gets the list of enabled plugins.
@@ -297,18 +344,13 @@ namespace NugetForUnity.Configuration
                 var key = add.Attribute("key")?.Value;
                 var value = add.Attribute("value")?.Value ?? throw new InvalidOperationException($"config misses 'value' attribute. Element:\n{add}");
 
-                if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(key, "packageInstallLocation", StringComparison.OrdinalIgnoreCase))
                 {
-                    configFile.savedRepositoryPath = value;
-                    configFile.RepositoryPath = Environment.ExpandEnvironmentVariables(value);
-
-                    if (!Path.IsPathRooted(configFile.RepositoryPath))
-                    {
-                        configFile.RepositoryPath = Path.Combine(Application.dataPath, configFile.RepositoryPath);
-                    }
-
-                    configFile.RepositoryPath = Path.GetFullPath(
-                        configFile.RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                    configFile.InstallLocation = (PackageInstallLocation)Enum.Parse(typeof(PackageInstallLocation), value);
+                }
+                else if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.ConfiguredRepositoryPath = value;
                 }
                 else if (string.Equals(key, "DefaultPushSource", StringComparison.OrdinalIgnoreCase))
                 {
@@ -362,6 +404,7 @@ namespace NugetForUnity.Configuration
     <add key=""All"" value=""(Aggregate source)"" />
   </activePackageSource>
   <config>
+    <add key=""packageInstallLocation"" value=""CustomWithinAssets"" />
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
     <add key=""slimRestore"" value=""true"" />
@@ -454,18 +497,23 @@ namespace NugetForUnity.Configuration
 
             var config = new XElement("config");
 
-            if (!string.IsNullOrEmpty(savedRepositoryPath))
+            addElement = new XElement("add");
+            addElement.Add(new XAttribute("key", "packageInstallLocation"));
+            addElement.Add(new XAttribute("value", InstallLocation.ToString()));
+            config.Add(addElement);
+
+            if (!string.IsNullOrEmpty(ConfiguredRepositoryPath))
             {
                 // save the un-expanded repository path
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "repositoryPath"));
-                addElement.Add(new XAttribute("value", savedRepositoryPath));
+                addElement.Add(new XAttribute("value", ConfiguredRepositoryPath));
                 config.Add(addElement);
             }
 
             addElement = new XElement("add");
             addElement.Add(new XAttribute("key", PackagesConfigDirectoryPathConfigKey));
-            addElement.Add(new XAttribute("value", RelativePackagesConfigDirectoryPath));
+            addElement.Add(new XAttribute("value", PathHelper.GetRelativePath(Application.dataPath, packagesConfigDirectoryPath)));
             config.Add(addElement);
 
             // save the default push source
@@ -552,6 +600,29 @@ namespace NugetForUnity.Configuration
             }
 
             configFile.Save(filePath);
+        }
+
+        /// <summary>
+        ///     Changes the package install location config and also moves the packages.config to the new location.
+        /// </summary>
+        /// <param name="newInstallLocation">New install location to set.</param>
+        internal void ChangeInstallLocation(PackageInstallLocation newInstallLocation)
+        {
+            if (newInstallLocation == InstallLocation)
+            {
+                return;
+            }
+
+            var oldPackagesConfigPath = PackagesConfigFilePath;
+            InstallLocation = newInstallLocation;
+            UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
+            var newConfigPath = PackagesConfigFilePath;
+            File.Move(oldPackagesConfigPath, newConfigPath);
+            var configMeta = oldPackagesConfigPath + ".meta";
+            if (File.Exists(configMeta))
+            {
+                File.Move(configMeta, newConfigPath + ".meta");
+            }
         }
     }
 }

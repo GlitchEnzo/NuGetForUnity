@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
@@ -21,7 +22,7 @@ namespace NugetForUnity
         /// <param name="package">The package to remove all its content of.</param>
         internal static void DeletePackageContentPackage([NotNull] INugetPackageIdentifier package)
         {
-            var packageInstallDirectory = GetPackageInstallDirectory(package);
+            var packageInstallDirectory = package.GetPackageInstallPath();
             FileSystemHelper.DeleteDirectory(packageInstallDirectory, true);
 
             var metaFile = $"{packageInstallDirectory}.meta";
@@ -38,7 +39,7 @@ namespace NugetForUnity
         /// <param name="package">The NugetPackage to clean.</param>
         internal static void CleanInstallationDirectory([NotNull] INugetPackageIdentifier package)
         {
-            var packageInstallDirectory = GetPackageInstallDirectory(package);
+            var packageInstallDirectory = package.GetPackageInstallPath();
 
             NugetLogger.LogVerbose("Cleaning {0}", packageInstallDirectory);
 
@@ -289,10 +290,60 @@ namespace NugetForUnity
             }
         }
 
-        [NotNull]
-        private static string GetPackageInstallDirectory([NotNull] INugetPackageIdentifier package)
+        /// <summary>
+        ///     Moves already installed packages from the old to a new path.
+        /// </summary>
+        /// <param name="oldPath">Old package installation absolute path.</param>
+        /// <param name="newPath">New package installation absolute path.</param>
+        internal static void MoveInstalledPackages(string oldPath, string newPath)
         {
-            return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
+            if (!Directory.Exists(oldPath))
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(newPath);
+
+            // We only move the package folders because users might have other things in that folder
+            foreach (var package in InstalledPackagesManager.InstalledPackages)
+            {
+                var packageFolderName = $"{package.Id}.{package.Version}";
+                var oldPackagePath = Path.Combine(oldPath, packageFolderName);
+                var newPackagePath = Path.Combine(newPath, packageFolderName);
+                if (Directory.Exists(oldPackagePath))
+                {
+                    Directory.Move(oldPackagePath, newPackagePath);
+                    var oldMetaPath = $"{oldPackagePath}.meta";
+                    if (File.Exists(oldMetaPath))
+                    {
+                        File.Move(oldMetaPath, $"{newPackagePath}.meta");
+                    }
+                }
+            }
+
+            var oldPackageJsonPath = Path.Combine(oldPath, "package.json");
+            if (File.Exists(oldPackageJsonPath))
+            {
+                File.Delete(oldPackageJsonPath);
+                var oldPackageJsonMetaPath = $"{oldPackageJsonPath}.meta";
+                if (File.Exists(oldPackageJsonMetaPath))
+                {
+                    File.Delete(oldPackageJsonMetaPath);
+                }
+            }
+
+            if (Directory.EnumerateFileSystemEntries(oldPath).Any())
+            {
+                return;
+            }
+
+            // If there is nothing left in the oldPath we remove the whole directory
+            Directory.Delete(oldPath);
+            var metaPath = oldPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + ".meta";
+            if (File.Exists(metaPath))
+            {
+                File.Delete(metaPath);
+            }
         }
 
         [NotNull]

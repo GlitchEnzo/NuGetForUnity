@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using NugetForUnity.Helper;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
 
@@ -16,6 +17,7 @@ namespace NugetForUnity
         /// <param name="slimRestore">True if we want to skip installing dependencies and checking if the lib is imported in Unity.</param>
         public static void Restore(bool slimRestore)
         {
+            UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
             InstalledPackagesManager.UpdateInstalledPackages();
 
             var stopwatch = Stopwatch.StartNew();
