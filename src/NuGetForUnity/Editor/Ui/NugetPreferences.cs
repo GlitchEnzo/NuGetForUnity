@@ -112,7 +112,7 @@ namespace NugetForUnity.Ui
             var sourcePathChangedThisFrame = false;
             var needsAssetRefresh = false;
 
-            var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Request Timeout in seconds")).x;
+            var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Prefer .NET Standard as TargetFramework")).x;
             EditorGUIUtility.labelWidth = biggestLabelSize;
             EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
 
@@ -242,6 +242,13 @@ namespace NugetForUnity.Ui
                         "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
                         MessageType.Warning);
                 }
+            }
+
+            var preferNetStandardOverNetFramework = EditorGUILayout.Toggle("Prefer .NET Standard as TargetFramework", ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework);
+            if (preferNetStandardOverNetFramework != ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework)
+            {
+                preferencesChangedThisFrame = true;
+                ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = preferNetStandardOverNetFramework;
             }
 
             var requestTimeout = EditorGUILayout.IntField(

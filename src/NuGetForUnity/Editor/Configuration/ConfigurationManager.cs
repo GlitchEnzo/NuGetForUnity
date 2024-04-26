@@ -87,6 +87,11 @@ namespace NugetForUnity.Configuration
         internal static bool IsVerboseLoggingEnabled => nugetConfigFile?.Verbose ?? false;
 
         /// <summary>
+        ///     Gets the value indicating whether .NET Standard is preferred over .NET Framework as the TargetFramework.
+        /// </summary>
+        internal static bool PreferNetStandardOverNetFramework => nugetConfigFile?.PreferNetStandardOverNetFramework ?? false;
+
+        /// <summary>
         ///     Gets the <see cref="INugetPackageSource" /> to use.
         /// </summary>
         [NotNull]
