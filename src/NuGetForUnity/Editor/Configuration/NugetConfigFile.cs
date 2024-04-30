@@ -419,6 +419,7 @@ namespace NugetForUnity.Configuration
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
     <add key=""slimRestore"" value=""true"" />
+    <add key=""PreferNetStandardOverNetFramework"" value=""true"" />
   </config>
 </configuration>";
 
