@@ -816,6 +816,66 @@ public class NuGetTests
     }
 
     [Test]
+    [TestCase(
+        "2021.3.16f1",
+        true,
+        new[] { "net4.7.2", "netstandard2.0", "unity", "netstandard2.1" },
+        new[] { "unity", "netstandard2.1", "netstandard2.0", "net4.7.2" })]
+    [TestCase(
+        "2021.3.16f1",
+        false,
+        new[] { "net4.7.2", "netstandard2.0", "unity", "netstandard2.1" },
+        new[] { "unity", "net4.7.2", "netstandard2.1", "netstandard2.0" })]
+    public void TryGetBestTargetFrameworkPreferNetStandardTest(
+        string unityVersion,
+        bool preferNetStandard,
+        string[] availableFrameworks,
+        string[] expectedBestMatch)
+    {
+        var unityVersionType = typeof(UnityVersion);
+        var currentUnityVersionProperty = unityVersionType.GetProperty(nameof(UnityVersion.Current), BindingFlags.Public | BindingFlags.Static);
+        Assume.That(currentUnityVersionProperty, Is.Not.Null);
+        Assume.That(currentUnityVersionProperty.CanRead, Is.True);
+        Assume.That(currentUnityVersionProperty.CanWrite, Is.True);
+
+        var currentBuildTargetApiCompatibilityLevelProperty = typeof(TargetFrameworkResolver).GetProperty(
+            nameof(TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel),
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty, Is.Not.Null);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanRead, Is.True);
+        Assume.That(currentBuildTargetApiCompatibilityLevelProperty.CanWrite, Is.True);
+
+        var oldUnityVersion = currentUnityVersionProperty.GetValue(null);
+        var oldApiCompatibilityLevel = currentBuildTargetApiCompatibilityLevelProperty.GetValue(null);
+        var oldPreferNetStandardOverNetFramework = ConfigurationManager.PreferNetStandardOverNetFramework;
+
+        try
+        {
+            currentUnityVersionProperty.SetValue(null, new UnityVersion(unityVersion));
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, new Lazy<ApiCompatibilityLevel>(() => ApiCompatibilityLevel.NET_4_6));
+            ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = preferNetStandard;
+
+            var allFrameworks = availableFrameworks.ToList();
+            var foundBestMatch = new List<string>();
+            while (allFrameworks.Count > 0)
+            {
+                var bestMatch = TargetFrameworkResolver.TryGetBestTargetFrameworkForCurrentSettings(allFrameworks, null);
+                foundBestMatch.Add(bestMatch);
+
+                allFrameworks.RemoveAt(allFrameworks.IndexOf(bestMatch));
+            }
+
+            Assert.That(foundBestMatch, Is.EqualTo(expectedBestMatch));
+        }
+        finally
+        {
+            currentUnityVersionProperty.SetValue(null, oldUnityVersion);
+            currentBuildTargetApiCompatibilityLevelProperty.SetValue(null, oldApiCompatibilityLevel);
+            ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = oldPreferNetStandardOverNetFramework;
+        }
+    }
+
+    [Test]
     public void TestUpgrading()
     {
         var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };

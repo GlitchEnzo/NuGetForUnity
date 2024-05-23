@@ -109,82 +109,27 @@ namespace NugetForUnity
 
         // Almost same as PrioritizedTargetFrameworks, but it prefers .NET Standard 2.x over .NET Framework.
         [NotNull]
-        private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworksPreferNetStandard20Or21 =
+        private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworksPreferNetStandard20Or21;
+
+        static TargetFrameworkResolver()
         {
-            new TargetFrameworkSupport("unity"),
-
-            // Prefer .NET Standard 2.x over .NET Framework
-            new TargetFrameworkSupport(
-                "netstandard21",
-                new UnityVersion(2021, 2, 0, 'f', 0),
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard20",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-
-            // .net framework (as we don't support unity < 2018 we can expect that at least .net framework 4.4 is supported)
-            new TargetFrameworkSupport("net48", new UnityVersion(2021, 2, 0, 'f', 0), DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net472", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net471", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net47", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net462", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net461", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net46", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net452", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net451", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net45", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net403", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net40", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net4", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net35-unity full v35", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net35-unity subset v35", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net35", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net20", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport("net11", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
-
-            // .net standard
-            new TargetFrameworkSupport(
-                "netstandard16",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard15",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard14",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard13",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard12",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard11",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-            new TargetFrameworkSupport(
-                "netstandard10",
-                null,
-                DotnetVersionCompatibilityLevel.NetStandard20Or21,
-                DotnetVersionCompatibilityLevel.NetFramework46Or48),
-
-            // fallback if there is one with empty string
-            new TargetFrameworkSupport(string.Empty),
-        };
+            PrioritizedTargetFrameworksPreferNetStandard20Or21 = PrioritizedTargetFrameworks.OrderBy(
+                    framework =>
+                    {
+                        switch (framework.Name)
+                        {
+                            case "unity":
+                                return 1; // keep it first
+                            case "netstandard21":
+                                return 2; // Prefer .NET Standard 2.x over .NET Framework
+                            case "netstandard20":
+                                return 3; // Prefer .NET Standard 2.x over .NET Framework
+                            default:
+                                return 4; // keep the rest in the same order as before
+                        }
+                    })
+                .ToArray();
+        }
 
         /// <summary>
         ///     Gets the <see cref="ApiCompatibilityLevel" /> of the current selected build target.
