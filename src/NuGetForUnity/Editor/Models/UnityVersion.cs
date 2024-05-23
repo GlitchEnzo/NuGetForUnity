@@ -46,7 +46,7 @@ namespace NugetForUnity.Models
         [SuppressMessage("ReSharper", "MemberCanBePrivate.Local", Justification = "Called by Unit Test.")]
         public UnityVersion(string version)
         {
-            var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpba])(\d+)");
+            var match = Regex.Match(version, @"(\d+)\.(\d+)\.(\d+)([fpbat])(\d+)");
             if (!match.Success)
             {
                 throw new ArgumentException("Invalid unity version");
