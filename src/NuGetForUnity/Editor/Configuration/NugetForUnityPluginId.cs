@@ -18,7 +18,13 @@ namespace NugetForUnity.Configuration
         internal NugetForUnityPluginId([NotNull] string name, [NotNull] string path)
         {
             Name = name;
-            Path = System.IO.Path.IsPathRooted(path) ? PathHelper.GetRelativePath(UnityPathHelper.AbsoluteProjectPath, path) : path;
+            if (System.IO.Path.IsPathRooted(path))
+            {
+                path = PathHelper.GetRelativePath(UnityPathHelper.AbsoluteProjectPath, path);
+            }
+
+            // We make sure forward slashes are used, so it works on non Windows platforms as well
+            Path = path.Replace("\\", "/");
         }
 
         /// <summary>
