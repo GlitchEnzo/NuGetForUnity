@@ -546,7 +546,7 @@ namespace NugetForUnity.Configuration
                 config.Add(addElement);
             }
 
-            if (!ReadOnlyPackageFiles)
+            if (ReadOnlyPackageFiles)
             {
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", "ReadOnlyPackageFiles"));
