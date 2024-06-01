@@ -1,7 +1,7 @@
 {
     "name": "com.github-glitchenzo.nugetforunity",
     "displayName": "NuGetForUnity",
-    "version": "4.1.0",
+    "version": "4.1.1",
     "description": "A NuGet Package Manager for Unity",
     "unity": "2018.4",
     "keywords": [
