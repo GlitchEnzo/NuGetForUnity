@@ -52,6 +52,8 @@ namespace NugetForUnity.Configuration
 
         private const string PackagesConfigDirectoryPathConfigKey = "PackagesConfigDirectoryPath";
 
+        private const string PreferNetStandardOverNetFrameworkConfigKey = "PreferNetStandardOverNetFramework";
+
         private const string ProtocolVersionAttributeName = "protocolVersion";
 
         private const string PasswordAttributeName = "password";
@@ -185,6 +187,11 @@ namespace NugetForUnity.Configuration
         ///     Gets or sets the timeout in seconds used for all web requests to NuGet sources.
         /// </summary>
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
+
+        /// <summary>
+        ///     Gets or sets the value indicating whether .NET Standard is preferred over .NET Framework as the TargetFramework.
+        /// </summary>
+        public bool PreferNetStandardOverNetFramework { get; set; }
 
         /// <summary>
         ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
@@ -380,6 +387,10 @@ namespace NugetForUnity.Configuration
                 {
                     configFile.RelativePackagesConfigDirectoryPath = value;
                 }
+                else if (string.Equals(key, PreferNetStandardOverNetFrameworkConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.PreferNetStandardOverNetFramework = bool.Parse(value);
+                }
             }
 
             return configFile;
@@ -408,6 +419,7 @@ namespace NugetForUnity.Configuration
     <add key=""repositoryPath"" value=""./Packages"" />
     <add key=""PackagesConfigDirectoryPath"" value=""."" />
     <add key=""slimRestore"" value=""true"" />
+    <add key=""PreferNetStandardOverNetFramework"" value=""true"" />
   </config>
 </configuration>";
 
@@ -559,6 +571,14 @@ namespace NugetForUnity.Configuration
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", RequestTimeoutSecondsConfigKey));
                 addElement.Add(new XAttribute("value", RequestTimeoutSeconds));
+                config.Add(addElement);
+            }
+
+            if (PreferNetStandardOverNetFramework)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", PreferNetStandardOverNetFrameworkConfigKey));
+                addElement.Add(new XAttribute("value", PreferNetStandardOverNetFramework.ToString().ToLowerInvariant()));
                 config.Add(addElement);
             }
 

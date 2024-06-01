@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using NugetForUnity.Configuration;
 using NugetForUnity.Models;
 using UnityEditor;
 
@@ -106,6 +107,30 @@ namespace NugetForUnity
             new TargetFrameworkSupport(string.Empty),
         };
 
+        // Almost same as PrioritizedTargetFrameworks, but it prefers .NET Standard 2.x over .NET Framework.
+        [NotNull]
+        private static readonly TargetFrameworkSupport[] PrioritizedTargetFrameworksPreferNetStandard20Or21;
+
+        static TargetFrameworkResolver()
+        {
+            PrioritizedTargetFrameworksPreferNetStandard20Or21 = PrioritizedTargetFrameworks.OrderBy(
+                    framework =>
+                    {
+                        switch (framework.Name)
+                        {
+                            case "unity":
+                                return 1; // keep it first
+                            case "netstandard21":
+                                return 2; // Prefer .NET Standard 2.x over .NET Framework
+                            case "netstandard20":
+                                return 3; // Prefer .NET Standard 2.x over .NET Framework
+                            default:
+                                return 4; // keep the rest in the same order as before
+                        }
+                    })
+                .ToArray();
+        }
+
         /// <summary>
         ///     Gets the <see cref="ApiCompatibilityLevel" /> of the current selected build target.
         /// </summary>
@@ -191,7 +216,10 @@ namespace NugetForUnity
 
             var currentDotnetVersion = CurrentBuildTargetDotnetVersionCompatibilityLevel;
             var currentUnityVersion = UnityVersion.Current;
-            foreach (var targetFrameworkSupport in PrioritizedTargetFrameworks)
+            var prioritizedTargetFrameworks = ConfigurationManager.PreferNetStandardOverNetFramework ?
+                PrioritizedTargetFrameworksPreferNetStandard20Or21 :
+                PrioritizedTargetFrameworks;
+            foreach (var targetFrameworkSupport in prioritizedTargetFrameworks)
             {
                 if (targetFrameworkSupport.SupportedDotnetVersions.Length != 0 &&
                     !targetFrameworkSupport.SupportedDotnetVersions.Contains(currentDotnetVersion))

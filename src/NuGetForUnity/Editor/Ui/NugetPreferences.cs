@@ -112,7 +112,7 @@ namespace NugetForUnity.Ui
             var sourcePathChangedThisFrame = false;
             var needsAssetRefresh = false;
 
-            var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Request Timeout in seconds")).x;
+            var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Prefer .NET Standard dependencies over .NET Framework")).x;
             EditorGUIUtility.labelWidth = biggestLabelSize;
             EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
 
@@ -242,6 +242,24 @@ namespace NugetForUnity.Ui
                         "The packages.config is placed outside of Assets folder, this disables the functionality of automatically restoring packages if the file is changed on the disk.",
                         MessageType.Warning);
                 }
+            }
+
+            var preferNetStandardOverNetFramework = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Prefer .NET Standard dependencies over .NET Framework",
+                    "If a nuget package contains DLL's for .NET Framework an .NET Standard the .NET Standard DLL's are preferred."),
+                ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework);
+            if (preferNetStandardOverNetFramework != ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework)
+            {
+                preferencesChangedThisFrame = true;
+                ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = preferNetStandardOverNetFramework;
+            }
+
+            if (TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_Standard_2_0)
+            {
+                EditorGUILayout.HelpBox(
+                    "The prefer .NET Standard setting has no effect as you have set the API compatibility level to .NET Standard so .NET Standard will always be preferred, as it is the only supported.",
+                    MessageType.Info);
             }
 
             var requestTimeout = EditorGUILayout.IntField(
