@@ -87,16 +87,26 @@ namespace NugetForUnity
             }
 
             var packagesConfigFilePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
-            var foundPackagesConfigAsset = importedAssets.Any(
-                importedAsset => Path.GetFullPath(importedAsset).Equals(packagesConfigFilePath, StringComparison.Ordinal));
-
-            if (!foundPackagesConfigAsset)
+            if (importedAssets.Any(
+                    path => path.EndsWith(PackagesConfigFile.FileName) &&
+                            Path.GetFullPath(path).Equals(packagesConfigFilePath, StringComparison.Ordinal)))
             {
-                return;
+                InstalledPackagesManager.ReloadPackagesConfig();
+                PackageRestorer.Restore(ConfigurationManager.NugetConfigFile.SlimRestore);
             }
 
-            InstalledPackagesManager.ReloadPackagesConfig();
-            PackageRestorer.Restore(ConfigurationManager.NugetConfigFile.SlimRestore);
+            var absoluteRepositoryPath = GetNuGetRepositoryPath();
+
+            AssetDatabase.StartAssetEditing();
+
+            try
+            {
+                LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true)));
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
         }
 
         [NotNull]
@@ -128,7 +138,7 @@ namespace NugetForUnity
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
             var packageNameParts = assetPathComponents.Length > 0 ? assetPathComponents[0].Split('.') : Array.Empty<string>();
             var packageName = string.Join(".", packageNameParts.TakeWhile(part => !part.All(char.IsDigit)));
-            var packageConfig = InstalledPackagesManager.PackagesConfigFile.GetPackageConfigurationById(packageName);
+            var configurationOfPackage = InstalledPackagesManager.PackagesConfigFile.GetPackageConfigurationById(packageName);
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
             {
@@ -144,26 +154,37 @@ namespace NugetForUnity
                 yield break;
             }
 
-            if (packageConfig != null)
+            var assetLablesToSet = new List<string>();
+            if (configurationOfPackage != null)
             {
-                ModifyImportSettingsOfGeneralPlugin(packageConfig, plugin, reimport);
+                assetLablesToSet.AddRange(ModifyImportSettingsOfGeneralPlugin(configurationOfPackage, plugin));
                 yield return ("GeneralSetting", projectRelativeAssetPath, ResultStatus.Success);
             }
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
-                ModifyImportSettingsOfRoslynAnalyzer(plugin, reimport);
+                assetLablesToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
+            }
+            else if (assetPathComponents.Length > 0 &&
+                     UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
+                         .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
+            {
+                assetLablesToSet.AddRange(ModifyImportSettingsOfPlayerOnly(plugin));
+                yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
+            }
 
+            if (assetLablesToSet.Count == 0)
+            {
                 yield break;
             }
 
-            if (assetPathComponents.Length > 0 &&
-                UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
-                    .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
+            AssetDatabase.SetLabels(plugin, assetLablesToSet.Distinct().ToArray());
+
+            if (reimport)
             {
-                ModifyImportSettingsOfPlayerOnly(plugin, reimport);
-                yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
+                // Persist and reload the change to the meta file
+                plugin.SaveAndReimport();
             }
         }
 
@@ -228,7 +249,7 @@ namespace NugetForUnity
             return string.IsNullOrEmpty(versionString) ? null : new NugetPackageVersion(versionString);
         }
 
-        private static void ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin, bool reimport)
+        private static string[] ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin)
         {
             plugin.SetCompatibleWithAnyPlatform(false);
             plugin.SetCompatibleWithEditor(false);
@@ -271,28 +292,15 @@ namespace NugetForUnity
                 }
             }
 
-            AssetDatabase.SetLabels(plugin, enableRoslynAnalyzer ? new[] { RoslynAnalyzerLabel, ProcessedLabel } : new[] { ProcessedLabel });
-
-            if (reimport)
-            {
-                // Persist and reload the change to the meta file
-                plugin.SaveAndReimport();
-            }
-
             NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
+            return enableRoslynAnalyzer ? new[] { RoslynAnalyzerLabel, ProcessedLabel } : new[] { ProcessedLabel };
         }
 
-        private static void ModifyImportSettingsOfGeneralPlugin([NotNull] PackageConfig packageConfig, [NotNull] PluginImporter plugin, bool reimport)
+        private static string[] ModifyImportSettingsOfGeneralPlugin([NotNull] PackageConfig packageConfig, [NotNull] PluginImporter plugin)
         {
             PluginImporterIsExplicitlyReferencedProperty.SetValue(plugin, !packageConfig.AutoReferenced);
 
-            AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
-
-            if (reimport)
-            {
-                // Persist and reload the change to the meta file
-                plugin.SaveAndReimport();
-            }
+            return new[] { ProcessedLabel };
         }
 
         /// <summary>
@@ -301,21 +309,14 @@ namespace NugetForUnity
         ///     <seealso cref="UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries" />.
         /// </summary>
         /// <param name="plugin">The asset to edit.</param>
-        /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        private static void ModifyImportSettingsOfPlayerOnly([NotNull] PluginImporter plugin, bool reimport)
+        private static string[] ModifyImportSettingsOfPlayerOnly([NotNull] PluginImporter plugin)
         {
             plugin.SetCompatibleWithAnyPlatform(true);
             plugin.SetExcludeEditorFromAnyPlatform(true);
 
-            AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
-
-            if (reimport)
-            {
-                // Persist and reload the change to the meta file
-                plugin.SaveAndReimport();
-            }
-
             NugetLogger.LogVerbose("Configured asset '{0}' as a Player Only.", plugin.assetPath);
+
+            return new[] { ProcessedLabel };
         }
 
         /// <summary>
