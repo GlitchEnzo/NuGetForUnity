@@ -96,7 +96,17 @@ namespace NugetForUnity
             }
 
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
-            LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true)));
+
+            AssetDatabase.StartAssetEditing();
+
+            try
+            {
+                LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true)));
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
         }
 
         [NotNull]
@@ -248,7 +258,7 @@ namespace NugetForUnity
                 plugin.SetExcludeFromAnyPlatform(platform, false);
             }
 
-            var enableRoslynAnalyzer = /*false;/*/true;
+            var enableRoslynAnalyzer = true;
 
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
