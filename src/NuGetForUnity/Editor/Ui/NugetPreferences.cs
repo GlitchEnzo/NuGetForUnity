@@ -34,7 +34,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "4.1.0";
+        public const string NuGetForUnityVersion = "4.1.1";
 
         private const float LabelPading = 5;
 
