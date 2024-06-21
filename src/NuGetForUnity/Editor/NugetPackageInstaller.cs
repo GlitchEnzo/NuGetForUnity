@@ -171,7 +171,7 @@ namespace NugetForUnity
                         var hasContentFilesFolder = false;
                         foreach (var entry in zip.Entries)
                         {
-                            if (entry.FullName.EndsWith("/") && entry.FullName.Equals(contentFilesDirectoryName, StringComparison.OrdinalIgnoreCase))
+                            if (entry.FullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal))
                             {
                                 hasContentFilesFolder = true;
                                 break;
