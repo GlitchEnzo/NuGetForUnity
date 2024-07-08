@@ -97,15 +97,10 @@ namespace NugetForUnity
 
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
 
-            AssetDatabase.StartAssetEditing();
-
-            try
+            using (var delayedAssetEditor = new DelayedAssetEditor())
             {
-                LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true)));
-            }
-            finally
-            {
-                AssetDatabase.StopAssetEditing();
+                // ReSharper disable once AccessToDisposedClosure
+                LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true, delayedAssetEditor)));
             }
         }
 
@@ -113,14 +108,15 @@ namespace NugetForUnity
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(
             [NotNull] string projectRelativeAssetPath,
             [NotNull] string absoluteRepositoryPath,
-            bool reimport)
+            bool reimport,
+            DelayedAssetEditor delayedAssetEditor)
         {
             var assetFileName = Path.GetFileName(projectRelativeAssetPath);
             if (assetFileName.Equals(NugetConfigFile.FileName, StringComparison.OrdinalIgnoreCase) ||
                 assetFileName.Equals(PackagesConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
             {
                 // Not sure why but for .config files we need to re-import always. I think this is because they are treated as native plug-ins.
-                var result = ModifyImportSettingsOfConfigurationFile(projectRelativeAssetPath, true);
+                var result = ModifyImportSettingsOfConfigurationFile(projectRelativeAssetPath, true, delayedAssetEditor);
                 yield return ("ConfigurationFile", projectRelativeAssetPath, result);
 
                 yield break;
@@ -157,12 +153,14 @@ namespace NugetForUnity
             var assetLablesToSet = new List<string>();
             if (configurationOfPackage != null)
             {
+                delayedAssetEditor.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfGeneralPlugin(configurationOfPackage, plugin));
                 yield return ("GeneralSetting", projectRelativeAssetPath, ResultStatus.Success);
             }
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
+                delayedAssetEditor.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
             }
@@ -170,6 +168,7 @@ namespace NugetForUnity
                      UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
                          .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
             {
+                delayedAssetEditor.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfPlayerOnly(plugin));
                 yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
             }
@@ -324,7 +323,11 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="analyzerAssetPath">The path to the .config file.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        private static ResultStatus ModifyImportSettingsOfConfigurationFile([NotNull] string analyzerAssetPath, bool reimport)
+        /// <param name="delayedAssetEditor"></param>
+        private static ResultStatus ModifyImportSettingsOfConfigurationFile(
+            [NotNull] string analyzerAssetPath,
+            bool reimport,
+            DelayedAssetEditor delayedAssetEditor)
         {
             if (!GetPluginImporter(analyzerAssetPath, out var plugin))
             {
@@ -336,6 +339,7 @@ namespace NugetForUnity
                 return ResultStatus.AlreadyProcessed;
             }
 
+            delayedAssetEditor.Start();
             plugin.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
             AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
 
@@ -435,14 +439,17 @@ namespace NugetForUnity
         private void OnPreprocessAsset()
         {
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
-            var results = HandleAsset(assetPath, absoluteRepositoryPath, false);
-            LogResults(results);
+            using (var delayedAssetEditor = new DelayedAssetEditor())
+            {
+                var results = HandleAsset(assetPath, absoluteRepositoryPath, false, delayedAssetEditor);
+                LogResults(results);
+            }
         }
 
         [SuppressMessage(
             "StyleCop.CSharp.OrderingRules",
             "SA1201:Elements should appear in the correct order",
-            Justification = "We like private enums at the botom of the file.")]
+            Justification = "We like private enums at the bottom of the file.")]
         private enum ResultStatus
         {
             Success,
@@ -450,6 +457,32 @@ namespace NugetForUnity
             Failure,
 
             AlreadyProcessed,
+        }
+
+        [SuppressMessage(
+            "StyleCop.CSharp.OrderingRules",
+            "SA1201:Elements should appear in the correct order",
+            Justification = "We like private classes at the bottom of the file.")]
+        private class DelayedAssetEditor : IDisposable
+        {
+            private bool editingStarted;
+
+            public void Start()
+            {
+                if (!editingStarted)
+                {
+                    editingStarted = true;
+                    AssetDatabase.StartAssetEditing();
+                }
+            }
+
+            public void Dispose()
+            {
+                if (editingStarted)
+                {
+                    AssetDatabase.StopAssetEditing();
+                }
+            }
         }
     }
 }
