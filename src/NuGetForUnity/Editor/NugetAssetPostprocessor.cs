@@ -97,10 +97,23 @@ namespace NugetForUnity
 
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
 
+            LogResults(ProcessAssets(importedAssets, absoluteRepositoryPath));
+        }
+
+        [NotNull]
+        private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> ProcessAssets(
+            [NotNull]string[] importedAssets,
+            [NotNull] string absoluteRepositoryPath)
+        {
             using (var delayedAssetEditor = new DelayedAssetEditor())
             {
-                // ReSharper disable once AccessToDisposedClosure
-                LogResults(importedAssets.SelectMany(assetPath => HandleAsset(assetPath, absoluteRepositoryPath, true, delayedAssetEditor)));
+                foreach (var assetPath in importedAssets)
+                {
+                    foreach (var result in HandleAsset(assetPath, absoluteRepositoryPath, true, delayedAssetEditor))
+                    {
+                        yield return result;
+                    }
+                }
             }
         }
 
@@ -109,7 +122,7 @@ namespace NugetForUnity
             [NotNull] string projectRelativeAssetPath,
             [NotNull] string absoluteRepositoryPath,
             bool reimport,
-            DelayedAssetEditor delayedAssetEditor)
+            DelayedAssetEditor delayedAssetEditor = null)
         {
             var assetFileName = Path.GetFileName(projectRelativeAssetPath);
             if (assetFileName.Equals(NugetConfigFile.FileName, StringComparison.OrdinalIgnoreCase) ||
@@ -153,14 +166,14 @@ namespace NugetForUnity
             var assetLablesToSet = new List<string>();
             if (configurationOfPackage != null)
             {
-                delayedAssetEditor.Start();
+                delayedAssetEditor?.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfGeneralPlugin(configurationOfPackage, plugin));
                 yield return ("GeneralSetting", projectRelativeAssetPath, ResultStatus.Success);
             }
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
-                delayedAssetEditor.Start();
+                delayedAssetEditor?.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
             }
@@ -168,7 +181,7 @@ namespace NugetForUnity
                      UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
                          .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
             {
-                delayedAssetEditor.Start();
+                delayedAssetEditor?.Start();
                 assetLablesToSet.AddRange(ModifyImportSettingsOfPlayerOnly(plugin));
                 yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
             }
@@ -339,7 +352,7 @@ namespace NugetForUnity
                 return ResultStatus.AlreadyProcessed;
             }
 
-            delayedAssetEditor.Start();
+            delayedAssetEditor?.Start();
             plugin.SetCompatibleWithPlatform(BuildTarget.WSAPlayer, false);
             AssetDatabase.SetLabels(plugin, new[] { ProcessedLabel });
 
@@ -439,11 +452,7 @@ namespace NugetForUnity
         private void OnPreprocessAsset()
         {
             var absoluteRepositoryPath = GetNuGetRepositoryPath();
-            using (var delayedAssetEditor = new DelayedAssetEditor())
-            {
-                var results = HandleAsset(assetPath, absoluteRepositoryPath, false, delayedAssetEditor);
-                LogResults(results);
-            }
+            LogResults(HandleAsset(assetPath, absoluteRepositoryPath, false));
         }
 
         [SuppressMessage(
