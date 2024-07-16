@@ -148,6 +148,25 @@ namespace NugetForUnity.PluginSupport
             }
         }
 
+        /// <inheritdoc/>
+        public string GetPackageFolderName(INugetPackageIdentifier package, string startName)
+        {
+            var newName = startName;
+            foreach (var packageInstallFileHandler in packageInstallFileHandlers)
+            {
+                try
+                {
+                    newName = packageInstallFileHandler.GetPackageFolderName(package, newName);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Exception while executing GetPackageFolderName plugin handler {e}");
+                }
+            }
+
+            return newName;
+        }
+
         /// <inheritdoc />
         public bool HandleFileExtraction(INugetPackage package, ZipArchiveEntry entry, string extractDirectory)
         {

@@ -9,6 +9,14 @@ namespace NugetForUnity.PluginAPI.ExtensionPoints
     public interface IPackageInstallFileHandler
     {
         /// <summary>
+        ///     This will be called when name of the folder where package will be installed should be determined.
+        /// </summary>
+        /// <param name="package">The package whose folder name is being determined.</param>
+        /// <param name="startName">The starting default name that can be modified or replaced.</param>
+        /// <returns>New package folder name.</returns>
+        string GetPackageFolderName(INugetPackageIdentifier package, string startName);
+
+        /// <summary>
         ///     This will be called for each entry that is about to be processed from nupkg that is being installed.
         /// </summary>
         /// <param name="package">Package that is being installed.</param>

@@ -1239,8 +1239,6 @@ namespace NugetForUnity.Ui
                         var cloneButtonBoxStyle =
                             new GUIStyle("box") { stretchWidth = false, margin = { top = 0, bottom = 0 }, padding = { bottom = 4 } };
 
-                        var normalButtonBoxStyle = new GUIStyle(cloneButtonBoxStyle) { normal = { background = backgroundStyle.normal.background } };
-
                         var showCloneWindow = openCloneWindows.Contains(package);
                         cloneButtonBoxStyle.normal.background = backgroundStyle.normal.background;
 

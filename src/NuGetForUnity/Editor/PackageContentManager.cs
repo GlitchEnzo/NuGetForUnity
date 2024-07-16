@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using NugetForUnity.Models;
+using NugetForUnity.PluginSupport;
 using UnityEngine;
 
 namespace NugetForUnity
@@ -349,7 +350,8 @@ namespace NugetForUnity
         [NotNull]
         private static string GetPackageOutsideInstallDirectory([NotNull] INugetPackageIdentifier package)
         {
-            return Path.Combine(UnityPathHelper.AbsoluteProjectPath, "Packages", $"{package.Id}.{package.Version}");
+            var folderName = PluginRegistry.Instance.GetPackageFolderName(package, $"{package.Id}.{package.Version}");
+            return Path.Combine(UnityPathHelper.AbsoluteProjectPath, "Packages", folderName);
         }
     }
 }
