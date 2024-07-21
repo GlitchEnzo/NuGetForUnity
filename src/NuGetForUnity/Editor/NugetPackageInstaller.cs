@@ -168,15 +168,7 @@ namespace NugetForUnity
                     {
                         // check if nuget package has contentFiles folder
                         const string contentFilesDirectoryName = "contentFiles/";
-                        var hasContentFilesFolder = false;
-                        foreach (var entry in zip.Entries)
-                        {
-                            if (entry.FullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal))
-                            {
-                                hasContentFilesFolder = true;
-                                break;
-                            }
-                        }
+                        var hasContentFilesFolder = zip.Entries.Any(entry => entry.FullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal));
 
                         var libs = new Dictionary<string, List<ZipArchiveEntry>>();
                         var csFiles = new Dictionary<string, List<ZipArchiveEntry>>();
