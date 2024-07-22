@@ -110,14 +110,24 @@ namespace NugetForUnity
         ///     The path of the file inside the .nupkg it is relative starting from the package route. It always uses '/' as a slash on all
         ///     platforms.
         /// </param>
+        /// <param name="hasContentFilesFolder">
+        ///     The package has contentfiles folder, we need to omit content folder it exist. Because some nuget package has both folder to
+        ///     to support old version and new version of nuget.
+        /// </param>
         /// <returns>True if the file can be skipped, is not needed.</returns>
-        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path)
+        internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, bool hasContentFilesFolder)
         {
             if (path.EndsWith("/"))
             {
                 // We do not want to extract empty directory entries. If there are empty directories within the .nupkg, we
                 // expect them to have a file named '_._' in them that indicates that it should be extracted, usually as a
                 // compatibility indicator (https://stackoverflow.com/questions/36338052/what-do-files-mean-in-nuget-packages)
+                return true;
+            }
+
+            // skip content folder when it has contentFiles folder
+            if (hasContentFilesFolder && (path.StartsWith("content/", StringComparison.Ordinal) || path.Contains("/content/")))
+            {
                 return true;
             }
 
