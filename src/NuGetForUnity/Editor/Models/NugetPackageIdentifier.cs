@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
+using NugetForUnity.PluginSupport;
 using UnityEngine;
 
 #region No ReShaper
@@ -186,7 +187,8 @@ namespace NugetForUnity.Models
         /// <inheritdoc />
         public string GetPackageInstallPath(string prefix = "")
         {
-            return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{prefix}{Id}.{Version}");
+            var folderName = PluginRegistry.Instance.GetPackageFolderName(this, $"{prefix}{Id}.{Version}");
+            return Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, folderName);
         }
 
         /// <inheritdoc />
