@@ -24,8 +24,13 @@ namespace NugetForUnity
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
+        /// <param name="allowUpdateForExplicitlyInstalled">False to prevent updating of packages that are explicitly installed.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        public static bool InstallIdentifier([NotNull] INugetPackageIdentifier package, bool refreshAssets = true, bool isSlimRestoreInstall = false)
+        public static bool InstallIdentifier(
+            [NotNull] INugetPackageIdentifier package,
+            bool refreshAssets = true,
+            bool isSlimRestoreInstall = false,
+            bool allowUpdateForExplicitlyInstalled = true)
         {
             if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
@@ -42,7 +47,7 @@ namespace NugetForUnity
             }
 
             foundPackage.IsManuallyInstalled = package.IsManuallyInstalled;
-            return Install(foundPackage, refreshAssets, isSlimRestoreInstall);
+            return Install(foundPackage, refreshAssets, isSlimRestoreInstall, allowUpdateForExplicitlyInstalled);
         }
 
         /// <summary>
@@ -51,8 +56,13 @@ namespace NugetForUnity
         /// <param name="package">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
+        /// <param name="allowUpdateForExplicitlyInstalled">False to prevent updating of packages that are explicitly installed.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
-        private static bool Install([NotNull] INugetPackage package, bool refreshAssets, bool isSlimRestoreInstall)
+        private static bool Install(
+            [NotNull] INugetPackage package,
+            bool refreshAssets,
+            bool isSlimRestoreInstall,
+            bool allowUpdateForExplicitlyInstalled)
         {
             if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
@@ -65,7 +75,7 @@ namespace NugetForUnity
             {
                 var comparisonResult = installedPackage.CompareTo(package);
 
-                if (comparisonResult != 0 && installedPackage.IsManuallyInstalled)
+                if (!allowUpdateForExplicitlyInstalled && comparisonResult != 0 && installedPackage.IsManuallyInstalled)
                 {
                     NugetLogger.LogVerbose(
                         "{0} {1} is installed explicitly so it will not be replaced with {3}",
@@ -143,7 +153,7 @@ namespace NugetForUnity
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
                             NugetLogger.LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
-                            var installed = InstallIdentifier(dependency, false);
+                            var installed = InstallIdentifier(dependency, false, false, false);
                             if (!installed)
                             {
                                 throw new InvalidOperationException($"Failed to install dependency: {dependency.Id} {dependency.Version}.");

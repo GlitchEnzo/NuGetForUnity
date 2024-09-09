@@ -66,17 +66,17 @@ public class NuGetTests
         ConfigureNugetConfig(installMode);
 
         // install a specific version
-        var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8");
-        NugetPackageInstaller.InstallIdentifier(json608, false);
+        var json608 = new NugetPackageIdentifier("Newtonsoft.Json", "6.0.8") { IsManuallyInstalled = true };
+        NugetPackageInstaller.InstallIdentifier(json608);
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(json608, false), "The package was NOT installed: {0} {1}", json608.Id, json608.Version);
 
         // install a newer version
         var json701 = new NugetPackageIdentifier("Newtonsoft.Json", "7.0.1");
-        NugetPackageInstaller.InstallIdentifier(json701, false);
+        NugetPackageInstaller.InstallIdentifier(json701);
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(json701, false), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
 
         // try to install an old version while a newer is already installed
-        NugetPackageInstaller.InstallIdentifier(json608, false);
+        NugetPackageInstaller.InstallIdentifier(json608);
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(json701, false), "The package was NOT installed: {0} {1}", json701.Id, json701.Version);
 
         NugetPackageUninstaller.UninstallAll(InstalledPackagesManager.InstalledPackages.ToList());
@@ -880,10 +880,10 @@ public class NuGetTests
     [Test]
     public void TestUpgrading()
     {
-        var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0");
-        var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0");
+        var componentModelAnnotation47 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "4.7.0") { IsManuallyInstalled = true };
+        var componentModelAnnotation5 = new NugetPackageIdentifier("System.ComponentModel.Annotations", "5.0.0") { IsManuallyInstalled = true };
 
-        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation47, false);
+        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation47);
         Assert.IsTrue(
             InstalledPackagesManager.IsInstalled(componentModelAnnotation47, false),
             "The package was NOT installed: {0} {1}",
@@ -895,7 +895,7 @@ public class NuGetTests
         Assume.That(field, Is.Not.Null, "Failed to find the field 'alreadyImportedLibs' in UnityPreImportedLibraryResolver");
         field.SetValue(null, null);
 
-        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation5, false);
+        NugetPackageInstaller.InstallIdentifier(componentModelAnnotation5);
         Assert.IsTrue(
             InstalledPackagesManager.IsInstalled(componentModelAnnotation5, false),
             "The package was NOT installed: {0} {1}",
