@@ -64,6 +64,18 @@ namespace NugetForUnity
             if (InstalledPackagesManager.TryGetById(package.Id, out var installedPackage))
             {
                 var comparisonResult = installedPackage.CompareTo(package);
+
+                if (comparisonResult != 0 && installedPackage.IsManuallyInstalled)
+                {
+                    NugetLogger.LogVerbose(
+                        "{0} {1} is installed explicitly so it will not be replaced with {3}",
+                        installedPackage.Id,
+                        installedPackage.Version,
+                        package.Version,
+                        package.Version);
+                    return true;
+                }
+
                 if (comparisonResult < 0)
                 {
                     NugetLogger.LogVerbose(
