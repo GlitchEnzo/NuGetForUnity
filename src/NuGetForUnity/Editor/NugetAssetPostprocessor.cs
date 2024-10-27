@@ -106,7 +106,7 @@ namespace NugetForUnity
 
         [NotNull]
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> ProcessAssets(
-            [NotNull]string[] importedAssets,
+            [NotNull] string[] importedAssets,
             [NotNull] string absoluteRepositoryPath)
         {
             using (var delayedAssetEditor = new DelayedAssetEditor())
@@ -214,17 +214,18 @@ namespace NugetForUnity
                 delayedAssetEditor?.Start();
                 assetLabelsToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
-            }            
+            }
             else if (assetPathComponents.Length > 3 &&
-                assetPathComponents[1].Equals(RuntimesFolderName, StringComparison.Ordinal) &&
-                assetPathComponents[3].Equals(NativeFolderName, StringComparison.Ordinal))
+                     assetPathComponents[1].Equals(RuntimesFolderName, StringComparison.Ordinal) &&
+                     assetPathComponents[3].Equals(NativeFolderName, StringComparison.Ordinal))
             {
                 delayedAssetEditor?.Start();
-                assetLabelsToSet.AddRange(HandleNativeRuntime(
+                assetLabelsToSet.AddRange(
+                    HandleNativeRuntime(
                         absoluteAssetPath,
                         assetPathComponents[2],
                         plugin,
-                        Path.Combine(absoluteNuGetPackagesPath, assetPathComponents[0], assetPathComponents[1]))));
+                        Path.Combine(absoluteNuGetPackagesPath, assetPathComponents[0], assetPathComponents[1])));
                 yield return ("NativeRuntimes", projectRelativeAssetPath, ResultStatus.Success);
             }
             else if (assetPathComponents.Length > 0 &&

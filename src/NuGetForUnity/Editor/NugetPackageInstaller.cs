@@ -32,7 +32,7 @@ namespace NugetForUnity
             bool isSlimRestoreInstall = false,
             bool allowUpdateForExplicitlyInstalled = true)
         {
-            var result = Install(package, refreshAssets, isSlimRestoreInstall);
+            var result = Install(package, refreshAssets, isSlimRestoreInstall, allowUpdateForExplicitlyInstalled);
             return result.Successful;
         }
 
@@ -43,11 +43,13 @@ namespace NugetForUnity
         /// <param name="package">The identifier of the package to install.</param>
         /// <param name="refreshAssets">True to refresh the Unity asset database.  False to ignore the changes (temporarily).</param>
         /// <param name="isSlimRestoreInstall">True to skip checking if lib is imported in Unity and skip installing dependencies.</param>
+        /// <param name="allowUpdateForExplicitlyInstalled">False to prevent updating of packages that are explicitly installed.</param>
         /// <returns>True if the package was installed successfully, otherwise false.</returns>
         internal static PackageInstallOperationResult Install(
             [NotNull] INugetPackageIdentifier package,
             bool refreshAssets = true,
-            bool isSlimRestoreInstall = false)
+            bool isSlimRestoreInstall = false,
+            bool allowUpdateForExplicitlyInstalled = true)
         {
             if (!isSlimRestoreInstall && UnityPreImportedLibraryResolver.IsAlreadyImportedInEngine(package.Id, false))
             {
@@ -100,7 +102,7 @@ namespace NugetForUnity
                         installedPackage.Version,
                         package.Version,
                         package.Version);
-                    return true;
+                    return new PackageInstallOperationResult { Successful = true };
                 }
 
                 if (comparisonResult < 0)

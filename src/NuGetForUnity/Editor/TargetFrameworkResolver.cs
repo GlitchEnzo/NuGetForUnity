@@ -145,8 +145,7 @@ namespace NugetForUnity
             () =>
             {
 #if UNITY_2021_2_OR_NEWER
-                return PlayerSettings.GetApiCompatibilityLevel(
-                    NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+                return PlayerSettings.GetApiCompatibilityLevel(NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
 #else
                 return PlayerSettings.GetApiCompatibilityLevel(EditorUserBuildSettings.selectedBuildTargetGroup);
 #endif
