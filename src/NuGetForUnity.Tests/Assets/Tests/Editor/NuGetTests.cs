@@ -43,7 +43,7 @@ public class NuGetTests
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
-    /*[Test]
+    [Test]
     [Order(1)]
     public void SimpleRestoreTest()
     {
@@ -581,7 +581,7 @@ public class NuGetTests
             "lib",
             "BouncyCastle.Crypto.dll");
         Assert.That(dllFilePath, Does.Exist.IgnoreDirectories);
-    }*/
+    }
 
     [Test]
     public void InstallPackageWith00DependencyTest()
@@ -598,7 +598,7 @@ public class NuGetTests
         Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(expectedDependency));
     }
 
-    /*[Test]
+    [Test]
     [TestCase("1.0.0-rc1", "1.0.0")]
     [TestCase("1.0.0-rc1", "1.0.0-rc2")]
     [TestCase("1.2.3", "1.2.4")]
@@ -1124,7 +1124,7 @@ public class NuGetTests
             runtimeConfig.SupportedPlatformTargets,
             Is.EqualTo(new[] { buildTarget }),
             $"Native mapping for {runtime} is missing build target {buildTarget}");
-    }*/
+    }
 
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
