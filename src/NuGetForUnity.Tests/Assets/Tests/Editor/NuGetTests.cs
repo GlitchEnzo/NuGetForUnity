@@ -43,7 +43,7 @@ public class NuGetTests
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
-    /*[Test]
+    [Test]
     [Order(1)]
     public void SimpleRestoreTest()
     {
@@ -1069,9 +1069,10 @@ public class NuGetTests
             "The dependencies WERE installed for package {0} {1}",
             package.Id,
             package.Version);
-    }*/
+    }
 
     [Test]
+    [Retry(3)]
     [TestCase("Microsoft.Azure.WebJobs.Sources", "3.0.37")]
     [TestCase("NServiceBus.Testing.Fakes.Sources", "7.1.13")]
     public void TestSourceCodePackageInstall(string packageId, string packageVersion)
@@ -1092,7 +1093,7 @@ public class NuGetTests
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
-    /*[Test]
+    [Test]
     [TestCase("win7-x64", BuildTarget.StandaloneWindows64)]
     [TestCase("win7-x86", BuildTarget.StandaloneWindows)]
     [TestCase("win-x64", BuildTarget.StandaloneWindows64)]
@@ -1124,7 +1125,7 @@ public class NuGetTests
             runtimeConfig.SupportedPlatformTargets,
             Is.EqualTo(new[] { buildTarget }),
             $"Native mapping for {runtime} is missing build target {buildTarget}");
-    }*/
+    }
 
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
