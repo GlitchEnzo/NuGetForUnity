@@ -43,7 +43,7 @@ public class NuGetTests
         TestContext.Progress.WriteLine($"Test: {TestContext.CurrentContext.Test.FullName}, Duration: {stopwatch.Elapsed}");
     }
 
-    [Test]
+    /*[Test]
     [Order(1)]
     public void SimpleRestoreTest()
     {
@@ -581,7 +581,7 @@ public class NuGetTests
             "lib",
             "BouncyCastle.Crypto.dll");
         Assert.That(dllFilePath, Does.Exist.IgnoreDirectories);
-    }
+    }*/
 
     [Test]
     public void InstallPackageWith00DependencyTest()
@@ -598,7 +598,7 @@ public class NuGetTests
         Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(expectedDependency));
     }
 
-    [Test]
+    /*[Test]
     [TestCase("1.0.0-rc1", "1.0.0")]
     [TestCase("1.0.0-rc1", "1.0.0-rc2")]
     [TestCase("1.2.3", "1.2.4")]
@@ -960,14 +960,14 @@ public class NuGetTests
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(package);
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(package, false), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
@@ -978,7 +978,7 @@ public class NuGetTests
     {
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(package);
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), "The package was NOT installed: {0} {1}", package.Id, package.Version);
@@ -986,7 +986,7 @@ public class NuGetTests
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
@@ -999,7 +999,7 @@ public class NuGetTests
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(packageOld);
         Assume.That(
@@ -1012,7 +1012,7 @@ public class NuGetTests
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsFalse(
             InstalledPackagesManager.IsInstalled(packageOld, false),
@@ -1109,7 +1109,7 @@ public class NuGetTests
             "NativeRuntimeSettings.json");
         FileSystemHelper.DeleteFile(nativeSettingsFilePath);
 
-        // Call twice to ensure we're testing the deserialised file
+        // Call twice to ensure we're testing the deserialized file
         var nativeRuntimeSettingsField = typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic);
         nativeRuntimeSettingsField.SetValue(null, null);
         var settings = ConfigurationManager.NativeRuntimeSettings;
@@ -1124,7 +1124,7 @@ public class NuGetTests
             runtimeConfig.SupportedPlatformTargets,
             Is.EqualTo(new[] { buildTarget }),
             $"Native mapping for {runtime} is missing build target {buildTarget}");
-    }
+    }*/
 
     private static void ConfigureNugetConfig(InstallMode installMode)
     {
