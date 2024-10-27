@@ -195,7 +195,8 @@ namespace NugetForUnity
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
             {
-                yield return ("GetPluginImporter", projectRelativeAssetPath, ResultStatus.Failure);
+                // ignore when the file is not a plug-in e.g. when the platform doesn't support the format, e.g. '.dylib' cant be loaded on linux
+                yield return ("GetPluginImporter", projectRelativeAssetPath, ResultStatus.Success);
 
                 yield break;
             }
