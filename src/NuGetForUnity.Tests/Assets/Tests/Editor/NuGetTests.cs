@@ -1077,6 +1077,8 @@ public class NuGetTests
     [TestCase("NServiceBus.Testing.Fakes.Sources", "7.1.13")]
     public void TestSourceCodePackageInstall(string packageId, string packageVersion)
     {
+        ConfigureNugetConfig(InstallMode.ApiV3Only);
+
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
