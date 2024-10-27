@@ -385,7 +385,7 @@ PluginImporter:
   validateReferences: 1
   platformData:
   - first:
-      : Any
+      '': Any
     second:
       enabled: 0
       settings:
@@ -445,7 +445,7 @@ PluginImporter:
   userData:
   assetBundleName:
   assetBundleVariant:
-".Replace("\r", null));
+");
         }
 
         private static void TryExtractBestFrameworkSources(
