@@ -17,6 +17,11 @@ namespace NugetForUnity
     /// </summary>
     public static class NugetPackageInstaller
     {
+        private static readonly string[] RuntimePluginFileExtentions =
+        {
+            ".so" /* Linux */, ".dylib" /* OSX */, ".dll" /* Windows */, ".lib", /* Windows */
+        };
+
         /// <summary>
         ///     Installs the package given by the identifier. It fetches the appropriate full package from the installed packages, package cache, or package
         ///     sources and installs it.
@@ -285,7 +290,15 @@ namespace NugetForUnity
                                 continue;
                             }
 
-                            PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+                            var extractedFilePath = PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
+
+                            if (extractedFilePath != null &&
+                                (entryFullName.StartsWith("runtimes/", StringComparison.Ordinal) || entryFullName.Contains("/runtimes/")) &&
+                                RuntimePluginFileExtentions.Any(extension => entryFullName.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                // write a temporary plug-in importer setting that is replaced with the correct configuration by 'NugetAssetPostprocessor'
+                                WriteInitialExcludeAllPluginImporterConfig(extractedFilePath);
+                            }
                         }
 
                         // go through all lib zip entries and find the best target framework, then unpack it
@@ -354,6 +367,85 @@ namespace NugetForUnity
 
                 EditorUtility.ClearProgressBar();
             }
+        }
+
+        private static void WriteInitialExcludeAllPluginImporterConfig([NotNull] string extractedFilePath)
+        {
+            File.WriteAllText(
+                $"{extractedFilePath}.meta",
+                $@"
+fileFormatVersion: 2
+guid: {Guid.NewGuid():N}
+PluginImporter:
+  serializedVersion: 2
+  defineConstraints: []
+  isPreloaded: 0
+  isOverridable: 0
+  isExplicitlyReferenced: 0
+  validateReferences: 1
+  platformData:
+  - first:
+      : Any
+    second:
+      enabled: 0
+      settings:
+        'Exclude ': 1
+        Exclude Android: 1
+        Exclude Bratwurst: 1
+        Exclude CloudRendering: 1
+        Exclude Editor: 1
+        Exclude EmbeddedLinux: 1
+        Exclude GameCoreScarlett: 1
+        Exclude GameCoreXboxOne: 1
+        Exclude Linux64: 1
+        Exclude OSXUniversal: 1
+        Exclude PS4: 1
+        Exclude PS5: 1
+        Exclude QNX: 1
+        Exclude Switch: 1
+        Exclude WebGL: 1
+        Exclude Win: 1
+        Exclude Win64: 1
+        Exclude WindowsStoreApps: 1
+        Exclude XboxOne: 1
+        Exclude iOS: 1
+        Exclude tvOS: 1
+  - first:
+      Any:
+    second:
+      enabled: 0
+  - first:
+      Editor: Editor
+    second:
+      enabled: 0
+  - first:
+      Standalone: Linux64
+    second:
+      enabled: 0
+  - first:
+      Standalone: OSXUniversal
+    second:
+      enabled: 0
+  - first:
+      Standalone: Win
+    second:
+      enabled: 0
+  - first:
+      Standalone: Win64
+    second:
+      enabled: 0
+  - first:
+      Windows Store Apps: WindowsStoreApps
+    second:
+      enabled: 0
+  - first:
+      iPhone: iOS
+    second:
+      enabled: 0
+  userData:
+  assetBundleName:
+  assetBundleVariant:
+");
         }
 
         private static void TryExtractBestFrameworkSources(

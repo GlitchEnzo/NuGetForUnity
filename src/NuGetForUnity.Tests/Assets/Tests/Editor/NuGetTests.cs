@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NugetForUnity;
 using NugetForUnity.Configuration;
@@ -16,7 +15,6 @@ using NugetForUnity.Ui;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 public class NuGetTests
 {
@@ -960,8 +958,6 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0")]
     public void TestPostprocessInstall(string packageId, string packageVersion)
     {
-        IgnorePackagesConfigImportError();
-
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
         var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
@@ -980,8 +976,6 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0")]
     public void TestPostprocessUninstall(string packageId, string packageVersion)
     {
-        IgnorePackagesConfigImportError();
-
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
         var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
@@ -1002,8 +996,6 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0", "3.6.4")]
     public void TestPostprocessDifferentVersion(string packageId, string packageVersionOld, string packageVersionNew)
     {
-        IgnorePackagesConfigImportError();
-
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
 
@@ -1132,11 +1124,6 @@ public class NuGetTests
             runtimeConfig.SupportedPlatformTargets,
             Is.EqualTo(new[] { buildTarget }),
             $"Native mapping for {runtime} is missing build target {buildTarget}");
-    }
-
-    private static void IgnorePackagesConfigImportError()
-    {
-        LogAssert.Expect(LogType.Error, new Regex("NuGetForUnity: failed to process: .*packages.config' \\(ConfigurationFile\\)"));
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)

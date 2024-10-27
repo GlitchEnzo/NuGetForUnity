@@ -63,16 +63,18 @@ namespace NugetForUnity.Configuration
 
         private static NativeRuntimeSettings DefaultSettings()
         {
+            // We use the same CPU architecture for the windows Editor entries because else we get error that multiple assets are imported.
+            // With this setting the x64 variant is preferred.
             return new NativeRuntimeSettings
             {
                 configurations = new List<NativeRuntimeAssetConfiguration>
                 {
-                    new NativeRuntimeAssetConfiguration("win10-x64", "x86_64", "x86_64", "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win10-x86", "AnyCPU", "AnyCPU", "Windows", BuildTarget.StandaloneWindows),
-                    new NativeRuntimeAssetConfiguration("win7-x64", "x86_64", "x86_64", "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win7-x86", "AnyCPU", "AnyCPU", "Windows", BuildTarget.StandaloneWindows),
-                    new NativeRuntimeAssetConfiguration("win-x64", "x86_64", "x86_64", "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win-x86", "AnyCPU", "AnyCPU", "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win10-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win10-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win7-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win7-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
                     new NativeRuntimeAssetConfiguration("linux-x64", "x86_64", "x86_64", "Linux", BuildTarget.StandaloneLinux64),
                     new NativeRuntimeAssetConfiguration("osx-x64", "x86_64", "x86_64", "OSX", BuildTarget.StandaloneOSX),
                 },

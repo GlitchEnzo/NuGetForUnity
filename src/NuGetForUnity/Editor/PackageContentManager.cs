@@ -181,8 +181,18 @@ namespace NugetForUnity
                 var hasRuntimeConfiguration =
                     runtimeConfigurations.Exists(conifg => string.Equals(conifg.Runtime, runtime, StringComparison.OrdinalIgnoreCase));
 
-                // only keep if the runtime is listet in the NativeRuntimeSettings
-                return !hasRuntimeConfiguration;
+                if (!hasRuntimeConfiguration)
+                {
+                    // only keep if the runtime is listed in the NativeRuntimeSettings
+                    NugetLogger.LogVerbose(
+                        "[PackageContentManager] Runtime '{0}' of Asset '{1}' is not in the configuration so we don't extract it.",
+                        runtime,
+                        path);
+                    return true;
+                }
+
+                // keep the file
+                return false;
             }
 
             // Skip documentation folders since they sometimes have HTML docs with JavaScript, which Unity tried to parse as "UnityScript"
@@ -278,7 +288,9 @@ namespace NugetForUnity
         /// <param name="entry">The file entry from the .nupkg zip file.</param>
         /// <param name="baseDir">The path of the directory where the package output should be placed.</param>
         /// <param name="skipEntryLength">Index to which we want to skip within path located in FullPath of 'entry' parameter.</param>
-        internal static void ExtractPackageEntry([NotNull] ZipArchiveEntry entry, [NotNull] string baseDir, int skipEntryLength = 0)
+        /// <returns>The full path where the file was extracted to.</returns>
+        [CanBeNull]
+        internal static string ExtractPackageEntry([NotNull] ZipArchiveEntry entry, [NotNull] string baseDir, int skipEntryLength = 0)
         {
             // Normalizes the path.
             baseDir = Path.GetFullPath(baseDir);
@@ -300,7 +312,7 @@ namespace NugetForUnity
             if (!filePath.StartsWith(baseDir, StringComparison.Ordinal))
             {
                 Debug.LogWarning($"Entry {entryFullName} is trying to leave the output directory. We skip it.");
-                return;
+                return null;
             }
 
             var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
@@ -308,7 +320,7 @@ namespace NugetForUnity
             if (Directory.Exists(filePath))
             {
                 Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                return;
+                return null;
             }
 
             entry.ExtractToFile(filePath, true);
@@ -318,6 +330,8 @@ namespace NugetForUnity
                 var extractedFile = new FileInfo(filePath);
                 extractedFile.Attributes |= FileAttributes.ReadOnly;
             }
+
+            return filePath;
         }
 
         /// <summary>

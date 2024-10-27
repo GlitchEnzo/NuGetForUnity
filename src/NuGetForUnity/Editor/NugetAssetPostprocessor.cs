@@ -152,8 +152,14 @@ namespace NugetForUnity
             [NotNull] string projectRelativeAssetPath,
             [NotNull] string absoluteNuGetPackagesPath,
             bool reimport,
-            DelayedAssetEditor delayedAssetEditor = null)
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor = null)
         {
+            if (projectRelativeAssetPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                // ignore ZIP-Archive
+                yield break;
+            }
+
             var assetFileName = Path.GetFileName(projectRelativeAssetPath);
             if (assetFileName.Equals(NugetConfigFile.FileName, StringComparison.OrdinalIgnoreCase) ||
                 assetFileName.Equals(PackagesConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
@@ -171,7 +177,7 @@ namespace NugetForUnity
                 yield break;
             }
 
-            // need to be a DLL or a native runtime dependency
+            // need to be a .NET DLL or a native runtime dependency
             if (!(absoluteAssetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
                   (absoluteAssetPath.Contains($"{Path.DirectorySeparatorChar}{RuntimesFolderName}{Path.DirectorySeparatorChar}") &&
                    absoluteAssetPath.Contains($"{Path.DirectorySeparatorChar}{NativeFolderName}{Path.DirectorySeparatorChar}"))))
@@ -219,13 +225,13 @@ namespace NugetForUnity
                      assetPathComponents[1].Equals(RuntimesFolderName, StringComparison.Ordinal) &&
                      assetPathComponents[3].Equals(NativeFolderName, StringComparison.Ordinal))
             {
-                delayedAssetEditor?.Start();
                 assetLabelsToSet.AddRange(
                     HandleNativeRuntime(
                         absoluteAssetPath,
                         assetPathComponents[2],
                         plugin,
-                        Path.Combine(absoluteNuGetPackagesPath, assetPathComponents[0], assetPathComponents[1])));
+                        Path.Combine(absoluteNuGetPackagesPath, assetPathComponents[0], assetPathComponents[1]),
+                        delayedAssetEditor));
                 yield return ("NativeRuntimes", projectRelativeAssetPath, ResultStatus.Success);
             }
             else if (assetPathComponents.Length > 0 &&
@@ -242,6 +248,7 @@ namespace NugetForUnity
                 yield break;
             }
 
+            delayedAssetEditor?.Start();
             AssetDatabase.SetLabels(plugin, assetLabelsToSet.Distinct().ToArray());
 
             if (reimport)
@@ -385,11 +392,10 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="analyzerAssetPath">The path to the .config file.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        /// <param name="delayedAssetEditor"></param>
         private static ResultStatus ModifyImportSettingsOfConfigurationFile(
             [NotNull] string analyzerAssetPath,
             bool reimport,
-            DelayedAssetEditor delayedAssetEditor)
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor)
         {
             if (!GetPluginImporter(analyzerAssetPath, out var plugin))
             {
@@ -475,11 +481,13 @@ namespace NugetForUnity
             return AssetDatabase.GetLabels(asset).Contains(ProcessedLabel);
         }
 
+        [NotNull]
         private static string[] HandleNativeRuntime(
-            string absoluteAssetPath,
-            string runtime,
-            PluginImporter plugin,
-            string absoluteRuntimesDirectoryPath)
+            [NotNull] string absoluteAssetPath,
+            [NotNull] string runtime,
+            [NotNull] PluginImporter plugin,
+            [NotNull] string absoluteRuntimesDirectoryPath,
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor)
         {
             var runtimeConfigurations = ConfigurationManager.NativeRuntimeSettings.Configurations;
             var configuration = runtimeConfigurations.Find(config => string.Equals(config.Runtime, runtime, StringComparison.OrdinalIgnoreCase));
@@ -494,6 +502,7 @@ namespace NugetForUnity
                 return Array.Empty<string>();
             }
 
+            delayedAssetEditor?.Start();
             plugin.SetCompatibleWithAnyPlatform(false);
 
             var otherRuntimes = Directory.EnumerateFiles(absoluteRuntimesDirectoryPath, "*", SearchOption.AllDirectories)
@@ -515,7 +524,7 @@ namespace NugetForUnity
                                 otherRuntimes.Contains(otherRuntime.Runtime) &&
                                 otherRuntime.SupportedPlatformTargets.Any(configuration.SupportedPlatformTargets.Contains));
             if (otherRuntimeWithSameRuntimeConfiguration == null ||
-                otherRuntimeWithSameRuntimeConfiguration.Runtime.CompareTo(configuration.Runtime) <= 0)
+                otherRuntimeWithSameRuntimeConfiguration.Runtime.CompareTo(configuration.Runtime) >= 0)
             {
                 foreach (var platform in NonObsoleteBuildTargets.Except(configuration.SupportedPlatformTargets))
                 {
@@ -539,9 +548,11 @@ namespace NugetForUnity
                     string.Equals(otherRuntime.EditorCpuArchitecture, configuration.EditorCpuArchitecture, StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(otherRuntime.EditorOperatingSystem, configuration.EditorOperatingSystem, StringComparison.OrdinalIgnoreCase) &&
                     otherRuntimes.Contains(otherRuntime.Runtime));
+
+            // by using 'CompareTo' we prefer x64 over x86
             if (!string.IsNullOrEmpty(configuration.EditorOperatingSystem) &&
                 (otherRuntimeWithSameEditorConfiguration == null ||
-                 otherRuntimeWithSameEditorConfiguration.Runtime.CompareTo(configuration.Runtime) <= 0))
+                 otherRuntimeWithSameEditorConfiguration.Runtime.CompareTo(configuration.Runtime) >= 0))
             {
                 plugin.SetCompatibleWithEditor(true);
                 plugin.SetEditorData("OS", configuration.EditorOperatingSystem);

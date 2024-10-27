@@ -387,10 +387,11 @@ namespace NugetForUnity.Ui
 
             var runtimesWithConfiguration =
                 ConfigurationManager.NativeRuntimeSettings.Configurations.Select(runtimeConfiguration => runtimeConfiguration.Runtime);
-            EditorUtility.DisplayDialog(
-                "[Warning] Installed Packages has Native Runtime dependeincies",
-                $"The packages:\n{string.Join("\n", packagesWithNativeRuntimes.Select(package => $"{package.Package.Id} has native dependencies for runtimes: {string.Join(", ", package.AvailableNativeRuntimes)}"))}\n\nNuGetForUnity has configuration on how to include the runtimes [{string.Join(", ", runtimesWithConfiguration)}] so they are included in the Unity build.\n\nSo the package will propably only work on devices using one of the runtimes configured in NuGetForUnity and provided by the package.",
-                "OK");
+            var message =
+                $"The packages:\n{string.Join("\n", packagesWithNativeRuntimes.Select(package => $"{package.Package.Id} has native dependencies for runtimes: {string.Join(", ", package.AvailableNativeRuntimes)}"))}\n\nNuGetForUnity has configuration on how to include the runtimes [{string.Join(", ", runtimesWithConfiguration)}].\nSo the package will propably only work on devices using runtimes configured in NuGetForUnity and provided by the package.";
+            const string title = "[Warning] Installed Packages has Native Runtime dependencies";
+            EditorUtility.DisplayDialog(title, message, "OK");
+            Debug.LogWarning($"{title}\n{message}");
         }
 
         /// <summary>

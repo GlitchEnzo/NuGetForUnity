@@ -29,8 +29,8 @@ try:
                 absoluteChangedFile = os.path.realpath(os.path.join(repositoryRoot, changedFile))
                 changedFile = os.path.relpath(absoluteChangedFile, solutionDir)
                 if changedFile.startswith(".."):
-                    if solutionFile.endswith('NuGetForUnity.Cli.sln'):
-                        # for NuGetForUnity.Cli we don't format external files
+                    if solutionFile.endswith('NuGetForUnity.Cli.sln') or solutionFile.endswith('NuGetForUnity.PluginAPI.sln'):
+                        # for NuGetForUnity.Cli and NuGetForUnity.PluginAPI we don't format external files
                         continue
                     elif not absoluteChangedFile.startswith(mainPackageFolder):
                         # for NuGetForUnity.Tests we only include external files that lie inside src/NuGetForUnity

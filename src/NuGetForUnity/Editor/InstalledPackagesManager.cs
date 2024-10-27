@@ -129,7 +129,7 @@ namespace NugetForUnity
         ///     Adds the package to the 'packages.config' file.
         /// </summary>
         /// <param name="package">The package to add.</param>
-        /// <returns>The newly added or allready existing config entry from the packages.config file.</returns>
+        /// <returns>The newly added or already existing config entry from the packages.config file.</returns>
         [NotNull]
         internal static PackageConfig AddPackageToConfig([NotNull] INugetPackage package)
         {
