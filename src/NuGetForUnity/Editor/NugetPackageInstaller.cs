@@ -445,7 +445,7 @@ PluginImporter:
   userData:
   assetBundleName:
   assetBundleVariant:
-");
+".Replace("\r", null));
         }
 
         private static void TryExtractBestFrameworkSources(
@@ -464,7 +464,7 @@ PluginImporter:
             {
                 NugetLogger.LogVerbose(
                     "Selecting target framework directory '{0}' and language '{1}' as best match for the package {2}",
-                    bestFramework,
+                    frameworkKey,
                     sourceDirName,
                     package);
 
