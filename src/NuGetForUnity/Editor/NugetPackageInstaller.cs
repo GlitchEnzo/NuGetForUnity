@@ -188,6 +188,10 @@ namespace NugetForUnity
                     // unzip the package
                     using (var zip = ZipFile.OpenRead(cachedPackagePath))
                     {
+                        // check if nuget package has contentFiles folder
+                        const string contentFilesDirectoryName = "contentFiles/";
+                        var hasContentFilesFolder = zip.Entries.Any(entry => entry.FullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal));
+
                         var libs = new Dictionary<string, List<ZipArchiveEntry>>();
                         var csFiles = new Dictionary<string, List<ZipArchiveEntry>>();
                         var anyFiles = new Dictionary<string, List<ZipArchiveEntry>>();
@@ -201,7 +205,7 @@ namespace NugetForUnity
                                 continue;
                             }
 
-                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName))
+                            if (PackageContentManager.ShouldSkipUnpackingOnPath(entryFullName, hasContentFilesFolder))
                             {
                                 continue;
                             }
@@ -228,7 +232,6 @@ namespace NugetForUnity
 
                             // in case this is a source code package, we want to collect all its entries that have 'cs' or 'any' set as language
                             // and their frameworks so we can get the best framework later
-                            const string contentFilesDirectoryName = "contentFiles/";
                             if (entryFullName.StartsWith(contentFilesDirectoryName, StringComparison.Ordinal))
                             {
                                 // Folder structure for source code packages:
