@@ -585,6 +585,21 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallPackageWith00DependencyTest()
+    {
+        ConfigureNugetConfig(InstallMode.ApiV3Only);
+
+        var packageWith00Dependency = new NugetPackageIdentifier("Microsoft.ML.OnnxRuntime", "1.19.2") { IsManuallyInstalled = true };
+        var expectedDependency = new NugetPackageIdentifier("Microsoft.ML.OnnxRuntime.Managed", "1.19.2");
+
+        NugetPackageInstaller.InstallIdentifier(packageWith00Dependency);
+
+        // Microsoft.ML.OnnxRuntime depends on Microsoft.ML.OnnxRuntime.Managed, so they should both be installed
+        Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(packageWith00Dependency));
+        Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(expectedDependency));
+    }
+
+    [Test]
     [TestCase("1.0.0-rc1", "1.0.0")]
     [TestCase("1.0.0-rc1", "1.0.0-rc2")]
     [TestCase("1.2.3", "1.2.4")]

@@ -55,6 +55,7 @@ namespace NugetForUnity
             new TargetFrameworkSupport("net35", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
             new TargetFrameworkSupport("net20", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
             new TargetFrameworkSupport("net11", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
+            new TargetFrameworkSupport("net00", null, DotnetVersionCompatibilityLevel.NetFramework46Or48),
 
             // .net standard
             new TargetFrameworkSupport(
@@ -99,6 +100,11 @@ namespace NugetForUnity
                 DotnetVersionCompatibilityLevel.NetFramework46Or48),
             new TargetFrameworkSupport(
                 "netstandard10",
+                null,
+                DotnetVersionCompatibilityLevel.NetStandard20Or21,
+                DotnetVersionCompatibilityLevel.NetFramework46Or48),
+            new TargetFrameworkSupport(
+                "netstandard00",
                 null,
                 DotnetVersionCompatibilityLevel.NetStandard20Or21,
                 DotnetVersionCompatibilityLevel.NetFramework46Or48),
