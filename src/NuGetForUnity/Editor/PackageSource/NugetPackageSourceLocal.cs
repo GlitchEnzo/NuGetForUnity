@@ -195,7 +195,7 @@ namespace NugetForUnity.PackageSource
         {
             if (package.HasVersionRange)
             {
-                throw new InvalidOperationException($"The package '{package}' has a version range witch is not supported for this function.");
+                throw new InvalidOperationException($"The package '{package}' has a version range which is not supported for this function.");
             }
 
             var localPackagePath = Path.Combine(ExpandedPath, $"{package.Id}.{package.Version}.nupkg");

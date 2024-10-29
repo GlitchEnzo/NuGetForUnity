@@ -71,7 +71,7 @@ namespace NuGetForUnity.Cli
         ///     even before our AssetPostprocessor can change the import settings so Unity knows that the DLL is a RoslynAnalyzer.
         ///     To bypass this error we generate the .dll.meta files with the RoslynAnalyzer label and the disable for platform configuration.
         ///     A alternative could be to delete the duplicate .resources.dll files when restoring,
-        ///     but this would require to decide witch user language to keep.
+        ///     but this would require to decide which user language to keep.
         /// </summary>
         private static void FixRoslynAnalyzerImportSettings()
         {

@@ -298,7 +298,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Select the best target-framework group of a NuGet package.
         /// </summary>
-        /// <param name="nuspec">The package of witch the dependencies are selected.</param>
+        /// <param name="nuspec">The package of which the dependencies are selected.</param>
         /// <param name="preferredTargetFramework">
         ///     The overwritten / preferred target-framework to use instead of determining the best matching target framework
         ///     from the Unity settings ('Api Compatibility Level').

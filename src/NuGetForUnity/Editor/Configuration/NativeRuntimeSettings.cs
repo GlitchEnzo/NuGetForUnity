@@ -69,14 +69,19 @@ namespace NugetForUnity.Configuration
             {
                 configurations = new List<NativeRuntimeAssetConfiguration>
                 {
-                    new NativeRuntimeAssetConfiguration("win10-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win10-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
-                    new NativeRuntimeAssetConfiguration("win7-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win7-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
-                    new NativeRuntimeAssetConfiguration("win-x64", "x86_64", string.Empty, "Windows", BuildTarget.StandaloneWindows64),
-                    new NativeRuntimeAssetConfiguration("win-x86", "AnyCPU", string.Empty, "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win10-x64", "x86_64", null, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win10-x86", "AnyCPU", null, "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win7-x64", "x86_64", null, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win7-x86", "AnyCPU", null, "Windows", BuildTarget.StandaloneWindows),
+                    new NativeRuntimeAssetConfiguration("win-x64", "x86_64", null, "Windows", BuildTarget.StandaloneWindows64),
+                    new NativeRuntimeAssetConfiguration("win-x86", "AnyCPU", null, "Windows", BuildTarget.StandaloneWindows),
                     new NativeRuntimeAssetConfiguration("linux-x64", "x86_64", "x86_64", "Linux", BuildTarget.StandaloneLinux64),
-                    new NativeRuntimeAssetConfiguration("osx-x64", "x86_64", "x86_64", "OSX", BuildTarget.StandaloneOSX),
+                    new NativeRuntimeAssetConfiguration("android", null, null, null, BuildTarget.Android),
+                    new NativeRuntimeAssetConfiguration("android-arm64", "ARM64", null, null, BuildTarget.Android),
+                    new NativeRuntimeAssetConfiguration("ios", null, null, null, BuildTarget.iOS),
+                    new NativeRuntimeAssetConfiguration("ios-arm64", "ARM64", null, null, BuildTarget.iOS),
+                    new NativeRuntimeAssetConfiguration("osx-x64", "x86_64", null, "OSX", BuildTarget.StandaloneOSX),
+                    new NativeRuntimeAssetConfiguration("osx-arm64", "ARM64", null, null, BuildTarget.StandaloneOSX),
                 },
             };
         }

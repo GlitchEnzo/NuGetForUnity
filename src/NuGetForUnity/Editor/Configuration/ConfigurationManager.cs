@@ -230,7 +230,7 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     Queries all active nuget package source's with the given list of installed packages to get any updates that are available.
         /// </summary>
-        /// <param name="packagesToUpdate">The list of currently installed packages for witch updates are searched.</param>
+        /// <param name="packagesToUpdate">The list of currently installed packages for which updates are searched.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
