@@ -27,10 +27,8 @@ namespace NugetForUnity
             bool refreshAssets = true,
             PackageUninstallReason uninstallReason = PackageUninstallReason.IndividualUpdate)
         {
-            NugetLogger.LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
-            NugetPackageUninstaller.Uninstall(currentVersion, uninstallReason, false);
-            newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
-            return NugetPackageInstaller.InstallIdentifier(newVersion, refreshAssets);
+            var result = UpdateWithInformation(currentVersion, newVersion, refreshAssets, uninstallReason);
+            return result.Successful;
         }
 
         /// <summary>
@@ -67,6 +65,26 @@ namespace NugetForUnity
             AssetDatabase.Refresh();
 
             EditorUtility.ClearProgressBar();
+        }
+
+        /// <summary>
+        ///     Updates a package by uninstalling the currently installed version and installing the "new" version.
+        /// </summary>
+        /// <param name="currentVersion">The current package to uninstall.</param>
+        /// <param name="newVersion">The package to install.</param>
+        /// <param name="refreshAssets">True to refresh the assets inside Unity. False to ignore them (for now). Defaults to true.</param>
+        /// <param name="uninstallReason">The reason uninstall is being called.</param>
+        /// <returns>The information about how the package has been installed.</returns>
+        internal static PackageInstallOperationResult UpdateWithInformation(
+            [NotNull] INugetPackageIdentifier currentVersion,
+            [NotNull] INugetPackage newVersion,
+            bool refreshAssets = true,
+            PackageUninstallReason uninstallReason = PackageUninstallReason.IndividualUpdate)
+        {
+            NugetLogger.LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
+            NugetPackageUninstaller.Uninstall(currentVersion, uninstallReason, false);
+            newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
+            return NugetPackageInstaller.Install(newVersion, refreshAssets);
         }
     }
 }

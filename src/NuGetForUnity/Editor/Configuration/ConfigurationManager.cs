@@ -9,9 +9,11 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
+using NugetForUnity.Ui;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("NuGetForUnity.Editor.Tests")]
+[assembly: InternalsVisibleTo("NuGetForUnity.PlayTests")]
 
 namespace NugetForUnity.Configuration
 {
@@ -20,6 +22,9 @@ namespace NugetForUnity.Configuration
     /// </summary>
     public static class ConfigurationManager
     {
+        [NotNull]
+        private static readonly string NativeRuntimeSettingsFilePath;
+
         /// <summary>
         ///     The <see cref="INugetPackageSource" /> to use.
         /// </summary>
@@ -31,6 +36,9 @@ namespace NugetForUnity.Configuration
         /// </summary>
         [CanBeNull]
         private static NugetConfigFile nugetConfigFile;
+
+        [CanBeNull]
+        private static NativeRuntimeSettings nativeRuntimeSettings;
 
         static ConfigurationManager()
         {
@@ -44,6 +52,13 @@ namespace NugetForUnity.Configuration
                 NugetConfigFilePath = Path.Combine(UnityPathHelper.AbsoluteAssetsPath, NugetConfigFile.FileName);
                 NugetConfigFileDirectoryPath = UnityPathHelper.AbsoluteAssetsPath;
             }
+
+            NativeRuntimeSettingsFilePath = Path.Combine(
+                UnityPathHelper.AbsoluteProjectPath,
+                "ProjectSettings",
+                "Packages",
+                NuGetForUnityUpdater.UpmPackageName,
+                "NativeRuntimeSettings.json");
         }
 
         /// <summary>
@@ -70,6 +85,23 @@ namespace NugetForUnity.Configuration
 
                 Debug.Assert(nugetConfigFile != null, nameof(nugetConfigFile) + " != null");
                 return nugetConfigFile;
+            }
+        }
+
+        /// <summary>
+        ///     Gets the loaded <see cref="NativeRuntimeSettings" /> file that holds the settings for how to install native runtime dependencies.
+        /// </summary>
+        [NotNull]
+        internal static NativeRuntimeSettings NativeRuntimeSettings
+        {
+            get
+            {
+                if (nativeRuntimeSettings is null)
+                {
+                    nativeRuntimeSettings = NativeRuntimeSettings.LoadOrCreateDefault(NativeRuntimeSettingsFilePath);
+                }
+
+                return nativeRuntimeSettings;
             }
         }
 
@@ -198,7 +230,7 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     Queries all active nuget package source's with the given list of installed packages to get any updates that are available.
         /// </summary>
-        /// <param name="packagesToUpdate">The list of currently installed packages for witch updates are searched.</param>
+        /// <param name="packagesToUpdate">The list of currently installed packages for which updates are searched.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>

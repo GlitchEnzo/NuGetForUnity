@@ -148,7 +148,7 @@ namespace NugetForUnity.PluginSupport
             }
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         public string GetPackageFolderName(INugetPackageIdentifier package, string startName)
         {
             var newName = startName;

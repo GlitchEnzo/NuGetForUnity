@@ -377,7 +377,7 @@ namespace NugetForUnity.Ui
                                             var updateSearchBatchSize = EditorGUILayout.IntField(
                                                 new GUIContent(
                                                     "Update search batch size",
-                                                    "The size of each batch in witch avaiLabel updates are fetched. " +
+                                                    "The size of each batch in which avaiLabel updates are fetched. " +
                                                     "To prevent the search query string to exceed the URI length limit we fetch the updates in groups. " +
                                                     "Currently we know that 'Artifactory' requires the setting to be set to 1. Defaults to 20."),
                                                 sourceV3.UpdateSearchBatchSize);

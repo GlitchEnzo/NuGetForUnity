@@ -29,7 +29,7 @@ namespace NugetForUnity.Helper
         {
             AbsoluteAssetsPath = Path.GetFullPath(Application.dataPath);
             AbsoluteProjectPath = Path.GetDirectoryName(AbsoluteAssetsPath) ?? throw new InvalidOperationException("Can't detect project root.");
-            AbsoluteUnityPackagesNugetPath = Path.GetFullPath(Path.Combine(AbsoluteAssetsPath, "../Packages/nuget-packages"));
+            AbsoluteUnityPackagesNugetPath = Path.GetFullPath(Path.Combine(AbsoluteProjectPath, "Packages/nuget-packages"));
         }
 
         /// <summary>

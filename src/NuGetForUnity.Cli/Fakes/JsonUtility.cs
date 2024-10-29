@@ -16,9 +16,9 @@ namespace UnityEngine
             // not needed for the CLI
         }
 
-        internal static string ToJson<T>(T value)
+        internal static string ToJson<T>(T value, bool pretty = false)
         {
-            return JsonSerializer.Serialize(value, new JsonSerializerOptions { IncludeFields = true });
+            return JsonSerializer.Serialize(value, new JsonSerializerOptions { IncludeFields = true, WriteIndented = pretty });
         }
     }
 }

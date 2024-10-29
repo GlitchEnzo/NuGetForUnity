@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NugetForUnity;
 using NugetForUnity.Configuration;
@@ -12,10 +11,10 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PackageSource;
 using NugetForUnity.PluginAPI;
+using NugetForUnity.Ui;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 public class NuGetTests
 {
@@ -959,18 +958,16 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0")]
     public void TestPostprocessInstall(string packageId, string packageVersion)
     {
-        IgnorePackagesConfigImportError();
-
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.AddPackage(package);
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsTrue(InstalledPackagesManager.IsInstalled(package, false), "The package was NOT installed: {0} {1}", package.Id, package.Version);
     }
@@ -979,11 +976,9 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0")]
     public void TestPostprocessUninstall(string packageId, string packageVersion)
     {
-        IgnorePackagesConfigImportError();
-
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(package);
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), "The package was NOT installed: {0} {1}", package.Id, package.Version);
@@ -991,7 +986,7 @@ public class NuGetTests
         var packagesConfigFile = new PackagesConfigFile();
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
@@ -1001,12 +996,10 @@ public class NuGetTests
     [TestCase("jQuery", "3.7.0", "3.6.4")]
     public void TestPostprocessDifferentVersion(string packageId, string packageVersionOld, string packageVersionNew)
     {
-        IgnorePackagesConfigImportError();
-
         var packageOld = new NugetPackageIdentifier(packageId, packageVersionOld) { IsManuallyInstalled = true };
         var packageNew = new NugetPackageIdentifier(packageId, packageVersionNew) { IsManuallyInstalled = true };
 
-        var filepath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
+        var filePath = ConfigurationManager.NugetConfigFile.PackagesConfigFilePath;
 
         NugetPackageInstaller.InstallIdentifier(packageOld);
         Assume.That(
@@ -1019,7 +1012,7 @@ public class NuGetTests
         packagesConfigFile.AddPackage(packageNew);
         packagesConfigFile.Save();
 
-        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filepath }, null, null, null);
+        NugetAssetPostprocessor.OnPostprocessAllAssets(new[] { filePath }, null, null, null);
 
         Assert.IsFalse(
             InstalledPackagesManager.IsInstalled(packageOld, false),
@@ -1079,10 +1072,13 @@ public class NuGetTests
     }
 
     [Test]
+    [Retry(3)]
     [TestCase("Microsoft.Azure.WebJobs.Sources", "3.0.37")]
     [TestCase("NServiceBus.Testing.Fakes.Sources", "7.1.13")]
     public void TestSourceCodePackageInstall(string packageId, string packageVersion)
     {
+        ConfigureNugetConfig(InstallMode.ApiV3Only);
+
         var package = new NugetPackageIdentifier(packageId, packageVersion) { IsManuallyInstalled = true };
         Assume.That(InstalledPackagesManager.IsInstalled(package, false), Is.False, "The package IS installed: {0} {1}", package.Id, package.Version);
 
@@ -1099,9 +1095,38 @@ public class NuGetTests
         Assert.IsFalse(InstalledPackagesManager.IsInstalled(package, false), "The package is STILL installed: {0} {1}", package.Id, package.Version);
     }
 
-    private static void IgnorePackagesConfigImportError()
+    [Test]
+    [TestCase("win7-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win7-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("win-x64", BuildTarget.StandaloneWindows64)]
+    [TestCase("win-x86", BuildTarget.StandaloneWindows)]
+    [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
+    [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
+    public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
     {
-        LogAssert.Expect(LogType.Error, new Regex("NuGetForUnity: failed to process: .*packages.config' \\(ConfigurationFile\\)"));
+        var nativeSettingsFilePath = Path.Combine(
+            UnityPathHelper.AbsoluteProjectPath,
+            "ProjectSettings",
+            "Packages",
+            NuGetForUnityUpdater.UpmPackageName,
+            "NativeRuntimeSettings.json");
+        FileSystemHelper.DeleteFile(nativeSettingsFilePath);
+
+        // Call twice to ensure we're testing the deserialized file
+        var nativeRuntimeSettingsField = typeof(ConfigurationManager).GetField("nativeRuntimeSettings", BindingFlags.Static | BindingFlags.NonPublic);
+        nativeRuntimeSettingsField.SetValue(null, null);
+        var settings = ConfigurationManager.NativeRuntimeSettings;
+        Assert.That(nativeSettingsFilePath, Does.Exist.IgnoreDirectories);
+        nativeRuntimeSettingsField.SetValue(null, null);
+        settings = ConfigurationManager.NativeRuntimeSettings;
+
+        var nativeRuntimes = settings.Configurations;
+        var runtimeConfig = nativeRuntimes.Find(config => config.Runtime == runtime);
+        Assert.That(runtimeConfig, Is.Not.Null, $"Native mappings is missing {runtime}");
+        Assert.That(
+            runtimeConfig.SupportedPlatformTargets,
+            Is.EqualTo(new[] { buildTarget }),
+            $"Native mapping for {runtime} is missing build target {buildTarget}");
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)

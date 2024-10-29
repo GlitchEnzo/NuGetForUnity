@@ -39,7 +39,8 @@ overrides:
   - files: "*.DotSettings"
     options:
       parser: "xml"
-      printWidth: 30000
+      printWidth: 300000
+      xmlWhitespaceSensitivity: "strict"
 
   - files: "*.inputactions"
     options:

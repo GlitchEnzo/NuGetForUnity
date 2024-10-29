@@ -10,7 +10,7 @@ namespace NugetForUnity
         /// <summary>
         ///     Check if a package is already imported in the Unity project e.g. is a part of Unity.
         /// </summary>
-        /// <param name="packageId">The package of witch the identifier is checked.</param>
+        /// <param name="packageId">The package of which the identifier is checked.</param>
         /// <param name="log">Whether to log a message with the result of the check.</param>
         /// <returns>If it is included in Unity.</returns>
         public static bool IsAlreadyImportedInEngine(string packageId, bool log = true)

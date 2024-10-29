@@ -103,7 +103,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <summary>
-        ///     Gets or sets the size of each batch in witch available updates are fetched using the <see cref="SearchAsync" />,
+        ///     Gets or sets the size of each batch in which available updates are fetched using the <see cref="SearchAsync" />,
         ///     to prevent the search query string to exceed the URI length limit we fetch the updates in groups. Defaults to <c>20</c>.
         /// </summary>
         [field: SerializeField]

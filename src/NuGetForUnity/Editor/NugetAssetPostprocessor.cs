@@ -37,6 +37,10 @@ namespace NugetForUnity
         /// </summary>
         private const string AnalyzersFolderName = "analyzers";
 
+        private const string RuntimesFolderName = "runtimes";
+
+        private const string NativeFolderName = "native";
+
         /// <summary>
         ///     Used to mark an asset as already processed by this class.
         /// </summary>
@@ -102,7 +106,7 @@ namespace NugetForUnity
 
         [NotNull]
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> ProcessAssets(
-            [NotNull]string[] importedAssets,
+            [NotNull] string[] importedAssets,
             [NotNull] string absoluteRepositoryPath)
         {
             using (var delayedAssetEditor = new DelayedAssetEditor())
@@ -117,13 +121,45 @@ namespace NugetForUnity
             }
         }
 
+        /// <summary>
+        ///     Get informed about a new asset that is added.
+        ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
+        ///     so we can change the import settings before unity throws errors about incompatibility etc..
+        ///     <para>
+        ///         Currently we change the import settings of:
+        ///     </para>
+        ///     <list type="bullet">
+        ///         <item>
+        ///             <term>Roslyn-Analyzers:</term> are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
+        ///         </item>
+        ///         <item>
+        ///             <term>NuGetForUnity config files:</term> so they are not exported to WSA
+        ///         </item>
+        ///         <item>
+        ///             <term>PlayerOnly assemblies:</term> configure the assemblies to be excluded form edit-mode
+        ///         </item>
+        ///         <item>
+        ///             <term>Normal assemblies (*.dll):</term> apply the IsExplicitlyReferenced setting read from the <c>package.config</c>.
+        ///         </item>
+        ///         <item>
+        ///             <term>Native runtime dependencies (e.g. C++ DLL):</term> configure the dependencie so it is imported / included into the build of the
+        ///             correct plattform.
+        ///         </item>
+        ///     </list>
+        /// </summary>
         [NotNull]
         private static IEnumerable<(string AssetType, string AssetPath, ResultStatus Status)> HandleAsset(
             [NotNull] string projectRelativeAssetPath,
-            [NotNull] string absoluteRepositoryPath,
+            [NotNull] string absoluteNuGetPackagesPath,
             bool reimport,
-            DelayedAssetEditor delayedAssetEditor = null)
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor = null)
         {
+            if (projectRelativeAssetPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                // ignore ZIP-Archive
+                yield break;
+            }
+
             var assetFileName = Path.GetFileName(projectRelativeAssetPath);
             if (assetFileName.Equals(NugetConfigFile.FileName, StringComparison.OrdinalIgnoreCase) ||
                 assetFileName.Equals(PackagesConfigFile.FileName, StringComparison.OrdinalIgnoreCase))
@@ -136,12 +172,20 @@ namespace NugetForUnity
             }
 
             var absoluteAssetPath = Path.GetFullPath(Path.Combine(UnityPathHelper.AbsoluteProjectPath, projectRelativeAssetPath));
-            if (!AssetIsDllInsideNuGetRepository(absoluteAssetPath, absoluteRepositoryPath))
+            if (!AssetIsFileInsideNuGetRepository(absoluteAssetPath, absoluteNuGetPackagesPath))
             {
                 yield break;
             }
 
-            var assetPathRelativeToRepository = absoluteAssetPath.Substring(absoluteRepositoryPath.Length);
+            // need to be a .NET DLL or a native runtime dependency
+            if (!(absoluteAssetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
+                  (absoluteAssetPath.Contains($"{Path.DirectorySeparatorChar}{RuntimesFolderName}{Path.DirectorySeparatorChar}") &&
+                   absoluteAssetPath.Contains($"{Path.DirectorySeparatorChar}{NativeFolderName}{Path.DirectorySeparatorChar}"))))
+            {
+                yield break;
+            }
+
+            var assetPathRelativeToRepository = absoluteAssetPath.Substring(absoluteNuGetPackagesPath.Length);
 
             // the first component is the package name with version number
             var assetPathComponents = GetPathComponents(assetPathRelativeToRepository);
@@ -151,7 +195,8 @@ namespace NugetForUnity
 
             if (!GetPluginImporter(projectRelativeAssetPath, out var plugin))
             {
-                yield return ("GetPluginImporter", projectRelativeAssetPath, ResultStatus.Failure);
+                // ignore when the file is not a plug-in e.g. when the platform doesn't support the format, e.g. '.dylib' cant be loaded on linux
+                yield return ("GetPluginImporter", projectRelativeAssetPath, ResultStatus.Success);
 
                 yield break;
             }
@@ -163,35 +208,49 @@ namespace NugetForUnity
                 yield break;
             }
 
-            var assetLablesToSet = new List<string>();
+            var assetLabelsToSet = new List<string>();
             if (configurationOfPackage != null)
             {
                 delayedAssetEditor?.Start();
-                assetLablesToSet.AddRange(ModifyImportSettingsOfGeneralPlugin(configurationOfPackage, plugin));
+                assetLabelsToSet.AddRange(ModifyImportSettingsOfGeneralPlugin(configurationOfPackage, plugin));
                 yield return ("GeneralSetting", projectRelativeAssetPath, ResultStatus.Success);
             }
 
             if (assetPathComponents.Length > 1 && assetPathComponents[1].Equals(AnalyzersFolderName, StringComparison.OrdinalIgnoreCase))
             {
                 delayedAssetEditor?.Start();
-                assetLablesToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
+                assetLabelsToSet.AddRange(ModifyImportSettingsOfRoslynAnalyzer(plugin));
                 yield return ("RoslynAnalyzer", projectRelativeAssetPath, ResultStatus.Success);
+            }
+            else if (assetPathComponents.Length > 3 &&
+                     assetPathComponents[1].Equals(RuntimesFolderName, StringComparison.Ordinal) &&
+                     assetPathComponents[3].Equals(NativeFolderName, StringComparison.Ordinal))
+            {
+                assetLabelsToSet.AddRange(
+                    HandleNativeRuntime(
+                        absoluteAssetPath,
+                        assetPathComponents[2],
+                        plugin,
+                        Path.Combine(absoluteNuGetPackagesPath, assetPathComponents[0], assetPathComponents[1]),
+                        delayedAssetEditor));
+                yield return ("NativeRuntimes", projectRelativeAssetPath, ResultStatus.Success);
             }
             else if (assetPathComponents.Length > 0 &&
                      UnityPreImportedLibraryResolver.GetAlreadyImportedEditorOnlyLibraries()
                          .Contains(Path.GetFileNameWithoutExtension(assetPathComponents[assetPathComponents.Length - 1])))
             {
                 delayedAssetEditor?.Start();
-                assetLablesToSet.AddRange(ModifyImportSettingsOfPlayerOnly(plugin));
+                assetLabelsToSet.AddRange(ModifyImportSettingsOfPlayerOnly(plugin));
                 yield return ("PlayerOnly", projectRelativeAssetPath, ResultStatus.Success);
             }
 
-            if (assetLablesToSet.Count == 0)
+            if (assetLabelsToSet.Count == 0)
             {
                 yield break;
             }
 
-            AssetDatabase.SetLabels(plugin, assetLablesToSet.Distinct().ToArray());
+            delayedAssetEditor?.Start();
+            AssetDatabase.SetLabels(plugin, assetLabelsToSet.Distinct().ToArray());
 
             if (reimport)
             {
@@ -206,11 +265,9 @@ namespace NugetForUnity
             return path.Split(Path.DirectorySeparatorChar);
         }
 
-        private static bool AssetIsDllInsideNuGetRepository([NotNull] string absoluteAssetPath, [NotNull] string absoluteRepositoryPath)
+        private static bool AssetIsFileInsideNuGetRepository([NotNull] string absoluteAssetPath, [NotNull] string absoluteRepositoryPath)
         {
-            return absoluteAssetPath.StartsWith(absoluteRepositoryPath, PathHelper.PathComparisonType) &&
-                   absoluteAssetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
-                   File.Exists(absoluteAssetPath);
+            return absoluteAssetPath.StartsWith(absoluteRepositoryPath, PathHelper.PathComparisonType) && File.Exists(absoluteAssetPath);
         }
 
         /// <summary>
@@ -336,15 +393,15 @@ namespace NugetForUnity
         /// </summary>
         /// <param name="analyzerAssetPath">The path to the .config file.</param>
         /// <param name="reimport">Whether or not to save and re-import the file.</param>
-        /// <param name="delayedAssetEditor"></param>
         private static ResultStatus ModifyImportSettingsOfConfigurationFile(
             [NotNull] string analyzerAssetPath,
             bool reimport,
-            DelayedAssetEditor delayedAssetEditor)
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor)
         {
             if (!GetPluginImporter(analyzerAssetPath, out var plugin))
             {
-                return ResultStatus.Failure;
+                // Ignore a configuration file that has no plugin importer.
+                return ResultStatus.AlreadyProcessed;
             }
 
             if (AlreadyProcessed(plugin))
@@ -425,27 +482,98 @@ namespace NugetForUnity
             return AssetDatabase.GetLabels(asset).Contains(ProcessedLabel);
         }
 
+        [NotNull]
+        private static string[] HandleNativeRuntime(
+            [NotNull] string absoluteAssetPath,
+            [NotNull] string runtime,
+            [NotNull] PluginImporter plugin,
+            [NotNull] string absoluteRuntimesDirectoryPath,
+            [CanBeNull] DelayedAssetEditor delayedAssetEditor)
+        {
+            var runtimeConfigurations = ConfigurationManager.NativeRuntimeSettings.Configurations;
+            var configuration = runtimeConfigurations.Find(config => string.Equals(config.Runtime, runtime, StringComparison.OrdinalIgnoreCase));
+            if (configuration is null)
+            {
+                NugetLogger.LogVerbose(
+                    "Runtime '{0}' of Asset '{1}' is not in the configuration so the asset will be deleted.",
+                    runtime,
+                    plugin.assetPath);
+                var platformFolder = plugin.assetPath.Substring(0, plugin.assetPath.IndexOf(NativeFolderName, StringComparison.Ordinal));
+                Directory.Delete(platformFolder, true);
+                return Array.Empty<string>();
+            }
+
+            delayedAssetEditor?.Start();
+            plugin.SetCompatibleWithAnyPlatform(false);
+
+            var otherRuntimes = Directory.EnumerateFiles(absoluteRuntimesDirectoryPath, "*", SearchOption.AllDirectories)
+                .Where(
+                    filePath => filePath != absoluteAssetPath &&
+                                !filePath.EndsWith(".meta", StringComparison.Ordinal) &&
+                                filePath.IndexOf(Path.DirectorySeparatorChar, absoluteRuntimesDirectoryPath.Length + 1) > 0)
+                .Select(
+                    filePath => filePath.Substring(
+                        absoluteRuntimesDirectoryPath.Length + 1,
+                        filePath.IndexOf(Path.DirectorySeparatorChar, absoluteRuntimesDirectoryPath.Length + 1) -
+                        1 -
+                        absoluteRuntimesDirectoryPath.Length))
+                .Where(otherRuntime => !string.Equals(otherRuntime, runtime, StringComparison.Ordinal))
+                .ToList();
+
+            var otherRuntimeWithSameRuntimeConfiguration = runtimeConfigurations.Find(
+                otherRuntime => string.Equals(otherRuntime.CpuArchitecture, configuration.CpuArchitecture, StringComparison.OrdinalIgnoreCase) &&
+                                otherRuntimes.Contains(otherRuntime.Runtime) &&
+                                otherRuntime.SupportedPlatformTargets.Any(configuration.SupportedPlatformTargets.Contains));
+            if (otherRuntimeWithSameRuntimeConfiguration == null ||
+                otherRuntimeWithSameRuntimeConfiguration.Runtime.CompareTo(configuration.Runtime) >= 0)
+            {
+                foreach (var platform in NonObsoleteBuildTargets.Except(configuration.SupportedPlatformTargets))
+                {
+                    plugin.SetExcludeFromAnyPlatform(platform, true);
+                    plugin.SetCompatibleWithPlatform(platform, false);
+                }
+
+                foreach (var platform in configuration.SupportedPlatformTargets)
+                {
+                    plugin.SetCompatibleWithPlatform(platform, true);
+
+                    if (!string.IsNullOrEmpty(configuration.CpuArchitecture))
+                    {
+                        plugin.SetPlatformData(platform, "CPU", configuration.CpuArchitecture);
+                    }
+                }
+            }
+
+            var otherRuntimeWithSameEditorConfiguration = runtimeConfigurations.Find(
+                otherRuntime =>
+                    string.Equals(otherRuntime.EditorCpuArchitecture, configuration.EditorCpuArchitecture, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(otherRuntime.EditorOperatingSystem, configuration.EditorOperatingSystem, StringComparison.OrdinalIgnoreCase) &&
+                    otherRuntimes.Contains(otherRuntime.Runtime));
+
+            // by using 'CompareTo' we prefer x64 over x86
+            if (!string.IsNullOrEmpty(configuration.EditorOperatingSystem) &&
+                (otherRuntimeWithSameEditorConfiguration == null ||
+                 otherRuntimeWithSameEditorConfiguration.Runtime.CompareTo(configuration.Runtime) >= 0))
+            {
+                plugin.SetCompatibleWithEditor(true);
+                plugin.SetEditorData("OS", configuration.EditorOperatingSystem);
+                if (!string.IsNullOrEmpty(configuration.EditorCpuArchitecture))
+                {
+                    plugin.SetEditorData("CPU", configuration.EditorCpuArchitecture);
+                }
+            }
+            else
+            {
+                plugin.SetCompatibleWithEditor(false);
+            }
+
+            return new[] { ProcessedLabel };
+        }
+
         /// <summary>
         ///     Get informed about a new asset that is added.
         ///     This is called before unity tried to import a asset but the <see cref="AssetImporter" /> is already created
         ///     so we can change the import settings before unity throws errors about incompatibility etc..
-        ///     <para>
-        ///         Currently we change the import settings of:
-        ///     </para>
-        ///     <list type="bullet">
-        ///         <item>
-        ///             <term>Roslyn-Analyzers:</term> are marked so unity knows that the *.dll's are analyzers and treats them accordingly.
-        ///         </item>
-        ///         <item>
-        ///             <term>NuGetForUnity config files:</term> so they are not exported to WSA
-        ///         </item>
-        ///         <item>
-        ///             <term>PlayerOnly assemblies:</term> configure the assemblies to be excluded form edit-mode
-        ///         </item>
-        ///         <item>
-        ///             <term>Normal assemblies (*.dll):</term> apply the IsExplicitlyReferenced setting read from the <c>package.config</c>.
-        ///         </item>
-        ///     </list>
         /// </summary>
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Called by Unity.")]
