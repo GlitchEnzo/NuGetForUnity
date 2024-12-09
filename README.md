@@ -214,7 +214,7 @@ Requires `protocolVersion` set to `3` the other required settings like `packageD
 
 ### Storing credentials outside of the project `NuGet.config` file
 
-When using a custom NuGet server that requires a `UserName` and a `Password` you probably wouldn't store it in the `NuGet.config` file that is stored in the Unity Project as it will be committed to source control. So we support loading the `packageSourceCredentials` section from the system or user-specific `nuget.config` file. The storage location of the system or user-specific `nuget.config` file is documented at [Microsoft's NuGet Configuration](https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior) (e.g. on Windows `%appdata%\NuGet\NuGet.Config`).
+When using a custom NuGet server that requires a `UserName` and a `Password`, you probably wouldn't store it in the `NuGet.config` file that is stored in the Unity Project as it will be committed to source control. Therefore, we support loading the `packageSourceCredentials` section from the system or user-specific `nuget.config` file. The storage location of the system or user-specific `nuget.config` files are documented at [Microsoft's NuGet Configuration](https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior) (e.g., on Windows `%AppData%\NuGet\NuGet.Config`).
 
 ## Disable automatic referencing of assemblies
 

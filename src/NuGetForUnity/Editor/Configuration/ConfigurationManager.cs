@@ -231,7 +231,7 @@ namespace NugetForUnity.Configuration
         /// <summary>
         ///     Queries all active NuGet package source's with the given list of installed packages to get any updates that are available.
         /// </summary>
-        /// <param name="packagesToUpdate">The list of currently installed packages for witch updates are searched.</param>
+        /// <param name="packagesToUpdate">The list of currently installed packages for which updates are searched.</param>
         /// <param name="includePrerelease">True to include pre-release packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
@@ -278,7 +278,7 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        ///     Add package source credentials from a "external" package config file if the file exists.
+        ///     Add package source credentials from an 'external' package config file if the file exists.
         ///     The location of global config is the same as the one used by NuGet CLI
         ///     <see href="https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior" />.
         /// </summary>
@@ -289,10 +289,10 @@ namespace NugetForUnity.Configuration
             nugetConfigFile.FillMissingPackageCredentialsFromExternalFile(userSettingsFilePath);
 
             string machineWideBaseDir;
-            var configEnvirnonmentVariable = Environment.GetEnvironmentVariable("NUGET_COMMON_APPLICATION_DATA");
-            if (!string.IsNullOrEmpty(configEnvirnonmentVariable))
+            var configEnvironmentVariable = Environment.GetEnvironmentVariable("NUGET_COMMON_APPLICATION_DATA");
+            if (!string.IsNullOrEmpty(configEnvironmentVariable))
             {
-                machineWideBaseDir = configEnvirnonmentVariable;
+                machineWideBaseDir = configEnvironmentVariable;
             }
             else if (Application.platform == RuntimePlatform.WindowsEditor)
             {
