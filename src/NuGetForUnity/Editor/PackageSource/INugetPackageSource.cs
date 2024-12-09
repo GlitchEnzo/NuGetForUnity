@@ -59,6 +59,12 @@ namespace NugetForUnity.PackageSource
         bool HasPassword { get; set; }
 
         /// <summary>
+        ///     Gets or sets a value indicating whether the <see cref="UserName" /> and <see cref="SavedPassword" /> are
+        ///     injected from a external file so it should not be stored in the NugetForUnity own configuration.
+        /// </summary>
+        bool CredentialsStoredInExternalFile { get; set; }
+
+        /// <summary>
         ///     Download the .nupkg file and store it inside a file at <paramref name="outputFilePath" />.
         /// </summary>
         /// <param name="package">The package to download its .nupkg from.</param>

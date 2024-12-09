@@ -87,6 +87,10 @@ namespace NugetForUnity.PackageSource
         [field: SerializeField]
         public string SavedPassword { get; set; }
 
+        /// <inheritdoc />
+        [field: SerializeField]
+        public bool CredentialsStoredInExternalFile { get; set; }
+
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>

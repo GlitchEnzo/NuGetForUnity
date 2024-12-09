@@ -96,6 +96,17 @@ namespace NugetForUnity.PackageSource
             }
         }
 
+        /// <inheritdoc />
+        public bool CredentialsStoredInExternalFile
+        {
+            get => false;
+
+            set
+            {
+                // local sources don't have credentials
+            }
+        }
+
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
         /// </summary>

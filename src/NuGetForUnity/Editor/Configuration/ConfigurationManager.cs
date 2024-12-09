@@ -149,6 +149,7 @@ namespace NugetForUnity.Configuration
             if (File.Exists(NugetConfigFilePath))
             {
                 nugetConfigFile = NugetConfigFile.Load(NugetConfigFilePath);
+                InjectSettingsFromGlobalNugetConfigFile();
             }
             else
             {
@@ -210,7 +211,7 @@ namespace NugetForUnity.Configuration
         ///     This allows searching for partial IDs or even the empty string (the default) to list ALL packages.
         /// </summary>
         /// <param name="searchTerm">The search term to use to filter packages. Defaults to the empty string.</param>
-        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includePrerelease">True to include pre-release packages (alpha, beta, etc).</param>
         /// <param name="numberToGet">The number of packages to fetch.</param>
         /// <param name="numberToSkip">The number of packages to skip before fetching.</param>
         /// <param name="cancellationToken">Token that can be used to cancel the asynchronous task.</param>
@@ -228,10 +229,10 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        ///     Queries all active nuget package source's with the given list of installed packages to get any updates that are available.
+        ///     Queries all active NuGet package source's with the given list of installed packages to get any updates that are available.
         /// </summary>
         /// <param name="packagesToUpdate">The list of currently installed packages for which updates are searched.</param>
-        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="includePrerelease">True to include pre-release packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
         /// <returns>A list of all updates available.</returns>
@@ -274,6 +275,42 @@ namespace NugetForUnity.Configuration
 
             NugetConfigFilePath = newConfigFilePath;
             NugetConfigFileDirectoryPath = newConfigsPath;
+        }
+
+        /// <summary>
+        ///     Add package source credentials from an 'external' package config file if the file exists.
+        ///     The location of global config is the same as the one used by NuGet CLI
+        ///     <see href="https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior" />.
+        /// </summary>
+        private static void InjectSettingsFromGlobalNugetConfigFile()
+        {
+            var userSettingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "NuGet", "NuGet.Config");
+
+            nugetConfigFile.FillMissingPackageCredentialsFromExternalFile(userSettingsFilePath);
+
+            string machineWideBaseDir;
+            var configEnvironmentVariable = Environment.GetEnvironmentVariable("NUGET_COMMON_APPLICATION_DATA");
+            if (!string.IsNullOrEmpty(configEnvironmentVariable))
+            {
+                machineWideBaseDir = configEnvironmentVariable;
+            }
+            else if (Application.platform == RuntimePlatform.WindowsEditor)
+            {
+                machineWideBaseDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                if (string.IsNullOrEmpty(machineWideBaseDir))
+                {
+                    // On 32-bit Windows
+                    machineWideBaseDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                }
+            }
+            else
+            {
+                machineWideBaseDir = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            }
+
+            machineWideBaseDir = Path.Combine(machineWideBaseDir, "NuGet");
+            var machineWideConfigFilePath = Path.Combine(machineWideBaseDir, "Config", "NuGet.Config");
+            nugetConfigFile.FillMissingPackageCredentialsFromExternalFile(machineWideConfigFilePath);
         }
     }
 }

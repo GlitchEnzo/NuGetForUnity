@@ -212,6 +212,10 @@ Requires `protocolVersion` set to `3` the other required settings like `packageD
 </configuration>
 ```
 
+### Storing credentials outside of the project `NuGet.config` file
+
+When using a custom NuGet server that requires a `UserName` and a `Password`, you probably wouldn't store it in the `NuGet.config` file that is stored in the Unity Project as it will be committed to source control. Therefore, we support loading the `packageSourceCredentials` section from the system or user-specific `nuget.config` file. The storage location of the system or user-specific `nuget.config` files are documented at [Microsoft's NuGet Configuration](https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior) (e.g., on Windows `%AppData%\NuGet\NuGet.Config`).
+
 ## Disable automatic referencing of assemblies
 
 To disable the automatic referencing of assemblies of a NuGet package you can set the `autoReferenced` attribute of a package inside the `packages.config` to `false`. _Currently this setting is not available from UI._
@@ -249,8 +253,8 @@ You can use [NuGet.Server](http://nugetserver.net/), [NuGet Gallery](https://git
 
 Alternatively, you can use a "local feed" which is just a folder on your hard-drive or a network share. [Local NuGet feeds](https://learn.microsoft.com/en-us/nuget/hosting-packages/local-feeds) can have two different structures:
 
--   flat: &lt;local feed path&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
--   hierarchical: &lt;local feed path&gt;/&lt;package id&gt;/&lt;package version&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
+- flat: &lt;local feed path&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
+- hierarchical: &lt;local feed path&gt;/&lt;package id&gt;/&lt;package version&gt;/&lt;package id&gt;.&lt;package version&gt;.nupkg
 
 Be sure to set the proper URL/path in the _NuGet.config_ file and you should be good to go!
 
@@ -262,8 +266,8 @@ For those with projects using automated build solutions like [continuous integra
 
 ## Installation
 
--   System-wide as a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
--   Project / folder wide as a local tool using: A tool manifest (local tool installation context) can be created with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`. Than add the tool manifest `.config/dotnet-tools.json` to your version control system.
+- System-wide as a global tool using: `dotnet tool install --global NuGetForUnity.Cli`.
+- Project / folder wide as a local tool using: A tool manifest (local tool installation context) can be created with: `dotnet new tool-manifest`. Than install NuGetForUnity.Cli using: `dotnet tool install NuGetForUnity.Cli`. Than add the tool manifest `.config/dotnet-tools.json` to your version control system.
 
 For more information see [.Net Tool Documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 

@@ -126,6 +126,10 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
+        public bool CredentialsStoredInExternalFile { get; set; }
+
+        /// <inheritdoc />
+        [field: SerializeField]
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />

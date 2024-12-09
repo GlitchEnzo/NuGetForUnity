@@ -301,42 +301,7 @@ namespace NugetForUnity.Configuration
             }
 
             // set all listed passwords for package source credentials
-            var packageSourceCredentials = file.Root?.Element("packageSourceCredentials");
-            if (packageSourceCredentials != null)
-            {
-                foreach (var sourceElement in packageSourceCredentials.Elements())
-                {
-                    var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
-                    var source = configFile.PackageSources.Find(p => p.Name == name);
-                    if (source == null)
-                    {
-                        continue;
-                    }
-
-                    var adds = sourceElement.Elements("add");
-                    foreach (var add in adds)
-                    {
-                        var keyName = add.Attribute("key")?.Value;
-                        if (string.Equals(keyName, "userName", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var userName = add.Attribute("value")?.Value;
-                            source.UserName = userName;
-                        }
-                        else if (string.Equals(keyName, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var password = add.Attribute("value")?.Value;
-                            source.SavedPassword = password;
-                            source.SavedPasswordIsEncrypted = false;
-                        }
-                        else if (string.Equals(keyName, PasswordAttributeName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            var encryptedPassword = add.Attribute("value")?.Value;
-                            source.SavedPassword = encryptedPassword;
-                            source.SavedPasswordIsEncrypted = true;
-                        }
-                    }
-                }
-            }
+            configFile.FillPackageSourceCredentialsFromConfig(file, false);
 
             // read the configuration data
             var config = file.Root?.Element("config");
@@ -483,7 +448,7 @@ namespace NugetForUnity.Configuration
                     disabledPackageSources.Add(addElement);
                 }
 
-                if (source.HasPassword)
+                if (source.HasPassword && !source.CredentialsStoredInExternalFile)
                 {
                     var sourceElement = new XElement(XmlConvert.EncodeName(source.Name) ?? string.Empty);
                     packageSourceCredentials.Add(sourceElement);
@@ -642,6 +607,72 @@ namespace NugetForUnity.Configuration
             if (File.Exists(configMeta))
             {
                 File.Move(configMeta, newConfigPath + ".meta");
+            }
+        }
+
+        /// <summary>
+        ///     Add package source credentials from a "external" package config file if the file exists and contains credentials
+        ///     for package-sources defined in the main NuGet.config file from NuGetForUnity.
+        /// </summary>
+        /// <param name="filePath">The file to try loading missing package-source-credentials from.</param>
+        internal void FillMissingPackageCredentialsFromExternalFile([NotNull] string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return;
+            }
+
+            try
+            {
+                var file = XDocument.Load(filePath);
+                FillPackageSourceCredentialsFromConfig(file, true);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"Error while loading file: '{filePath}'. Error: {exception}");
+            }
+        }
+
+        private void FillPackageSourceCredentialsFromConfig(XDocument file, bool overwriteMissingFromExternal)
+        {
+            var packageSourceCredentials = file.Root?.Element("packageSourceCredentials");
+            if (packageSourceCredentials == null)
+            {
+                return;
+            }
+
+            foreach (var sourceElement in packageSourceCredentials.Elements())
+            {
+                var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
+                var source = PackageSources.Find(p => p.Name == name);
+                if (source == null || (overwriteMissingFromExternal && !string.IsNullOrEmpty(source.SavedPassword)))
+                {
+                    continue;
+                }
+
+                source.CredentialsStoredInExternalFile = overwriteMissingFromExternal;
+                var adds = sourceElement.Elements("add");
+                foreach (var add in adds)
+                {
+                    var keyName = add.Attribute("key")?.Value;
+                    if (string.Equals(keyName, "userName", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var userName = add.Attribute("value")?.Value;
+                        source.UserName = userName;
+                    }
+                    else if (string.Equals(keyName, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var password = add.Attribute("value")?.Value;
+                        source.SavedPassword = password;
+                        source.SavedPasswordIsEncrypted = false;
+                    }
+                    else if (string.Equals(keyName, PasswordAttributeName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var encryptedPassword = add.Attribute("value")?.Value;
+                        source.SavedPassword = encryptedPassword;
+                        source.SavedPasswordIsEncrypted = true;
+                    }
+                }
             }
         }
     }

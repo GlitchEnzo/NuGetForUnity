@@ -108,6 +108,17 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
+        public bool CredentialsStoredInExternalFile
+        {
+            get => false;
+
+            set
+            {
+                // multiple sources can't have passwords
+            }
+        }
+
+        /// <inheritdoc />
         public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
             var activeSourcesCount = packageSources.Count(source => source.IsEnabled);
