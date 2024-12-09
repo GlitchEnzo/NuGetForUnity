@@ -3,13 +3,13 @@
 exclude: "^.git$"
 repos:
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: "a6a5f3906583670deecd1c24ffd0db574dbd9a06"
+    rev: "v3.4.2"
     hooks:
       - id: prettier
         additional_dependencies:
-          - prettier@3.3.3
+          - prettier@3.4.2
           - "@prettier/plugin-xml@3.4.1"
-          - "prettier-plugin-ini@1.2.0"
+          - "prettier-plugin-ini@1.3.0"
         args:
           - --plugin=prettier-plugin-ini
         files: Directory\.Build\.props$|(\.(json|xml|html|config|csproj|xlf|DotSettings|yaml|yml|js|md|xrml|xaml|css|editorconfig)$)
@@ -32,7 +32,7 @@ repos:
         require_serial: true
         stages: [pre-commit, pre-merge-commit]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         exclude: \.(pdf|meta|prefab|shader|controller|asset|cginc|mat|unity|anim|shadergraph)$
