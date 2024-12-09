@@ -89,6 +89,8 @@ namespace UnityEngine
             var isInsidePerPlatformConfigSection = false;
             var perPlatformConfigSectionIndentionCount = 0;
             var perPlatformConfig = new Dictionary<string, int>();
+            int? generalApiCompatibilityLevel = null;
+
             foreach (var line in settingsLines)
             {
                 var trimmedLine = line.AsSpan().TrimStart();
@@ -97,7 +99,7 @@ namespace UnityEngine
                     var stringValue = trimmedLine[apiCompatibilityLevelConfigName.Length..].Trim();
                     if (int.TryParse(stringValue, out var value))
                     {
-                        return value;
+                        generalApiCompatibilityLevel = value;
                     }
                 }
 
@@ -122,15 +124,22 @@ namespace UnityEngine
                 }
             }
 
-            if (perPlatformConfig.Count == 0)
+            // If there are different settings for different platforms we can only
+            // try to use a compatibility setting so that the NuGet packages we restore are compatible with.
+            // We use max as it has a higher success chance because .net standard 2 (enum = 6) is compatible with .net framework 4.6 (enum = 2).
+            // Until now this was never a issue as .net standard packages work in all configurations
+            // and using different 'ApiCompatibilityLevel' for different platforms is a very rare configuration.
+            if (perPlatformConfig.Count > 0)
             {
-                throw new InvalidOperationException($"Can't extract {nameof(ApiCompatibilityLevel)} from '{projectSettingsFilePath}'.");
+                return perPlatformConfig.Values.Max();
             }
 
-            // if there are different settings for different versions we can only
-            // try to use a compatibility setting so that the NuGet packages we restore are compatible with.
-            // We use max as it has a higher success chance because .net standard is compatible with .net framework.
-            return perPlatformConfig.Values.Max();
+            if (generalApiCompatibilityLevel.HasValue)
+            {
+                return generalApiCompatibilityLevel.Value;
+            }
+
+            throw new InvalidOperationException($"Can't extract {nameof(ApiCompatibilityLevel)} from '{projectSettingsFilePath}'.");
         }
     }
 }
