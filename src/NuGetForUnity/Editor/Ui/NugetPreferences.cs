@@ -12,6 +12,7 @@ using NugetForUnity.PackageSource;
 using NugetForUnity.PluginSupport;
 using UnityEditor;
 using UnityEngine;
+using static UnityEditor.EditorGUI;
 
 #region No ReShaper
 
@@ -433,32 +434,39 @@ namespace NugetForUnity.Ui
                                 }
                             }
 
-                            var hasPassword = EditorGUILayout.Toggle("Credentials", source.HasPassword);
-                            if (hasPassword != source.HasPassword)
+                            using (new DisabledGroupScope(source.CredentialsStoredInExternalFile))
                             {
-                                preferencesChangedThisFrame = true;
-                                source.HasPassword = hasPassword;
-                            }
-
-                            if (source.HasPassword)
-                            {
-                                var userName = EditorGUILayout.TextField("User Name", source.UserName);
-                                if (userName != source.UserName)
+                                var hasPassword = EditorGUILayout.Toggle(
+                                    new GUIContent(
+                                        "Credentials",
+                                        source.CredentialsStoredInExternalFile ? "Imported from system NuGet.config file" : string.Empty),
+                                    source.HasPassword);
+                                if (hasPassword != source.HasPassword)
                                 {
                                     preferencesChangedThisFrame = true;
-                                    source.UserName = userName;
+                                    source.HasPassword = hasPassword;
                                 }
 
-                                var savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
-                                if (savedPassword != source.SavedPassword)
+                                if (source.HasPassword)
                                 {
-                                    preferencesChangedThisFrame = true;
-                                    source.SavedPassword = savedPassword;
+                                    var userName = EditorGUILayout.TextField("User Name", source.UserName);
+                                    if (userName != source.UserName)
+                                    {
+                                        preferencesChangedThisFrame = true;
+                                        source.UserName = userName;
+                                    }
+
+                                    var savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
+                                    if (savedPassword != source.SavedPassword)
+                                    {
+                                        preferencesChangedThisFrame = true;
+                                        source.SavedPassword = savedPassword;
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                source.UserName = null;
+                                else
+                                {
+                                    source.UserName = null;
+                                }
                             }
 
                             EditorGUIUtility.labelWidth = 0;
