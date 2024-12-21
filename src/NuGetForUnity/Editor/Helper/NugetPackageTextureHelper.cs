@@ -64,7 +64,7 @@ namespace NugetForUnity.Helper
                 }
 
                 var taskCompletionSource = new TaskCompletionSource<Texture2D>();
-                var request = UnityWebRequest.Get(url);
+                var request = UnityWebRequest.Get(new Uri(url, UriKind.Absolute));
                 {
                     var downloadHandler = new DownloadHandlerTexture(false);
 
@@ -133,7 +133,7 @@ namespace NugetForUnity.Helper
             return Path.Combine(Application.temporaryCachePath, GetHash(url));
         }
 
-        [SuppressMessage("Design", "CA5351", Justification = "Only use MD5 hash as cache key / not securty relevant.")]
+        [SuppressMessage("Design", "CA5351", Justification = "Only use MD5 hash as cache key / not security relevant.")]
         [NotNull]
         private static string GetHash([NotNull] string s)
         {
@@ -145,7 +145,7 @@ namespace NugetForUnity.Helper
             using (var md5 = new MD5CryptoServiceProvider())
             {
                 var data = md5.ComputeHash(Encoding.Default.GetBytes(s));
-                return Convert.ToBase64String(data).Replace('+', '-').Replace('/', '_').Replace("=", null);
+                return Convert.ToBase64String(data).Replace('+', '-').Replace('/', '_').TrimEnd('=');
             }
         }
     }
