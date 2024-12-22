@@ -124,6 +124,7 @@ We are using pull requests to add new features, no direct commits to master. To 
     - Click "Draft a new release" and use the auto-generated release notes.
 
 3. Upload Unity Package:
+
     - Download the generated `unitypackage` from the GitHub Action.
     - Manually upload it to the release page.
 
