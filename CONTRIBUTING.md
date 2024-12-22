@@ -115,18 +115,17 @@ We are using pull requests to add new features, no direct commits to master. To 
 
 1. Update Version Information:
 
-- Edit `src/NuGetForUnity/package.json` to update the `"version"` field.
-- Edit `src/NuGetForUnity/Editor/Ui/NugetPreferences.cs` to update the `NuGetForUnityVersion` constant.
+    - Edit `src/NuGetForUnity/package.json` to update the `"version"` field.
+    - Edit `src/NuGetForUnity/Editor/Ui/NugetPreferences.cs` to update the `NuGetForUnityVersion` constant.
 
 2. Create a Release (after merging the version changes):
 
-- Go to the GitHub Releases page.
-- Click "Draft a new release" and use the auto-generated release notes.
+    - Go to the GitHub Releases page.
+    - Click "Draft a new release" and use the auto-generated release notes.
 
 3. Upload Unity Package:
-
-- Download the generated `unitypackage` from the GitHub Action.
-- Manually upload it to the release page.
+    - Download the generated `unitypackage` from the GitHub Action.
+    - Manually upload it to the release page.
 
 ### Development Environment Setup
 
