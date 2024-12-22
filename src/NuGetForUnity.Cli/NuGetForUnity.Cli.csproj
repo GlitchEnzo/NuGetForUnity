@@ -3,7 +3,7 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>NuGetForUnity.Cli</RootNamespace>
         <AssemblyName>NuGetForUnity.Cli</AssemblyName>
-        <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
         <PlatformTarget>AnyCPU</PlatformTarget>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>nugetforunity</ToolCommandName>
@@ -34,8 +34,8 @@ e.g. the import settings of the DLL's are changed to comply with Unity.
         <Compile Remove="..\NuGetForUnity\Editor\UnityPreImportedLibraryResolver.cs" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.2.0" />
-        <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.1" />
+        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+        <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     </ItemGroup>
     <ItemGroup>
         <Reference Include="NuGetForUnity.PluginAPI">
