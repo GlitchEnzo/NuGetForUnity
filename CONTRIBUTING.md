@@ -111,6 +111,23 @@ We are using pull requests to add new features, no direct commits to master. To 
 - The [GitHub Action](.github/workflows/main.yml) also creates a pre-release `.unitypackage` from the build to be able to import it in any Unity project without needing to wait for a new official release.
 - If everything is working and fits our [Code Style](#code-style) we will merge the pull request. When merging please use the `Squash and merge` merge strategy to keep the commit history clean.
 
+### Steps to release a new version
+
+1. Update Version Information:
+
+- Edit `src/NuGetForUnity/package.json` to update the `"version"` field.
+- Edit `src/NuGetForUnity/Editor/Ui/NugetPreferences.cs` to update the `NuGetForUnityVersion` constant.
+
+2. Create a Release (after merging the version changes):
+
+- Go to the GitHub Releases page.
+- Click "Draft a new release" and use the auto-generated release notes.
+
+3. Upload Unity Package:
+
+- Download the generated `unitypackage` from the GitHub Action.
+- Manually upload it to the release page.
+
 ### Development Environment Setup
 
 You can use any version of Unity to develop NuGetForUnity but you should only use features available in Unity version 2018.3+. The easiest way to edit and test code using a newer Unity version is by installing NuGetForUnity as a local package like in [TestProjects/ImportAndUseNuGetPackages](src/TestProjects/ImportAndUseNuGetPackages).
