@@ -320,7 +320,7 @@ namespace NugetForUnity.Ui
         [MenuItem("NuGet/Preferences", false, 9)]
         protected static void DisplayPreferences()
         {
-            SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+            SettingsService.OpenProjectSettings(NugetPreferences.MenuItemLocation);
         }
 
         /// <summary>
@@ -932,7 +932,7 @@ namespace NugetForUnity.Ui
 
             if (GUILayout.Button("Preferences", EditorStyles.toolbarButton, GUILayout.Width(80)))
             {
-                SettingsService.OpenUserPreferences("Preferences/NuGet For Unity");
+                DisplayPreferences();
                 GetWindow<NugetWindow>().Close();
             }
         }

@@ -37,6 +37,11 @@ namespace NugetForUnity.Ui
         /// </summary>
         public const string NuGetForUnityVersion = "4.2.0";
 
+        /// <summary>
+        ///     The location where the settings are placed in the menu of the Unity Editor.
+        /// </summary>
+        public const string MenuItemLocation = "Project/NuGet For Unity";
+
         private const float LabelPading = 5;
 
         private readonly GUIContent deleteX = new GUIContent("\u2716");
@@ -75,7 +80,7 @@ namespace NugetForUnity.Ui
         ///     Path of packages.config file is checked here as well in case it was manually changed.
         /// </summary>
         private NugetPreferences()
-            : base("Preferences/NuGet For Unity", SettingsScope.User)
+            : base(MenuItemLocation, SettingsScope.Project, new[] { "NuGet", "Packages" })
         {
             shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.InstallLocation == PackageInstallLocation.CustomWithinAssets &&
                                                   !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
