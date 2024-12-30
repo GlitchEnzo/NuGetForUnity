@@ -185,7 +185,7 @@ namespace NugetForUnity.Configuration
             var oldPath = nugetConfig.PackagesConfigDirectoryPath;
 
             // We need to make sure saved path is using forward slashes so it works on all systems
-            nugetConfig.PackagesConfigDirectoryPath = newPath.Replace("\\", "/");
+            nugetConfig.PackagesConfigDirectoryPath = newPath.Replace('\\', '/');
             var newFilePath = Path.GetFullPath(Path.Combine(newPath, FileName));
             try
             {

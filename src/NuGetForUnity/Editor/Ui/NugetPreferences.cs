@@ -193,14 +193,16 @@ namespace NugetForUnity.Ui
                     if (GUILayout.Button("Browse", GUILayout.Width(100)))
                     {
                         var newPath = EditorUtility.OpenFolderPanel("Select folder where packages will be installed", repositoryPath, string.Empty);
-                        if (!string.IsNullOrEmpty(newPath))
+                        if (!string.IsNullOrEmpty(newPath) &&
+                            newPath != repositoryPath &&
+                            Path.GetFullPath(newPath) != Path.GetFullPath(repositoryPath))
                         {
                             var newRelativePath = PathHelper.GetRelativePath(Application.dataPath, newPath);
 
                             // We need to make sure saved path is using forward slashes so it works on all systems
                             newRelativePath = newRelativePath.Replace('\\', '/');
 
-                            if (newPath != repositoryPath && UnityPathHelper.IsValidInstallPath(newRelativePath))
+                            if (UnityPathHelper.IsValidInstallPath(newRelativePath))
                             {
                                 PackageContentManager.MoveInstalledPackages(repositoryPath, newPath);
                                 ConfigurationManager.NugetConfigFile.ConfiguredRepositoryPath = newRelativePath;
@@ -208,10 +210,10 @@ namespace NugetForUnity.Ui
                                 preferencesChangedThisFrame = true;
                                 needsAssetRefresh = true;
                             }
-                            else if (newPath != repositoryPath)
+                            else
                             {
                                 Debug.LogError(
-                                    $"Packages install path {newPath} {newRelativePath} is not valid. It must be somewhere under Assets or Packages folder.");
+                                    $"Packages install path '{newPath}' -> '{newRelativePath}' is not valid. It must be somewhere under Assets or Packages folder, else Unity will not import the packages.");
                             }
                         }
                     }
@@ -230,7 +232,9 @@ namespace NugetForUnity.Ui
                     {
                         var newPath = EditorUtility.OpenFolderPanel("Select Folder", packagesConfigPath, string.Empty);
 
-                        if (!string.IsNullOrEmpty(newPath) && newPath != packagesConfigPath)
+                        if (!string.IsNullOrEmpty(newPath) &&
+                            newPath != packagesConfigPath &&
+                            Path.GetFullPath(newPath) != Path.GetFullPath(packagesConfigPath))
                         {
                             // if the path root is different or it is not under Assets folder, we want to show a warning message
                             shouldShowPackagesConfigPathWarning = !UnityPathHelper.IsPathInAssets(newPath);
@@ -250,21 +254,26 @@ namespace NugetForUnity.Ui
                 }
             }
 
-            var preferNetStandardOverNetFramework = EditorGUILayout.Toggle(
-                new GUIContent(
-                    "Prefer .NET Standard dependencies over .NET Framework",
-                    "If a nuget package contains DLL's for .NET Framework an .NET Standard the .NET Standard DLL's are preferred."),
-                ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework);
-            if (preferNetStandardOverNetFramework != ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework)
+            var apiCompatibilityLevelIsNetStandard =
+                TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_Standard_2_0;
+            using (new DisabledGroupScope(apiCompatibilityLevelIsNetStandard))
             {
-                preferencesChangedThisFrame = true;
-                ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = preferNetStandardOverNetFramework;
+                var preferNetStandardOverNetFramework = EditorGUILayout.Toggle(
+                    new GUIContent(
+                        "Prefer .NET Standard dependencies over .NET Framework",
+                        "If a NuGet package contains DLL's for .NET Framework an .NET Standard the .NET Standard DLL's are preferred."),
+                    ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework);
+                if (preferNetStandardOverNetFramework != ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework)
+                {
+                    preferencesChangedThisFrame = true;
+                    ConfigurationManager.NugetConfigFile.PreferNetStandardOverNetFramework = preferNetStandardOverNetFramework;
+                }
             }
 
-            if (TargetFrameworkResolver.CurrentBuildTargetApiCompatibilityLevel.Value == ApiCompatibilityLevel.NET_Standard_2_0)
+            if (apiCompatibilityLevelIsNetStandard)
             {
                 EditorGUILayout.HelpBox(
-                    "The prefer .NET Standard setting has no effect as you have set the API compatibility level to .NET Standard so .NET Standard will always be preferred, as it is the only supported.",
+                    "The 'prefer .NET Standard' setting has no effect as you have set the API compatibility level to .NET Standard so .NET Standard will always be preferred, as it is the only supported.",
                     MessageType.Info);
             }
 
@@ -323,17 +332,17 @@ namespace NugetForUnity.Ui
                             source.SavedPath = savedPath;
                         }
 
-                        if (GUILayout.Button(upArrow, GUILayout.Width(24)))
+                        if (GUILayout.Button(upArrow, GUILayout.Width(24), GUILayout.Height(20)))
                         {
                             sourceToMoveUp = source;
                         }
 
-                        if (GUILayout.Button(downArrow, GUILayout.Width(24)))
+                        if (GUILayout.Button(downArrow, GUILayout.Width(24), GUILayout.Height(20)))
                         {
                             sourceToMoveDown = source;
                         }
 
-                        if (GUILayout.Button(deleteX, GUILayout.Width(24)))
+                        if (GUILayout.Button(deleteX, GUILayout.Width(24), GUILayout.Height(20)))
                         {
                             sourceToRemove = source;
                         }

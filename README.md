@@ -123,9 +123,10 @@ Click the **Update** (or **Downgrade**) button to uninstall the current package 
 
 # How does NuGetForUnity work?
 
-NuGetForUnity loads the _NuGet.config_ file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to. By default, this server is set to the nuget.org package source.
+NuGetForUnity loads the _NuGet.config_ file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to. By default, this server is set to the `nuget.org` package source.
 
-_The default NuGet.config file:_
+<details>
+<summary>The default NuGet.config file:</summary>
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -143,13 +144,60 @@ _The default NuGet.config file:_
 </configuration>
 ```
 
-You can change this to any other NuGet server (such as NuGet.Server or ProGet - see below). The **NuGet → Reload NuGet.config** menu item is useful if you are editing the _NuGet.config_ file.
+</details></br>
 
-See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
+You can change this to any other NuGet server (such as NuGet.Server or ProGet - see below). The **NuGet → Restore Packages** menu item is useful if you edited the _NuGet.config_ file. See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
 
-<img alt="Menu Items" src="docs/screenshots/menu_item.png" height="170px" />
+## Directory structure (placement of configuration files and installed packages)
 
-NuGetForUnity installs packages into the local repository path defined in the _NuGet.config_ file (`repositoryPath`). By default, this is set to the `Assets/Packages` folder. In the _NuGet.config_ file, this can either be a full path, or it can be a relative path based on the project's Assets folder. Note: You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
+NuGetForUnity supports two different folder structures for defining where the configuration files _NuGet.config_, _packages.config_, and the downloaded `*.dll` files of the NuGet packages are stored. The placement can be changed in the `NuGet For Unity` settings UI.
+
+### Custom within Assets
+
+The _NuGet.config_ file will be placed in `<Unity Project Location>/Assets`, and the placement of the _packages.config_ file and the installed packages can be changed using configuration variables inside the _NuGet.config_ file. The path where NuGetForUnity installs packages, the local repository path, is defined in the _NuGet.config_ file (`repositoryPath`). By default, this is set to the `Assets/Packages` folder. The configured path can either be a full path or a relative path based on the project's Assets folder. Note: You'll probably want your Packages folder to be ignored by your version control software to prevent NuGet packages from being versioned in your repository.
+
+<details>
+<summary>Example directory structure:</summary>
+
+```plaintext
+<Unity Project Location>
+├── Assets
+│   ├── NuGet.config
+│   ├── packages.config
+│   └── Packages
+│       └── Serilog.2.12.0
+│           ├── icon.png
+│           └── lib
+│               └── netstandard2.1
+│                   └── Serilog.dll
+```
+
+</details>
+
+### In Packages folder
+
+All configuration files and the installed packages are placed inside `<Unity Project Location>/Packages/nuget-packages`. This way, the `Assets` directory will not contain any files. In this placement method, the path to the _packages.config_ file and the installed packages directory cannot be changed.
+
+<details>
+<summary>Example directory structure:</summary>
+
+```plaintext
+<Unity Project Location>
+├── Packages
+│   └── nuget-packages
+│       ├── NuGet.config
+│       ├── packages.config
+│       └── InstalledPackages
+│           └── Serilog.2.12.0
+│               ├── icon.png
+│               └── lib
+│                   └── netstandard2.1
+│                       └── Serilog.dll
+```
+
+</details>
+
+## Content of _packages.config_ file
 
 When a package is installed, the _packages.config_ file in the project is automatically updated with the specific package information, as well as all of the dependencies that are also installed. This allows for the packages to be restored from scratch at any point. The `Restore` operation is automatically run every time the project is opened or the code is recompiled in the project. It can be run manually by selecting the **NuGet → Restore Packages** menu item.
 
@@ -157,15 +205,19 @@ When a package is installed, the _packages.config_ file in the project is automa
 
 Note: Depending on the size and number of packages you need to install, the `Restore` operation could take a _long_ time, so please be patient. If it appears the Unity isn't launching or responding, wait a few more minutes before attempting to kill the process.
 
-If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
+## Verbose Logging
 
-The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (`C:\Users\[username]\AppData\Local\NuGet\Cache`). The cache location can be overwritten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.
+If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Either check the `Use Verbose Logging` checkbox in the `NuGet For Unity` settings window or add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
+
+## Caching
+
+The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (Windows: `C:\Users\[username]\AppData\Local\NuGet\Cache`, Mac/Linux: `~/.local/share/NuGet/Cache`). The cache location can be overwritten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.
 
 # Advanced settings
 
 ## Use custom NuGet server
 
-The default configuration uses `nuget.org` but package sources hosted on other servers should also work. Some need some special settings. The setting can be either set using configuration UI **NuGet → Preferences** or in the `NuGet.config`. Some examples:
+The default configuration uses `nuget.org` but package sources hosted on other servers should also work. Some need some special settings. The setting can be either set using configuration UI **NuGet → Preferences** or in the _NuGet.config_. Some examples:
 
 ### Azure Artifacts / GitHub Packages
 

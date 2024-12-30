@@ -103,7 +103,7 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
-        ///     Gets or sets the incomplete path that is saved.  The path is expanded and made public via the property above.
+        ///     Gets or sets the incomplete path that is saved. The path is expanded and made public via the property above.
         /// </summary>
         [NotNull]
         public string ConfiguredRepositoryPath
