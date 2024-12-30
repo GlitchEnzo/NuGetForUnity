@@ -125,7 +125,8 @@ Click the **Update** (or **Downgrade**) button to uninstall the current package 
 
 NuGetForUnity loads the _NuGet.config_ file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to. By default, this server is set to the `nuget.org` package source.
 
-_The default NuGet.config file:_
+<details>
+<summary>The default NuGet.config file:</summary>
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
@@ -143,9 +144,9 @@ _The default NuGet.config file:_
 </configuration>
 ```
 
-You can change this to any other NuGet server (such as NuGet.Server or ProGet - see below). The **NuGet → Restore Packages** menu item is useful if you edited the _NuGet.config_ file.
+</details></br>
 
-See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
+You can change this to any other NuGet server (such as NuGet.Server or ProGet - see below). The **NuGet → Restore Packages** menu item is useful if you edited the _NuGet.config_ file. See more information about _NuGet.config_ files here: [https://docs.nuget.org/consume/nuget-config-settings](https://docs.nuget.org/consume/nuget-config-settings)
 
 ## Directory structure (placement of configuration files and installed packages)
 
