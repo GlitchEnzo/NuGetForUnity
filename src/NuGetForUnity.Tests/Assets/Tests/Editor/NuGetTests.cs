@@ -15,6 +15,7 @@ using NugetForUnity.Ui;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 public class NuGetTests
 {
@@ -1127,6 +1128,42 @@ public class NuGetTests
             runtimeConfig.SupportedPlatformTargets,
             Is.EqualTo(new[] { buildTarget }),
             $"Native mapping for {runtime} is missing build target {buildTarget}");
+    }
+
+    [Test]
+    public void KeepPdbFileTest()
+    {
+        ConfigureNugetConfig(InstallMode.ApiV3Only);
+        var nugetConfigFile = ConfigurationManager.NugetConfigFile;
+        nugetConfigFile.KeepingPdbFiles = true;
+        LogAssert.ignoreFailingMessages = true;
+
+        try
+        {
+            var package = new NugetPackageIdentifier("Fody", "6.8.2") { IsManuallyInstalled = true };
+            Assume.That(
+                InstalledPackagesManager.IsInstalled(package, false),
+                Is.False,
+                "The package IS installed: {0} {1}",
+                package.Id,
+                package.Version);
+
+            NugetPackageInstaller.InstallIdentifier(package);
+            Assert.IsTrue(
+                InstalledPackagesManager.IsInstalled(package, false),
+                "The package was NOT installed: {0} {1}",
+                package.Id,
+                package.Version);
+
+            var packageDirectory = Path.Combine(ConfigurationManager.NugetConfigFile.RepositoryPath, $"{package.Id}.{package.Version}");
+
+            Assert.That(Path.Combine(packageDirectory, "netclassictask", "Mono.Cecil.pdb"), Does.Exist);
+        }
+        finally
+        {
+            LogAssert.ignoreFailingMessages = false;
+            nugetConfigFile.KeepingPdbFiles = false;
+        }
     }
 
     private static void ConfigureNugetConfig(InstallMode installMode)

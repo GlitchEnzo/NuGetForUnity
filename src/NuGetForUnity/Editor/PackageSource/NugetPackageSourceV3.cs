@@ -305,6 +305,17 @@ namespace NugetForUnity.PackageSource
             return ApiClient.GetPackageDetailsAsync(this, package, cancellationToken);
         }
 
+        private static void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
+        {
+            foreach (var newPackage in newPackages)
+            {
+                newPackage.IsManuallyInstalled =
+                    packagesToUpdate.FirstOrDefault(packageToUpdate => packageToUpdate.Id.Equals(newPackage.Id, StringComparison.OrdinalIgnoreCase))
+                        ?.IsManuallyInstalled ??
+                    false;
+            }
+        }
+
         [NotNull]
         private NugetApiClientV3 InitializeApiClient()
         {
@@ -317,17 +328,6 @@ namespace NugetForUnity.PackageSource
             apiClient = new NugetApiClientV3(SavedPath);
             ApiClientCache.Add(SavedPath, apiClient);
             return apiClient;
-        }
-
-        private void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
-        {
-            foreach (var newPackage in newPackages)
-            {
-                newPackage.IsManuallyInstalled =
-                    packagesToUpdate.FirstOrDefault(packageToUpdate => packageToUpdate.Id.Equals(newPackage.Id, StringComparison.OrdinalIgnoreCase))
-                        ?.IsManuallyInstalled ??
-                    false;
-            }
         }
     }
 }

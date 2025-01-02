@@ -362,7 +362,7 @@ namespace NugetForUnity
             return roots;
         }
 
-        private static void AddPackageToInstalledInternal([NotNull] INugetPackage package, ref int manuallyInstalledPackagesNumber)
+        private static void AddPackageToInstalledInternal([NotNull] NugetPackageLocal package, ref int manuallyInstalledPackagesNumber)
         {
             var packages = InstalledPackagesDictionary;
             if (!packages.ContainsKey(package.Id))

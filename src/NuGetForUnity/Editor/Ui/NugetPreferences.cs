@@ -44,6 +44,8 @@ namespace NugetForUnity.Ui
 
         private const float LabelPading = 5;
 
+        private static readonly string[] SearchKeywords = { "NuGet", "Packages" };
+
         private readonly GUIContent deleteX = new GUIContent("\u2716");
 
         private readonly GUIContent downArrow = new GUIContent("\u25bc");
@@ -79,8 +81,12 @@ namespace NugetForUnity.Ui
         ///     Initializes a new instance of the <see cref="NugetPreferences" /> class.
         ///     Path of packages.config file is checked here as well in case it was manually changed.
         /// </summary>
+        [SuppressMessage(
+            "Usage",
+            "CA2249:Consider using 'string.Contains' instead of 'string.IndexOf'",
+            Justification = ".Net Framework doesn't have a string contains that is case insensitive.")]
         private NugetPreferences()
-            : base(MenuItemLocation, SettingsScope.Project, new[] { "NuGet", "Packages" })
+            : base(MenuItemLocation, SettingsScope.Project, SearchKeywords)
         {
             shouldShowPackagesConfigPathWarning = ConfigurationManager.NugetConfigFile.InstallLocation == PackageInstallLocation.CustomWithinAssets &&
                                                   !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
@@ -127,6 +133,17 @@ namespace NugetForUnity.Ui
             {
                 preferencesChangedThisFrame = true;
                 ConfigurationManager.NugetConfigFile.InstallFromCache = installFromCache;
+            }
+
+            var keepingPdbFiles = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Keep PDB Files",
+                    "Do not delete PDB files included in a NuGet package if they can be read by Unity (have the new portable PDB format)."),
+                ConfigurationManager.NugetConfigFile.KeepingPdbFiles);
+            if (keepingPdbFiles != ConfigurationManager.NugetConfigFile.KeepingPdbFiles)
+            {
+                preferencesChangedThisFrame = true;
+                ConfigurationManager.NugetConfigFile.KeepingPdbFiles = keepingPdbFiles;
             }
 
             var readOnlyPackageFiles = EditorGUILayout.Toggle("Read-Only Package Files", ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles);

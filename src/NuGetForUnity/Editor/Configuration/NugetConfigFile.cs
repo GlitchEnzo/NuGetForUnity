@@ -1,5 +1,7 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
 
+#region No ReShaper
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -11,8 +13,6 @@ using JetBrains.Annotations;
 using NugetForUnity.Helper;
 using NugetForUnity.PackageSource;
 using UnityEngine;
-
-#region No ReShaper
 
 // ReSharper disable All
 // needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
@@ -53,6 +53,8 @@ namespace NugetForUnity.Configuration
         private const string PackagesConfigDirectoryPathConfigKey = "PackagesConfigDirectoryPath";
 
         private const string PreferNetStandardOverNetFrameworkConfigKey = "PreferNetStandardOverNetFramework";
+
+        private const string KeepingPdbFilesConfigKey = "KeepingPdbFiles";
 
         private const string ProtocolVersionAttributeName = "protocolVersion";
 
@@ -189,9 +191,14 @@ namespace NugetForUnity.Configuration
         public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeout;
 
         /// <summary>
-        ///     Gets or sets the value indicating whether .NET Standard is preferred over .NET Framework as the TargetFramework.
+        ///     Gets or sets a value indicating whether .NET Standard is preferred over .NET Framework as the TargetFramework.
         /// </summary>
         public bool PreferNetStandardOverNetFramework { get; set; }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether PDB files included in NuGet packages should not be deleted if they can be read by Unity.
+        /// </summary>
+        internal bool KeepingPdbFiles { get; set; }
 
         /// <summary>
         ///     Gets the value that tells the system how to determine where the packages are to be installed and configurations are to be stored.
@@ -209,6 +216,10 @@ namespace NugetForUnity.Configuration
         /// <param name="filePath">The full file-path to the NuGet.config file to load.</param>
         /// <returns>The newly loaded <see cref="NugetConfigFile" />.</returns>
         [NotNull]
+        [SuppressMessage(
+            "Usage",
+            "CA2263:Prefer generic overload when type is known",
+            Justification = "When targeting .net-framework there is no generic overload.")]
         public static NugetConfigFile Load([NotNull] string filePath)
         {
             var configFile = new NugetConfigFile
@@ -238,7 +249,10 @@ namespace NugetForUnity.Configuration
                         var updateSearchBatchSizeString = add.Attribute(UpdateSearchBatchSizeAttributeName)?.Value;
                         if (!string.IsNullOrEmpty(updateSearchBatchSizeString))
                         {
-                            sourceV3.UpdateSearchBatchSize = Mathf.Clamp(int.Parse(updateSearchBatchSizeString), 1, int.MaxValue);
+                            sourceV3.UpdateSearchBatchSize = Mathf.Clamp(
+                                int.Parse(updateSearchBatchSizeString, CultureInfo.InvariantCulture),
+                                1,
+                                int.MaxValue);
                         }
 
                         var supportsPackageIdSearchFilterString = add.Attribute(SupportsPackageIdSearchFilterAttributeName)?.Value;
@@ -318,7 +332,7 @@ namespace NugetForUnity.Configuration
 
                 if (string.Equals(key, "packageInstallLocation", StringComparison.OrdinalIgnoreCase))
                 {
-                    configFile.InstallLocation = (PackageInstallLocation)Enum.Parse(typeof(PackageInstallLocation), value);
+                    configFile.InstallLocation = (PackageInstallLocation)Enum.Parse(typeof(PackageInstallLocation), value, true);
                 }
                 else if (string.Equals(key, "repositoryPath", StringComparison.OrdinalIgnoreCase))
                 {
@@ -355,6 +369,10 @@ namespace NugetForUnity.Configuration
                 else if (string.Equals(key, PreferNetStandardOverNetFrameworkConfigKey, StringComparison.OrdinalIgnoreCase))
                 {
                     configFile.PreferNetStandardOverNetFramework = bool.Parse(value);
+                }
+                else if (string.Equals(key, KeepingPdbFilesConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.KeepingPdbFiles = bool.Parse(value);
                 }
             }
 
@@ -544,6 +562,14 @@ namespace NugetForUnity.Configuration
                 addElement = new XElement("add");
                 addElement.Add(new XAttribute("key", PreferNetStandardOverNetFrameworkConfigKey));
                 addElement.Add(new XAttribute("value", PreferNetStandardOverNetFramework.ToString().ToLowerInvariant()));
+                config.Add(addElement);
+            }
+
+            if (KeepingPdbFiles)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", KeepingPdbFilesConfigKey));
+                addElement.Add(new XAttribute("value", KeepingPdbFiles.ToString().ToLowerInvariant()));
                 config.Add(addElement);
             }
 

@@ -149,6 +149,9 @@ dotnet_diagnostic.CA2234.severity=none
 dotnet_diagnostic.CA2007.severity=none
 dotnet_diagnostic.CA1056.severity=none # URI-like properties should not be strings
 dotnet_diagnostic.CA1054.severity=none # URI parameters should not be strings
+dotnet_diagnostic.CA2249.severity=none # Cant use String.Contains as it doesn't support StringComparison type on .net framework
+dotnet_diagnostic.CA1307.severity=none # Cant use String.Replace with StringComparison type on .net framework
+dotnet_diagnostic.CA1865.severity=none # Cant use String.StartsWith with char on .net framework
 # ReSharper properties
 resharper_wrap_after_declaration_lpar=true
 
