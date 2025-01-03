@@ -114,7 +114,7 @@ namespace NugetForUnity
         /// <returns>True if the file can be skipped, is not needed.</returns>
         internal static bool ShouldSkipUnpackingOnPath([NotNull] string path, PackageInstallOperationResultEntry operationResultEntry)
         {
-            if (path.EndsWith("/"))
+            if (path.EndsWith("/", StringComparison.Ordinal))
             {
                 // We do not want to extract empty directory entries. If there are empty directories within the .nupkg, we
                 // expect them to have a file named '_._' in them that indicates that it should be extracted, usually as a
@@ -208,8 +208,9 @@ namespace NugetForUnity
                 return true;
             }
 
-            // Skip all PDB files since Unity uses Mono and requires MDB files, which causes it to output "missing MDB" errors
-            if (path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
+            // If not configured skip all PDB files. Unity uses Mono and requires MDB files or portable PDB files, else it produces "missing MDB" errors.
+            if (!ConfigurationManager.NugetConfigFile.KeepingPdbFiles &&
+                (path.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".pdb.meta", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -324,6 +325,17 @@ namespace NugetForUnity
             }
 
             entry.ExtractToFile(filePath, true);
+
+            if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) && !PortableSymbolFileHelper.IsPortableSymbolFile(filePath))
+            {
+                // Unity uses Mono and requires MDB files or portable PDB files, else it produces "missing MDB" errors.
+                new FileInfo(filePath).Delete();
+                new FileInfo($"{filePath}.meta").Delete();
+                NugetLogger.LogVerbose(
+                    "The PDB file '{0}' doesn't have the new PDB file format that can be read by Unity so we delete it.",
+                    filePath);
+                return null;
+            }
 
             if (ConfigurationManager.NugetConfigFile.ReadOnlyPackageFiles)
             {

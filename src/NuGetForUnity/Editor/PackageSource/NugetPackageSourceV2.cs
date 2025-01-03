@@ -393,10 +393,7 @@ namespace NugetForUnity.PackageSource
         }
 
 #if TEST_GET_UPDATES_FALLBACK
-        private static void ComparePackageLists(
-            List<NugetPackage> updates,
-            List<NugetPackage> updatesReplacement,
-            string errorMessageToDisplayIfListsDoNotMatch)
+        private static void ComparePackageLists(List<NugetPackage> updates, List<NugetPackage> updatesReplacement, string errorMessageToDisplayIfListsDoNotMatch)
         {
             var matchingComparison = new StringBuilder();
             var missingComparison = new StringBuilder();
@@ -426,12 +423,7 @@ namespace NugetForUnity.PackageSource
 
             if (missingComparison.Length > 0 || extraComparison.Length > 0)
             {
-                Debug.LogWarningFormat(
-                    "{0}\n{1}\n{2}\n{3}",
-                    errorMessageToDisplayIfListsDoNotMatch,
-                    matchingComparison,
-                    missingComparison,
-                    extraComparison);
+                Debug.LogWarningFormat("{0}\n{1}\n{2}\n{3}", errorMessageToDisplayIfListsDoNotMatch, matchingComparison, missingComparison, extraComparison);
             }
         }
 #endif
@@ -528,7 +520,7 @@ namespace NugetForUnity.PackageSource
             return updates;
         }
 
-        private void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
+        private static void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
         {
             foreach (var newPackage in newPackages)
             {

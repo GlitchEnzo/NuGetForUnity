@@ -449,7 +449,7 @@ PluginImporter:
         }
 
         private static void TryExtractBestFrameworkSources(
-            [NotNull] [ItemNotNull] IReadOnlyDictionary<string, List<ZipArchiveEntry>> frameworks,
+            [NotNull] [ItemNotNull] Dictionary<string, List<ZipArchiveEntry>> frameworks,
             [NotNull] string sourceDirName,
             [NotNull] INugetPackage package,
             [NotNull] PackageConfig packageConfig)
@@ -477,7 +477,7 @@ PluginImporter:
         }
 
         private static void FillFrameworkZipEntries(
-            IDictionary<string, List<ZipArchiveEntry>> frameworkZipEntries,
+            Dictionary<string, List<ZipArchiveEntry>> frameworkZipEntries,
             string framework,
             ZipArchiveEntry entry)
         {
