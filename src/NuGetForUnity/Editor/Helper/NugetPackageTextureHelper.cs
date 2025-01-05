@@ -51,63 +51,60 @@ namespace NugetForUnity.Helper
                 }
 #endif
 
-                var fromCache = false;
                 if (url.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
                 {
-                    // we only cache images coming from a remote server.
-                    fromCache = true;
+                    return Task.FromResult(LoadTextureFromFile(new Uri(url, UriKind.Absolute).LocalPath));
                 }
-                else if (ExistsInDiskCache(url))
+
+                var cacheFilePath = GetCacheFilePath(url);
+                if (File.Exists(cacheFilePath))
                 {
-                    url = "file:///" + GetFilePath(url);
-                    fromCache = true;
+                    return Task.FromResult(LoadTextureFromFile(cacheFilePath));
                 }
 
                 var taskCompletionSource = new TaskCompletionSource<Texture2D>();
                 var request = UnityWebRequest.Get(new Uri(url, UriKind.Absolute));
-                {
-                    var downloadHandler = new DownloadHandlerTexture(false);
+                var downloadHandler = new DownloadHandlerTexture(false);
 
-                    request.downloadHandler = downloadHandler;
-                    request.timeout = 1; // 1 second
-                    var operation = request.SendWebRequest();
-                    operation.completed += _ =>
+                request.downloadHandler = downloadHandler;
+                request.timeout = 1; // 1 second
+                var operation = request.SendWebRequest();
+                operation.completed += _ =>
+                {
+                    try
                     {
-                        try
+                        if (!string.IsNullOrEmpty(request.error))
                         {
-                            if (!string.IsNullOrEmpty(request.error))
-                            {
 #if UNITY_2020_1_OR_NEWER
-                                NugetLogger.LogVerbose(
-                                    "Downloading image {0} failed! Web error: {1}, Handler error: {2}.",
-                                    url,
-                                    request.error,
-                                    downloadHandler.error);
+                            NugetLogger.LogVerbose(
+                                "Downloading image {0} failed! Web error: {1}, Handler error: {2}.",
+                                url,
+                                request.error,
+                                downloadHandler.error);
 #else
-                                NugetLogger.LogVerbose("Downloading image {0} failed! Web error: {1}.", url, request.error);
+                            NugetLogger.LogVerbose("Downloading image {0} failed! Web error: {1}.", url, request.error);
 #endif
 
-                                taskCompletionSource.TrySetResult(null);
-                                return;
-                            }
-
-                            var result = downloadHandler.texture;
-
-                            if (result != null && !fromCache)
-                            {
-                                CacheTextureOnDisk(url, downloadHandler.data);
-                            }
-
-                            taskCompletionSource.TrySetResult(result);
+                            taskCompletionSource.TrySetResult(null);
+                            return;
                         }
-                        finally
+
+                        var result = downloadHandler.texture;
+
+                        if (result != null)
                         {
-                            request.Dispose();
+                            CacheTextureOnDisk(cacheFilePath, downloadHandler.data);
                         }
-                    };
 
-                    return taskCompletionSource.Task;
-                }
+                        taskCompletionSource.TrySetResult(result);
+                    }
+                    finally
+                    {
+                        request.Dispose();
+                    }
+                };
+
+                return taskCompletionSource.Task;
             }
             catch (Exception exception)
             {
@@ -116,19 +113,21 @@ namespace NugetForUnity.Helper
             }
         }
 
-        private static void CacheTextureOnDisk([NotNull] string url, [NotNull] byte[] bytes)
+        private static Texture2D LoadTextureFromFile(string localPath)
         {
-            var diskPath = GetFilePath(url);
-            File.WriteAllBytes(diskPath, bytes);
+            var imageBytes = File.ReadAllBytes(localPath);
+            var texture = new Texture2D(2, 2);
+            texture.LoadImage(imageBytes, true);
+            return texture;
         }
 
-        private static bool ExistsInDiskCache([NotNull] string url)
+        private static void CacheTextureOnDisk([NotNull] string cacheFilePath, [NotNull] byte[] bytes)
         {
-            return File.Exists(GetFilePath(url));
+            File.WriteAllBytes(cacheFilePath, bytes);
         }
 
         [NotNull]
-        private static string GetFilePath([NotNull] string url)
+        private static string GetCacheFilePath([NotNull] string url)
         {
             return Path.Combine(Application.temporaryCachePath, GetHash(url));
         }
