@@ -17,6 +17,8 @@ namespace NugetForUnity
     /// </summary>
     internal static class PackageContentManager
     {
+        private const int MaxPathLength = 260;
+
         /// <summary>
         ///     Deletes all files and folders associated with a package.
         /// </summary>
@@ -316,15 +318,31 @@ namespace NugetForUnity
                 return null;
             }
 
-            var directory = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
-            Directory.CreateDirectory(directory);
-            if (Directory.Exists(filePath))
+            try
             {
-                Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
-                return null;
-            }
+                if (Directory.Exists(filePath))
+                {
+                    Debug.LogWarning($"The path {filePath} refers to an existing directory. Overwriting it may lead to data loss.");
+                    return null;
+                }
 
-            entry.ExtractToFile(filePath, true);
+                var directory = Path.GetDirectoryName(filePath) ??
+                                throw new InvalidOperationException($"Failed to get directory name of '{filePath}'");
+                Directory.CreateDirectory(directory);
+
+                entry.ExtractToFile(filePath, true);
+            }
+            catch (Exception exception) when (exception is PathTooLongException ||
+                                              (exception is DirectoryNotFoundException && filePath.Length >= MaxPathLength))
+            {
+                // path is to long (normally on windows) -> try to use shorter path
+                // we only do this when we get a exception because it can be that we are on a system that supports longer paths
+                var longFilePath = filePath;
+                filePath = DetermineShorterFilePath(entry, baseDir);
+
+                NugetLogger.LogVerbose("The target file path '{0}' was to long -> we shortened it to '{1}'.", longFilePath, filePath);
+                entry.ExtractToFile(filePath, true);
+            }
 
             if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) && !PortableSymbolFileHelper.IsPortableSymbolFile(filePath))
             {
@@ -400,6 +418,26 @@ namespace NugetForUnity
             {
                 File.Delete(metaPath);
             }
+        }
+
+        private static string DetermineShorterFilePath(ZipArchiveEntry entry, string baseDir)
+        {
+            var filePath = Path.GetFullPath(Path.Combine(baseDir, entry.Name));
+            if (filePath.Length < MaxPathLength && !File.Exists(filePath))
+            {
+                // placing the file in the base-directory is enough to make the path usable.
+                return filePath;
+            }
+
+            filePath = Path.GetFullPath(Path.Combine(baseDir, Md5HashHelper.GetFileNameSafeHash(entry.FullName)));
+            if (filePath.Length + entry.Name.Length + 1 < MaxPathLength)
+            {
+                // we have enough space to keep the file name
+                return $"{filePath}_{entry.Name}";
+            }
+
+            // only add the file extension
+            return filePath + Path.GetExtension(entry.Name);
         }
 
         [NotNull]
