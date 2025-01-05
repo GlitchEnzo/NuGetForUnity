@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
@@ -82,8 +83,23 @@ namespace NugetForUnity
 #else
             const AssembliesType assemblyType = AssembliesType.Player;
 #endif
-            var projectAssemblies = CompilationPipeline.GetAssemblies(assemblyType)
-                .Where(playerAssembly => playerAssembly.flags != AssemblyFlags.EditorAssembly);
+            IEnumerable<Assembly> projectAssemblies;
+            var failedToGetAssembliesFromUnity = false;
+            try
+            {
+                projectAssemblies = CompilationPipeline.GetAssemblies(assemblyType)
+                    .Where(playerAssembly => playerAssembly.flags != AssemblyFlags.EditorAssembly);
+            }
+            catch (Exception exception)
+            {
+                // ignore the 'Must set an output directory through SetCompileScriptsOutputDirectory before compiling'
+                // error that seems to happen if this method is called before unity is started completely
+                NugetLogger.LogVerbose(
+                    "Failed to get assemblies from the compilation pipeline with error: {0}. We ignore the error and try it the next time.",
+                    exception);
+                projectAssemblies = Array.Empty<Assembly>();
+                failedToGetAssembliesFromUnity = true;
+            }
 
             // Collect all referenced assemblies but exclude all assemblies installed by NuGetForUnity.
             var projectReferences = projectAssemblies.SelectMany(playerAssembly => playerAssembly.allReferences);
@@ -101,9 +117,20 @@ namespace NugetForUnity
             // the compiler / language is available by default
             alreadyImportedLibs.Add("Microsoft.CSharp");
 
-            var editorOnlyAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor)
-                .Where(assembly => assembly.flags == AssemblyFlags.EditorAssembly)
-                .ToList();
+            IEnumerable<Assembly> editorOnlyAssemblies;
+            try
+            {
+                editorOnlyAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor)
+                    .Where(assembly => assembly.flags == AssemblyFlags.EditorAssembly);
+            }
+            catch (Exception exception)
+            {
+                NugetLogger.LogVerbose(
+                    "Failed to get assemblies from the compilation pipeline with error: {0}. We ignore the error and try it the next time.",
+                    exception);
+                editorOnlyAssemblies = Array.Empty<Assembly>();
+            }
+
             alreadyImportedEditorOnlyLibraries = new HashSet<string>();
 
             // com.unity.visualscripting uses .net 4.8 so it implicitly has System.CodeDom
@@ -116,7 +143,14 @@ namespace NugetForUnity
             NugetLogger.LogVerbose("Already imported libs: {0}", string.Join(", ", alreadyImportedLibs));
             NugetLogger.LogVerbose("Already imported editor only libraries: {0}", string.Join(", ", alreadyImportedEditorOnlyLibraries));
 
-            return alreadyImportedLibs;
+            var returnAlreadyImportedLibs = alreadyImportedLibs;
+            if (failedToGetAssembliesFromUnity)
+            {
+                // set to null so it is not cached -> we retry the next time this method is called
+                alreadyImportedLibs = null;
+            }
+
+            return returnAlreadyImportedLibs;
         }
     }
 }
