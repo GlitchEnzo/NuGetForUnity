@@ -443,6 +443,17 @@ namespace NugetForUnity.PackageSource
             }
         }
 
+        private static void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
+        {
+            foreach (var newPackage in newPackages)
+            {
+                newPackage.IsManuallyInstalled =
+                    packagesToUpdate.FirstOrDefault(packageToUpdate => packageToUpdate.Id.Equals(newPackage.Id, StringComparison.OrdinalIgnoreCase))
+                        ?.IsManuallyInstalled ??
+                    false;
+            }
+        }
+
         /// <summary>
         ///     Builds a list of NugetPackages from the XML returned from the HTTP GET request issued at the given URL.
         ///     Note that NuGet uses an Atom-feed (XML Syndicaton) superset called OData.
@@ -518,17 +529,6 @@ namespace NugetForUnity.PackageSource
 
             NugetLogger.LogVerbose("NugetPackageSource.GetUpdatesFallback took {0} ms", stopwatch.ElapsedMilliseconds);
             return updates;
-        }
-
-        private static void CopyIsManuallyInstalled(List<INugetPackage> newPackages, ICollection<INugetPackage> packagesToUpdate)
-        {
-            foreach (var newPackage in newPackages)
-            {
-                newPackage.IsManuallyInstalled =
-                    packagesToUpdate.FirstOrDefault(packageToUpdate => packageToUpdate.Id.Equals(newPackage.Id, StringComparison.OrdinalIgnoreCase))
-                        ?.IsManuallyInstalled ??
-                    false;
-            }
         }
     }
 }

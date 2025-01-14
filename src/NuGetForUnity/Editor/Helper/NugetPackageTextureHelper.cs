@@ -1,29 +1,13 @@
-﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
-
-#if UNITY_2022_1_OR_NEWER
+﻿#if UNITY_2022_1_OR_NEWER
 using UnityEditor;
 #endif
 
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Networking;
-
-#region No ReShaper
-
-// ReSharper disable All
-// needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
-using SuppressMessageAttribute = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
-
-// ReSharper restore All
-
-#endregion
-
-#pragma warning restore SA1512,SA1124 // Single-line comments should not be followed by blank line
 
 namespace NugetForUnity.Helper
 {
@@ -129,23 +113,7 @@ namespace NugetForUnity.Helper
         [NotNull]
         private static string GetCacheFilePath([NotNull] string url)
         {
-            return Path.Combine(Application.temporaryCachePath, GetHash(url));
-        }
-
-        [SuppressMessage("Design", "CA5351", Justification = "Only use MD5 hash as cache key / not security relevant.")]
-        [NotNull]
-        private static string GetHash([NotNull] string s)
-        {
-            if (string.IsNullOrEmpty(s))
-            {
-                throw new ArgumentNullException(nameof(s));
-            }
-
-            using (var md5 = new MD5CryptoServiceProvider())
-            {
-                var data = md5.ComputeHash(Encoding.Default.GetBytes(s));
-                return Convert.ToBase64String(data).Replace('+', '-').Replace('/', '_').TrimEnd('=');
-            }
+            return Path.Combine(Application.temporaryCachePath, Md5HashHelper.GetFileNameSafeHash(url));
         }
     }
 }
