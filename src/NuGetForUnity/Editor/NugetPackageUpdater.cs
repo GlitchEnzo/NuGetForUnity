@@ -27,7 +27,7 @@ namespace NugetForUnity
             bool refreshAssets = true,
             PackageUninstallReason uninstallReason = PackageUninstallReason.IndividualUpdate)
         {
-            var result = UpdateWithInformation(currentVersion, newVersion, refreshAssets, uninstallReason);
+            var result = UpdateWithInformation(currentVersion, newVersion, refreshAssets, false, uninstallReason);
             return result.Successful;
         }
 
@@ -79,12 +79,13 @@ namespace NugetForUnity
             [NotNull] INugetPackageIdentifier currentVersion,
             [NotNull] INugetPackage newVersion,
             bool refreshAssets = true,
+            bool isSlimRestoreInstall = false,
             PackageUninstallReason uninstallReason = PackageUninstallReason.IndividualUpdate)
         {
             NugetLogger.LogVerbose("Updating {0} {1} to {2}", currentVersion.Id, currentVersion.Version, newVersion.Version);
-            NugetPackageUninstaller.Uninstall(currentVersion, uninstallReason, false);
+            NugetPackageUninstaller.Uninstall(currentVersion, uninstallReason, false, isSlimRestoreInstall);
             newVersion.IsManuallyInstalled = newVersion.IsManuallyInstalled || currentVersion.IsManuallyInstalled;
-            return NugetPackageInstaller.Install(newVersion, refreshAssets);
+            return NugetPackageInstaller.Install(newVersion, refreshAssets, isSlimRestoreInstall);
         }
     }
 }

@@ -118,7 +118,7 @@ namespace NugetForUnity
                         installedPackage.Version,
                         package.Version,
                         package.Version);
-                    return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets);
+                    return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets, isSlimRestoreInstall);
                 }
 
                 if (comparisonResult > 0)
@@ -131,7 +131,7 @@ namespace NugetForUnity
                             installedPackage.Id,
                             installedPackage.Version,
                             package.Version);
-                        return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets);
+                        return NugetPackageUpdater.UpdateWithInformation(installedPackage, package, refreshAssets, isSlimRestoreInstall);
                     }
 
                     NugetLogger.LogVerbose(
