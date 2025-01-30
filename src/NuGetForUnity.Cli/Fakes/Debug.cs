@@ -21,12 +21,20 @@ namespace UnityEngine
             Console.WriteLine(format, args);
         }
 
-        internal static void Log(string format, params object[] args)
+        internal static void Log(string message)
         {
-            Console.WriteLine(format, args);
+            Console.WriteLine(message);
         }
 
-        internal static void LogWarning(string format, params object[] args)
+        internal static void LogWarning(string message)
+        {
+            var oldForegroundColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.WriteLine(message);
+            Console.ForegroundColor = oldForegroundColor;
+        }
+
+        internal static void LogWarningFormat(string format, params object[] args)
         {
             var oldForegroundColor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.DarkYellow;
@@ -34,21 +42,22 @@ namespace UnityEngine
             Console.ForegroundColor = oldForegroundColor;
         }
 
-        internal static void LogWarningFormat(string format, params object[] args)
-        {
-            Console.WriteLine(format, args);
-        }
-
-        internal static void LogError(string format, params object[] args)
+        internal static void LogError(string message)
         {
             HasError = true;
-            Console.Error.WriteLine(format, args);
+            var oldForegroundColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.Error.WriteLine(message);
+            Console.ForegroundColor = oldForegroundColor;
         }
 
         internal static void LogException(Exception e)
         {
             HasError = true;
+            var oldForegroundColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.Error.WriteLine(e.ToString());
+            Console.ForegroundColor = oldForegroundColor;
         }
 
         [Conditional("DEBUG")]
