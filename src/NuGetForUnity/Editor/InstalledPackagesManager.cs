@@ -246,7 +246,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Checks if there are any packages inside the package install directory that are not listed inside the packages.config.
+        ///     Finds and removes any installed packages detected that are not listed inside the packages.config.
         /// </summary>
         /// <returns>True if some packages are deleted.</returns>
         internal static bool RemoveUnnecessaryPackages()
