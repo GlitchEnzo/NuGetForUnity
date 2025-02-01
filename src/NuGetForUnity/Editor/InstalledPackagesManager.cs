@@ -246,7 +246,7 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Checks if there are any packages inside the package install directory that are not listed inside the packages.config.
+        ///     Finds and removes any installed packages detected that are not listed inside the packages.config.
         /// </summary>
         /// <returns>True if some packages are deleted.</returns>
         internal static bool RemoveUnnecessaryPackages()
@@ -256,38 +256,17 @@ namespace NugetForUnity
                 return false;
             }
 
-            var directories = Directory.GetDirectories(ConfigurationManager.NugetConfigFile.RepositoryPath, "*", SearchOption.TopDirectoryOnly);
             var somethingDeleted = false;
-            foreach (var folder in directories)
+            foreach (var installedPackage in InstalledPackages)
             {
-                var folderName = Path.GetFileName(folder);
-                if (folderName.StartsWith(".", StringComparison.Ordinal))
-                {
-                    // ignore folders whose name starts with a dot because they are considered hidden
-                    continue;
-                }
+                var shouldBeInstalled = PackagesConfigFile.Packages.Exists(packageId => packageId.Equals(installedPackage));
 
-                var nuspecPath = Directory.GetFiles(folder, "*.nuspec").FirstOrDefault();
-                if (!File.Exists(nuspecPath))
-                {
-                    // ignore folder not containing a nuspec file
-                    continue;
-                }
-
-                var package = NugetPackageLocal.FromNuspecFile(
-                    nuspecPath,
-                    new NugetPackageSourceLocal(
-                        "Nuspec file already installed",
-                        Path.GetDirectoryName(nuspecPath) ?? throw new InvalidOperationException($"Failed to get directory from '{nuspecPath}'")));
-
-                var installed = PackagesConfigFile.Packages.Exists(packageId => packageId.Equals(package));
-
-                if (!installed)
+                if (!shouldBeInstalled)
                 {
                     somethingDeleted = true;
-                    NugetLogger.LogVerbose("---DELETE unnecessary package {0}", folder);
+                    NugetLogger.LogVerbose("---DELETE unnecessary package {0}", installedPackage.Id);
 
-                    PackageContentManager.DeletePackageContentPackage(package);
+                    PackageContentManager.DeletePackageContentPackage(installedPackage);
                 }
             }
 
