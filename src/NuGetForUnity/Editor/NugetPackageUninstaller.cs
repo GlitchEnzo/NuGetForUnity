@@ -20,6 +20,7 @@ namespace NugetForUnity
         /// <param name="package">The NugetPackage to uninstall.</param>
         /// <param name="uninstallReason">The reason uninstall is being called.</param>
         /// <param name="refreshAssets">True to force Unity to refresh its Assets folder.  False to temporarily ignore the change.  Defaults to true.</param>
+        /// <param name="isSlimRestore">True if uninstall needs to be done as part of slim restore operation.</param>
         public static void Uninstall([NotNull] INugetPackageIdentifier package, PackageUninstallReason uninstallReason, bool refreshAssets = true, bool isSlimRestore = false)
         {
             // Checking for pre-imported packages also ensures that the pre-imported package list is up-to-date before we uninstall packages.

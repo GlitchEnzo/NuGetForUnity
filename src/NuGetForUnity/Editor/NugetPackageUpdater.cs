@@ -73,6 +73,7 @@ namespace NugetForUnity
         /// <param name="currentVersion">The current package to uninstall.</param>
         /// <param name="newVersion">The package to install.</param>
         /// <param name="refreshAssets">True to refresh the assets inside Unity. False to ignore them (for now). Defaults to true.</param>
+        /// <param name="isSlimRestoreInstall">True if update needs to be done as part of slim restore operation.</param>
         /// <param name="uninstallReason">The reason uninstall is being called.</param>
         /// <returns>The information about how the package has been installed.</returns>
         internal static PackageInstallOperationResult UpdateWithInformation(
