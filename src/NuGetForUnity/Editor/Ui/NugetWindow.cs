@@ -190,23 +190,7 @@ namespace NugetForUnity.Ui
                 var installedPackages = InstalledPackagesManager.InstalledPackages;
 
                 // filter not updatable / not downgradable packages
-                return result.Where(
-                        package =>
-                        {
-                            var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
-
-                            if (installed == null || package.Versions.Count == 0)
-                            {
-                                // normally shouldn't happen but for now include it in the result
-                                return true;
-                            }
-
-                            // we do not want to show packages that have no updates if we're showing updates
-                            // similarly, we do not show packages that are on the lowest possible version if we're showing downgrades
-                            return (showDowngrades && installed.PackageVersion > package.Versions[package.Versions.Count - 1]) ||
-                                   (!showDowngrades && installed.PackageVersion < package.Versions[0]);
-                        })
-                    .ToList();
+                return FilterUpdatableOrDowngradablePackages(result).ToList();
             }
         }
 
@@ -403,6 +387,31 @@ namespace NugetForUnity.Ui
             titleContent = new GUIContent("NuGet For Unity");
             Refresh(false);
             UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
+        }
+
+        /// <summary>
+        ///     Filter not updatable / not downgradable packages based on showDowngrades.
+        /// </summary>
+        private IEnumerable<INugetPackage> FilterUpdatableOrDowngradablePackages(IEnumerable<INugetPackage> packages)
+        {
+            var installedPackages = InstalledPackagesManager.InstalledPackages;
+
+            return packages.Where(
+                package =>
+                {
+                    var installed = installedPackages.FirstOrDefault(p => p.Id.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+
+                    if (installed == null || package.Versions.Count == 0)
+                    {
+                        // normally shouldn't happen but for now include it in the result
+                        return true;
+                    }
+
+                    // we do not want to show packages that have no updates if we're showing updates
+                    // similarly, we do not show packages that are on the lowest possible version if we're showing downgrades
+                    return (showDowngrades && installed.PackageVersion > package.Versions[package.Versions.Count - 1]) ||
+                           (!showDowngrades && installed.PackageVersion < package.Versions[0]);
+                });
         }
 
         private void ClearViewCache()
@@ -890,7 +899,9 @@ namespace NugetForUnity.Ui
                     {
                         if (!showDowngrades && GUILayout.Button("Update All", EditorStyles.toolbarButton, GUILayout.Width(100)))
                         {
-                            NugetPackageUpdater.UpdateAll(FilteredUpdatePackages, InstalledPackagesManager.InstalledPackages);
+                            NugetPackageUpdater.UpdateAll(
+                                FilterUpdatableOrDowngradablePackages(updatePackages),
+                                InstalledPackagesManager.InstalledPackages);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
