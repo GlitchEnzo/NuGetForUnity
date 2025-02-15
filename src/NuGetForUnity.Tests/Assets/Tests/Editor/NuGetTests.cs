@@ -710,7 +710,7 @@ public class NuGetTests
 
         var file = NugetConfigFile.CreateDefaultFile(path);
 
-        var inputSource = new NugetPackageSourceV2(name, "http://localhost", null) { UserName = username, SavedPassword = password };
+        var inputSource = new NugetPackageSourceV2(name, "http://localhost", null) { SavedUserName = username, SavedPassword = password };
 
         file.PackageSources.Add(inputSource);
         file.Save(path);
@@ -718,7 +718,7 @@ public class NuGetTests
         var loaded = NugetConfigFile.Load(path);
         var parsedSource = loaded.PackageSources.Find(p => p.Name == name);
         Assert.That(parsedSource.HasPassword, Is.True);
-        Assert.That(parsedSource.UserName, Is.EqualTo(username));
+        Assert.That(parsedSource.SavedUserName, Is.EqualTo(username));
         Assert.That(parsedSource.SavedPassword, Is.EqualTo(password));
     }
 
