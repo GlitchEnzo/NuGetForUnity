@@ -890,7 +890,7 @@ namespace NugetForUnity.Ui
                     {
                         if (!showDowngrades && GUILayout.Button("Update All", EditorStyles.toolbarButton, GUILayout.Width(100)))
                         {
-                            NugetPackageUpdater.UpdateAll(updatePackages, InstalledPackagesManager.InstalledPackages);
+                            NugetPackageUpdater.UpdateAll(FilteredUpdatePackages, InstalledPackagesManager.InstalledPackages);
                             UpdateInstalledPackages();
                             UpdateUpdatePackages();
                         }
