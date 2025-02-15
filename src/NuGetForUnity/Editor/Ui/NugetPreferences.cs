@@ -443,8 +443,9 @@ namespace NugetForUnity.Ui
                                 }
                             }
 
+                            const string useCredentialProviderToogleLable = "Use credential provider (if found)";
                             biggestPackageSourceSectionLabelSize = biggestPackageSourceSectionLabelSize ??
-                                                                   EditorStyles.label.CalcSize(new GUIContent("Force use API v3")).x;
+                                                                   EditorStyles.label.CalcSize(new GUIContent(useCredentialProviderToogleLable)).x;
                             EditorGUIUtility.labelWidth = biggestPackageSourceSectionLabelSize.Value + LabelPading;
 
                             var currentForceUseApiV3 = source.SavedProtocolVersion?.Equals("3", StringComparison.Ordinal) == true;
@@ -453,7 +454,7 @@ namespace NugetForUnity.Ui
                                 var forceUseApiV3 = EditorGUILayout.Toggle(
                                     new GUIContent(
                                         "Force use API v3",
-                                        "Normally the API version is autodetect. " +
+                                        "Normally the API version is automatically detected. " +
                                         "It defaults to version \"2\" when not pointing to a package source URL ending in .json (e.g. https://api.nuget.org/v3/index.json). " +
                                         "So if a package source uses API v3 but the URL doesn't end in .json you need to enable this setting (e.g. needed when using 'Aritfactory')."),
                                     currentForceUseApiV3);
@@ -497,6 +498,17 @@ namespace NugetForUnity.Ui
                                 else
                                 {
                                     source.SavedUserName = null;
+
+                                    var enableCredentialProvider = EditorGUILayout.Toggle(
+                                        new GUIContent(
+                                            useCredentialProviderToogleLable,
+                                            "Whether to call the credential providers found on the system to receive the credentials for the NuGet feed. See NuGet documentation for more info on NuGet Credential Providers: https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers."),
+                                        source.EnableCredentialProvider);
+                                    if (enableCredentialProvider != source.EnableCredentialProvider)
+                                    {
+                                        source.EnableCredentialProvider = enableCredentialProvider;
+                                        preferencesChangedThisFrame = true;
+                                    }
                                 }
                             }
 

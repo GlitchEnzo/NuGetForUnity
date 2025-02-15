@@ -107,6 +107,17 @@ namespace NugetForUnity.PackageSource
             }
         }
 
+        /// <inheritdoc />
+        public bool EnableCredentialProvider
+        {
+            get => false;
+
+            set
+            {
+                // multiple sources can't have credentials
+            }
+        }
+
         /// <summary>
         ///     Gets path, with the values of environment variables expanded.
         /// </summary>

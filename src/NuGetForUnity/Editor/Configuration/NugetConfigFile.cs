@@ -58,6 +58,8 @@ namespace NugetForUnity.Configuration
 
         private const string ProtocolVersionAttributeName = "protocolVersion";
 
+        private const string EnableCredentialProviderAttributeName = "enableCredentialProvider";
+
         private const string PasswordAttributeName = "password";
 
         private const string UpdateSearchBatchSizeAttributeName = "updateSearchBatchSize";
@@ -392,7 +394,7 @@ namespace NugetForUnity.Configuration
 <configuration>
   <packageSources>
     <clear />
-    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" enableCredentialProvider=""false"" />
   </packageSources>
   <disabledPackageSources />
   <activePackageSource>
@@ -436,6 +438,12 @@ namespace NugetForUnity.Configuration
                 if (!string.IsNullOrEmpty(source.SavedProtocolVersion))
                 {
                     addElement.Add(new XAttribute(ProtocolVersionAttributeName, source.SavedProtocolVersion));
+                }
+
+                if (!source.EnableCredentialProvider)
+                {
+                    addElement.Add(
+                        new XAttribute(EnableCredentialProviderAttributeName, source.EnableCredentialProvider.ToString().ToLowerInvariant()));
                 }
 
                 if (source is NugetPackageSourceV3 sourceV3)

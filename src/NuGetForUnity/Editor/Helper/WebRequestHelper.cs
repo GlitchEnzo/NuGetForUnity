@@ -20,9 +20,15 @@ namespace NugetForUnity.Helper
         /// <param name="userName">UserName that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="password">Password that will be passed in the Authorization header or the request. If null, authorization is omitted.</param>
         /// <param name="timeOut">Timeout in milliseconds or null to use the default timeout values of HttpWebRequest.</param>
+        /// <param name="enableCredentialProvider">If true we invoke credential providers found on the system to receive the credentials for the NuGet feed.</param>
         /// <returns>Stream containing the result.</returns>
         [NotNull]
-        internal static Stream RequestUrl([NotNull] string url, [CanBeNull] string userName, [CanBeNull] string password, int? timeOut)
+        internal static Stream RequestUrl(
+            [NotNull] string url,
+            [CanBeNull] string userName,
+            [CanBeNull] string password,
+            int? timeOut,
+            bool enableCredentialProvider)
         {
             // Mono doesn't have a Certificate Authority, so we have to provide all validation manually. Currently just accept anything.
             // See here: http://stackoverflow.com/questions/4926676/mono-webrequest-fails-with-https
@@ -35,7 +41,7 @@ namespace NugetForUnity.Helper
                 getRequest.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.None;
                 getRequest.Timeout = timeOut ?? ConfigurationManager.NugetConfigFile.RequestTimeoutSeconds * 1000;
 
-                if (string.IsNullOrEmpty(password))
+                if (string.IsNullOrEmpty(password) && enableCredentialProvider)
                 {
                     var credentials = CredentialProviderHelper.GetCredentialFromProvider(getRequest.RequestUri);
                     if (credentials.HasValue)

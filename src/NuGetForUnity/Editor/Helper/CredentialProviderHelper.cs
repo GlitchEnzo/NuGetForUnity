@@ -60,8 +60,15 @@ namespace NugetForUnity.Helper
             feedUri = GetTruncatedFeedUri(feedUri);
             if (!CachedCredentialsByFeedUri.TryGetValue(feedUri, out var response))
             {
-                response = GetCredentialFromProvider_Uncached(feedUri, true);
-                CachedCredentialsByFeedUri[feedUri] = response;
+                try
+                {
+                    response = GetCredentialFromProvider_Uncached(feedUri, true);
+                    CachedCredentialsByFeedUri[feedUri] = response;
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogErrorFormat("Failed to get packages source credentials from the credential provider. Error: {0}", exception);
+                }
             }
 
             if (response == null)
@@ -356,9 +363,10 @@ namespace NugetForUnity.Helper
             [CanBeNull]
             public string Password;
 
-            // Ignore Spelling: Username
             [CanBeNull]
             public string Username;
+
+            // Ignore Spelling: Username
         }
 #pragma warning restore 0649 // CS0649: Field 'field' is never assigned to, and will always have its default value 'value'
     }

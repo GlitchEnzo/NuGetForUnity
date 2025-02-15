@@ -147,6 +147,10 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
+        public bool EnableCredentialProvider { get; set; } = true;
+
+        /// <inheritdoc />
+        [field: SerializeField]
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />

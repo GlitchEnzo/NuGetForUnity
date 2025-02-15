@@ -91,6 +91,10 @@ namespace NugetForUnity.PackageSource
         [field: SerializeField]
         public bool CredentialsStoredInExternalFile { get; set; }
 
+        /// <inheritdoc />
+        [field: SerializeField]
+        public bool EnableCredentialProvider { get; set; } = true;
+
         /// <summary>
         ///     Gets password, with the values of environment variables expanded.
         /// </summary>
@@ -400,7 +404,7 @@ namespace NugetForUnity.PackageSource
                 throw new ArgumentNullException(nameof(downloadUrlHint));
             }
 
-            using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, ExpandedUserName, ExpandedPassword, null))
+            using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, ExpandedUserName, ExpandedPassword, null, EnableCredentialProvider))
             {
                 using (var fileStream = File.Create(outputFilePath))
                 {
@@ -486,7 +490,7 @@ namespace NugetForUnity.PackageSource
             stopwatch.Start();
 
             var packages = new List<INugetPackage>();
-            using (var responseStream = WebRequestHelper.RequestUrl(url, ExpandedUserName, ExpandedPassword, 10000))
+            using (var responseStream = WebRequestHelper.RequestUrl(url, ExpandedUserName, ExpandedPassword, 10000, EnableCredentialProvider))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {

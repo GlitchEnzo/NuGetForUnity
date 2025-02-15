@@ -1,5 +1,7 @@
 ﻿#pragma warning disable SA1512,SA1124 // Single-line comments should not be followed by blank line
 
+#region No ReShaper
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,8 +19,6 @@ using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
-
-#region No ReShaper
 
 // ReSharper disable All
 // needed because 'JetBrains.Annotations.NotNull' and 'System.Diagnostics.CodeAnalysis.NotNull' collide if this file is compiled with a never version of Unity / C#
@@ -778,7 +778,7 @@ namespace NugetForUnity.PackageSource
             var password = packageSource.ExpandedPassword;
             var userName = packageSource.ExpandedUserName;
 
-            if (string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(password) && packageSource.EnableCredentialProvider)
             {
                 var creds = CredentialProviderHelper.GetCredentialFromProvider(apiIndexJsonUrl);
                 if (creds.HasValue)
