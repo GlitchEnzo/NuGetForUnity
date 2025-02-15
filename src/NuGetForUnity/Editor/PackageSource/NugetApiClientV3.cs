@@ -776,7 +776,7 @@ namespace NugetForUnity.PackageSource
 
             request.Headers.Add("User-Agent", "NuGetForUnity");
             var password = packageSource.ExpandedPassword;
-            var userName = packageSource.UserName;
+            var userName = packageSource.ExpandedUserName;
 
             if (string.IsNullOrEmpty(password))
             {

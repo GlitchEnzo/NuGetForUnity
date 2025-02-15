@@ -474,7 +474,7 @@ namespace NugetForUnity.Configuration
 
                     addElement = new XElement("add");
                     addElement.Add(new XAttribute("key", "userName"));
-                    addElement.Add(new XAttribute("value", source.UserName ?? string.Empty));
+                    addElement.Add(new XAttribute("value", source.SavedUserName ?? string.Empty));
                     sourceElement.Add(addElement);
 
                     addElement = new XElement("add");
@@ -685,7 +685,7 @@ namespace NugetForUnity.Configuration
                     if (string.Equals(keyName, "userName", StringComparison.OrdinalIgnoreCase))
                     {
                         var userName = add.Attribute("value")?.Value;
-                        source.UserName = userName;
+                        source.SavedUserName = userName;
                     }
                     else if (string.Equals(keyName, "clearTextPassword", StringComparison.OrdinalIgnoreCase))
                     {

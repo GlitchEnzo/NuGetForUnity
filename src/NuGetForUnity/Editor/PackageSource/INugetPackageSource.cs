@@ -51,7 +51,7 @@ namespace NugetForUnity.PackageSource
         ///     Gets or sets the user-name used to access the feed. Null indicates that no authentication is used.
         /// </summary>
         [CanBeNull]
-        string UserName { get; set; }
+        string SavedUserName { get; set; }
 
         /// <summary>
         ///     Gets or sets a value indicating whether this source uses a password for authentication.

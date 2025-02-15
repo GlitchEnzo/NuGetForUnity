@@ -53,7 +53,7 @@ namespace NugetForUnity.PackageSource
         public bool IsEnabled { get; set; }
 
         /// <inheritdoc />
-        public string UserName
+        public string SavedUserName
         {
             get => null;
 

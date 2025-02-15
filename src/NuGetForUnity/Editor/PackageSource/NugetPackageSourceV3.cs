@@ -78,6 +78,23 @@ namespace NugetForUnity.PackageSource
             }
         }
 
+        /// <summary>
+        ///     Gets user-name, with the values of environment variables expanded.
+        /// </summary>
+        [CanBeNull]
+        public string ExpandedUserName
+        {
+            get
+            {
+                if (SavedUserName == null)
+                {
+                    return null;
+                }
+
+                return Environment.ExpandEnvironmentVariables(SavedUserName);
+            }
+        }
+
         /// <inheritdoc />
         [field: SerializeField]
         public string Name { get; set; }
@@ -118,7 +135,7 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
-        public string UserName { get; set; }
+        public string SavedUserName { get; set; }
 
         /// <inheritdoc />
         [field: SerializeField]

@@ -86,7 +86,7 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
-        public string UserName
+        public string SavedUserName
         {
             get => null;
 

@@ -480,11 +480,11 @@ namespace NugetForUnity.Ui
 
                                 if (source.HasPassword)
                                 {
-                                    var userName = EditorGUILayout.TextField("User Name", source.UserName);
-                                    if (userName != source.UserName)
+                                    var userName = EditorGUILayout.TextField("User Name", source.SavedUserName);
+                                    if (userName != source.SavedUserName)
                                     {
                                         preferencesChangedThisFrame = true;
-                                        source.UserName = userName;
+                                        source.SavedUserName = userName;
                                     }
 
                                     var savedPassword = EditorGUILayout.PasswordField("Password", source.SavedPassword);
@@ -496,7 +496,7 @@ namespace NugetForUnity.Ui
                                 }
                                 else
                                 {
-                                    source.UserName = null;
+                                    source.SavedUserName = null;
                                 }
                             }
 

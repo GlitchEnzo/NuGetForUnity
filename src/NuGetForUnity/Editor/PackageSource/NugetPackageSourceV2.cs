@@ -81,7 +81,7 @@ namespace NugetForUnity.PackageSource
 
         /// <inheritdoc />
         [field: SerializeField]
-        public string UserName { get; set; }
+        public string SavedUserName { get; set; }
 
         /// <inheritdoc />
         [field: SerializeField]
@@ -106,6 +106,23 @@ namespace NugetForUnity.PackageSource
 
                 var expandedPassword = Environment.ExpandEnvironmentVariables(SavedPassword);
                 return SavedPasswordIsEncrypted ? ConfigurationEncryptionHelper.DecryptString(expandedPassword) : expandedPassword;
+            }
+        }
+
+        /// <summary>
+        ///     Gets user-name, with the values of environment variables expanded.
+        /// </summary>
+        [CanBeNull]
+        public string ExpandedUserName
+        {
+            get
+            {
+                if (SavedUserName == null)
+                {
+                    return null;
+                }
+
+                return Environment.ExpandEnvironmentVariables(SavedUserName);
             }
         }
 
@@ -383,7 +400,7 @@ namespace NugetForUnity.PackageSource
                 throw new ArgumentNullException(nameof(downloadUrlHint));
             }
 
-            using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, UserName, ExpandedPassword, null))
+            using (var objStream = WebRequestHelper.RequestUrl(downloadUrlHint, ExpandedUserName, ExpandedPassword, null))
             {
                 using (var fileStream = File.Create(outputFilePath))
                 {
@@ -469,7 +486,7 @@ namespace NugetForUnity.PackageSource
             stopwatch.Start();
 
             var packages = new List<INugetPackage>();
-            using (var responseStream = WebRequestHelper.RequestUrl(url, UserName, ExpandedPassword, 10000))
+            using (var responseStream = WebRequestHelper.RequestUrl(url, ExpandedUserName, ExpandedPassword, 10000))
             {
                 using (var streamReader = new StreamReader(responseStream))
                 {
