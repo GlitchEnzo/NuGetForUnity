@@ -44,7 +44,7 @@ namespace NugetForUnity.PackageSource
 
             set
             {
-                // multiple sources can't have protocol version
+                // local sources can't have protocol version
             }
         }
 
@@ -114,7 +114,7 @@ namespace NugetForUnity.PackageSource
 
             set
             {
-                // multiple sources can't have credentials
+                // local sources can't have credentials
             }
         }
 
