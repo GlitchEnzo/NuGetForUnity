@@ -290,7 +290,8 @@ namespace NugetForUnity.Configuration
                     var disabled = add.Attribute("value")?.Value;
                     if (string.Equals(disabled, "true", StringComparison.OrdinalIgnoreCase))
                     {
-                        var source = configFile.PackageSources.Find(p => p.Name == name);
+                        var source = configFile.PackageSources.Find(
+                            packageSource => packageSource.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
                         if (source != null)
                         {
                             source.IsEnabled = false;
@@ -670,7 +671,7 @@ namespace NugetForUnity.Configuration
             foreach (var sourceElement in packageSourceCredentials.Elements())
             {
                 var name = XmlConvert.DecodeName(sourceElement.Name.LocalName);
-                var source = PackageSources.Find(p => p.Name == name);
+                var source = PackageSources.Find(packageSource => packageSource.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
                 if (source == null || (overwriteMissingFromExternal && !string.IsNullOrEmpty(source.SavedPassword)))
                 {
                     continue;
