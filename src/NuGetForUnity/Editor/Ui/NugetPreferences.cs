@@ -443,9 +443,9 @@ namespace NugetForUnity.Ui
                                 }
                             }
 
-                            const string useCredentialProviderToogleLable = "Use credential provider (if found)";
+                            const string useCredentialProviderToogleLabel = "Use credential provider (if found)";
                             biggestPackageSourceSectionLabelSize = biggestPackageSourceSectionLabelSize ??
-                                                                   EditorStyles.label.CalcSize(new GUIContent(useCredentialProviderToogleLable)).x;
+                                                                   EditorStyles.label.CalcSize(new GUIContent(useCredentialProviderToogleLabel)).x;
                             EditorGUIUtility.labelWidth = biggestPackageSourceSectionLabelSize.Value + LabelPading;
 
                             var currentForceUseApiV3 = source.SavedProtocolVersion?.Equals("3", StringComparison.Ordinal) == true;
@@ -501,7 +501,7 @@ namespace NugetForUnity.Ui
 
                                     var enableCredentialProvider = EditorGUILayout.Toggle(
                                         new GUIContent(
-                                            useCredentialProviderToogleLable,
+                                            useCredentialProviderToogleLabel,
                                             "Whether to call the credential providers found on the system to receive the credentials for the NuGet feed. See NuGet documentation for more info on NuGet Credential Providers: https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers."),
                                         source.EnableCredentialProvider);
                                     if (enableCredentialProvider != source.EnableCredentialProvider)
