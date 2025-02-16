@@ -115,6 +115,7 @@ We are using pull requests to add new features, no direct commits to master. To 
 
 1. Update Version Information:
 
+    - Run the script `tools/update-version-number.ps1` to update the version numbers
     - Edit `src/NuGetForUnity/package.json` to update the `"version"` field.
     - Edit `src/NuGetForUnity/Editor/Ui/NugetPreferences.cs` to update the `NuGetForUnityVersion` constant.
 
