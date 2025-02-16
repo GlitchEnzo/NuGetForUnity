@@ -44,7 +44,7 @@ namespace NugetForUnity.PackageSource
 
             set
             {
-                // multiple sources can't have protocol version
+                // local sources can't have protocol version
             }
         }
 
@@ -104,6 +104,17 @@ namespace NugetForUnity.PackageSource
             set
             {
                 // local sources don't have credentials
+            }
+        }
+
+        /// <inheritdoc />
+        public bool EnableCredentialProvider
+        {
+            get => false;
+
+            set
+            {
+                // local sources can't have credentials
             }
         }
 

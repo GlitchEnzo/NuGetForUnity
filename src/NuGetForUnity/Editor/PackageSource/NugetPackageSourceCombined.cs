@@ -119,6 +119,17 @@ namespace NugetForUnity.PackageSource
         }
 
         /// <inheritdoc />
+        public bool EnableCredentialProvider
+        {
+            get => false;
+
+            set
+            {
+                // multiple sources can't have credentials
+            }
+        }
+
+        /// <inheritdoc />
         public List<INugetPackage> FindPackagesById(INugetPackageIdentifier package)
         {
             var activeSourcesCount = packageSources.Count(source => source.IsEnabled);

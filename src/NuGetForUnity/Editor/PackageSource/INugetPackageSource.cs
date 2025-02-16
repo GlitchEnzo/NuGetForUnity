@@ -65,6 +65,13 @@ namespace NugetForUnity.PackageSource
         bool CredentialsStoredInExternalFile { get; set; }
 
         /// <summary>
+        ///     Gets or sets a value indicating whether to invoke credential providers found on the system to
+        ///     receive the credentials for the NuGet feed. See here for more info on NuGet Credential Providers:
+        ///     https://docs.microsoft.com/en-us/nuget/reference/extensibility/nuget-exe-credential-providers.
+        /// </summary>
+        bool EnableCredentialProvider { get; set; }
+
+        /// <summary>
         ///     Download the .nupkg file and store it inside a file at <paramref name="outputFilePath" />.
         /// </summary>
         /// <param name="package">The package to download its .nupkg from.</param>
