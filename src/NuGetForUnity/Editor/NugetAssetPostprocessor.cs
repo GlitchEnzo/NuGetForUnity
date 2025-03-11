@@ -51,16 +51,6 @@ namespace NugetForUnity
         /// </summary>
         private const string RoslynAnalyzerLabel = "RoslynAnalyzer";
 
-        /// <summary>
-        ///     Name of the root folder containing dotnet analyzers.
-        /// </summary>
-        private static readonly string AnalyzersRoslynVersionsFolderName = Path.Combine(AnalyzersFolderName, "dotnet");
-
-        /// <summary>
-        ///     Prefix for the path of dll's of roslyn analyzers.
-        /// </summary>
-        private static readonly string AnalyzersRoslynVersionSubFolderPrefix = Path.Combine(AnalyzersRoslynVersionsFolderName, "roslyn");
-
         private static readonly List<BuildTarget> NonObsoleteBuildTargets = typeof(BuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(fieldInfo => fieldInfo.GetCustomAttribute(typeof(ObsoleteAttribute)) == null)
             .Select(fieldInfo => (BuildTarget)fieldInfo.GetValue(null))
@@ -280,44 +270,6 @@ namespace NugetForUnity
             return ConfigurationManager.NugetConfigFile.RepositoryPath + Path.DirectorySeparatorChar;
         }
 
-        [CanBeNull]
-        private static NugetPackageVersion GetMaxSupportedRoslynVersion()
-        {
-            var unityVersion = UnityVersion.Current;
-            if (unityVersion >= new UnityVersion(2022, 3, 12, 'f', 1))
-            {
-                return new NugetPackageVersion("4.3.0");
-            }
-
-            if (unityVersion >= new UnityVersion(2022, 2, 1, 'f', 1))
-            {
-                return new NugetPackageVersion("4.1.0");
-            }
-
-            if (unityVersion >= new UnityVersion(2021, 2, 1, 'f', 1))
-            {
-                return new NugetPackageVersion("3.8.0");
-            }
-
-            return null;
-        }
-
-        [CanBeNull]
-        private static NugetPackageVersion GetRoslynVersionNumberFromAnalyzerPath(string analyzerAssetPath)
-        {
-            var versionPrefixStartIndex = analyzerAssetPath.IndexOf(AnalyzersRoslynVersionSubFolderPrefix, StringComparison.Ordinal);
-            if (versionPrefixStartIndex < 0)
-            {
-                return null;
-            }
-
-            var versionStartIndex = versionPrefixStartIndex + AnalyzersRoslynVersionSubFolderPrefix.Length;
-            var separatorIndex = analyzerAssetPath.IndexOf(Path.DirectorySeparatorChar, versionStartIndex);
-            var versionLength = separatorIndex >= 0 ? separatorIndex - versionStartIndex : analyzerAssetPath.Length - versionStartIndex;
-            var versionString = analyzerAssetPath.Substring(versionStartIndex, versionLength);
-            return string.IsNullOrEmpty(versionString) ? null : new NugetPackageVersion(versionString);
-        }
-
         private static string[] ModifyImportSettingsOfRoslynAnalyzer([NotNull] PluginImporter plugin)
         {
             plugin.SetCompatibleWithAnyPlatform(false);
@@ -327,42 +279,16 @@ namespace NugetForUnity
                 plugin.SetExcludeFromAnyPlatform(platform, false);
             }
 
-            var enableRoslynAnalyzer = true;
-
-            // The nuget package can contain analyzers for multiple Roslyn versions.
-            // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
-            var assetPath = Path.GetFullPath(plugin.assetPath);
-            var assetRoslynVersion = GetRoslynVersionNumberFromAnalyzerPath(assetPath);
-            if (assetRoslynVersion != null)
+            bool enableRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(plugin.assetPath);
+            if (enableRoslynAnalyzer)
             {
-                var maxSupportedRoslynVersion = GetMaxSupportedRoslynVersion();
-                if (maxSupportedRoslynVersion == null)
-                {
-                    // the current unity version doesn't support roslyn analyzers
-                    enableRoslynAnalyzer = false;
-                }
-                else
-                {
-                    var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                    var analyzerVersionsRootDirectoryPath = Path.Combine(
-                        assetPath.Substring(0, versionPrefixIndex),
-                        AnalyzersRoslynVersionsFolderName);
-                    var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
-                    var allEnabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
-                        .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
-                        .ToArray();
-
-                    // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
-                    var maxMatchingVersion = allEnabledRoslynVersions.Max();
-                    if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
-                    {
-                        enableRoslynAnalyzer = false;
-                    }
-                }
+                NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
+                return new[] { RoslynAnalyzerLabel, ProcessedLabel };
             }
-
-            NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
-            return enableRoslynAnalyzer ? new[] { RoslynAnalyzerLabel, ProcessedLabel } : new[] { ProcessedLabel };
+            else
+            {
+                return new[] { ProcessedLabel };
+            }
         }
 
         private static string[] ModifyImportSettingsOfGeneralPlugin([NotNull] PackageConfig packageConfig, [NotNull] PluginImporter plugin)

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using NugetForUnity;
 using NugetForUnity.Configuration;
+using NugetForUnity.Helper;
 using UnityEngine;
 
 namespace NuGetForUnity.Cli
@@ -93,6 +94,11 @@ namespace NuGetForUnity.Cli
                 {
                     var analyzerDllMetaPath = $"{analyzerDllPath}.meta";
                     if (File.Exists(analyzerDllMetaPath))
+                    {
+                        continue;
+                    }
+
+                    if (!AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath))
                     {
                         continue;
                     }
