@@ -98,7 +98,12 @@ namespace NuGetForUnity.Cli
                         continue;
                     }
 
-                    if (!AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath))
+                    // In Unity 2021 the errors that RoslynAnalyzer DLL's can't be imported because it has multiple files with the same name are blocking
+                    // even before our AssetPostprocessor can change the import settings so Unity knows that the DLL is a RoslynAnalyzer.
+                    // To bypass this error we generate the .dll.meta files with the RoslynAnalyzer label and the disable for platform configuration.
+                    // A alternative could be to delete the duplicate .resources.dll files when restoring,
+                    // but this would require to decide which user language to keep.
+                    if (int.Parse(Application.unityVersion.Split('.').First()) > 2021 && !AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath))
                     {
                         continue;
                     }
