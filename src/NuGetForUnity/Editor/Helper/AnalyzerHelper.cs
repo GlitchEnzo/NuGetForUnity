@@ -62,7 +62,7 @@ namespace NugetForUnity.Helper
                     var maxMatchingVersion = allEnabledRoslynVersions.Max();
                     if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
                     {
-                        enableRoslynAnalyzer = false;
+                        return false;
                     }
                 }
             }
