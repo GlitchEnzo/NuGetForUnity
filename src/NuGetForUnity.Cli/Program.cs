@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using NugetForUnity;
 using NugetForUnity.Configuration;
+using NugetForUnity.Helper;
 using UnityEngine;
 
 namespace NuGetForUnity.Cli
@@ -97,14 +98,20 @@ namespace NuGetForUnity.Cli
                         continue;
                     }
 
+                    var isSupportedRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath);
+                    var labelsForAsset = isSupportedRoslynAnalyzer ?
+                        """
+                        labels:
+                        - RoslynAnalyzer
+                        """ :
+                        "labels: []";
                     utf8NoBom ??= new UTF8Encoding(false);
                     File.WriteAllText(
                         analyzerDllMetaPath,
                         $"""
                          fileFormatVersion: 2
                          guid: {Guid.NewGuid():N}
-                         labels:
-                         - RoslynAnalyzer
+                         {labelsForAsset}
                          PluginImporter:
                            platformData:
                            - first:
