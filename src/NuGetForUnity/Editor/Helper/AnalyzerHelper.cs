@@ -45,7 +45,7 @@ namespace NugetForUnity.Helper
                 if (maxSupportedRoslynVersion == null)
                 {
                     // the current unity version doesn't support roslyn analyzers
-                    enableRoslynAnalyzer = false;
+                    return false;
                 }
                 else
                 {
