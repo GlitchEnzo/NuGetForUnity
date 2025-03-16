@@ -33,7 +33,6 @@ namespace NugetForUnity.Helper
         /// <returns>True if the label should be added, false otherwise.</returns>
         public static bool ShouldEnableRoslynAnalyzer(string path)
         {
-
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
             var assetPath = Path.GetFullPath(path);
@@ -46,23 +45,19 @@ namespace NugetForUnity.Helper
                     // the current unity version doesn't support roslyn analyzers
                     return false;
                 }
-                else
-                {
-                    var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
-                    var analyzerVersionsRootDirectoryPath = Path.Combine(
-                        assetPath.Substring(0, versionPrefixIndex),
-                        AnalyzersRoslynVersionsFolderName);
-                    var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
-                    var allEnabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
-                        .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
-                        .ToArray();
 
-                    // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
-                    var maxMatchingVersion = allEnabledRoslynVersions.Max();
-                    if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
-                    {
-                        return false;
-                    }
+                var versionPrefixIndex = assetPath.IndexOf(AnalyzersRoslynVersionsFolderName, StringComparison.Ordinal);
+                var analyzerVersionsRootDirectoryPath = Path.Combine(assetPath.Substring(0, versionPrefixIndex), AnalyzersRoslynVersionsFolderName);
+                var analyzersFolders = Directory.EnumerateDirectories(analyzerVersionsRootDirectoryPath);
+                var allEnabledRoslynVersions = analyzersFolders.Select(GetRoslynVersionNumberFromAnalyzerPath)
+                    .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
+                    .ToArray();
+
+                // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
+                var maxMatchingVersion = allEnabledRoslynVersions.Max();
+                if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
+                {
+                    return false;
                 }
             }
 

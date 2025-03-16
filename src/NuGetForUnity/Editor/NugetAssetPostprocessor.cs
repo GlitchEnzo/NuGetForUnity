@@ -8,7 +8,6 @@ using System.Reflection;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
-using NugetForUnity.Models;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -279,16 +278,14 @@ namespace NugetForUnity
                 plugin.SetExcludeFromAnyPlatform(platform, false);
             }
 
-            bool enableRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(plugin.assetPath);
+            var enableRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(plugin.assetPath);
             if (enableRoslynAnalyzer)
             {
                 NugetLogger.LogVerbose("Configured asset '{0}' as a Roslyn-Analyzer.", plugin.assetPath);
                 return new[] { RoslynAnalyzerLabel, ProcessedLabel };
             }
-            else
-            {
-                return new[] { ProcessedLabel };
-            }
+
+            return new[] { ProcessedLabel };
         }
 
         private static string[] ModifyImportSettingsOfGeneralPlugin([NotNull] PackageConfig packageConfig, [NotNull] PluginImporter plugin)

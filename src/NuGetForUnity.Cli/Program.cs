@@ -99,15 +99,19 @@ namespace NuGetForUnity.Cli
                     }
 
                     var isSupportedRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath);
+                    var labelsForAsset = isSupportedRoslynAnalyzer ?
+                        """
 
+                        - RoslynAnalyzer
+                        """ :
+                        "[]";
                     utf8NoBom ??= new UTF8Encoding(false);
                     File.WriteAllText(
                         analyzerDllMetaPath,
                         $"""
                          fileFormatVersion: 2
                          guid: {Guid.NewGuid():N}
-                         labels:
-                         - RoslynAnalyzer
+                         labels: {isSupportedRoslynAnalyzer}
                          PluginImporter:
                            platformData:
                            - first:
