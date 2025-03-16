@@ -67,7 +67,7 @@ namespace NugetForUnity.Helper
                 }
             }
 
-            return enableRoslynAnalyzer;
+            return true;
         }
 
         [CanBeNull]
