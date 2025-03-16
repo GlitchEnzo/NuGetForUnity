@@ -33,7 +33,6 @@ namespace NugetForUnity.Helper
         /// <returns>True if the label should be added, false otherwise.</returns>
         public static bool ShouldEnableRoslynAnalyzer(string path)
         {
-            var enableRoslynAnalyzer = true;
 
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
