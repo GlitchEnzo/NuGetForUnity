@@ -488,12 +488,12 @@ namespace NugetForUnity.PackageSource
                 pageItem.items = await GetRegistrationPageLeafItems(packageSource, pageItem, cancellationToken).ConfigureAwait(false);
             }
 
-            pageItem.items = pageItem.items.OrderBy(leaf => new NugetPackageVersion(leaf.CatalogEntry.version)).ToList();
-
             var leafItem = getLatestVersion ?
                 pageItem.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version))
                     .FirstOrDefault() :
-                pageItem.items.Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
+                pageItem.items.OrderBy(leaf => new NugetPackageVersion(leaf.CatalogEntry.version))
+                    .ToList()
+                    .Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
             if (leafItem is null)
             {
                 Debug.LogError(
