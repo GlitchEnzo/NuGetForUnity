@@ -473,7 +473,7 @@ namespace NugetForUnity.PackageSource
 
             var getLatestVersion = string.IsNullOrEmpty(package.Version);
             var pageItem = getLatestVersion ?
-                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
+                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).FirstOrDefault() :
                 registrationItems.Find(
                     registrationItem =>
                         new NugetPackageVersion($"[{registrationItem.lower},{registrationItem.upper}]").InRange(package.PackageVersion));
@@ -491,7 +491,8 @@ namespace NugetForUnity.PackageSource
             var leafItem = getLatestVersion ?
                 pageItem.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version))
                     .FirstOrDefault() :
-                pageItem.items.Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
+                pageItem.items.OrderBy(leaf => new NugetPackageVersion(leaf.CatalogEntry.version))
+                    .FirstOrDefault(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
             if (leafItem is null)
             {
                 Debug.LogError(
