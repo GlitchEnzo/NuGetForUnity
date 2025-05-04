@@ -473,7 +473,7 @@ namespace NugetForUnity.PackageSource
 
             var getLatestVersion = string.IsNullOrEmpty(package.Version);
             var pageItem = getLatestVersion ?
-                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).First() :
+                registrationItems.OrderByDescending(registrationItem => new NugetPackageVersion(registrationItem.lower)).FirstOrDefault() :
                 registrationItems.Find(
                     registrationItem =>
                         new NugetPackageVersion($"[{registrationItem.lower},{registrationItem.upper}]").InRange(package.PackageVersion));
