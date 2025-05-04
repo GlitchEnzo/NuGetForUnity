@@ -82,7 +82,9 @@ namespace NugetForUnity.PackageSource
 
             apiIndexJsonUrl = new Uri(url);
 
+#pragma warning disable CA2000 // Dispose objects before losing scope: Ownership is transferred to httpClient
             var handler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
+#pragma warning restore CA2000 // Dispose objects before losing scope
             if (Application.platform == RuntimePlatform.WindowsEditor)
             {
                 // On Windows, Mono HttpClient does not automatically pick up proxy settings.
@@ -218,7 +220,7 @@ namespace NugetForUnity.PackageSource
 
                 var version = package.Version.ToLowerInvariant();
                 var id = package.Id.ToLowerInvariant();
-                downloadUrl = string.Format(packageDownloadUrlTemplate, id, version);
+                downloadUrl = string.Format(CultureInfo.InvariantCulture, packageDownloadUrlTemplate, id, version);
             }
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl))
@@ -521,6 +523,7 @@ namespace NugetForUnity.PackageSource
                        $"missing 'items' property inside page request for URL: {itemAtId}, response:\n{registrationPageString}");
         }
 
+        [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
         private async Task<List<RegistrationPageObject>> GetRegistrationPageItemsAsync(
             NugetPackageSourceV3 packageSource,
             INugetPackageIdentifier package,
