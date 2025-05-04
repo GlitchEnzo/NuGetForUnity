@@ -492,8 +492,7 @@ namespace NugetForUnity.PackageSource
                 pageItem.items.OrderByDescending(registrationLeaf => new NugetPackageVersion(registrationLeaf.CatalogEntry.version))
                     .FirstOrDefault() :
                 pageItem.items.OrderBy(leaf => new NugetPackageVersion(leaf.CatalogEntry.version))
-                    .ToList()
-                    .Find(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
+                    .FirstOrDefault(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
             if (leafItem is null)
             {
                 Debug.LogError(
