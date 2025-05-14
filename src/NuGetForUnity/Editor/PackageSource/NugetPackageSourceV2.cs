@@ -279,7 +279,8 @@ namespace NugetForUnity.PackageSource
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
             var updates = new List<INugetPackage>();
             var packagesCollection = packages as ICollection<INugetPackage> ?? packages.ToList();
@@ -287,6 +288,8 @@ namespace NugetForUnity.PackageSource
             // check for updates in groups of 10 instead of all of them, since that causes servers to throw errors for queries that are too long
             for (var i = 0; i < packagesCollection.Count; i += 10)
             {
+                token.ThrowIfCancellationRequested();
+
                 var packageGroup = packagesCollection.Skip(i).Take(10);
 
                 var packageIds = string.Empty;
