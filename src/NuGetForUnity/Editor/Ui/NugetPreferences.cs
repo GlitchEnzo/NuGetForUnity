@@ -35,7 +35,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     The current version of NuGet for Unity.
         /// </summary>
-        public const string NuGetForUnityVersion = "4.3.0";
+        public const string NuGetForUnityVersion = "4.4.0";
 
         /// <summary>
         ///     The location where the settings are placed in the menu of the Unity Editor.
