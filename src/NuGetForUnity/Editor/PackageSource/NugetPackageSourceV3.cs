@@ -220,7 +220,8 @@ namespace NugetForUnity.PackageSource
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
             var packagesToFetch = packages as IList<INugetPackage> ?? packages.ToList();
             var packagesFromServer = Task.Run(
@@ -228,7 +229,7 @@ namespace NugetForUnity.PackageSource
                     {
                         if (SupportsPackageIdSearchFilter)
                         {
-                            var updates = new List<INugetPackage>();
+                            var fetchTasks = new List<Task<List<INugetPackage>>>();
                             for (var i = 0; i < packagesToFetch.Count;)
                             {
                                 var searchQueryBuilder = new StringBuilder();
@@ -242,16 +243,21 @@ namespace NugetForUnity.PackageSource
                                     searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
                                 }
 
-                                updates.AddRange(
+                                async Task<List<INugetPackage>> SearchPackageAsync() =>
                                     await ApiClient.SearchPackageAsync(
                                             this,
                                             searchQueryBuilder.ToString(),
                                             0,
                                             0,
                                             includePrerelease,
-                                            CancellationToken.None)
-                                        .ConfigureAwait(false));
+                                            token)
+                                        .ConfigureAwait(false);
+
+                                fetchTasks.Add(SearchPackageAsync());
                             }
+
+                            var nestedUpdates = await Task.WhenAll(fetchTasks).ConfigureAwait(false);
+                            var updates = nestedUpdates.SelectMany(r => r).ToList();
 
                             if (updates.Count > packagesToFetch.Count)
                             {
@@ -268,7 +274,8 @@ namespace NugetForUnity.PackageSource
                                 packagesToFetch.Select(package => ApiClient.GetPackageWithAllVersionsAsync(this, package, CancellationToken.None)))
                             .ConfigureAwait(false);
                         return fetchedPackages.Where(fetchedPackage => !(fetchedPackage is null)).ToList<INugetPackage>();
-                    })
+                    },
+                    token)
                 .GetAwaiter()
                 .GetResult();
 

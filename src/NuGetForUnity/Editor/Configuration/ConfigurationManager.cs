@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -235,6 +236,7 @@ namespace NugetForUnity.Configuration
         /// <param name="includePrerelease">True to include pre-release packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
+        /// <param name="token">The cancellation token?.</param>
         /// <returns>A list of all updates available.</returns>
         [NotNull]
         [ItemNotNull]
@@ -242,9 +244,20 @@ namespace NugetForUnity.Configuration
             [NotNull] IEnumerable<INugetPackage> packagesToUpdate,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
-            return ActivePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints);
+            // Fetching package updates often requires a lot of requests so we increase the limit to speed them up.
+            var oldConnectionLimit = ServicePointManager.DefaultConnectionLimit;
+            try
+            {
+                ServicePointManager.DefaultConnectionLimit = 20;
+                return ActivePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints, token);
+            }
+            finally
+            {
+                ServicePointManager.DefaultConnectionLimit = oldConnectionLimit;
+            }
         }
 
         /// <inheritdoc cref="INugetPackageSource.GetSpecificPackage(INugetPackageIdentifier)" />
