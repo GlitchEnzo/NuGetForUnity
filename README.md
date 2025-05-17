@@ -121,6 +121,28 @@ By default, the selected version in the dropdown list is the **highest newer** o
 
 Click the **Update** (or **Downgrade**) button to uninstall the current package and install the new package.
 
+# Restoring Packages after a Fresh Checkout
+
+When you clone or freshly check out a Unity project that uses NuGetForUnity, you may encounter compiler errors on the first launch. This is because Unity tries to compile your C# scripts before NuGetForUnity has a chance to restore the required NuGet packages defined in the `packages.config` file. As a result, any code that references NuGet packages will fail to compile, and Unity may prompt you with a compile errors popup.
+
+This is a known limitation due to how Unity loads editor plugins and compiles scripts. There are two main ways to avoid or resolve this issue:
+
+## Option 1: Restore Packages Using the CLI (Recommended for CI/CD)
+
+Before opening the project in Unity for the first time, restore all NuGet packages using the NuGetForUnity CLI tool. See the section: [Restoring NuGet Packages over the Command Line](#restoring-nuget-packages-over-the-command-line).
+
+This will download and install all required packages as specified in your `packages.config` before Unity tries to compile your scripts.
+
+## Option 2: Ignore Compile Errors on First Startup (Recommended for Developers)
+
+If you open the project and see compiler errors due to missing NuGet packages:
+
+1. When Unity shows the compile errors popup on startup, select **Ignore** (not Safe Mode).
+2. Unity will continue its normal startup and NuGetForUnity will automatically restore the missing packages in the background.
+3. Once the restore is complete, Unity will recompile your scripts and the errors should be resolved automatically.
+
+Alternatively, you can trigger a package restore manually via the Unity menu: **NuGet → Restore Packages**.
+
 # How does NuGetForUnity work?
 
 NuGetForUnity loads the _NuGet.config_ file in the Unity project (automatically created if there isn't already one) in order to determine the server it should pull packages down from and push packages up to. By default, this server is set to the `nuget.org` package source.
