@@ -243,21 +243,17 @@ namespace NugetForUnity.PackageSource
                                     searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
                                 }
 
-                                async Task<List<INugetPackage>> SearchPackageAsync() =>
-                                    await ApiClient.SearchPackageAsync(
+                                fetchTasks.Add(ApiClient.SearchPackageAsync(
                                             this,
                                             searchQueryBuilder.ToString(),
                                             0,
                                             0,
                                             includePrerelease,
-                                            token)
-                                        .ConfigureAwait(false);
-
-                                fetchTasks.Add(SearchPackageAsync());
+                                            token));
                             }
 
                             var nestedUpdates = await Task.WhenAll(fetchTasks).ConfigureAwait(false);
-                            var updates = nestedUpdates.SelectMany(r => r).ToList();
+                            var updates = nestedUpdates.SelectMany(nestedPackages => nestedPackages).ToList();
 
                             if (updates.Count > packagesToFetch.Count)
                             {

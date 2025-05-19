@@ -611,8 +611,8 @@ namespace NugetForUnity.Ui
             }
             else
             {
-                var msg = fetchingUpdates ? "Fetching package updates. Please wait..." : "There are no updates available!";
-                DrawNoDataAvailableInfo(msg);
+                var message = fetchingUpdates ? "Fetching package updates. Please wait..." : "There are no updates available!";
+                DrawNoDataAvailableInfo(message);
             }
 
             EditorGUILayout.EndVertical();
