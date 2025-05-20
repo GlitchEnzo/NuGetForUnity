@@ -247,17 +247,7 @@ namespace NugetForUnity.Configuration
             string versionConstraints = "",
             CancellationToken token = default)
         {
-            // Fetching package updates often requires a lot of requests so we increase the limit to speed them up.
-            var oldConnectionLimit = ServicePointManager.DefaultConnectionLimit;
-            try
-            {
-                ServicePointManager.DefaultConnectionLimit = 20;
-                return ActivePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints, token);
-            }
-            finally
-            {
-                ServicePointManager.DefaultConnectionLimit = oldConnectionLimit;
-            }
+            return ActivePackageSource.GetUpdates(packagesToUpdate, includePrerelease, targetFrameworks, versionConstraints, token);
         }
 
         /// <inheritdoc cref="INugetPackageSource.GetSpecificPackage(INugetPackageIdentifier)" />

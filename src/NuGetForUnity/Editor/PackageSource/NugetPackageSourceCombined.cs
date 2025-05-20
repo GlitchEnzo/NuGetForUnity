@@ -221,7 +221,7 @@ namespace NugetForUnity.PackageSource
                 return packageSources.First(source => source.IsEnabled).GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints, token);
             }
 
-            return packageSources.Where(source => source.IsEnabled)
+            return packageSources.AsParallel().Where(source => source.IsEnabled)
                 .SelectMany(source => source.GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints, token))
                 .Distinct()
                 .ToList();
