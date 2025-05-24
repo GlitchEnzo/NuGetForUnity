@@ -220,55 +220,65 @@ namespace NugetForUnity.PackageSource
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
             var packagesToFetch = packages as IList<INugetPackage> ?? packages.ToList();
             var packagesFromServer = Task.Run(
                     async () =>
                     {
-                        if (SupportsPackageIdSearchFilter)
+                        try
                         {
-                            var updates = new List<INugetPackage>();
-                            for (var i = 0; i < packagesToFetch.Count;)
+                            if (SupportsPackageIdSearchFilter)
                             {
-                                var searchQueryBuilder = new StringBuilder();
-                                for (var inner = 0; inner < UpdateSearchBatchSize && i < packagesToFetch.Count; inner++, i++)
+                                var fetchTasks = new List<Task<List<INugetPackage>>>();
+                                for (var i = 0; i < packagesToFetch.Count;)
                                 {
-                                    if (i > 0)
+                                    var searchQueryBuilder = new StringBuilder();
+                                    for (var inner = 0; inner < UpdateSearchBatchSize && i < packagesToFetch.Count; inner++, i++)
                                     {
-                                        searchQueryBuilder.Append(' ');
+                                        if (i > 0)
+                                        {
+                                            searchQueryBuilder.Append(' ');
+                                        }
+
+                                        searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
                                     }
 
-                                    searchQueryBuilder.Append($"packageid:{packagesToFetch[i].Id}");
+                                    fetchTasks.Add(ApiClient.SearchPackageAsync(this, searchQueryBuilder.ToString(), 0, 0, includePrerelease, token));
                                 }
 
-                                updates.AddRange(
-                                    await ApiClient.SearchPackageAsync(
-                                            this,
-                                            searchQueryBuilder.ToString(),
-                                            0,
-                                            0,
-                                            includePrerelease,
-                                            CancellationToken.None)
-                                        .ConfigureAwait(false));
+                                var nestedUpdates = await Task.WhenAll(fetchTasks).ConfigureAwait(false);
+                                var updates = nestedUpdates.SelectMany(nestedPackages => nestedPackages).ToList();
+
+                                if (updates.Count > packagesToFetch.Count)
+                                {
+                                    Debug.LogWarningFormat(
+                                        "Fetching updates using a filter with the format 'packageid:{{packageId}}' resulted in more packages as requested. This probably means that the syntax is not supported by the package source {0}. So consider switching to a different 'update search mechanism' by disabling the '{1}' setting for this package source.",
+                                        SavedPath,
+                                        nameof(SupportsPackageIdSearchFilter));
+                                }
+
+                                return updates;
                             }
 
-                            if (updates.Count > packagesToFetch.Count)
-                            {
-                                Debug.LogWarningFormat(
-                                    "Fetching updates using a filter with the format 'packageid:{{packageId}}' resulted in more packages as requested. This probably means that the syntax is not supported by the package source {0}. So consider switching to a different 'update search mechanism' by disabling the '{1}' setting for this package source.",
-                                    SavedPath,
-                                    nameof(SupportsPackageIdSearchFilter));
-                            }
-
-                            return updates;
+                            var fetchedPackages = await Task.WhenAll(
+                                    packagesToFetch.Select(package =>
+                                        ApiClient.GetPackageWithAllVersionsAsync(this, package, CancellationToken.None)))
+                                .ConfigureAwait(false);
+                            return fetchedPackages.Where(fetchedPackage => !(fetchedPackage is null)).ToList<INugetPackage>();
                         }
-
-                        var fetchedPackages = await Task.WhenAll(
-                                packagesToFetch.Select(package => ApiClient.GetPackageWithAllVersionsAsync(this, package, CancellationToken.None)))
-                            .ConfigureAwait(false);
-                        return fetchedPackages.Where(fetchedPackage => !(fetchedPackage is null)).ToList<INugetPackage>();
-                    })
+                        catch (OperationCanceledException)
+                        {
+                            return new List<INugetPackage>();
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogException(e);
+                            return new List<INugetPackage>();
+                        }
+                    },
+                    token)
                 .GetAwaiter()
                 .GetResult();
 

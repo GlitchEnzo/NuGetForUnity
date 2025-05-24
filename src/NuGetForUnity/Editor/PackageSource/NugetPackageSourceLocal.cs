@@ -190,9 +190,10 @@ namespace NugetForUnity.PackageSource
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
-            return GetLocalUpdates(packages, includePrerelease);
+            return GetLocalUpdates(packages, includePrerelease, token);
         }
 
         /// <inheritdoc />
@@ -329,14 +330,20 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="packages">The list of packages to use to find updates.</param>
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
+        /// <param name="token"></param>
         /// <returns>A list of all updates / downgrades available.</returns>
         [NotNull]
         [ItemNotNull]
-        private List<INugetPackage> GetLocalUpdates([NotNull] [ItemNotNull] IEnumerable<INugetPackage> packages, bool includePrerelease = false)
+        private List<INugetPackage> GetLocalUpdates(
+            [NotNull] [ItemNotNull] IEnumerable<INugetPackage> packages,
+            bool includePrerelease = false,
+            CancellationToken token = default)
         {
             var updates = new List<INugetPackage>();
             foreach (var packageToSearch in packages)
             {
+                token.ThrowIfCancellationRequested();
+
                 var availablePackages = GetLocalPackages($"{packageToSearch.Id}*", false, includePrerelease);
                 foreach (var availablePackage in availablePackages)
                 {

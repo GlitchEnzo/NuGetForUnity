@@ -103,6 +103,7 @@ namespace NugetForUnity.PackageSource
         /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="targetFrameworks">The specific frameworks to target?.</param>
         /// <param name="versionConstraints">The version constraints?.</param>
+        /// <param name="token">The cancellation token?.</param>
         /// <returns>A list of all updates available.</returns>
         [NotNull]
         [ItemNotNull]
@@ -110,7 +111,8 @@ namespace NugetForUnity.PackageSource
             [NotNull] [ItemNotNull] IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "");
+            string versionConstraints = "",
+            CancellationToken token = default);
 
         /// <summary>
         ///     Gets a list of NugetPackages from this package source.

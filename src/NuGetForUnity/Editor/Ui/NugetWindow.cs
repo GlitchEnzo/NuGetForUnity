@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
@@ -167,6 +168,16 @@ namespace NugetForUnity.Ui
         ///     The search term to search the update packages for.
         /// </summary>
         private string updatesSearchTerm;
+
+        /// <summary>
+        /// True while fetching updates is in progress since it is done in background.
+        /// </summary>
+        private bool fetchingUpdates;
+
+        /// <summary>
+        /// Used to cancel fetching updates if the window is closed.
+        /// </summary>
+        private CancellationTokenSource fetchUpdatesCancellationSource;
 
         /// <summary>
         ///     Gets the filtered list of package updates available.
@@ -389,6 +400,11 @@ namespace NugetForUnity.Ui
             UnityPathHelper.EnsurePackageInstallDirectoryIsSetup();
         }
 
+        private void OnDisable()
+        {
+            fetchUpdatesCancellationSource?.Cancel();
+        }
+
         /// <summary>
         ///     Filter not updatable / not downgradable packages based on showDowngrades.
         /// </summary>
@@ -455,7 +471,14 @@ namespace NugetForUnity.Ui
                     UpdateInstalledPackages();
 
                     EditorUtility.DisplayProgressBar("Opening NuGet", "Getting available updates...", 0.9f);
-                    UpdateUpdatePackages();
+                    if (forceFullRefresh)
+                    {
+                        UpdateUpdatePackages();
+                    }
+                    else
+                    {
+                        UpdateUpdatePackagesInBackground();
+                    }
 
                     versionDropdownDataPerPackage.Clear();
 
@@ -519,6 +542,40 @@ namespace NugetForUnity.Ui
             updatePackages = ConfigurationManager.GetUpdates(InstalledPackagesManager.InstalledPackages, showPrereleaseUpdates);
         }
 
+        /// <summary>
+        ///     Updates the list of update packages.
+        /// </summary>
+        private void UpdateUpdatePackagesInBackground()
+        {
+            fetchingUpdates = true;
+            fetchUpdatesCancellationSource = new CancellationTokenSource();
+            var token = fetchUpdatesCancellationSource.Token;
+            Task.Run(() =>
+            {
+                try
+                {
+                    updatePackages = ConfigurationManager.GetUpdates(
+                        InstalledPackagesManager.InstalledPackages,
+                        showPrereleaseUpdates,
+                        token: token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // ignore
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+                finally
+                {
+                    EditorApplication.delayCall += Repaint;
+                    fetchingUpdates = false;
+                }
+            },
+            token);
+        }
+
         private void OnTabChanged()
         {
             openCloneWindows.Clear();
@@ -554,7 +611,8 @@ namespace NugetForUnity.Ui
             }
             else
             {
-                DrawNoDataAvailableInfo("There are no updates available!");
+                var message = fetchingUpdates ? "Fetching package updates. Please wait..." : "There are no updates available!";
+                DrawNoDataAvailableInfo(message);
             }
 
             EditorGUILayout.EndVertical();

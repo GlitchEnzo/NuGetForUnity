@@ -206,7 +206,8 @@ namespace NugetForUnity.PackageSource
             IEnumerable<INugetPackage> packages,
             bool includePrerelease = false,
             string targetFrameworks = "",
-            string versionConstraints = "")
+            string versionConstraints = "",
+            CancellationToken token = default)
         {
             var activeSourcesCount = packageSources.Count(source => source.IsEnabled);
             if (activeSourcesCount == 0)
@@ -217,11 +218,11 @@ namespace NugetForUnity.PackageSource
 
             if (activeSourcesCount == 1)
             {
-                return packageSources.First(source => source.IsEnabled).GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints);
+                return packageSources.First(source => source.IsEnabled).GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints, token);
             }
 
-            return packageSources.Where(source => source.IsEnabled)
-                .SelectMany(source => source.GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints))
+            return packageSources.AsParallel().Where(source => source.IsEnabled)
+                .SelectMany(source => source.GetUpdates(packages, includePrerelease, targetFrameworks, versionConstraints, token))
                 .Distinct()
                 .ToList();
         }
