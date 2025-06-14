@@ -13,6 +13,8 @@ namespace UnityEngine
     {
         private static JsonSerializerOptions? options;
 
+        private static JsonSerializerOptions? prettyOptions;
+
         private static JsonSerializerOptions Options
         {
             get
@@ -30,6 +32,8 @@ namespace UnityEngine
             }
         }
 
+        private static JsonSerializerOptions PrettyOptions => prettyOptions ??= new JsonSerializerOptions(Options) { WriteIndented = true };
+
         public static T? FromJson<T>(string output)
         {
             return JsonSerializer.Deserialize<T>(output, Options);
@@ -42,21 +46,21 @@ namespace UnityEngine
 
         internal static string ToJson<T>(T value, bool pretty = false)
         {
-            Options.WriteIndented = pretty;
-            return JsonSerializer.Serialize(value, Options);
+            return JsonSerializer.Serialize(value, pretty ? PrettyOptions : Options);
         }
 
-        private class PrivateFieldConverter<T> : JsonConverter<T>
+        // special converter for classes with private fields e.g. NativeRuntimeSettings and NativeRuntimeAssetConfiguration
+        private sealed class PrivateFieldConverter<T> : JsonConverter<T>
             where T : new()
         {
             public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
-                    throw new JsonException();
+                    throw new JsonException($"Expected first token to be {nameof(JsonTokenType.StartObject)} but got {reader.TokenType}");
                 }
 
-                var obj = new T();
+                var result = new T();
 
                 var fieldMap = new Dictionary<string, FieldInfo>();
                 foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
@@ -68,25 +72,25 @@ namespace UnityEngine
                 {
                     if (reader.TokenType == JsonTokenType.EndObject)
                     {
-                        return obj;
+                        return result;
                     }
 
                     if (reader.TokenType != JsonTokenType.PropertyName)
                     {
-                        throw new JsonException();
+                        throw new JsonException($"Expected {nameof(JsonTokenType.PropertyName)} but got {reader.TokenType}");
                     }
 
                     var propName = reader.GetString();
 
                     if (propName == null || !reader.Read())
                     {
-                        throw new JsonException();
+                        throw new JsonException("Expected the name of the property but got null");
                     }
 
                     if (fieldMap.TryGetValue(propName, out var field))
                     {
                         var value = JsonSerializer.Deserialize(ref reader, field.FieldType, options);
-                        field.SetValue(obj, value);
+                        field.SetValue(result, value);
                     }
                     else
                     {
@@ -95,7 +99,7 @@ namespace UnityEngine
                     }
                 }
 
-                throw new JsonException("Incomplete JSON object");
+                throw new JsonException($"Incomplete JSON object. Not reached {nameof(JsonTokenType.EndObject)}");
             }
 
             public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
