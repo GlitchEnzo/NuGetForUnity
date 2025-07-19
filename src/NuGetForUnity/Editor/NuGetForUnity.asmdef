@@ -11,7 +11,7 @@
     "precompiledReferences": [
         "NuGetForUnity.PluginAPI.dll"
     ],
-    "autoReferenced": true,
+    "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
