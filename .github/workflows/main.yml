@@ -279,3 +279,29 @@ jobs:
           projectPath: ${{ matrix.projectPath }}
           # disable versioning
           versioning: "None"
+
+  testCliOnLinux:
+    name: Test NuGetForUnity.Cli.Tests on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout action file
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions/checkout/action.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout
+        uses: ./.github/actions/checkout
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Restore NuGet packages
+        run: dotnet restore src/NuGetForUnity.Cli.Tests/NuGetForUnity.Cli.Tests.csproj
+
+      - name: Run NuGetForUnity.Cli.Tests
+        run: dotnet test src/NuGetForUnity.Cli.Tests/NuGetForUnity.Cli.Tests.csproj --logger "console;verbosity=normal"
