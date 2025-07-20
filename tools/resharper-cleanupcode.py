@@ -9,6 +9,7 @@ repositoryRoot = os.path.dirname(scriptLocation)
 solutionFiles = ["src/NuGetForUnity.Tests/NuGetForUnity.Tests.sln", "src/NuGetForUnity.Cli/NuGetForUnity.Cli.sln", "src/NuGetForUnity.PluginAPI/NuGetForUnity.PluginAPI.sln"]
 toolsRoot = repositoryRoot
 mainPackageFolder = os.path.realpath(os.path.join(repositoryRoot, "src/NuGetForUnity")) + os.sep
+cliTestsProjectFolder = os.path.realpath(os.path.join(repositoryRoot, "src/NuGetForUnity.Cli.Tests")) + os.sep
 
 subprocess.run(["dotnet", "tool", "restore"], cwd = toolsRoot, check = True)
 startTime = time.time()
@@ -17,8 +18,6 @@ try:
     for solutionFile in solutionFiles:
         relativeSolutionFile = solutionFile
         solutionFile = os.path.realpath(os.path.join(repositoryRoot, solutionFile))
-        if not os.path.isfile(solutionFile):
-           sys.exit(f"can't find the solution file: {solutionFile}")
         solutionDir = os.path.dirname(solutionFile)
         if len(sys.argv) <= 1:
             cleanupArg = ""
@@ -29,19 +28,28 @@ try:
                 absoluteChangedFile = os.path.realpath(os.path.join(repositoryRoot, changedFile))
                 changedFile = os.path.relpath(absoluteChangedFile, solutionDir)
                 if changedFile.startswith(".."):
-                    if solutionFile.endswith('NuGetForUnity.Cli.sln') or solutionFile.endswith('NuGetForUnity.PluginAPI.sln'):
-                        # for NuGetForUnity.Cli and NuGetForUnity.PluginAPI we don't format external files
+                    if solutionFile.endswith('NuGetForUnity.Cli.sln'):
+                        if not absoluteChangedFile.startswith(cliTestsProjectFolder):
+                            # for NuGetForUnity.Cli we only include external files that lie inside src/NuGetForUnity.Cli.Tests
+                            continue
+                    elif solutionFile.endswith('NuGetForUnity.PluginAPI.sln'):
+                        # for NuGetForUnity.PluginAPI we don't format external files
                         continue
                     elif not absoluteChangedFile.startswith(mainPackageFolder):
                         # for NuGetForUnity.Tests we only include external files that lie inside src/NuGetForUnity
                         continue
 
-                    # file path can't be outside solution-directory "../" we fall-back to absolute file path
-                    changedFile = absoluteChangedFile
+                    # file include pattern can't be relative outside solution-directory "../" also absolute file path doesn't work
+                    # so we fall-back to file path pattern
+                    changedFile = f"**{os.sep}{os.path.basename(absoluteChangedFile)}"
                 cleanupArg += ";" + changedFile
             if cleanupArg.endswith('='):
                 # no changed file owned by solution so skip
                 continue
+
+        if not os.path.isfile(solutionFile):
+           sys.exit(f"can't find the solution file: {solutionFile}")
+
         buildStartTime = time.time()
         subprocess.run(["dotnet", "build", "-property:RunAnalyzers=false", "-clp:ErrorsOnly", "--no-restore", solutionFile], cwd = repositoryRoot, check = True)
         clenupStartTime = time.time()
