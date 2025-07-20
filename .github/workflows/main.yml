@@ -281,7 +281,7 @@ jobs:
           versioning: "None"
 
   testCliOnLinux:
-    name: Test NuGetForUnity.Cli.Tests on Linux
+    name: Run NuGetForUnity.Cli Tests on Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout action file
@@ -297,6 +297,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
+            7.0.x
             8.0.x
             9.0.x
 
