@@ -301,6 +301,16 @@ To disable the automatic referencing of assemblies of a NuGet package you can se
 </packages>
 ```
 
+## Define constraints
+To restrict when a NuGet package is referenced based on Scripting Define Symbols, you can set the `defineConstraints` attribute of a package inside the `packages.config`. All defines listed in `defineConstraints` must be present for the package assemblies to be referenced, just like in Unity’s `.asmdef` files. If the attribute is omitted, the package is always referenced.
+_Currently this setting is not available from UI._
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<packages>
+    <package id="Serilog" version="2.12.0" autoReferenced="false" defineConstraints="UNITY_EDITOR;DEVELOPMENT_BUILD" />
+</packages>
+```
+
 When this setting is set to `false` the assemblies of the NuGet package are only referenced by Unity projects that explicitly list them inside there `*.asmdef` file.
 
 # How do I create my own NuGet packages from within Unity?
