@@ -294,7 +294,7 @@ namespace NugetForUnity
 
             if (!string.IsNullOrWhiteSpace(packageConfig.DefineConstraints))
             {
-                plugin.DefineConstraints = packageConfig.DefineConstraints.Split(";", StringSplitOptions.RemoveEmptyEntries);
+                plugin.DefineConstraints = packageConfig.DefineConstraints.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             }
 
             return new[] { ProcessedLabel };
