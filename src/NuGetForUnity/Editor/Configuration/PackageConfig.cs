@@ -17,6 +17,15 @@ namespace NugetForUnity.Configuration
         public bool AutoReferenced { get; set; } = true;
 
         /// <summary>
+        ///     Gets or sets additional compile-time constraints associated with this package.
+        ///     This property contains a string representing extra compile-time constraints related to the package,
+        ///     such as conditional compilation symbols or conditions for applying the package. Multiple constraints
+        ///     can be combined using a delimiter (for example, a semicolon ';'); the exact delimiter and parsing
+        ///     rules are determined by the consumer of this property. An empty string means no constraints. The default value is an empty string.
+        /// </summary>
+        public string DefineConstraints { get; set; } = string.Empty;
+
+        /// <summary>
         ///     Gets or sets the configured target framework moniker that is used to install this NuGet package instead of
         ///     automatically determining the best matching target framework from the Unity settings ('Api Compatibility Level').
         /// </summary>
