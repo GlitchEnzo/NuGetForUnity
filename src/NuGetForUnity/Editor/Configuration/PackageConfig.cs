@@ -16,6 +16,8 @@ namespace NugetForUnity.Configuration
         /// </summary>
         public bool AutoReferenced { get; set; } = true;
 
+        public string DefineConstraints { get; set; } = string.Empty;
+
         /// <summary>
         ///     Gets or sets the configured target framework moniker that is used to install this NuGet package instead of
         ///     automatically determining the best matching target framework from the Unity settings ('Api Compatibility Level').

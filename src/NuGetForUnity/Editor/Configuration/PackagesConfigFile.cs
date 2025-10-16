@@ -22,6 +22,8 @@ namespace NugetForUnity.Configuration
 
         private const string AutoReferencedAttributeName = "autoReferenced";
 
+        private const string DefineConstraintsAttributeName = "defineConstraints";
+
         private const string TargetFrameworkAttributeName = "targetFramework";
 
         [CanBeNull]
@@ -73,6 +75,7 @@ namespace NugetForUnity.Configuration
                         packageElement.Attribute("manuallyInstalled")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false,
                     AutoReferenced = (bool)(packageElement.Attributes(AutoReferencedAttributeName).FirstOrDefault() ??
                                             new XAttribute(AutoReferencedAttributeName, true)),
+                    DefineConstraints = packageElement.Attribute(DefineConstraintsAttributeName)?.Value ?? string.Empty,
                     TargetFramework = packageElement.Attribute(TargetFrameworkAttributeName)?.Value,
                 };
                 configFile.Packages.Add(package);
@@ -146,6 +149,11 @@ namespace NugetForUnity.Configuration
                 if (!package.AutoReferenced)
                 {
                     packageElement.Add(new XAttribute(AutoReferencedAttributeName, package.AutoReferenced));
+                }
+
+                if (!string.IsNullOrEmpty(package.DefineConstraints))
+                {
+                    packageElement.Add(new XAttribute(DefineConstraintsAttributeName, package.DefineConstraints));
                 }
 
                 if (!string.IsNullOrEmpty(package.TargetFramework))
