@@ -113,6 +113,7 @@ namespace NuGetForUnity.Cli
                          guid: {Guid.NewGuid():N}
                          {labelsForAsset}
                          PluginImporter:
+                           serializedVersion: 2
                            platformData:
                            - first:
                                : Any
