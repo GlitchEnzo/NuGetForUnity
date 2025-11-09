@@ -280,6 +280,11 @@ namespace NugetForUnity.Configuration
                            throw new InvalidOperationException($"activePackageSource misses 'value' attribute. Element:\n{add}");
                 configFile.ActivePackageSource = NugetPackageSourceCreator.CreatePackageSource(name, path, null, configFile.PackageSources);
             }
+            else
+            {
+                // If no active package source is defined, create a combined source from all available sources.
+                configFile.ActivePackageSource = new NugetPackageSourceCombined(configFile.PackageSources);
+            }
 
             // disable all listed disabled package sources
             var disabledPackageSources = file.Root?.Element("disabledPackageSources");
