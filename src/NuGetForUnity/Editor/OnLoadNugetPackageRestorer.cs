@@ -15,6 +15,11 @@ namespace NugetForUnity
         /// </summary>
         static OnLoadNugetPackageRestorer()
         {
+            if (AssetDatabase.IsAssetImportWorkerProcess())
+            {
+                return;
+            }
+            
             if (SessionState.GetBool("NugetForUnity.FirstProjectOpen", false))
             {
                 return;
