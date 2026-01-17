@@ -83,7 +83,7 @@ namespace NugetForUnity.PackageSource
         ///     Gets a NugetPackage from the NuGet source that matches (or is in range of) the given <see cref="INugetPackageIdentifier" />.
         /// </summary>
         /// <param name="package">The <see cref="INugetPackageIdentifier" /> containing the ID and Version of the package to get.</param>
-        /// <returns>The retrieved package, if there is one.  Null if no matching package was found.</returns>
+        /// <returns>The retrieved package, if there is one. Empty list if no matching package was found.</returns>
         [NotNull]
         [ItemNotNull]
         List<INugetPackage> FindPackagesById([NotNull] INugetPackageIdentifier package);
