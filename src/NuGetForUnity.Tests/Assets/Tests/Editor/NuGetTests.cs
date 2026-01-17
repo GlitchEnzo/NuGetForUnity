@@ -1103,6 +1103,7 @@ public class NuGetTests
     [TestCase("win-x86", BuildTarget.StandaloneWindows)]
     [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
     [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
+    [TestCase("osx", BuildTarget.StandaloneOSX)]
     public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
     {
         var nativeSettingsFilePath = Path.Combine(

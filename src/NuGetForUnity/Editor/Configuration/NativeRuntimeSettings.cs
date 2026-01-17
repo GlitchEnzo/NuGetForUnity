@@ -82,6 +82,7 @@ namespace NugetForUnity.Configuration
                     new NativeRuntimeAssetConfiguration("ios-arm64", "ARM64", null, null, BuildTarget.iOS),
                     new NativeRuntimeAssetConfiguration("osx-x64", "x86_64", null, "OSX", BuildTarget.StandaloneOSX),
                     new NativeRuntimeAssetConfiguration("osx-arm64", "ARM64", null, null, BuildTarget.StandaloneOSX),
+                    new NativeRuntimeAssetConfiguration("osx", "AnyCPU", "AnyCPU", "OSX", BuildTarget.StandaloneOSX),
                 },
             };
         }
