@@ -3,7 +3,7 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>NuGetForUnity.Cli</RootNamespace>
         <AssemblyName>NuGetForUnity.Cli</AssemblyName>
-        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <PlatformTarget>AnyCPU</PlatformTarget>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>nugetforunity</ToolCommandName>
