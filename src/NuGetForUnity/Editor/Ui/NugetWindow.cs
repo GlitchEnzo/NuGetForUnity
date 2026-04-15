@@ -938,6 +938,7 @@ namespace NugetForUnity.Ui
                     {
                         showPrereleaseUpdates = showPrereleaseTemp;
                         UpdateUpdatePackages();
+                        versionDropdownDataPerPackage.Clear();
                     }
 
                     var showDowngradesTemp = GUILayout.Toggle(
@@ -1290,7 +1291,11 @@ namespace NugetForUnity.Ui
                         if (!string.IsNullOrEmpty(package.ReleaseNotes))
                         {
                             EditorGUILayout.LabelField("Release Notes", EditorStyles.boldLabel);
-                            EditorGUILayout.LabelField(package.ReleaseNotes);
+                            var releaseNotesContent = new GUIContent(package.ReleaseNotes);
+                            var releaseNotesRect = EditorGUILayout.GetControlRect(
+                                true,
+                                labelStyle.CalcHeight(releaseNotesContent, EditorGUIUtility.currentViewWidth - 20f) + 12f);
+                            EditorGUI.LabelField(releaseNotesRect, releaseNotesContent, labelStyle);
                             GUILayout.Space(4f);
                         }
 

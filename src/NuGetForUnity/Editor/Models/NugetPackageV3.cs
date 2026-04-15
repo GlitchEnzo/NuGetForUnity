@@ -61,6 +61,10 @@ namespace NugetForUnity.Models
         [NotNull]
         private NugetPackageSourceV3 packageSource;
 
+        [SerializeField]
+        [NotNull]
+        private string releaseNotes;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="NugetPackageV3" /> class.
         /// </summary>
@@ -75,6 +79,7 @@ namespace NugetForUnity.Models
         /// <param name="summary">The short summary.</param>
         /// <param name="title">The human readable title.</param>
         /// <param name="iconUrl">The URL where the icon can be downloaded.</param>
+        /// <param name="releaseNotes">Release notes from the currently installed version.</param>
         /// <param name="versions">All available versions.</param>
         public NugetPackageV3(
             [NotNull] string id,
@@ -88,6 +93,7 @@ namespace NugetForUnity.Models
             [CanBeNull] string summary,
             [CanBeNull] string title,
             [CanBeNull] string iconUrl,
+            string releaseNotes,
             List<NugetPackageVersion> versions)
             : base(id, version)
         {
@@ -100,6 +106,7 @@ namespace NugetForUnity.Models
             Summary = summary;
             Title = title;
             this.iconUrl = iconUrl;
+            this.releaseNotes = releaseNotes;
             Versions = versions;
         }
 
@@ -178,7 +185,7 @@ namespace NugetForUnity.Models
         }
 
         /// <inheritdoc />
-        public string ReleaseNotes => string.Empty;
+        public string ReleaseNotes => releaseNotes;
 
         /// <inheritdoc />
         public RepositoryType RepositoryType => RepositoryType.NotSpecified;

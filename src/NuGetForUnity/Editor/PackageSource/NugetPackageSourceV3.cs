@@ -264,7 +264,7 @@ namespace NugetForUnity.PackageSource
 
                             var fetchedPackages = await Task.WhenAll(
                                     packagesToFetch.Select(package =>
-                                        ApiClient.GetPackageWithAllVersionsAsync(this, package, CancellationToken.None)))
+                                        ApiClient.GetPackageWithAllVersionsAsync(this, package, includePrerelease, CancellationToken.None)))
                                 .ConfigureAwait(false);
                             return fetchedPackages.Where(fetchedPackage => !(fetchedPackage is null)).ToList<INugetPackage>();
                         }

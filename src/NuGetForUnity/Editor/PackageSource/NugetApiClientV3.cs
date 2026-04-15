@@ -246,11 +246,13 @@ namespace NugetForUnity.PackageSource
         /// </summary>
         /// <param name="packageSource">The package source that owns this client.</param>
         /// <param name="package">The package identifier to receive including the details.</param>
+        /// <param name="includePrerelease">True to include prerelease packages (alpha, beta, etc).</param>
         /// <param name="cancellationToken">Token to cancel the HTTP request.</param>
         /// <returns>The package or null if we didn't find it.</returns>
         public async Task<NugetPackageV3> GetPackageWithAllVersionsAsync(
             NugetPackageSourceV3 packageSource,
             INugetPackageIdentifier package,
+            bool includePrerelease,
             CancellationToken cancellationToken = default)
         {
             var registrationItems = await GetRegistrationPageItemsAsync(packageSource, package, cancellationToken);
@@ -262,6 +264,7 @@ namespace NugetForUnity.PackageSource
             var versions = new List<NugetPackageVersion>();
             RegistrationLeafObject latestVersionItem = null;
             NugetPackageVersion latestVersion = null;
+            var sb = new StringBuilder();
             foreach (var item in registrationItems)
             {
                 if (item.items is null || item.items.Count == 0)
@@ -269,6 +272,7 @@ namespace NugetForUnity.PackageSource
                     item.items = await GetRegistrationPageLeafItems(packageSource, item, cancellationToken).ConfigureAwait(false);
                 }
 
+                var lastNote = string.Empty;
                 foreach (var leafObject in item.items)
                 {
                     var catalogEntry = leafObject.CatalogEntry;
@@ -280,7 +284,11 @@ namespace NugetForUnity.PackageSource
                     }
 
                     var version = new NugetPackageVersion(catalogEntry.version);
-                    versions.Add(version);
+                    if (includePrerelease || !version.IsPrerelease)
+                    {
+                        versions.Add(version);
+                    }
+
                     if (latestVersion != null && version <= latestVersion)
                     {
                         continue;
@@ -288,11 +296,16 @@ namespace NugetForUnity.PackageSource
 
                     latestVersion = version;
                     latestVersionItem = leafObject;
+                    if (!string.IsNullOrWhiteSpace(catalogEntry.releaseNotes) && lastNote != catalogEntry.releaseNotes && version > package.PackageVersion)
+                    {
+                        sb.Append(catalogEntry.releaseNotes).Append("\n");
+                        lastNote = catalogEntry.releaseNotes;
+                    }
                 }
             }
 
             versions.Sort((v1, v2) => v2.CompareTo(v1));
-            return CreatePackageFromRegistrationLeaf(packageSource, latestVersionItem, versions);
+            return CreatePackageFromRegistrationLeaf(packageSource, latestVersionItem, sb.ToString(), versions);
         }
 
         /// <summary>
@@ -314,7 +327,7 @@ namespace NugetForUnity.PackageSource
                 return null;
             }
 
-            return CreatePackageFromRegistrationLeaf(packageSource, leafItem);
+            return CreatePackageFromRegistrationLeaf(packageSource, leafItem, leafItem.CatalogEntry.releaseNotes);
         }
 
         /// <summary>
@@ -343,6 +356,7 @@ namespace NugetForUnity.PackageSource
         private static NugetPackageV3 CreatePackageFromRegistrationLeaf(
             NugetPackageSourceV3 packageSource,
             RegistrationLeafObject leafItem,
+            string releaseNotes,
             List<NugetPackageVersion> allVersions = null)
         {
             var entry = leafItem.CatalogEntry;
@@ -368,6 +382,7 @@ namespace NugetForUnity.PackageSource
                 entry.summary,
                 entry.title,
                 entry.iconUrl,
+                releaseNotes,
                 allVersions ?? new List<NugetPackageVersion> { new NugetPackageVersion(entry.version) })
             {
                 DownloadUrl = leafItem.packageContent, Dependencies = ConvertDependencyGroups(entry),
@@ -443,6 +458,7 @@ namespace NugetForUnity.PackageSource
                         item.summary,
                         item.title,
                         item.iconUrl,
+                        string.Empty,
                         versions));
             }
 
@@ -1016,6 +1032,9 @@ namespace NugetForUnity.PackageSource
             /// </summary>
             [CanBeNull]
             public string version;
+
+            [CanBeNull]
+            public string releaseNotes;
 
             /// <summary>
             ///     The security vulnerabilities of the package.
