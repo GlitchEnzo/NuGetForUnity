@@ -292,6 +292,11 @@ namespace NugetForUnity
         {
             PluginImporterIsExplicitlyReferencedProperty.SetValue(plugin, !packageConfig.AutoReferenced);
 
+            if (!string.IsNullOrWhiteSpace(packageConfig.DefineConstraints))
+            {
+                plugin.DefineConstraints = packageConfig.DefineConstraints.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            }
+
             return new[] { ProcessedLabel };
         }
 
