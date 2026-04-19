@@ -80,7 +80,7 @@ namespace NugetForUnity.Configuration
                     new NativeRuntimeAssetConfiguration("linux-arm64", "ARM64", null, "Linux", BuildTarget.StandaloneLinux64),
                     new NativeRuntimeAssetConfiguration("android", null, null, null, BuildTarget.Android),
                     new NativeRuntimeAssetConfiguration("android-x64", "x86_64", null, null, BuildTarget.Android),
-                    new NativeRuntimeAssetConfiguration("android-arm", null, null, null, BuildTarget.Android),
+                    new NativeRuntimeAssetConfiguration("android-arm", "ARMv7", null, null, BuildTarget.Android),
                     new NativeRuntimeAssetConfiguration("android-arm64", "ARM64", null, null, BuildTarget.Android),
                     new NativeRuntimeAssetConfiguration("ios", null, null, null, BuildTarget.iOS),
                     new NativeRuntimeAssetConfiguration("ios-x64", "x86_64", null, null, BuildTarget.iOS),
