@@ -1160,6 +1160,14 @@ namespace NugetForUnity.Ui
                             InstalledPackagesManager.SetManuallyInstalledFlag(installed);
                             ClearViewCache();
                         }
+
+                        if (GUILayout.Button(
+                                new GUIContent(
+                                    "Uninstall and Ignore",
+                                    "Uninstall this implicit package and add its package ID to Ignored Dependencies.")))
+                        {
+                            UninstallAndIgnoreDependency(installed);
+                        }
                     }
 
                     if (currentTab == NugetWindowTab.UpdatesTab)
@@ -1449,6 +1457,18 @@ namespace NugetForUnity.Ui
             }
 
             EditorGUI.DrawRect(EditorGUILayout.GetControlRect(false, 1f), Styles.LineColor);
+        }
+
+        private void UninstallAndIgnoreDependency([NotNull] INugetPackage installed)
+        {
+            if (ConfigurationManager.NugetConfigFile.AddIgnoredPackageDependency(installed.Id))
+            {
+                ConfigurationManager.NugetConfigFile.Save(ConfigurationManager.NugetConfigFilePath);
+            }
+
+            NugetPackageUninstaller.Uninstall(installed, PackageUninstallReason.IndividualUninstall);
+            UpdateInstalledPackages();
+            UpdateUpdatePackages();
         }
 
         private sealed class VersionDropdownData

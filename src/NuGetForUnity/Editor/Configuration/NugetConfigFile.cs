@@ -680,6 +680,29 @@ namespace NugetForUnity.Configuration
         }
 
         /// <summary>
+        ///     Adds the given package ID to the dependency ignore list.
+        /// </summary>
+        /// <param name="packageId">The dependency package ID to ignore.</param>
+        /// <returns>True if the package ID was added, false if it was already present or empty.</returns>
+        internal bool AddIgnoredPackageDependency([NotNull] string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                return false;
+            }
+
+            var normalizedPackageId = packageId.Trim();
+            if (IgnoredPackageDependencies.Exists(
+                    ignoredPackageId => string.Equals(ignoredPackageId, normalizedPackageId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            IgnoredPackageDependencies.Add(normalizedPackageId);
+            return true;
+        }
+
+        /// <summary>
         ///     Changes the package install location config and also moves the packages.config to the new location.
         /// </summary>
         /// <param name="newInstallLocation">New install location to set.</param>

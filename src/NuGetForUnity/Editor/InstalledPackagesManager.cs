@@ -246,17 +246,19 @@ namespace NugetForUnity
         }
 
         /// <summary>
-        ///     Finds and removes any installed packages detected that are not listed inside the packages.config.
+        ///     Finds and removes any installed packages detected that are not listed inside the packages.config, and removes ignored implicit entries from
+        ///     packages.config.
         /// </summary>
-        /// <returns>True if some packages are deleted.</returns>
+        /// <returns>True if some packages or packages.config entries are deleted.</returns>
         internal static bool RemoveUnnecessaryPackages()
         {
+            var somethingDeleted = RemoveIgnoredImplicitPackagesFromConfig();
+
             if (!Directory.Exists(ConfigurationManager.NugetConfigFile.RepositoryPath))
             {
-                return false;
+                return somethingDeleted;
             }
 
-            var somethingDeleted = false;
             foreach (var installedPackage in InstalledPackages)
             {
                 var packageConfig = PackagesConfigFile.Packages.Find(packageId => packageId.Equals(installedPackage));
@@ -342,6 +344,27 @@ namespace NugetForUnity
             }
 
             return roots;
+        }
+
+        private static bool RemoveIgnoredImplicitPackagesFromConfig()
+        {
+            var ignoredImplicitPackages = PackagesConfigFile.Packages
+                .Where(package => !package.IsManuallyInstalled && ConfigurationManager.NugetConfigFile.IsPackageDependencyIgnored(package.Id))
+                .ToList();
+
+            foreach (var ignoredImplicitPackage in ignoredImplicitPackages)
+            {
+                NugetLogger.LogVerbose("---REMOVE ignored dependency from packages.config {0}", ignoredImplicitPackage.Id);
+                PackagesConfigFile.RemovePackage(ignoredImplicitPackage);
+            }
+
+            if (ignoredImplicitPackages.Count <= 0)
+            {
+                return false;
+            }
+
+            PackagesConfigFile.Save();
+            return true;
         }
 
         private static void AddPackageToInstalledInternal([NotNull] NugetPackageLocal package, ref int manuallyInstalledPackagesNumber)

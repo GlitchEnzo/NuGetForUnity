@@ -239,7 +239,7 @@ If a dependency is already provided by another Unity plugin that is installed ou
 <add key="ignoredPackageDependencies" value="Package.Id;Another.Package.Id" />
 ```
 
-NuGetForUnity skips these package IDs only when they are pulled transitively as dependencies. Explicitly installing the same package still works.
+NuGetForUnity skips these package IDs only when they are pulled transitively as dependencies. Existing non-manually-installed entries for ignored dependencies are removed from _packages.config_ during restore or package cleanup. Explicitly installing the same package still works.
 
 ## Caching
 

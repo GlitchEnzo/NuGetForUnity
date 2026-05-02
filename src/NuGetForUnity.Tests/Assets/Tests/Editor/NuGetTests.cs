@@ -362,6 +362,7 @@ public class NuGetTests
 
             Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(styleCopPlusId));
             Assert.That(InstalledPackagesManager.InstalledPackages, Does.Not.Contain(styleCopId));
+            Assert.That(InstalledPackagesManager.PackagesConfigFile.Packages, Does.Not.Contain(styleCopId));
         }
         finally
         {
