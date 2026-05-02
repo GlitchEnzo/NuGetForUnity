@@ -177,6 +177,12 @@ namespace NugetForUnity
                         NugetLogger.LogVerbose("Installing dependencies for TargetFramework: {0}", frameworkGroup.TargetFramework);
                         foreach (var dependency in frameworkGroup.Dependencies)
                         {
+                            if (ConfigurationManager.NugetConfigFile.IsPackageDependencyIgnored(dependency.Id))
+                            {
+                                NugetLogger.LogVerbose("Skipping ignored dependency: {0} {1}", dependency.Id, dependency.Version);
+                                continue;
+                            }
+
                             NugetLogger.LogVerbose("Installing Dependency: {0} {1}", dependency.Id, dependency.Version);
                             var dependencyResult = Install(dependency, false, false, false);
                             result.Combine(dependencyResult);

@@ -65,6 +65,8 @@ namespace NugetForUnity.Ui
         /// </summary>
         private Vector2 pluginsScrollPosition;
 
+        private string ignoredPackageDependenciesText;
+
         private GUIStyle redToggleStyle;
 
         /// <summary>
@@ -92,6 +94,7 @@ namespace NugetForUnity.Ui
                                                   !UnityPathHelper.IsPathInAssets(ConfigurationManager.NugetConfigFile.PackagesConfigDirectoryPath);
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var enabledPlugins = new HashSet<NugetForUnityPluginId>(ConfigurationManager.NugetConfigFile.EnabledPlugins);
+            ignoredPackageDependenciesText = ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText;
             plugins = assemblies.Where(assembly => assembly.FullName.IndexOf("NugetForUnityPlugin", StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(assembly => new NugetPlugin(assembly, enabledPlugins.Remove(new NugetForUnityPluginId(assembly))))
                 .ToList();
@@ -173,6 +176,19 @@ namespace NugetForUnity.Ui
             {
                 preferencesChangedThisFrame = true;
                 ConfigurationManager.NugetConfigFile.SlimRestore = slimRestore;
+            }
+
+            var ignoredPackageDependencies = EditorGUILayout.TextField(
+                new GUIContent(
+                    "Ignored Dependencies",
+                    "Package IDs that NuGetForUnity should skip when they are pulled as dependencies of another package. " +
+                    "Separate IDs with semicolons or commas. Explicit installs are still allowed."),
+                ignoredPackageDependenciesText);
+            if (ignoredPackageDependencies != ignoredPackageDependenciesText)
+            {
+                preferencesChangedThisFrame = true;
+                ignoredPackageDependenciesText = ignoredPackageDependencies;
+                ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText = ignoredPackageDependenciesText;
             }
 
             var newInstallLocation = (PackageInstallLocation)EditorGUILayout.EnumPopup(
@@ -606,6 +622,7 @@ namespace NugetForUnity.Ui
             {
                 NugetConfigFile.CreateDefaultFile(ConfigurationManager.NugetConfigFilePath);
                 ConfigurationManager.LoadNugetConfigFile();
+                ignoredPackageDependenciesText = ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText;
                 preferencesChangedThisFrame = true;
             }
 

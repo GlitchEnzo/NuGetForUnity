@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
@@ -26,7 +27,7 @@ namespace NugetForUnity
             {
                 var packagesToInstall =
                     InstalledPackagesManager.PackagesConfigFile.Packages.FindAll(
-                        package => !InstalledPackagesManager.IsInstalled(package, !slimRestore));
+                        package => ShouldRestorePackage(package, !slimRestore));
                 if (packagesToInstall.Count > 0)
                 {
                     var progressStep = 1.0f / packagesToInstall.Count;
@@ -68,6 +69,17 @@ namespace NugetForUnity
 
                 EditorUtility.ClearProgressBar();
             }
+        }
+
+        private static bool ShouldRestorePackage(PackageConfig package, bool checkIsAlreadyImportedInEngine)
+        {
+            if (!package.IsManuallyInstalled && ConfigurationManager.NugetConfigFile.IsPackageDependencyIgnored(package.Id))
+            {
+                NugetLogger.LogVerbose("Skipping ignored dependency from packages.config: {0} {1}", package.Id, package.Version);
+                return false;
+            }
+
+            return !InstalledPackagesManager.IsInstalled(package, checkIsAlreadyImportedInEngine);
         }
     }
 }

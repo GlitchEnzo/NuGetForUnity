@@ -56,6 +56,8 @@ namespace NugetForUnity.Configuration
 
         private const string KeepingPdbFilesConfigKey = "KeepingPdbFiles";
 
+        private const string IgnoredPackageDependenciesConfigKey = "ignoredPackageDependencies";
+
         private const string ProtocolVersionAttributeName = "protocolVersion";
 
         private const string EnableCredentialProviderAttributeName = "enableCredentialProvider";
@@ -65,6 +67,8 @@ namespace NugetForUnity.Configuration
         private const string UpdateSearchBatchSizeAttributeName = "updateSearchBatchSize";
 
         private const string SupportsPackageIdSearchFilterAttributeName = "supportsPackageIdSearchFilter";
+
+        private static readonly char[] IgnoredPackageDependencySeparators = { ';', ',', '\r', '\n' };
 
         [NotNull]
         private readonly string unityPackagesNugetInstallPath = Path.Combine(UnityPathHelper.AbsoluteUnityPackagesNugetPath, "InstalledPackages");
@@ -198,6 +202,12 @@ namespace NugetForUnity.Configuration
         public bool PreferNetStandardOverNetFramework { get; set; }
 
         /// <summary>
+        ///     Gets the package dependency IDs that should not be installed when pulled transitively by another package.
+        /// </summary>
+        [NotNull]
+        internal List<string> IgnoredPackageDependencies { get; } = new List<string>();
+
+        /// <summary>
         ///     Gets or sets a value indicating whether PDB files included in NuGet packages should not be deleted if they can be read by Unity.
         /// </summary>
         internal bool KeepingPdbFiles { get; set; }
@@ -211,6 +221,17 @@ namespace NugetForUnity.Configuration
         ///     Gets the list of enabled plugins.
         /// </summary>
         internal List<NugetForUnityPluginId> EnabledPlugins { get; } = new List<NugetForUnityPluginId>();
+
+        /// <summary>
+        ///     Gets or sets the ignored package dependency IDs as editable text.
+        /// </summary>
+        [NotNull]
+        internal string IgnoredPackageDependenciesText
+        {
+            get => string.Join("; ", IgnoredPackageDependencies);
+
+            set => SetIgnoredPackageDependencies(value);
+        }
 
         /// <summary>
         ///     Loads a NuGet.config file at the given file-path.
@@ -382,6 +403,10 @@ namespace NugetForUnity.Configuration
                 {
                     configFile.KeepingPdbFiles = bool.Parse(value);
                 }
+                else if (string.Equals(key, IgnoredPackageDependenciesConfigKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    configFile.SetIgnoredPackageDependencies(value);
+                }
             }
 
             return configFile;
@@ -426,6 +451,8 @@ namespace NugetForUnity.Configuration
         [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "We intentionally use lower case.")]
         public void Save([NotNull] string filePath)
         {
+            NormalizeIgnoredPackageDependencies();
+
             var configFile = new XDocument();
 
             var packageSources = new XElement("packageSources");
@@ -587,6 +614,14 @@ namespace NugetForUnity.Configuration
                 config.Add(addElement);
             }
 
+            if (IgnoredPackageDependencies.Count > 0)
+            {
+                addElement = new XElement("add");
+                addElement.Add(new XAttribute("key", IgnoredPackageDependenciesConfigKey));
+                addElement.Add(new XAttribute("value", string.Join(";", IgnoredPackageDependencies)));
+                config.Add(addElement);
+            }
+
             var configuration = new XElement("configuration");
             configuration.Add(packageSources);
             configuration.Add(disabledPackageSources);
@@ -625,6 +660,46 @@ namespace NugetForUnity.Configuration
             }
 
             configFile.Save(filePath);
+        }
+
+        /// <summary>
+        ///     Checks if the given package ID is configured to be ignored when it is pulled as a dependency.
+        /// </summary>
+        /// <param name="packageId">The dependency package ID.</param>
+        /// <returns>True if the dependency should be skipped.</returns>
+        internal bool IsPackageDependencyIgnored([NotNull] string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                return false;
+            }
+
+            var normalizedPackageId = packageId.Trim();
+            return IgnoredPackageDependencies.Exists(
+                ignoredPackageId => string.Equals(ignoredPackageId, normalizedPackageId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        ///     Adds the given package ID to the dependency ignore list.
+        /// </summary>
+        /// <param name="packageId">The dependency package ID to ignore.</param>
+        /// <returns>True if the package ID was added, false if it was already present or empty.</returns>
+        internal bool AddIgnoredPackageDependency([NotNull] string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId))
+            {
+                return false;
+            }
+
+            var normalizedPackageId = packageId.Trim();
+            if (IgnoredPackageDependencies.Exists(
+                    ignoredPackageId => string.Equals(ignoredPackageId, normalizedPackageId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            IgnoredPackageDependencies.Add(normalizedPackageId);
+            return true;
         }
 
         /// <summary>
@@ -673,6 +748,28 @@ namespace NugetForUnity.Configuration
             }
         }
 
+        [NotNull]
+        private static List<string> ParseIgnoredPackageDependencies([CanBeNull] string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return new List<string>();
+            }
+
+            var packageIds = new List<string>();
+            foreach (var packageId in value.Split(IgnoredPackageDependencySeparators, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmedPackageId = packageId.Trim();
+                if (!string.IsNullOrEmpty(trimmedPackageId) &&
+                    !packageIds.Exists(existingPackageId => string.Equals(existingPackageId, trimmedPackageId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    packageIds.Add(trimmedPackageId);
+                }
+            }
+
+            return packageIds;
+        }
+
         private void FillPackageSourceCredentialsFromConfig(XDocument file, bool overwriteMissingFromExternal)
         {
             var packageSourceCredentials = file.Root?.Element("packageSourceCredentials");
@@ -714,6 +811,29 @@ namespace NugetForUnity.Configuration
                     }
                 }
             }
+        }
+
+        private void SetIgnoredPackageDependencies([CanBeNull] string value)
+        {
+            IgnoredPackageDependencies.Clear();
+            IgnoredPackageDependencies.AddRange(ParseIgnoredPackageDependencies(value));
+        }
+
+        private void NormalizeIgnoredPackageDependencies()
+        {
+            var uniquePackageIds = new List<string>();
+            foreach (var packageId in IgnoredPackageDependencies)
+            {
+                var trimmedPackageId = packageId?.Trim();
+                if (!string.IsNullOrEmpty(trimmedPackageId) &&
+                    !uniquePackageIds.Exists(existingPackageId => string.Equals(existingPackageId, trimmedPackageId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    uniquePackageIds.Add(trimmedPackageId);
+                }
+            }
+
+            IgnoredPackageDependencies.Clear();
+            IgnoredPackageDependencies.AddRange(uniquePackageIds);
         }
     }
 }

@@ -339,6 +339,38 @@ public class NuGetTests
     }
 
     [Test]
+    public void InstallStyleCopWithIgnoredDependencyTest([Values] InstallMode installMode)
+    {
+        ConfigureNugetConfig(installMode);
+
+        var oldIgnoredPackageDependencies = ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText;
+        try
+        {
+            ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText = "stylecop.msbuild";
+
+            var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5") { IsManuallyInstalled = true };
+            var styleCopId = new NugetPackageIdentifier("StyleCop.MSBuild", "4.7.49.0");
+
+            NugetPackageInstaller.InstallIdentifier(styleCopPlusId);
+
+            Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(styleCopPlusId));
+            Assert.That(InstalledPackagesManager.InstalledPackages, Does.Not.Contain(styleCopId));
+            Assert.That(InstalledPackagesManager.PackagesConfigFile.Packages, Does.Not.Contain(styleCopId));
+
+            InstalledPackagesManager.PackagesConfigFile.Packages.Add(new PackageConfig { Id = styleCopId.Id, Version = styleCopId.Version });
+            PackageRestorer.Restore(false);
+
+            Assert.That(InstalledPackagesManager.InstalledPackages, Does.Contain(styleCopPlusId));
+            Assert.That(InstalledPackagesManager.InstalledPackages, Does.Not.Contain(styleCopId));
+            Assert.That(InstalledPackagesManager.PackagesConfigFile.Packages, Does.Not.Contain(styleCopId));
+        }
+        finally
+        {
+            ConfigurationManager.NugetConfigFile.IgnoredPackageDependenciesText = oldIgnoredPackageDependencies;
+        }
+    }
+
+    [Test]
     public void InstallStyleCopWithoutDependenciesTest()
     {
         var styleCopPlusId = new NugetPackageIdentifier("StyleCopPlus.MSBuild", "4.7.49.5");
@@ -720,6 +752,31 @@ public class NuGetTests
         Assert.That(parsedSource.HasPassword, Is.True);
         Assert.That(parsedSource.SavedUserName, Is.EqualTo(username));
         Assert.That(parsedSource.SavedPassword, Is.EqualTo(password));
+    }
+
+    [Test]
+    public void IgnoredPackageDependenciesConfigRoundTrips()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}-{NugetConfigFile.FileName}");
+        try
+        {
+            var file = NugetConfigFile.CreateDefaultFile(path);
+            file.IgnoredPackageDependenciesText = "StyleCop.MSBuild; stylecop.msbuild, Newtonsoft.Json";
+            file.Save(path);
+
+            var loaded = NugetConfigFile.Load(path);
+
+            Assert.That(loaded.IgnoredPackageDependencies, Is.EqualTo(new[] { "StyleCop.MSBuild", "Newtonsoft.Json" }));
+            Assert.That(loaded.IsPackageDependencyIgnored("stylecop.msbuild"), Is.True);
+            Assert.That(loaded.IsPackageDependencyIgnored("NUnit"), Is.False);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 
     [Test]
