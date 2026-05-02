@@ -231,6 +231,16 @@ Note: Depending on the size and number of packages you need to install, the `Res
 
 If you are interested in the process NuGetForUnity follows or you are trying to debug an issue, you can force NuGetForUnity to use verbose logging to output an increased amount of data to the Unity console. Either check the `Use Verbose Logging` checkbox in the `NuGet For Unity` settings window or add the line `<add key="verbose" value="true" />` to the `<config>` element in the _NuGet.config_ file. You can disable verbose logging by either setting the value to false or completely deleting the line.
 
+## Ignored Dependencies
+
+If a dependency is already provided by another Unity plugin that is installed outside of NuGetForUnity, add its package ID to `Ignored Dependencies` in the `NuGet For Unity` settings window. The same setting can be configured manually in _NuGet.config_:
+
+```xml
+<add key="ignoredPackageDependencies" value="Package.Id;Another.Package.Id" />
+```
+
+NuGetForUnity skips these package IDs only when they are pulled transitively as dependencies. Explicitly installing the same package still works.
+
 ## Caching
 
 The _.nupkg_ files downloaded from the NuGet server are cached locally in the current user's Application Data folder `%localappdata%\NuGet\Cache` (Windows: `C:\Users\[username]\AppData\Local\NuGet\Cache`, Mac/Linux: `~/.local/share/NuGet/Cache`). The cache location can be overwritten by setting the `NuGetCachePath` environment variable. Packages previously installed are installed via the cache folder instead of downloading it from the server again.

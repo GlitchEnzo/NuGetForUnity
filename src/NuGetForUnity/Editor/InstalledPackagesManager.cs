@@ -259,7 +259,10 @@ namespace NugetForUnity
             var somethingDeleted = false;
             foreach (var installedPackage in InstalledPackages)
             {
-                var shouldBeInstalled = PackagesConfigFile.Packages.Exists(packageId => packageId.Equals(installedPackage));
+                var packageConfig = PackagesConfigFile.Packages.Find(packageId => packageId.Equals(installedPackage));
+                var shouldBeInstalled = packageConfig != null &&
+                                        (packageConfig.IsManuallyInstalled ||
+                                         !ConfigurationManager.NugetConfigFile.IsPackageDependencyIgnored(packageConfig.Id));
 
                 if (!shouldBeInstalled)
                 {
