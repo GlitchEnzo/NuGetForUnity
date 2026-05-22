@@ -4,7 +4,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using NugetForUnity;
 using NugetForUnity.Configuration;
 using NugetForUnity.Helper;
@@ -81,7 +80,6 @@ namespace NuGetForUnity.Cli
                 return;
             }
 
-            UTF8Encoding? utf8NoBom = null;
             foreach (var packageDirectoryPath in Directory.EnumerateDirectories(ConfigurationManager.NugetConfigFile.RepositoryPath))
             {
                 var analyzersDirectoryPath = Path.Combine(packageDirectoryPath, "analyzers");
@@ -92,39 +90,7 @@ namespace NuGetForUnity.Cli
 
                 foreach (var analyzerDllPath in Directory.EnumerateFiles(analyzersDirectoryPath, "*.dll", SearchOption.AllDirectories))
                 {
-                    var analyzerDllMetaPath = $"{analyzerDllPath}.meta";
-                    if (File.Exists(analyzerDllMetaPath))
-                    {
-                        continue;
-                    }
-
-                    var isSupportedRoslynAnalyzer = AnalyzerHelper.ShouldEnableRoslynAnalyzer(analyzerDllPath);
-                    var labelsForAsset = isSupportedRoslynAnalyzer ?
-                        """
-                        labels:
-                        - RoslynAnalyzer
-                        """ :
-                        "labels: []";
-                    utf8NoBom ??= new UTF8Encoding(false);
-                    File.WriteAllText(
-                        analyzerDllMetaPath,
-                        $"""
-                         fileFormatVersion: 2
-                         guid: {Guid.NewGuid():N}
-                         {labelsForAsset}
-                         PluginImporter:
-                           serializedVersion: 2
-                           platformData:
-                           - first:
-                               : Any
-                             second:
-                               enabled: 0
-                           - first:
-                               Any:
-                             second:
-                               enabled: 0
-                         """,
-                        utf8NoBom);
+                    AnalyzerHelper.WriteInitialRoslynAnalyzerImportSettings(analyzerDllPath);
                 }
             }
         }
