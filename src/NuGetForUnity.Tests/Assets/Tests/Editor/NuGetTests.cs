@@ -1104,6 +1104,7 @@ public class NuGetTests
     [TestCase("linux-x64", BuildTarget.StandaloneLinux64)]
     [TestCase("osx-x64", BuildTarget.StandaloneOSX)]
     [TestCase("osx", BuildTarget.StandaloneOSX)]
+    [TestCase("browser-wasm", BuildTarget.WebGL)]
     public void NativeSettingsTest(string runtime, BuildTarget buildTarget)
     {
         var nativeSettingsFilePath = Path.Combine(
