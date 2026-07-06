@@ -723,6 +723,46 @@ public class NuGetTests
     }
 
     [Test]
+    public void MenuRootMatchesScriptDefineSymbolsTest()
+    {
+#if NUGETFORUNITY_MENU_TOOLS
+        Assert.That(NugetMenu.MenuRoot, Is.EqualTo("Tools/NuGet"));
+#elif NUGETFORUNITY_MENU_WINDOW_PACKAGE_MANAGER
+        Assert.That(NugetMenu.MenuRoot, Is.EqualTo("Window/Package Management/NuGet"));
+#else
+        Assert.That(NugetMenu.MenuRoot, Is.EqualTo(NugetConfigFile.DefaultMenuRoot));
+#endif
+    }
+
+    [Test]
+    public void MenuRootConfigIsNotSavedTest()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}_{NugetConfigFile.FileName}");
+
+        try
+        {
+            NugetConfigFile.CreateDefaultFile(path);
+            File.WriteAllText(
+                path,
+                File.ReadAllText(path).Replace(
+                    "  </config>",
+                    "    <add key=\"MenuRoot\" value=\"Tools/NuGet\" />\n  </config>"));
+
+            var file = NugetConfigFile.Load(path);
+            file.Save(path);
+
+            Assert.That(File.ReadAllText(path), Does.Not.Contain("MenuRoot"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Test]
     [TestCase("2018.4.30f1", false, false, false)]
     [TestCase("2018.4.30f1", true, false, false)]
     [TestCase("2021.3.16f1", false, true, true)]

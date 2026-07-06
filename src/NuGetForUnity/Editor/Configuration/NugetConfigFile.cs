@@ -38,6 +38,11 @@ namespace NugetForUnity.Configuration
         public const string FileName = "NuGet.config";
 
         /// <summary>
+        ///     The default root menu path where NuGet menu items are created.
+        /// </summary>
+        public const string DefaultMenuRoot = "NuGet";
+
+        /// <summary>
         ///     The name of the attribute that is used to configure <see cref="NugetPackageSourceV3.PackageDownloadUrlTemplateOverwrite" /> of
         ///     <see cref="NugetPackageSourceV3" />.
         /// </summary>

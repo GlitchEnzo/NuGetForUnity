@@ -30,7 +30,6 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Opens release notes for the current version.
         /// </summary>
-        [MenuItem("NuGet/Version " + NugetPreferences.NuGetForUnityVersion + " \uD83D\uDD17", false, 10)]
         public static void DisplayVersion()
         {
             Application.OpenURL($"{GitHubReleasesPageUrl}/tag/v{NugetPreferences.NuGetForUnityVersion}");
@@ -39,7 +38,6 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Checks/launches the Releases page to update NuGetForUnity with a new version.
         /// </summary>
-        [MenuItem("NuGet/Check for Updates...", false, 11)]
         public static void CheckForUpdates()
         {
             var request = UnityWebRequest.Get(GitHubReleasesApiUrl);

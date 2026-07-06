@@ -44,7 +44,18 @@ namespace NugetForUnity.Ui
 
         private const float LabelPading = 5;
 
-        private static readonly string[] SearchKeywords = { "NuGet", "Packages" };
+        private const string ToolsMenuDefineSymbol = "NUGETFORUNITY_MENU_TOOLS";
+
+        private const string WindowPackageManagementMenuDefineSymbol = "NUGETFORUNITY_MENU_WINDOW_PACKAGE_MANAGER";
+
+        private static readonly string[] SearchKeywords = { "NuGet", "Packages", "Menu" };
+
+        private static readonly string[] MenuLocationLabels =
+        {
+            "NuGet",
+            "Tools - NuGet",
+            "Window Package Management - NuGet",
+        };
 
         private readonly GUIContent deleteX = new GUIContent("\u2716");
 
@@ -127,6 +138,17 @@ namespace NugetForUnity.Ui
             var biggestLabelSize = EditorStyles.label.CalcSize(new GUIContent("Prefer .NET Standard dependencies over .NET Framework")).x;
             EditorGUIUtility.labelWidth = biggestLabelSize;
             EditorGUILayout.LabelField($"Version: {NuGetForUnityVersion}");
+            var menuLocation = GetMenuLocationFromScriptingDefineSymbols();
+            var selectedMenuLocation = (NugetMenuLocation)EditorGUILayout.Popup(
+                new GUIContent(
+                    "Menu Location",
+                    "Changes the scripting define symbol used to compile the NuGet menu path."),
+                (int)menuLocation,
+                MenuLocationLabels);
+            if (selectedMenuLocation != menuLocation)
+            {
+                SetMenuLocationScriptingDefineSymbols(selectedMenuLocation);
+            }
 
             var installFromCache = EditorGUILayout.Toggle("Install From the Cache", ConfigurationManager.NugetConfigFile.InstallFromCache);
             if (installFromCache != ConfigurationManager.NugetConfigFile.InstallFromCache)
@@ -628,6 +650,70 @@ namespace NugetForUnity.Ui
                 // AssetDatabase.Refresh(); doesn't work when we move the files from Assets to Packages so we use this instead:
                 EditorApplication.ExecuteMenuItem("Assets/Refresh");
             }
+        }
+
+        private static NugetMenuLocation GetMenuLocationFromScriptingDefineSymbols()
+        {
+            var defineSymbols = GetCurrentBuildTargetDefineSymbols();
+            var symbols = defineSymbols.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(symbol => symbol.Trim())
+                .ToList();
+
+            if (symbols.Contains(WindowPackageManagementMenuDefineSymbol))
+            {
+                return NugetMenuLocation.WindowPackageManagementNuGet;
+            }
+
+            return symbols.Contains(ToolsMenuDefineSymbol) ? NugetMenuLocation.ToolsNuGet : NugetMenuLocation.NuGet;
+        }
+
+        private static void SetMenuLocationScriptingDefineSymbols(NugetMenuLocation menuLocation)
+        {
+            var defineSymbols = GetCurrentBuildTargetDefineSymbols();
+            var symbols = defineSymbols.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(symbol => symbol.Trim())
+                .Where(symbol => !string.IsNullOrEmpty(symbol))
+                .ToList();
+
+            symbols.RemoveAll(symbol => symbol == ToolsMenuDefineSymbol || symbol == WindowPackageManagementMenuDefineSymbol);
+
+            if (menuLocation == NugetMenuLocation.ToolsNuGet)
+            {
+                symbols.Add(ToolsMenuDefineSymbol);
+            }
+            else if (menuLocation == NugetMenuLocation.WindowPackageManagementNuGet)
+            {
+                symbols.Add(WindowPackageManagementMenuDefineSymbol);
+            }
+
+            SetCurrentBuildTargetDefineSymbols(string.Join(";", symbols.ToArray()));
+        }
+
+        private static string GetCurrentBuildTargetDefineSymbols()
+        {
+#if UNITY_2021_2_OR_NEWER
+            return PlayerSettings.GetScriptingDefineSymbols(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup));
+#else
+            return PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+#endif
+        }
+
+        private static void SetCurrentBuildTargetDefineSymbols(string defineSymbols)
+        {
+#if UNITY_2021_2_OR_NEWER
+            PlayerSettings.SetScriptingDefineSymbols(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup), defineSymbols);
+#else
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, defineSymbols);
+#endif
+        }
+
+        private enum NugetMenuLocation
+        {
+            NuGet,
+
+            ToolsNuGet,
+
+            WindowPackageManagementNuGet,
         }
 
         private sealed class NugetPlugin

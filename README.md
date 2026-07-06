@@ -64,6 +64,8 @@ Download the `*.unitypackage` file. Right-click on it in File Explorer and choos
 
 To launch, select **NuGet → Manage NuGet Packages**
 
+The menu root is selected at compile time. Without a scripting define symbol it appears under **NuGet**. Define `NUGETFORUNITY_MENU_TOOLS` to use **Tools → NuGet**, or `NUGETFORUNITY_MENU_WINDOW_PACKAGE_MANAGER` to use **Window → Package Management → NuGet**. Define only one menu location symbol.
+
 <img alt="Menu Items" src="docs/screenshots/menu_item.png" height="170px" />
 
 After several seconds (it can take some time to query the server for packages), you should see a window like this:

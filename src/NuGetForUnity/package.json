@@ -8,6 +8,10 @@
         "nuget",
         "unity"
     ],
+    "author": {
+        "name": "GlitchEnzo",
+        "url": "https://glitchenzo.github.io/"
+    },
     "license": "MIT",
     "licensesUrl": "https://github.com/GlitchEnzo/NuGetForUnity/blob/master/LICENSE",
     "changelogUrl": "https://github.com/GlitchEnzo/NuGetForUnity/releases",

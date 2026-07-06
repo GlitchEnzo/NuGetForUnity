@@ -290,8 +290,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Opens the NuGet Package Manager Window.
         /// </summary>
-        [MenuItem("NuGet/Manage NuGet Packages", false, 0)]
-        protected static void DisplayNugetWindow()
+        internal static void DisplayNugetWindow()
         {
             GetWindow<NugetWindow>();
         }
@@ -299,8 +298,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Restores all packages defined in packages.config.
         /// </summary>
-        [MenuItem("NuGet/Restore Packages", false, 1)]
-        protected static void RestorePackages()
+        internal static void RestorePackages()
         {
             PackageRestorer.Restore(false);
             foreach (var nugetWindow in Resources.FindObjectsOfTypeAll<NugetWindow>())
@@ -312,8 +310,7 @@ namespace NugetForUnity.Ui
         /// <summary>
         ///     Opens the preferences window.
         /// </summary>
-        [MenuItem("NuGet/Preferences", false, 9)]
-        protected static void DisplayPreferences()
+        internal static void DisplayPreferences()
         {
             SettingsService.OpenProjectSettings(NugetPreferences.MenuItemLocation);
         }
