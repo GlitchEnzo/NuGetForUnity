@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using JetBrains.Annotations;
 using NugetForUnity.Configuration;
+using NugetForUnity.Helper;
 using NugetForUnity.Models;
 using NugetForUnity.PluginSupport;
 using UnityEditor;
@@ -219,6 +220,7 @@ namespace NugetForUnity
                         var libs = new Dictionary<string, List<ZipArchiveEntry>>();
                         var csFiles = new Dictionary<string, List<ZipArchiveEntry>>();
                         var anyFiles = new Dictionary<string, List<ZipArchiveEntry>>();
+                        var extractedAnalyzerDllPaths = new List<string>();
 
                         foreach (var entry in zip.Entries)
                         {
@@ -293,6 +295,13 @@ namespace NugetForUnity
                             var extractedFilePath = PackageContentManager.ExtractPackageEntry(entry, baseDirectory);
 
                             if (extractedFilePath != null &&
+                                entryFullName.StartsWith("analyzers/", StringComparison.Ordinal) &&
+                                entryFullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                            {
+                                extractedAnalyzerDllPaths.Add(extractedFilePath);
+                            }
+
+                            if (extractedFilePath != null &&
                                 (entryFullName.StartsWith("runtimes/", StringComparison.Ordinal) || entryFullName.Contains("/runtimes/")) &&
                                 RuntimePluginFileExtentions.Any(extension => entryFullName.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
                             {
@@ -335,6 +344,11 @@ namespace NugetForUnity
                         else if (anyFiles.Count > 0)
                         {
                             TryExtractBestFrameworkSources(anyFiles, baseDirectory, package, packageConfig);
+                        }
+
+                        foreach (var analyzerDllPath in extractedAnalyzerDllPaths)
+                        {
+                            AnalyzerHelper.WriteInitialRoslynAnalyzerImportSettings(analyzerDllPath);
                         }
                     }
                 }

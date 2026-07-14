@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using JetBrains.Annotations;
 using NugetForUnity.Models;
 
@@ -15,6 +16,11 @@ namespace NugetForUnity.Helper
         ///     Folder used to store Roslyn-Analyzers inside NuGet packages.
         /// </summary>
         private const string AnalyzersFolderName = "analyzers";
+
+        /// <summary>
+        ///     Used to let unity know an asset is a Roslyn-Analyzer.
+        /// </summary>
+        private const string RoslynAnalyzerLabel = "RoslynAnalyzer";
 
         /// <summary>
         ///     Name of the root folder containing dotnet analyzers.
@@ -53,6 +59,11 @@ namespace NugetForUnity.Helper
                     .Where(version => version != null && version.CompareTo(maxSupportedRoslynVersion) <= 0)
                     .ToArray();
 
+                if (allEnabledRoslynVersions.Length == 0)
+                {
+                    return false;
+                }
+
                 // If most recent valid analyzers exist elsewhere, don't add label `RoslynAnalyzer`
                 var maxMatchingVersion = allEnabledRoslynVersions.Max();
                 if (!allEnabledRoslynVersions.Contains(assetRoslynVersion) || assetRoslynVersion < maxMatchingVersion)
@@ -62,6 +73,55 @@ namespace NugetForUnity.Helper
             }
 
             return true;
+        }
+
+        /// <summary>
+        ///     Writes initial Unity import settings for a Roslyn analyzer DLL before Unity imports it for the first time.
+        /// </summary>
+        /// <param name="analyzerDllPath">The path to the analyzer DLL.</param>
+        public static void WriteInitialRoslynAnalyzerImportSettings([NotNull] string analyzerDllPath)
+        {
+            var analyzerDllMetaPath = $"{analyzerDllPath}.meta";
+            if (File.Exists(analyzerDllMetaPath))
+            {
+                return;
+            }
+
+            var labelsForAsset = ShouldEnableRoslynAnalyzer(analyzerDllPath) ?
+                $"labels:{Environment.NewLine}- {RoslynAnalyzerLabel}{Environment.NewLine}" :
+                $"labels: []{Environment.NewLine}";
+
+            File.WriteAllText(
+                analyzerDllMetaPath,
+                "fileFormatVersion: 2" + Environment.NewLine +
+                $"guid: {Guid.NewGuid():N}" + Environment.NewLine +
+                labelsForAsset +
+                "PluginImporter:" + Environment.NewLine +
+                "  externalObjects: {}" + Environment.NewLine +
+                "  serializedVersion: 2" + Environment.NewLine +
+                "  iconMap: {}" + Environment.NewLine +
+                "  executionOrder: {}" + Environment.NewLine +
+                "  defineConstraints: []" + Environment.NewLine +
+                "  isPreloaded: 0" + Environment.NewLine +
+                "  isOverridable: 0" + Environment.NewLine +
+                "  isExplicitlyReferenced: 0" + Environment.NewLine +
+                "  validateReferences: 1" + Environment.NewLine +
+                "  platformData:" + Environment.NewLine +
+                "  - first:" + Environment.NewLine +
+                "      Any: " + Environment.NewLine +
+                "    second:" + Environment.NewLine +
+                "      enabled: 0" + Environment.NewLine +
+                "      settings: {}" + Environment.NewLine +
+                "  - first:" + Environment.NewLine +
+                "      Editor: Editor" + Environment.NewLine +
+                "    second:" + Environment.NewLine +
+                "      enabled: 0" + Environment.NewLine +
+                "      settings:" + Environment.NewLine +
+                "        DefaultValueInitialized: true" + Environment.NewLine +
+                "  userData: " + Environment.NewLine +
+                "  assetBundleName: " + Environment.NewLine +
+                "  assetBundleVariant: " + Environment.NewLine,
+                new UTF8Encoding(false));
         }
 
         [CanBeNull]

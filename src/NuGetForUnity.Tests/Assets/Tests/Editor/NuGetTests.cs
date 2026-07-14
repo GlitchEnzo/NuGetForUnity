@@ -111,11 +111,22 @@ public class NuGetTests
         var analyzer = new NugetPackageIdentifier("ErrorProne.NET.CoreAnalyzers", "0.1.2") { IsManuallyInstalled = true };
 
         // install the package
-        NugetPackageInstaller.InstallIdentifier(analyzer);
+        NugetPackageInstaller.InstallIdentifier(analyzer, false);
         try
         {
-            AssetDatabase.Refresh();
             var path = $"Assets/Packages/{analyzer.Id}.{analyzer.Version}/analyzers/dotnet/cs/ErrorProne.NET.Core.dll";
+            var analyzerDllPath = Path.Combine(
+                ConfigurationManager.NugetConfigFile.RepositoryPath,
+                $"{analyzer.Id}.{analyzer.Version}",
+                "analyzers",
+                "dotnet",
+                "cs",
+                "ErrorProne.NET.Core.dll");
+            var analyzerMetaPath = $"{analyzerDllPath}.meta";
+            Assert.That(analyzerMetaPath, Does.Exist.IgnoreDirectories, "Expected analyzer import settings before AssetDatabase.Refresh");
+            Assert.That(File.ReadAllText(analyzerMetaPath), Does.Contain("- RoslynAnalyzer"));
+
+            AssetDatabase.Refresh();
             var meta = (PluginImporter)AssetImporter.GetAtPath(path);
 
 #if UNITY_2022_3_OR_NEWER
