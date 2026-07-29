@@ -17,6 +17,11 @@ namespace NugetForUnity.Helper
         private const string AnalyzersFolderName = "analyzers";
 
         /// <summary>
+        ///     File name suffix used by assemblies that provide IDE code fixes instead of compiler analyzers.
+        /// </summary>
+        private const string CodeFixAssemblySuffix = ".CodeFixes.dll";
+
+        /// <summary>
         ///     Name of the root folder containing dotnet analyzers.
         /// </summary>
         private static readonly string AnalyzersRoslynVersionsFolderName = Path.Combine(AnalyzersFolderName, "dotnet");
@@ -33,6 +38,11 @@ namespace NugetForUnity.Helper
         /// <returns>True if the label should be added, false otherwise.</returns>
         public static bool ShouldEnableRoslynAnalyzer(string path)
         {
+            if (path.EndsWith(CodeFixAssemblySuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
             // The nuget package can contain analyzers for multiple Roslyn versions.
             // In that case, for the same package, the most recent version must be chosen out of those available for the current Unity version.
             var assetPath = Path.GetFullPath(path);
