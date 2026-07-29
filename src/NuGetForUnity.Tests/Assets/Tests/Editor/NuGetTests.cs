@@ -52,6 +52,13 @@ public class NuGetTests
         Assert.Pass();
     }
 
+    [TestCase("MessagePack.Analyzers.CodeFixes.dll")]
+    [TestCase("messagepack.analyzers.codefixes.DLL")]
+    public void CodeFixAssemblyIsNotEnabledAsRoslynAnalyzerTest(string assemblyPath)
+    {
+        Assert.IsFalse(AnalyzerHelper.ShouldEnableRoslynAnalyzer(assemblyPath));
+    }
+
     [Test]
     public void LoadConfigFileTest()
     {
