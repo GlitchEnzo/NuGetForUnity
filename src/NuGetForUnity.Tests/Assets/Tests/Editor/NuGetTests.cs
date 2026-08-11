@@ -59,6 +59,26 @@ public class NuGetTests
         Assert.Pass();
     }
 
+    [TestCase("buildTransitive/config/analysislevel.globalconfig")]
+    [TestCase("rulesets/MicrosoftCodeAnalysisReleaseTrackingRulesEnabled.ruleset")]
+    public void SkipMsBuildOnlyFilesTest(string path)
+    {
+        Assert.IsTrue(PackageContentManager.ShouldSkipUnpackingOnPath(path, null));
+    }
+
+    [TestCase("analyzers/roslyn4.3/cs/MessagePack.Analyzers.CodeFixes.dll")]
+    [TestCase("analyzers/dotnet/cs/Microsoft.CodeAnalysis.Analyzers.dll")]
+    public void SkipUnityIncompatibleAnalyzerTest(string path)
+    {
+        Assert.IsTrue(PackageContentManager.ShouldSkipUnpackingOnPath(path, null));
+    }
+
+    [Test]
+    public void KeepMessagePackSourceGeneratorTest()
+    {
+        Assert.IsFalse(PackageContentManager.ShouldSkipUnpackingOnPath("analyzers/roslyn4.3/cs/MessagePack.SourceGenerator.dll", null));
+    }
+
     [Test]
     [Order(2)]
     public void InstallJsonTest([Values] InstallMode installMode)

@@ -146,6 +146,23 @@ namespace NugetForUnity
                 return true;
             }
 
+            if (path.StartsWith("buildTransitive/", StringComparison.Ordinal) || path.Contains("/buildTransitive/"))
+            {
+                return true;
+            }
+
+            if (path.StartsWith("rulesets/", StringComparison.Ordinal) || path.Contains("/rulesets/"))
+            {
+                return true;
+            }
+
+            if ((path.StartsWith("analyzers/", StringComparison.Ordinal) || path.Contains("/analyzers/")) &&
+                (path.EndsWith(".CodeFixes.dll", StringComparison.Ordinal) ||
+                 Path.GetFileName(path).StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal)))
+            {
+                return true;
+            }
+
             // For now, skip src. We may use it later...
             if (path.StartsWith("src/", StringComparison.Ordinal) || path.Contains("/src/"))
             {
