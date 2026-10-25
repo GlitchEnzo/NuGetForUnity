@@ -497,7 +497,7 @@ namespace NugetForUnity.PackageSource
                         new NugetPackageVersion($"[{registrationItem.lower},{registrationItem.upper}]").InRange(package.PackageVersion));
             if (pageItem is null)
             {
-                Debug.LogError($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
+                Debug.LogWarning($"There is no package with id '{package.Id}' and version '{package.Version}' on the registration page.");
                 return null;
             }
 
@@ -513,7 +513,7 @@ namespace NugetForUnity.PackageSource
                     .FirstOrDefault(leaf => package.PackageVersion.InRange(new NugetPackageVersion(leaf.CatalogEntry.version)));
             if (leafItem is null)
             {
-                Debug.LogError(
+                Debug.LogWarning(
                     $"There is no package with id '{package.Id}' and version '{package.PackageVersion}' in the registration page with the matching version rage: {pageItem.lower} to {pageItem.upper} '{pageItem.atId}'.");
                 return null;
             }

@@ -213,6 +213,13 @@ namespace NugetForUnity.PackageSource
             }
             catch (Exception e)
             {
+                if (e is WebException { Response: HttpWebResponse { StatusCode: HttpStatusCode.NotFound } })
+                {
+                    // not an error: the package may exist in another package source
+                    NugetLogger.LogVerbose("{0} not found in package source '{1}'.", url, Name);
+                    return null;
+                }
+
                 Debug.LogErrorFormat("Unable to retrieve package from {0}\n{1}", url, e);
                 return null;
             }

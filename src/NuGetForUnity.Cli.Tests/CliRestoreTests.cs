@@ -25,8 +25,9 @@ namespace NuGetForUnity.Cli.Tests
         private static readonly string TestProjectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
         [Test]
-        public async Task Restore_WithPackageSources_ShouldExitZero([Values] bool useAdditionalSource)
+        public async Task Restore_WithPackageSources_ShouldExitZero([Values] AdditionalSource additionalSource)
         {
+            var useAdditionalSource = additionalSource != AdditionalSource.None;
             // If useAdditionalSource, start a local HTTP server that responds to all request (simulates a empty nuget V3 source)
             string? emptySourceUrl = null;
             HttpListener? listener = null;
@@ -57,7 +58,7 @@ namespace NuGetForUnity.Cli.Tests
                                 var httpContext = await listener.GetContextAsync();
                                 httpContext.Response.StatusCode = 200;
                                 httpContext.Response.ContentType = "application/json";
-                                var responseJson = HandleNuGetSourceRequest(httpContext);
+                                var responseJson = HandleNuGetSourceRequest(httpContext, additionalSource);
                                 var bytes = Encoding.UTF8.GetBytes(responseJson);
                                 httpContext.Response.OutputStream.Write(bytes);
                                 httpContext.Response.OutputStream.Flush();
@@ -176,7 +177,18 @@ namespace NuGetForUnity.Cli.Tests
             }
         }
 
-        private static string HandleNuGetSourceRequest(HttpListenerContext httpContext)
+        public enum AdditionalSource
+        {
+            None,
+
+            // package is not known to the source (404)
+            WithoutPackage,
+
+            // package is known to the source but not in the requested version
+            WithOtherVersionOnly,
+        }
+
+        private static string HandleNuGetSourceRequest(HttpListenerContext httpContext, AdditionalSource additionalSource)
         {
             var requestBaseUrl = httpContext.Request.Url!.GetLeftPart(UriPartial.Authority);
             var absolutePath = httpContext.Request.Url.AbsolutePath;
@@ -209,6 +221,18 @@ namespace NuGetForUnity.Cli.Tests
 
             if (absolutePath.StartsWith("/registration/", StringComparison.Ordinal))
             {
+                if (additionalSource == AdditionalSource.WithOtherVersionOnly)
+                {
+                    return $$"""
+                             {
+                                 "count": 1,
+                                 "items": [
+                                     { "@id": "{{requestBaseUrl}}{{absolutePath}}#page", "count": 1, "lower": "1.0.0", "upper": "1.0.0", "items": [] }
+                                 ]
+                             }
+                             """;
+                }
+
                 httpContext.Response.StatusCode = 404;
                 return "Package doesn't exist";
             }
