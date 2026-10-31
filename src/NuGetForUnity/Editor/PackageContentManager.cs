@@ -146,6 +146,18 @@ namespace NugetForUnity
                 return true;
             }
 
+            // Unity has no use for the buildTransitive directory (contains analyzer globalconfig variants that cause "will be ignored" warnings)
+            if (path.StartsWith("buildTransitive/", StringComparison.Ordinal) || path.Contains("/buildTransitive/"))
+            {
+                return true;
+            }
+
+            // Unity has no use for the rulesets directory (contains analyzer ruleset variants that cause duplicate warnings)
+            if (path.StartsWith("rulesets/", StringComparison.Ordinal) || path.Contains("/rulesets/"))
+            {
+                return true;
+            }
+
             // For now, skip src. We may use it later...
             if (path.StartsWith("src/", StringComparison.Ordinal) || path.Contains("/src/"))
             {
